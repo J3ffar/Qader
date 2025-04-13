@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 from decouple import config, Csv
 import dj_database_url
@@ -23,11 +24,14 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party apps
     "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "drf_spectacular",
     "django_filters",
     # Project apps
     "apps.api",
+    "apps.users",
 ]
 
 MIDDLEWARE = [
@@ -119,18 +123,18 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMAIL_BACKEND = config(
     "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
 )
-# EMAIL_HOST = config("EMAIL_HOST")
-# EMAIL_PORT = config("EMAIL_PORT", cast=int)
+# EMAIL_HOST = config("EMAIL_HOST", default="")
+# EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 # EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
-# EMAIL_HOST_USER = config("EMAIL_HOST_USER")
-# EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
-# DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
+# EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+# EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+# DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="webmaster@localhost")
 
 # Django REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
@@ -154,6 +158,45 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API documentation for the Qader Learning Platform",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+}
+
+# --- Simple JWT Settings ---
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=config("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", default=60, cast=int)
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=config("JWT_REFRESH_TOKEN_LIFETIME_DAYS", default=1, cast=int)
+    ),
+    "ROTATE_REFRESH_TOKENS": True,  # Issue new refresh token when refreshing
+    "BLACKLIST_AFTER_ROTATION": True,  # Blacklist old refresh token
+    "UPDATE_LAST_LOGIN": True,  # Update user's last_login field on token refresh
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": config(
+        "JWT_SIGNING_KEY", default=SECRET_KEY
+    ),  # Use separate key ideally
+    "VERIFYING_KEY": None,
+    "AUDIENCE": None,
+    "ISSUER": None,
+    "JWK_URL": None,
+    "LEEWAY": 0,
+    "AUTH_HEADER_TYPES": (
+        "Bearer",
+    ),  # Standard header: "Authorization: Bearer <token>"
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
+    "JTI_CLAIM": "jti",
+    "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
+    "SLIDING_TOKEN_LIFETIME": timedelta(
+        minutes=5
+    ),  # Not typically used with Access/Refresh pair
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),  # Not typically used
 }
 
 # CORS Settings

@@ -18,6 +18,7 @@ CSRF_COOKIE_SECURE = True  # Send CSRF cookie only over HTTPS
 # X_FRAME_OPTIONS = 'DENY' # Default is SAMEORIGIN, DENY is more secure if not embedding
 
 # Static files storage for production (using WhiteNoise)
+MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 STATIC_ROOT = BASE_DIR / "staticfiles"  # Collect static files here for whitenoise
 
