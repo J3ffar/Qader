@@ -23,10 +23,12 @@ from .serializers import (
     ProfilePictureSerializer,
 )
 from ..models import UserProfile
+from drf_spectacular.utils import extend_schema
 
 # --- Authentication Views ---
 
 
+@extend_schema(tags=["Authentication"])
 class CustomTokenObtainPairView(TokenObtainPairView):
     """Customize JWT payload if needed"""
 
@@ -35,6 +37,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     pass
 
 
+@extend_schema(tags=["Authentication"])
 class LogoutView(views.APIView):
     """Blacklists the refresh token to log out"""
 
@@ -53,6 +56,7 @@ class LogoutView(views.APIView):
             )
 
 
+@extend_schema(tags=["Authentication"])
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [AllowAny]
@@ -77,6 +81,7 @@ class RegisterView(generics.CreateAPIView):
 # --- User Profile Views ---
 
 
+@extend_schema(tags=["User Profile"])
 class UserProfileView(generics.RetrieveUpdateAPIView):
     """GET, PATCH the profile for the logged-in user (/me/)"""
 
@@ -104,6 +109,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 # --- Password Management Views ---
 
 
+@extend_schema(tags=["User Profile"])
 class PasswordChangeView(generics.GenericAPIView):
     """Change password for the logged-in user"""
 
@@ -123,6 +129,7 @@ class PasswordChangeView(generics.GenericAPIView):
         )
 
 
+@extend_schema(tags=["Authentication"])
 class PasswordResetRequestView(generics.GenericAPIView):
     """Request a password reset email"""
 
@@ -189,6 +196,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
         )
 
 
+@extend_schema(tags=["Authentication"])
 class PasswordResetConfirmView(generics.GenericAPIView):
     """Confirm password reset using token"""
 
@@ -224,6 +232,7 @@ class PasswordResetConfirmView(generics.GenericAPIView):
             )
 
 
+@extend_schema(tags=["User Profile"])
 class ProfilePictureUploadView(views.APIView):
     """Upload or update the user's profile picture."""
 

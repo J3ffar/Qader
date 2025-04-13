@@ -159,6 +159,17 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    # Define Tag order and descriptions
+    "TAGS": [
+        {
+            "name": "Authentication",
+            "description": "User registration, login, logout, password reset.",
+        },
+        {
+            "name": "User Profile",
+            "description": "Manage current user profile and settings.",
+        },
+    ],
 }
 
 # --- Simple JWT Settings ---
