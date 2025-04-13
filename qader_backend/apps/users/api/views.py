@@ -11,6 +11,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from .serializers import (
     RegisterSerializer,
@@ -19,6 +20,7 @@ from .serializers import (
     PasswordChangeSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
+    ProfilePictureSerializer,
 )
 from ..models import UserProfile
 
@@ -222,10 +224,30 @@ class PasswordResetConfirmView(generics.GenericAPIView):
             )
 
 
-# TODO: Add view for profile picture upload separately (using multipart/form-data)
-# class ProfilePictureUploadView(views.APIView):
-#     permission_classes = [IsAuthenticated]
-#     # parser_classes = [MultiPartParser, FormParser]
-#     def post(self, request, format=None):
-#         # ... logic to handle file upload and save to profile_picture field ...
-#         pass
+class ProfilePictureUploadView(views.APIView):
+    """Upload or update the user's profile picture."""
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, format=None):
+        serializer = ProfilePictureSerializer(data=request.data)
+        if serializer.is_valid():
+            profile = request.user.profile
+            # Delete old picture if it exists to prevent orphaned files
+            if profile.profile_picture:
+                profile.profile_picture.delete(save=False)  # Don't save yet
+
+            profile.profile_picture = serializer.validated_data["profile_picture"]
+            profile.save(update_fields=["profile_picture", "updated_at"])
+
+            # Use UserProfileSerializer to return the updated profile picture URL
+            profile_serializer = UserProfileSerializer(
+                profile, context={"request": request}
+            )
+            return Response(
+                {"profile_picture_url": profile_serializer.data.get("profile_picture")},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

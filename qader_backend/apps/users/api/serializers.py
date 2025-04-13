@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
+from django.forms import ValidationError
 from django.utils import timezone
 from django.db import transaction
 
@@ -257,6 +258,27 @@ class PasswordChangeSerializer(serializers.Serializer):
                 {"new_password_confirm": "New password fields didn't match."}
             )
         return attrs
+
+
+class ProfilePictureSerializer(serializers.Serializer):
+    profile_picture = serializers.ImageField(required=True)
+
+    def validate_profile_picture(self, image):
+        # Optional: Add validation for file size, dimensions, etc.
+        max_upload_size = 5 * 1024 * 1024  # 5 MB example limit
+        if image.size > max_upload_size:
+            raise ValidationError(
+                f"Image size cannot exceed {max_upload_size // 1024 // 1024}MB."
+            )
+
+        # Optional: Dimension check
+        # try:
+        #     width, height = get_image_dimensions(image)
+        #     # Add dimension checks if needed
+        # except Exception:
+        #      raise ValidationError("Could not read image dimensions.")
+
+        return image
 
 
 # --- Password Reset Serializers (Example using built-in Django logic flow) ---
