@@ -21,14 +21,9 @@ INTERNAL_IPS = [
     "127.0.0.1",
 ]
 
-REST_FRAMEWORK.update(
-    {
-        "DEFAULT_RENDERER_CLASSES": [
-            "rest_framework.renderers.BrowsableAPIRenderer",
-        ],
-    }
+REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"].append(
+    "rest_framework.renderers.BrowsableAPIRenderer"
 )
-
 
 # Use console email backend for development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
