@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
-from django.core.mail import send_mail, EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.http import Http404
@@ -23,15 +23,17 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from drf_spectacular.utils import OpenApiExample
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
+from rest_framework import serializers
 from .serializers import (
+    AuthUserResponseSerializer,
     RegisterSerializer,
     UserProfileSerializer,
     UserProfileUpdateSerializer,
     PasswordChangeSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
-    SimpleUserSerializer,  # Needed for some responses
-    SubscriptionDetailSerializer,  # Needed for login response customization
+    SimpleUserSerializer,
+    SubscriptionDetailSerializer,
 )
 from ..models import UserProfile
 
@@ -49,13 +51,13 @@ logger = logging.getLogger(__name__)
     description="Authenticate with username and password to receive JWT tokens.",
     responses={
         200: OpenApiResponse(
+            response=AuthUserResponseSerializer,
             description="Authentication successful, returns tokens and basic user info.",
             examples=[
-                OpenApiResponse(
-                    description="Success",
-                    examples={
-                        "access": "eyJhbGciOiJIUzI1NiIsIn...",
-                        "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
+                OpenApiExample(
+                    name="Success",
+                    description="Successful login response",
+                    value={
                         "user": {
                             "id": 15,
                             "username": "ali_student99",
@@ -64,11 +66,16 @@ logger = logging.getLogger(__name__)
                             "subscription": {
                                 "is_active": True,
                                 "expires_at": "2024-10-21T10:00:00Z",
+                                "serial_code": "QADER-PREV1-XYZ",
                             },
                             "profile_picture_url": "/media/profiles/ali_pic.jpg",
                             "level_determined": True,
                         },
+                        "access": "eyJhbGciOiJIUzI1NiIsIn...",
+                        "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
                     },
+                    response_only=True,
+                    status_codes=["200"],
                 )
             ],
         ),
@@ -102,41 +109,22 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         # Add custom user data to the response
         user = serializer.user  # User instance is attached by the serializer
         try:
-            profile = user.profile
-            profile_serializer = UserProfileSerializer(
-                profile, context={"request": request}
-            )
-            subscription_serializer = SubscriptionDetailSerializer(profile)
+            profile = user.profile  # Assumes profile exists for logged-in user
+            # --- Use AuthUserResponseSerializer for the 'user' object ---
+            context = {"request": request}
+            user_data_serializer = AuthUserResponseSerializer(profile, context=context)
+            data["user"] = user_data_serializer.data
 
-            data["user"] = {
-                "id": user.id,
-                "username": user.username,
-                "preferred_name": profile.preferred_name,
-                "role": profile.role,
-                "subscription": subscription_serializer.data,
-                "profile_picture_url": profile_serializer.get_profile_picture_url(
-                    profile
-                ),
-                "level_determined": profile.level_determined,
-            }
             logger.info(f"User {user.username} logged in successfully.")
         except UserProfile.DoesNotExist:
             logger.error(f"UserProfile not found during login for user ID: {user.id}")
             # Return standard tokens but log the error
-            data["user"] = {
-                "id": user.id,
-                "username": user.username,
-                "error": "Profile data unavailable.",
-            }
+            data["user"] = {"error": "Profile data unavailable."}
         except Exception as e:
             logger.exception(
                 f"Error adding user data to login response for user {user.username}: {e}"
             )
-            data["user"] = {
-                "id": user.id,
-                "username": user.username,
-                "error": "Error fetching profile data.",
-            }
+            data["user"] = {"error": "Error fetching profile data."}
 
         return Response(data, status=status.HTTP_200_OK)
 
@@ -196,6 +184,7 @@ class LogoutView(views.APIView):
     request=RegisterSerializer,
     responses={
         201: OpenApiResponse(
+            response=AuthUserResponseSerializer,
             description="User registered successfully.",
             examples=[
                 OpenApiExample(
@@ -203,15 +192,22 @@ class LogoutView(views.APIView):
                     description="Successful registration response",
                     value={
                         "user": {
-                            "id": 1,
-                            "username": "newuser",
-                            "email": "new@example.com",
-                            "full_name": "New User Test",
+                            "id": 15,
+                            "username": "ali_student99",
+                            "email": "ali.ahmed@example.com",
+                            "full_name": "Ali Ahmed Mohamed",
+                            "preferred_name": "Ali",
                             "role": "student",
+                            "subscription": {
+                                "is_active": True,
+                                "expires_at": "2024-10-21T10:00:00Z",
+                                "serial_code": "QADER-XYZ123-ABC",
+                            },
+                            "profile_picture_url": None,
+                            "level_determined": False,
                         },
                         "access": "eyJhbGciOiJIUzI1NiIsIn...",
                         "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
-                        "message": "Registration successful.",
                     },
                     response_only=True,
                     status_codes=["201"],
@@ -238,33 +234,29 @@ class RegisterView(generics.CreateAPIView):
 
         try:
             user = serializer.save()  # Calls serializer.create()
-            headers = self.get_success_headers(serializer.data)
+            profile = (
+                user.profile
+            )  # Get the profile created/updated in serializer.create
 
+            # Generate tokens
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
 
-            # Construct the response data based on the created user object
+            # --- Use AuthUserResponseSerializer for the 'user' object ---
+            # Pass request in context if needed (e.g., for build_absolute_uri)
+            context = {"request": request}
+            user_data_serializer = AuthUserResponseSerializer(profile, context=context)
+
             response_data = {
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "full_name": user.profile.full_name,
-                    "role": user.profile.role,
-                    # You might want to add subscription details here too,
-                    # similar to the API doc, but keep it lean if possible.
-                },
+                "user": user_data_serializer.data,
                 "access": access_token,
                 "refresh": refresh_token,
-                "message": _("Registration successful."),
             }
             logger.info(
                 f"User {user.username} registered successfully and tokens generated."
             )
-            return Response(
-                response_data, status=status.HTTP_201_CREATED, headers=headers
-            )
+            return Response(response_data, status=status.HTTP_201_CREATED)
         # Catch specific expected errors from serializer.save() if any,
         # otherwise catch broader exceptions that indicate a server issue.
         except (
@@ -298,11 +290,12 @@ class RegisterView(generics.CreateAPIView):
     request=TokenRefreshSerializer,  # Use the standard serializer for request schema
     responses={
         200: OpenApiResponse(
+            response=serializers,
             description="Access token refreshed successfully.",
             examples=[
-                OpenApiResponse(
-                    description="Success",
-                    examples={"access": "eyJhbGciOiJIUzI1NiIsIn..."},
+                OpenApiExample(
+                    name="Success",
+                    value={"access": "eyJhbGciOiJIUzI1NiIsIn..."},
                 )
             ],
         ),
@@ -322,7 +315,7 @@ class CustomTokenRefreshView(TokenRefreshView):
 @extend_schema(
     tags=["User Profile"],
     summary="Retrieve or Update Current User Profile",
-    description="GET: Returns the profile details of the currently authenticated user.\nPATCH: Partially updates profile details. Accepts `multipart/form-data` for updates, allowing profile picture upload alongside other fields.",  # Updated description
+    description="GET: Returns the profile details of the currently authenticated user.\nPATCH: Partially updates profile details. Accepts `multipart/form-data` for updates, allowing profile picture upload alongside other fields.",
     # Update request body example for PATCH if needed, show profile_picture as optional field
     request=UserProfileUpdateSerializer,
     responses={

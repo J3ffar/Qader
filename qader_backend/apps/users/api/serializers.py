@@ -236,10 +236,68 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 
 
 class SubscriptionDetailSerializer(serializers.Serializer):
-    """Serializer for the nested subscription details."""
+    """Serializer for the nested subscription details (Used in Auth and /me)."""
 
-    is_active = serializers.BooleanField(read_only=True)
-    expires_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    is_active = serializers.BooleanField(read_only=True, source="is_subscribed")
+    expires_at = serializers.DateTimeField(
+        read_only=True, source="subscription_expires_at"
+    )
+    serial_code = serializers.SerializerMethodField(read_only=True)
+
+    def get_serial_code(self, profile: UserProfile) -> str | None:
+        """Safely return the code of the last used serial."""
+        if profile.serial_code_used:
+            return profile.serial_code_used.code
+        return None
+
+
+class AuthUserResponseSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the 'user' object returned in successful Login and Register responses.
+    Represents the UserProfile model, sourcing necessary fields from User and Profile.
+    """
+
+    # Fields directly from User model (via profile.user)
+    id = serializers.IntegerField(source="user.id", read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+
+    # Fields from UserProfile model
+    full_name = serializers.CharField(read_only=True)
+    preferred_name = serializers.CharField(read_only=True)
+    role = serializers.CharField(read_only=True)
+
+    # Nested Subscription Details
+    subscription = SubscriptionDetailSerializer(source="*", read_only=True)
+    # Other relevant fields for initial state
+    profile_picture_url = serializers.SerializerMethodField()
+    level_determined = serializers.BooleanField(
+        read_only=True
+    )  # Directly from profile property
+
+    class Meta:
+        model = UserProfile  # Based on UserProfile as the primary source after user creation/login
+        fields = (
+            "id",
+            "username",
+            "email",
+            "full_name",
+            "preferred_name",
+            "role",
+            "subscription",
+            "profile_picture_url",
+            "level_determined",
+        )
+        read_only_fields = fields  # This is purely for representing output
+
+    def get_profile_picture_url(self, instance: UserProfile) -> str | None:
+        """Generate profile picture URL (similar to UserProfileSerializer)."""
+        request = self.context.get("request")
+        if instance.profile_picture and hasattr(instance.profile_picture, "url"):
+            if request:
+                return request.build_absolute_uri(instance.profile_picture.url)
+            return instance.profile_picture.url
+        return None
 
 
 class ReferralDetailSerializer(serializers.Serializer):
@@ -255,9 +313,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     user = SimpleUserSerializer(read_only=True)  # Nested basic user info
     # Properties exposed as read-only fields
-    is_subscribed = serializers.BooleanField(
-        read_only=True, source="profile.is_subscribed"
-    )  # Use source if accessing via user
     level_determined = serializers.BooleanField(
         read_only=True, source="profile.level_determined"
     )
@@ -300,7 +355,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             # Custom structured fields
-            "is_subscribed",  # Direct property access is fine too if structure not needed
             "subscription",
             "referral",
         )
