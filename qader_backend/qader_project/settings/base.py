@@ -172,6 +172,33 @@ SPECTACULAR_SETTINGS = {
             "name": "User Profile",
             "description": "Manage current user profile and settings.",
         },
+        {
+            "name": "Public Content",
+            "description": "Endpoints for publicly accessible content (Pages, FAQ, Partners, Contact).",
+        },
+        {
+            "name": "Learning Content",
+            "description": "Access learning structure (Sections, Subsections, Skills, Questions).",
+        },
+        {
+            "name": "Study & Progress",
+            "description": "Endpoints for user study activities, tests, and progress tracking.",
+        },
+        {
+            "name": "Gamification",
+            "description": "Endpoints related to points, streaks, badges, and rewards.",
+        },
+        {"name": "Challenges", "description": "Endpoints for user-vs-user challenges."},
+        {
+            "name": "Student Community",
+            "description": "Endpoints for the community forum.",
+        },
+        {"name": "Admin Support", "description": "Endpoints for user support tickets."},
+        {
+            "name": "Admin Panel",
+            "description": "Endpoints for platform administration (requires admin/sub-admin privileges).",
+        },
+        # Add more tags as other apps are implemented
     ],
     "SWAGGER_UI_SETTINGS": {  # Fine-tune Swagger UI appearance/behavior
         "deepLinking": True,
