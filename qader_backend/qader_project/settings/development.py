@@ -1,10 +1,12 @@
 # qader_project/settings/development.py
+import os
 from .base import *
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True  # Explicitly True for development
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"] + ALLOWED_HOSTS  # Add local dev hosts
+# Allow all hosts for local development
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
 
 # Add development-specific apps
 INSTALLED_APPS += [
@@ -40,3 +42,29 @@ DATABASES = {
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",  # Adjust level for verbosity
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
+    },
+}
+
+# Disable password validators during development for faster user creation
+AUTH_PASSWORD_VALIDATORS = []
+
+print("--- Development Settings Loaded ---")

@@ -1,48 +1,59 @@
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.views import APIView
-from django.utils import timezone
-from ..models import UserProfile  # Adjust import if needed
+from django.utils.translation import gettext_lazy as _
+from ..models import UserProfile
+
+import logging  # Use standard logging
+
+logger = logging.getLogger(__name__)
 
 
 class IsSubscribed(BasePermission):
     """
-    Allows access only to authenticated users with an active subscription.
-    Assumes a related UserProfile model exists with an 'is_subscribed' property or method.
+    Custom permission to only allow access to users with an active subscription.
+
+    Assumes:
+    - User is authenticated (should be checked before this permission).
+    - A related UserProfile model exists via `request.user.profile`.
+    - The UserProfile model has an `is_subscribed` property or method.
     """
 
-    message = "User does not have an active subscription."
+    message = _("An active subscription is required to access this resource.")
 
     def has_permission(self, request: Request, view: APIView) -> bool:
-        # First, ensure the user is authenticated at all.
-        if not request.user or not request.user.is_authenticated:
-            return False
-
-        # Then, check for the subscription status on their profile.
+        # Check for the subscription status on the user's profile.
         try:
+            # Access the related profile directly
             profile = request.user.profile
-            # Rely on the is_subscribed property in the UserProfile model
+            # Use the efficient `is_subscribed` property defined in the model
             return profile.is_subscribed
         except UserProfile.DoesNotExist:
-            # Handle cases where profile might not exist (data integrity issue)
+            # This indicates a data integrity issue - a logged-in user should have a profile.
+            logger.error(
+                f"UserProfile.DoesNotExist for authenticated user ID: {request.user.id}"
+            )
             return False
         except AttributeError:
-            # Handle cases where 'is_subscribed' is not defined on the profile
-            # (should not happen with the current model definition)
-            # You might want to log this error.
-            print(
-                f"Error: User {request.user.id} profile missing 'is_subscribed' property."
-            )  # Use proper logging
+            # This would mean `is_subscribed` is not defined on the profile model.
+            logger.error(
+                f"AttributeError: UserProfile for user ID {request.user.id} is missing 'is_subscribed' property."
+            )
             return False
 
 
-# Example Usage (in a view):
+# --- Example Usage in a View ---
+# from rest_framework.views import APIView
+# from rest_framework.response import Response
 # from rest_framework.permissions import IsAuthenticated
 # from .permissions import IsSubscribed
 #
-# class SubscriberOnlyView(APIView):
-#     permission_classes = [IsAuthenticated, IsSubscribed]
+# class PremiumFeatureView(APIView):
+#     """
+#     An example view that requires both authentication and an active subscription.
+#     """
+#     permission_classes = [IsAuthenticated, IsSubscribed] # Order matters
 #
 #     def get(self, request):
-#         # ... view logic for subscribed users ...
-#         return Response(...)
+#         content = {"message": "Welcome to the premium feature!"}
+#         return Response(content)
