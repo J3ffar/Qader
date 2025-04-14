@@ -3,12 +3,13 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     RegisterView,
-    CustomTokenObtainPairView,  # Use custom if defined, else TokenObtainPairView
+    CustomTokenObtainPairView,
     LogoutView,
     PasswordResetRequestView,
     PasswordResetConfirmView,
 )
 
+app_name = "auth"
 
 urlpatterns = [
     # Authentication

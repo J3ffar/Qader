@@ -1,8 +1,12 @@
 from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
-app_name = "api_v1"
+router = DefaultRouter()
+
+app_name = "v1"
 
 urlpatterns = [
+    path("", include(router.urls)),
     path("auth/", include("apps.users.api.auth_urls"), name="auth"),
     path("users/", include("apps.users.api.users_urls"), name="users"),
 ]

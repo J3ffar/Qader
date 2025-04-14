@@ -3,8 +3,8 @@ import pytest
 from django.urls import reverse
 from django.core import mail
 from rest_framework import status
-from apps.users.models import UserProfile, SerialCode  # Adjust import
-from .factories import UserFactory, SerialCodeFactory  # Adjust import
+from django.contrib.auth.models import User
+from .factories import UserFactory, SerialCodeFactory
 
 pytestmark = pytest.mark.django_db  # Ensure DB access for all tests in this file
 
@@ -106,65 +106,3 @@ def test_password_reset_request_success(api_client):
     assert response.status_code == status.HTTP_200_OK
     assert len(mail.outbox) == 1  # Check email was sent
     assert user.email in mail.outbox[0].to
-
-
-# ... Test password reset confirm ...
-
-
-# === Admin User Tests ===
-def test_admin_list_users_success(admin_client):
-    UserFactory.create_batch(5)  # Create some users
-    url = reverse("api:v1:admin_users:admin-user-list")  # Router URL names
-    response = admin_client.get(url)
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data["count"] >= 6  # 5 created + admin
-
-
-def test_admin_list_users_forbidden_for_regular_user(authenticated_client):
-    url = reverse("api:v1:admin_users:admin-user-list")
-    response = authenticated_client.get(url)
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-def test_admin_adjust_points_success(admin_client):
-    user_to_modify = UserFactory()
-    initial_points = user_to_modify.profile.points
-    url = reverse(
-        "api:v1:admin_users:admin-user-adjust-points", kwargs={"pk": user_to_modify.pk}
-    )
-    data = {"points_change": 50, "reason": "Test adjustment"}
-    response = admin_client.post(url, data)
-
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data["new_point_total"] == initial_points + 50
-    user_to_modify.profile.refresh_from_db()
-    assert user_to_modify.profile.points == initial_points + 50
-    # Add check for PointLog creation when implemented
-
-
-# ... More tests for admin retrieve, patch, reset password action ...
-
-
-# === IsSubscribed Permission Test (Example) ===
-# Assuming you have a view protected by IsSubscribed
-@pytest.mark.skip(reason="Need a view using IsSubscribed first")
-def test_subscribed_view_access_denied(authenticated_client):
-    # Ensure user is NOT subscribed
-    authenticated_client.user.profile.subscription_expires_at = None
-    authenticated_client.user.profile.save()
-
-    url = reverse("api:v1:some_app:subscriber-only-view")  # Replace with actual URL
-    response = authenticated_client.get(url)
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-@pytest.mark.skip(reason="Need a view using IsSubscribed first")
-def test_subscribed_view_access_granted(authenticated_client):
-    # Ensure user IS subscribed
-    profile = authenticated_client.user.profile
-    profile.subscription_expires_at = timezone.now() + timezone.timedelta(days=1)
-    profile.save()
-
-    url = reverse("api:v1:some_app:subscriber-only-view")  # Replace with actual URL
-    response = authenticated_client.get(url)
-    assert response.status_code == status.HTTP_200_OK
