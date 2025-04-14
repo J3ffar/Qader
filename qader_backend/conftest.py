@@ -1,6 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 from django.utils import timezone
+from datetime import timedelta
 
 # Use the specific factory path
 from apps.users.tests.factories import UserFactory, SerialCodeFactory
@@ -62,3 +63,22 @@ def used_serial_code(db, user):
     return SerialCodeFactory(
         is_active=True, is_used=True, used_by=user, used_at=timezone.now()
     )
+
+
+@pytest.fixture
+def subscribed_user(db, user):  # Reuse the basic user fixture
+    """Creates a user and gives them an active subscription."""
+    profile = user.profile  # Get or create profile
+    profile.subscription_expires_at = timezone.now() + timedelta(days=30)
+    profile.save()
+    user.refresh_from_db()  # Refresh user object if needed
+    return user
+
+
+@pytest.fixture
+def subscribed_client(api_client, subscribed_user):
+    """Provides an API client authenticated as a subscribed user."""
+    api_client.force_authenticate(user=subscribed_user)
+    api_client.user = subscribed_user
+    yield api_client
+    api_client.force_authenticate(user=None)  # Clean up
