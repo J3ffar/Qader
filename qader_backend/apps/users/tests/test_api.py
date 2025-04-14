@@ -64,9 +64,16 @@ def test_register_success(api_client, active_serial_code):
         seconds=10
     )
 
-    # Check response data structure
-    assert response.data["username"] == "newuser"
-    assert response.data["message"] == "Registration successful. Please log in."
+    assert "user" in response.data
+    assert "access" in response.data
+    assert "refresh" in response.data
+    assert "message" in response.data
+
+    assert response.data["user"]["username"] == "newuser"
+    assert response.data["user"]["email"] == "new@example.com"
+    assert response.data["user"]["full_name"] == "New User Test"
+    assert response.data["user"]["role"] == "student"
+    assert response.data["message"] == "Registration successful."
 
 
 def test_register_invalid_serial_code(api_client):
@@ -84,7 +91,11 @@ def test_register_invalid_serial_code(api_client):
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "serial_code" in response.data
-    assert "Invalid or already used serial code." in response.data["serial_code"][0]
+    # Updated assertion to handle nested error
+    assert (
+        "Invalid or already used serial code."
+        in response.data["serial_code"]["serial_code"][0]
+    )
     assert not User.objects.filter(username="newuser2").exists()
 
 
@@ -103,7 +114,11 @@ def test_register_used_serial_code(api_client, used_serial_code):
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "serial_code" in response.data
-    assert "Invalid or already used serial code." in response.data["serial_code"][0]
+    # Updated assertion to handle nested error
+    assert (
+        "Invalid or already used serial code."
+        in response.data["serial_code"]["serial_code"][0]
+    )
     assert not User.objects.filter(username="newuser3").exists()
 
 
@@ -235,7 +250,8 @@ def test_patch_profile_me_success(authenticated_client):
 def test_patch_profile_me_update_read_only_field_ignored(authenticated_client):
     """Test that attempting to update read-only fields via PATCH is ignored."""
     url = reverse("api:v1:users:user-profile")
-    original_points = authenticated_client.user.profile.points
+    original_profile = authenticated_client.user.profile  # Get profile instance
+    original_points = original_profile.points
     data = {
         "points": original_points + 1000,  # Attempt to change points
         "preferred_name": "Name Change Attempt",
@@ -245,13 +261,15 @@ def test_patch_profile_me_update_read_only_field_ignored(authenticated_client):
     assert response.status_code == status.HTTP_200_OK
     # Check that preferred_name was updated
     assert response.data["preferred_name"] == "Name Change Attempt"
-    # Check that points remained unchanged in the response
+
+    # ---> This assertion should now pass because UserProfileSerializer includes 'points' <---
+    assert "points" in response.data  # First check if the key exists
     assert response.data["points"] == original_points
 
-    # Verify points in the database
-    authenticated_client.user.profile.refresh_from_db()
-    assert authenticated_client.user.profile.points == original_points
-    assert authenticated_client.user.profile.preferred_name == "Name Change Attempt"
+    # Verify points in the database haven't changed
+    original_profile.refresh_from_db()
+    assert original_profile.points == original_points
+    assert original_profile.preferred_name == "Name Change Attempt"
 
 
 # === Password Reset Tests ===

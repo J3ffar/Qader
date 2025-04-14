@@ -8,6 +8,7 @@ from django.conf import settings
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
+from django.db.utils import IntegrityError
 from decouple import config
 
 
@@ -19,6 +20,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
+from drf_spectacular.utils import OpenApiExample
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from .serializers import (
@@ -193,32 +195,34 @@ class LogoutView(views.APIView):
     description="Creates a new user account, activates subscription using a serial code, creates a profile, and returns JWT tokens.",  # Updated description
     request=RegisterSerializer,
     responses={
-        # Updated 201 response example
         201: OpenApiResponse(
             description="User registered successfully.",
             examples=[
-                OpenApiResponse(
-                    description="Success",
-                    examples={
+                OpenApiExample(
+                    name="Success",
+                    description="Successful registration response",
+                    value={
                         "user": {
                             "id": 1,
                             "username": "newuser",
                             "email": "new@example.com",
-                            "profile": {
-                                "full_name": "New User Test",
-                                "role": "student",
-                            },
+                            "full_name": "New User Test",
+                            "role": "student",
                         },
                         "access": "eyJhbGciOiJIUzI1NiIsIn...",
                         "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
-                        "message": "Registration successful.",  # Simplified message
+                        "message": "Registration successful.",
                     },
-                ),
+                    response_only=True,
+                    status_codes=["201"],
+                )
             ],
         ),
         400: OpenApiResponse(
             description="Bad Request (validation errors like duplicate username/email, invalid serial code, password mismatch)."
         ),
+        # Add 500 for truly unexpected errors, although serializer should prevent most
+        500: OpenApiResponse(description="Internal Server Error."),
     },
 )
 class RegisterView(generics.CreateAPIView):
@@ -230,8 +234,9 @@ class RegisterView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
         try:
-            serializer.is_valid(raise_exception=True)
             user = serializer.save()  # Calls serializer.create()
             headers = self.get_success_headers(serializer.data)
 
@@ -239,7 +244,7 @@ class RegisterView(generics.CreateAPIView):
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
 
-            # Customize the success response
+            # Construct the response data based on the created user object
             response_data = {
                 "user": {
                     "id": user.id,
@@ -247,6 +252,8 @@ class RegisterView(generics.CreateAPIView):
                     "email": user.email,
                     "full_name": user.profile.full_name,
                     "role": user.profile.role,
+                    # You might want to add subscription details here too,
+                    # similar to the API doc, but keep it lean if possible.
                 },
                 "access": access_token,
                 "refresh": refresh_token,
@@ -258,15 +265,28 @@ class RegisterView(generics.CreateAPIView):
             return Response(
                 response_data, status=status.HTTP_201_CREATED, headers=headers
             )
-        except ValidationError as e:
-            logger.warning(f"Registration validation failed: {e.detail}")
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.exception(
-                f"Unexpected error during registration: {e}"
-            )  # Log full traceback
+        # Catch specific expected errors from serializer.save() if any,
+        # otherwise catch broader exceptions that indicate a server issue.
+        except (
+            IntegrityError
+        ) as e:  # Example: Catch DB constraint errors not caught by serializer
+            logger.error(f"Database integrity error during registration save: {e}")
+            # Return a specific 400 or a generic 500 depending on context
             return Response(
-                {"detail": _("An unexpected error occurred during registration.")},
+                {"detail": _("Registration failed due to a database conflict.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            # Log unexpected errors during the user/profile/token creation process
+            logger.exception(
+                f"Unexpected error during registration finalization for {request.data.get('username')}: {e}"
+            )
+            return Response(
+                {
+                    "detail": _(
+                        "An unexpected error occurred after validation during registration."
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -323,50 +343,83 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     """
 
     permission_classes = [IsAuthenticated]
-    # --- Add parsers to handle both JSON and file uploads ---
     parser_classes = [JSONParser, MultiPartParser, FormParser]
-    # --------------------------------------------------------
 
+    # Keep get_serializer_class to determine the correct serializer for *input validation*
     def get_serializer_class(self):
         """Return appropriate serializer based on HTTP method."""
-        if self.request.method == "PATCH":
+        if self.request.method == "PATCH" or self.request.method == "PUT":
+            # Use this for validating the incoming update data
             return UserProfileUpdateSerializer
-        return UserProfileSerializer  # Default for GET
+        # Use this for GET requests and for serializing the response after update
+        return UserProfileSerializer
 
     def get_object(self):
         """Return the profile of the current user."""
         try:
-            return self.request.user.profile
-        except UserProfile.DoesNotExist:
+            # Ensure profile exists, create if necessary (though signal should handle this)
+            profile, created = UserProfile.objects.get_or_create(user=self.request.user)
+            if created:
+                logger.warning(
+                    f"UserProfile created on-the-fly for user ID {self.request.user.id} in UserProfileView.get_object. Check signal."
+                )
+                # Populate required fields if necessary, though ideally signal handles defaults
+                # profile.full_name = self.request.user.get_full_name() or self.request.user.username
+                # profile.save()
+            return profile
+        except User.profile.RelatedObjectDoesNotExist:  # More specific exception
             logger.error(
                 f"CRITICAL: UserProfile.DoesNotExist for authenticated user ID: {self.request.user.id}"
             )
             raise Http404(_("User profile not found."))
 
     def perform_update(self, serializer):
-        """Called by RetrieveUpdateAPIView during PATCH request. Handles old picture deletion."""
-        profile = self.get_object()  # Get the profile instance before saving
-
-        # Check if a new picture is being uploaded in this request
+        """Called by RetrieveUpdateAPIView during PATCH/PUT request. Handles old picture deletion."""
+        profile = self.get_object()
         new_picture_uploaded = "profile_picture" in serializer.validated_data
+        old_picture_instance = (
+            profile.profile_picture if profile.profile_picture else None
+        )
 
-        # --- Delete old picture *before* saving the new one ---
-        # Check if currently has a picture AND a new one is being uploaded or set to null
-        if profile.profile_picture and new_picture_uploaded:
-            old_picture = profile.profile_picture
-            try:
-                # Defer saving the model until after the old file is deleted
-                old_picture.delete(save=False)
-                logger.info(f"Deleted old profile picture for user {profile.user.id}")
-            except Exception as e:
-                # Log error but proceed with saving new picture if possible
-                logger.warning(
-                    f"Could not delete old profile picture '{old_picture.name}' for user {profile.user.id}: {e}"
-                )
-        # ------------------------------------------------------
+        instance = serializer.save()
 
-        serializer.save()  # Save the updated profile (including the new picture if provided)
+        # --- Delete old picture *after* successfully saving the new one ---
+        if old_picture_instance and new_picture_uploaded:
+            # Check if the picture actually changed
+            if instance.profile_picture != old_picture_instance:
+                try:
+                    # Delete the old file; model instance is already saved without it.
+                    old_picture_instance.delete(save=False)
+                    logger.info(
+                        f"Deleted old profile picture for user {profile.user.id}"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Could not delete old profile picture '{old_picture_instance.name}' for user {profile.user.id}: {e}"
+                    )
+
         logger.info(f"User profile updated for user ID: {self.request.user.id}")
+
+    # Override update to ensure the response uses the UserProfileSerializer (read serializer)
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)  # Typically True for PATCH
+        instance = self.get_object()
+        # Use UserProfileUpdateSerializer for validation
+        update_serializer = self.get_serializer(
+            instance, data=request.data, partial=partial
+        )
+        update_serializer.is_valid(raise_exception=True)
+        self.perform_update(update_serializer)  # This calls serializer.save()
+
+        if getattr(instance, "_prefetched_objects_cache", None):
+            # If 'prefetch_related' has been used, clear the cache to see updates.
+            instance._prefetched_objects_cache = {}
+
+        # --- Explicitly use UserProfileSerializer for the response ---
+        # Pass the same context (like the request) to the read serializer
+        context = self.get_serializer_context()
+        read_serializer = UserProfileSerializer(instance, context=context)
+        return Response(read_serializer.data)
 
 
 # --- Password Management Views ---
@@ -406,9 +459,9 @@ class PasswordChangeView(generics.GenericAPIView):
             )
         except ValidationError as e:
             logger.warning(
-                f"Password change failed for user ID {request.user.id}: {e.detail}"
+                f"Password change failed for user ID {request.user.id}: {e.message}"
             )
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+            return Response(e.message, status=status.HTTP_400_BAD_REQUEST)
 
 
 @extend_schema(
@@ -501,7 +554,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
             )
         except ValidationError as e:
             # Handle validation errors from the serializer itself (e.g., invalid format)
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+            return Response(e.message, status=status.HTTP_400_BAD_REQUEST)
 
 
 @extend_schema(
@@ -556,7 +609,7 @@ class PasswordResetConfirmView(generics.GenericAPIView):
 
         except ValidationError as e:
             # Handle password mismatch validation errors
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+            return Response(e.message, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.exception(
                 f"Unexpected error during password reset confirmation: {e}"
