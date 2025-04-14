@@ -173,6 +173,14 @@ SPECTACULAR_SETTINGS = {
             "description": "Manage current user profile and settings.",
         },
     ],
+    "SWAGGER_UI_SETTINGS": {  # Fine-tune Swagger UI appearance/behavior
+        "deepLinking": True,
+        "persistAuthorization": True,
+        "displayRequestDuration": True,
+        "filter": True,
+    },
+    "PREPROCESSING_HOOKS": [],
+    "POSTPROCESSING_HOOKS": [],
 }
 
 # --- Simple JWT Settings ---

@@ -14,9 +14,10 @@ from decouple import config
 from rest_framework import generics, status, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
@@ -27,7 +28,6 @@ from .serializers import (
     PasswordChangeSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
-    ProfilePictureSerializer,
     SimpleUserSerializer,  # Needed for some responses
     SubscriptionDetailSerializer,  # Needed for login response customization
 )
@@ -190,25 +190,30 @@ class LogoutView(views.APIView):
 @extend_schema(
     tags=["Authentication"],
     summary="Register New User",
-    description="Creates a new user account, activates subscription using a serial code, and creates a user profile.",
+    description="Creates a new user account, activates subscription using a serial code, creates a profile, and returns JWT tokens.",  # Updated description
     request=RegisterSerializer,
     responses={
+        # Updated 201 response example
         201: OpenApiResponse(
             description="User registered successfully.",
             examples=[
                 OpenApiResponse(
                     description="Success",
                     examples={
-                        "id": 1,
-                        "username": "newuser",
-                        "email": "new@example.com",
-                        "profile": {  # Optionally return profile snippet
-                            "full_name": "New User Test",
-                            "role": "student",
+                        "user": {
+                            "id": 1,
+                            "username": "newuser",
+                            "email": "new@example.com",
+                            "profile": {
+                                "full_name": "New User Test",
+                                "role": "student",
+                            },
                         },
-                        "message": "Registration successful. Please log in.",
+                        "access": "eyJhbGciOiJIUzI1NiIsIn...",
+                        "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
+                        "message": "Registration successful.",  # Simplified message
                     },
-                )
+                ),
             ],
         ),
         400: OpenApiResponse(
@@ -217,7 +222,7 @@ class LogoutView(views.APIView):
     },
 )
 class RegisterView(generics.CreateAPIView):
-    """Handles new user registration."""
+    """Handles new user registration and returns tokens."""
 
     queryset = User.objects.all()
     permission_classes = [AllowAny]
@@ -230,18 +235,26 @@ class RegisterView(generics.CreateAPIView):
             user = serializer.save()  # Calls serializer.create()
             headers = self.get_success_headers(serializer.data)
 
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            refresh_token = str(refresh)
+
             # Customize the success response
             response_data = {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                # Optionally include basic profile info if needed immediately after registration
-                # "profile": {
-                #     "full_name": user.profile.full_name,
-                #     "role": user.profile.role
-                # },
-                "message": _("Registration successful. Please log in."),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "full_name": user.profile.full_name,
+                    "role": user.profile.role,
+                },
+                "access": access_token,
+                "refresh": refresh_token,
+                "message": _("Registration successful."),
             }
+            logger.info(
+                f"User {user.username} registered successfully and tokens generated."
+            )
             return Response(
                 response_data, status=status.HTTP_201_CREATED, headers=headers
             )
@@ -258,15 +271,45 @@ class RegisterView(generics.CreateAPIView):
             )
 
 
+@extend_schema(
+    tags=["Authentication"],
+    summary="Refresh JWT Access Token",
+    description="Obtains a new JWT access token by providing a valid refresh token.",
+    request=TokenRefreshSerializer,  # Use the standard serializer for request schema
+    responses={
+        200: OpenApiResponse(
+            description="Access token refreshed successfully.",
+            examples=[
+                OpenApiResponse(
+                    description="Success",
+                    examples={"access": "eyJhbGciOiJIUzI1NiIsIn..."},
+                )
+            ],
+        ),
+        400: OpenApiResponse(description="Bad Request (e.g., missing refresh token)."),
+        401: OpenApiResponse(description="Token is invalid or expired."),
+    },
+)
+class CustomTokenRefreshView(TokenRefreshView):
+    """Subclass to add custom documentation via @extend_schema."""
+
+    pass  # Inherits all functionality, just adds schema
+
+
 # --- User Profile Views ---
 
 
 @extend_schema(
     tags=["User Profile"],
     summary="Retrieve or Update Current User Profile",
-    description="GET: Returns the profile details of the currently authenticated user.\nPATCH: Partially updates the profile details.",
+    description="GET: Returns the profile details of the currently authenticated user.\nPATCH: Partially updates profile details. Accepts `multipart/form-data` for updates, allowing profile picture upload alongside other fields.",  # Updated description
+    # Update request body example for PATCH if needed, show profile_picture as optional field
+    request=UserProfileUpdateSerializer,
     responses={
         200: UserProfileSerializer,
+        400: OpenApiResponse(
+            description="Bad Request (validation errors, invalid file type/size)."
+        ),  # Added possibility of file errors
         401: OpenApiResponse(description="Authentication required."),
         404: OpenApiResponse(
             description="User profile not found (data integrity issue)."
@@ -274,9 +317,15 @@ class RegisterView(generics.CreateAPIView):
     },
 )
 class UserProfileView(generics.RetrieveUpdateAPIView):
-    """GET and PATCH endpoint for the logged-in user's profile (/me/)."""
+    """
+    GET: Retrieve profile for the logged-in user (/me/).
+    PATCH: Update profile for the logged-in user (/me/). Handles multipart/form-data for potential profile picture uploads.
+    """
 
     permission_classes = [IsAuthenticated]
+    # --- Add parsers to handle both JSON and file uploads ---
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+    # --------------------------------------------------------
 
     def get_serializer_class(self):
         """Return appropriate serializer based on HTTP method."""
@@ -287,84 +336,37 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         """Return the profile of the current user."""
         try:
-            # Profile should always exist for an authenticated user due to the signal
             return self.request.user.profile
         except UserProfile.DoesNotExist:
-            # This indicates a data integrity issue if a logged-in user has no profile
             logger.error(
                 f"CRITICAL: UserProfile.DoesNotExist for authenticated user ID: {self.request.user.id}"
             )
             raise Http404(_("User profile not found."))
 
     def perform_update(self, serializer):
-        """Called by RetrieveUpdateAPIView during PATCH request."""
-        serializer.save()  # Save the updated profile
-        logger.info(f"User profile updated for user ID: {self.request.user.id}")
+        """Called by RetrieveUpdateAPIView during PATCH request. Handles old picture deletion."""
+        profile = self.get_object()  # Get the profile instance before saving
 
+        # Check if a new picture is being uploaded in this request
+        new_picture_uploaded = "profile_picture" in serializer.validated_data
 
-@extend_schema(
-    tags=["User Profile"],
-    summary="Upload/Update Profile Picture",
-    description="Uploads a new profile picture for the authenticated user. Replaces the existing one if present.",
-    request={"multipart/form-data": ProfilePictureSerializer},
-    responses={
-        200: OpenApiResponse(
-            description="Profile picture updated successfully.",
-            examples=[
-                OpenApiResponse(
-                    description="Success",
-                    examples={
-                        "profile_picture_url": "/media/profiles/new_pic_name.jpg"
-                    },
+        # --- Delete old picture *before* saving the new one ---
+        # Check if currently has a picture AND a new one is being uploaded or set to null
+        if profile.profile_picture and new_picture_uploaded:
+            old_picture = profile.profile_picture
+            try:
+                # Defer saving the model until after the old file is deleted
+                old_picture.delete(save=False)
+                logger.info(f"Deleted old profile picture for user {profile.user.id}")
+            except Exception as e:
+                # Log error but proceed with saving new picture if possible
+                logger.warning(
+                    f"Could not delete old profile picture '{old_picture.name}' for user {profile.user.id}: {e}"
                 )
-            ],
-        ),
-        400: OpenApiResponse(
-            description="Bad Request (e.g., invalid file format, size limit exceeded)."
-        ),
-        401: OpenApiResponse(description="Authentication required."),
-    },
-)
-class ProfilePictureUploadView(views.APIView):
-    """Handles profile picture uploads."""
+        # ------------------------------------------------------
 
-    permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]  # Support file uploads
-
-    def post(self, request, format=None):
-        profile = request.user.profile  # Get profile via user relation
-        # Pass the profile instance to the serializer for update context
-        serializer = ProfilePictureSerializer(profile, data=request.data, partial=True)
-
-        if serializer.is_valid():
-            # The serializer's save method will handle updating the instance
-            # Optional: Delete the old picture *before* saving the new one
-            if profile.profile_picture and "profile_picture" in request.FILES:
-                try:
-                    profile.profile_picture.delete(
-                        save=False
-                    )  # Delete file, don't save model yet
-                except Exception as e:
-                    logger.warning(
-                        f"Could not delete old profile picture for user {profile.user.id}: {e}"
-                    )
-
-            serializer.save()  # Saves the new picture to the profile instance
-
-            # Return the URL of the newly saved picture
-            # Re-serialize the relevant part or just construct the URL
-            updated_profile_serializer = UserProfileSerializer(
-                profile, context={"request": request}
-            )
-            new_url = updated_profile_serializer.get_profile_picture_url(profile)
-
-            logger.info(f"Profile picture updated for user ID: {request.user.id}")
-            return Response({"profile_picture_url": new_url}, status=status.HTTP_200_OK)
-        else:
-            logger.warning(
-                f"Profile picture upload failed for user ID {request.user.id}: {serializer.errors}"
-            )
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save()  # Save the updated profile (including the new picture if provided)
+        logger.info(f"User profile updated for user ID: {self.request.user.id}")
 
 
 # --- Password Management Views ---

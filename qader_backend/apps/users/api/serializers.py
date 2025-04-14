@@ -344,6 +344,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     notify_reminders_enabled = serializers.BooleanField(required=False)
     upcoming_test_date = serializers.DateField(required=False, allow_null=True)
     study_reminder_time = serializers.TimeField(required=False, allow_null=True)
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = UserProfile
@@ -354,7 +355,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             "gender",
             "grade",
             "has_taken_qiyas_before",
-            # 'profile_picture', # Handle profile picture uploads via a separate dedicated endpoint
+            "profile_picture",
             "last_visited_study_option",
             "dark_mode_preference",
             "dark_mode_auto_enabled",
@@ -365,29 +366,16 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             "study_reminder_time",
         )
 
-
-class ProfilePictureSerializer(serializers.ModelSerializer):
-    """Serializer for uploading/updating the profile picture."""
-
-    profile_picture = serializers.ImageField(required=True)
-
-    class Meta:
-        model = UserProfile
-        fields = ("profile_picture",)  # Only handle this field
-
     def validate_profile_picture(self, image):
-        """Optional: Add validation for file size, dimensions, type."""
-        max_upload_size = 5 * 1024 * 1024  # Example: 5 MB limit
-        if image.size > max_upload_size:
-            raise serializers.ValidationError(
-                _("Image size cannot exceed {size}MB.").format(
-                    size=max_upload_size // 1024 // 1024
+        """Re-add validation logic here if needed."""
+        if image:  # Only validate if an image is actually uploaded
+            max_upload_size = 5 * 1024 * 1024  # Example: 5 MB limit
+            if image.size > max_upload_size:
+                raise serializers.ValidationError(
+                    _("Image size cannot exceed {size}MB.").format(
+                        size=max_upload_size // 1024 // 1024
+                    )
                 )
-            )
-        # Add content type check if needed
-        # allowed_types = ['image/jpeg', 'image/png', 'image/gif']
-        # if image.content_type not in allowed_types:
-        #     raise serializers.ValidationError(_("Invalid image file type."))
         return image
 
 
