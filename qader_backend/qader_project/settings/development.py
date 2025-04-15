@@ -5,9 +5,6 @@ from .base import *
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True  # Explicitly True for development
 
-# Allow all hosts for local development
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
-
 # Add development-specific apps
 INSTALLED_APPS += [
     "debug_toolbar",
