@@ -49,7 +49,7 @@ class LearningSectionViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = LearningSection.objects.all().order_by("order")
     serializer_class = LearningSectionSerializer
-    permission_classes = [permissions.IsAuthenticated]  # Or IsSubscribed if needed
+    permission_classes = [IsSubscribed]
     lookup_field = "slug"
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["order", "name"]
@@ -86,7 +86,7 @@ class LearningSubSectionViewSet(viewsets.ReadOnlyModelViewSet):
         .order_by("section__order", "order")
     )
     serializer_class = LearningSubSectionSerializer
-    permission_classes = [permissions.IsAuthenticated]  # Or IsSubscribed
+    permission_classes = [IsSubscribed]
     lookup_field = "slug"
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["section__slug"]
@@ -130,7 +130,7 @@ class SkillViewSet(viewsets.ReadOnlyModelViewSet):
         .order_by("subsection__section__order", "subsection__order", "name")
     )
     serializer_class = SkillSerializer
-    permission_classes = [permissions.IsAuthenticated]  # Or IsSubscribed
+    permission_classes = [IsSubscribed]
     lookup_field = "slug"
     filter_backends = [
         DjangoFilterBackend,
