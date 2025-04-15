@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+qader_backend/lib/
 lib64/
 parts/
 sdist/
