@@ -63,7 +63,6 @@ class LearningSectionViewSet(viewsets.ReadOnlyModelViewSet):
             OpenApiParameter(
                 name="section__slug",
                 description="Filter by parent section slug",
-                required=False,
                 type=OpenApiTypes.STR,
             ),
         ],
@@ -101,13 +100,11 @@ class LearningSubSectionViewSet(viewsets.ReadOnlyModelViewSet):
             OpenApiParameter(
                 name="subsection__slug",
                 description="Filter by parent subsection slug",
-                required=False,
                 type=OpenApiTypes.STR,
             ),
             OpenApiParameter(
                 name="search",
                 description="Search term for skill name or description",
-                required=False,
                 type=OpenApiTypes.STR,
             ),
         ],
@@ -150,68 +147,57 @@ class SkillViewSet(viewsets.ReadOnlyModelViewSet):
             OpenApiParameter(
                 name="subsection__slug",
                 description="Filter by subsection slug (exact match or multiple using `in`)",
-                required=False,
                 type=OpenApiTypes.STR,
             ),
             OpenApiParameter(
                 name="skill__slug",
                 description="Filter by skill slug (exact match or multiple using `in`)",
-                required=False,
                 type=OpenApiTypes.STR,
             ),
             OpenApiParameter(
                 name="difficulty",
                 description="Filter by difficulty level (1-5, exact or range using `gte`/`lte`)",
-                required=False,
                 type=OpenApiTypes.INT,
             ),
             OpenApiParameter(
                 name="starred",
                 description="Filter for questions starred by the current user (`true`/`false`)",
-                required=False,
                 type=OpenApiTypes.BOOL,
             ),
             # OpenApiParameter(name='not_mastered', description='Filter for skills the user has not mastered (`true`) - Requires Study App logic', required=False, type=OpenApiTypes.BOOL), # Add when ready
             OpenApiParameter(
                 name="search",
                 description="Search term in question text, options, hints, explanation",
-                required=False,
                 type=OpenApiTypes.STR,
             ),
             OpenApiParameter(
                 name="ordering",
                 description="Order results by field (e.g., `difficulty`, `-difficulty`)",
-                required=False,
                 type=OpenApiTypes.STR,
             ),
             OpenApiParameter(
                 name="exclude_ids",
                 description="Comma-separated list of question IDs to exclude",
-                required=False,
                 type=OpenApiTypes.STR,
             ),
             OpenApiParameter(
                 name="limit",
                 description="Number of questions to return (used with pagination)",
-                required=False,
                 type=OpenApiTypes.INT,
             ),
             OpenApiParameter(
                 name="offset",
                 description="Offset for pagination",
-                required=False,
                 type=OpenApiTypes.INT,
             ),
             OpenApiParameter(
                 name="page",
                 description="Page number for pagination",
-                required=False,
                 type=OpenApiTypes.INT,
             ),
             OpenApiParameter(
                 name="page_size",
                 description="Number of items per page",
-                required=False,
                 type=OpenApiTypes.INT,
             ),
         ],

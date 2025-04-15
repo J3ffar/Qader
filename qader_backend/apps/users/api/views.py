@@ -135,7 +135,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     description="Blacklists the provided refresh token to effectively log the user out on the backend.",
     request={
         "application/json": {
-            "required": True,
             "properties": {"refresh": {"type": "string"}},
         }
     },
