@@ -5,6 +5,13 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Exists, OuterRef
 from apps.users.api.permissions import IsSubscribed
+from drf_spectacular.utils import (
+    extend_schema,
+    extend_schema_view,
+    OpenApiParameter,
+    OpenApiTypes,
+    OpenApiResponse,
+)
 
 from ..models import (
     LearningSection,
@@ -22,9 +29,22 @@ from .serializers import (
 )
 
 
+# Decorate ViewSets for better schema documentation
+@extend_schema_view(
+    list=extend_schema(
+        summary="List all Learning Sections",
+        description="Retrieves a list of main learning sections (e.g., Verbal, Quantitative), ordered by the 'order' field.",
+        tags=["Learning Content"],  # Assign to the correct tag
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve a specific Learning Section",
+        description="Retrieves details of a specific learning section using its unique slug.",
+        tags=["Learning Content"],
+    ),
+)
 class LearningSectionViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    API endpoint for listing Learning Sections (Verbal, Quantitative).
+    API endpoint for listing and retrieving Learning Sections.
     """
 
     queryset = LearningSection.objects.all().order_by("order")
@@ -35,9 +55,29 @@ class LearningSectionViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ["order", "name"]
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List Learning Sub-Sections",
+        description="Retrieves a list of learning sub-sections (e.g., Reading Comprehension), optionally filtered by the parent section's slug (`section__slug`).",
+        parameters=[
+            OpenApiParameter(
+                name="section__slug",
+                description="Filter by parent section slug",
+                required=False,
+                type=OpenApiTypes.STR,
+            ),
+        ],
+        tags=["Learning Content"],
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve a specific Learning Sub-Section",
+        description="Retrieves details of a specific learning sub-section using its unique slug.",
+        tags=["Learning Content"],
+    ),
+)
 class LearningSubSectionViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    API endpoint for listing Learning Sub-Sections (Reading Comprehension, Algebra).
+    API endpoint for listing and retrieving Learning Sub-Sections.
     """
 
     queryset = (
@@ -49,13 +89,39 @@ class LearningSubSectionViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]  # Or IsSubscribed
     lookup_field = "slug"
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ["section__slug"]  # Filter by parent section slug
+    filterset_fields = ["section__slug"]
     ordering_fields = ["order", "name"]
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List Skills",
+        description="Retrieves a list of specific skills within sub-sections (e.g., Solving Linear Equations), optionally filtered by the parent sub-section's slug (`subsection__slug`) or searched by name/description.",
+        parameters=[
+            OpenApiParameter(
+                name="subsection__slug",
+                description="Filter by parent subsection slug",
+                required=False,
+                type=OpenApiTypes.STR,
+            ),
+            OpenApiParameter(
+                name="search",
+                description="Search term for skill name or description",
+                required=False,
+                type=OpenApiTypes.STR,
+            ),
+        ],
+        tags=["Learning Content"],
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve a specific Skill",
+        description="Retrieves details of a specific skill using its unique slug.",
+        tags=["Learning Content"],
+    ),
+)
 class SkillViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    API endpoint for listing Skills (Solving Linear Equations, Identifying Main Idea).
+    API endpoint for listing and retrieving Skills.
     """
 
     queryset = (
@@ -71,11 +137,96 @@ class SkillViewSet(viewsets.ReadOnlyModelViewSet):
         filters.OrderingFilter,
         filters.SearchFilter,
     ]
-    filterset_fields = ["subsection__slug"]  # Filter by parent subsection slug
+    filterset_fields = ["subsection__slug"]
     ordering_fields = ["name"]
-    search_fields = ["name", "description"]  # Allow searching skills
+    search_fields = ["name", "description"]
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List Questions",
+        description="Retrieves a list of questions, potentially filtered by various criteria. Requires subscription.",
+        parameters=[
+            OpenApiParameter(
+                name="subsection__slug",
+                description="Filter by subsection slug (exact match or multiple using `in`)",
+                required=False,
+                type=OpenApiTypes.STR,
+            ),
+            OpenApiParameter(
+                name="skill__slug",
+                description="Filter by skill slug (exact match or multiple using `in`)",
+                required=False,
+                type=OpenApiTypes.STR,
+            ),
+            OpenApiParameter(
+                name="difficulty",
+                description="Filter by difficulty level (1-5, exact or range using `gte`/`lte`)",
+                required=False,
+                type=OpenApiTypes.INT,
+            ),
+            OpenApiParameter(
+                name="starred",
+                description="Filter for questions starred by the current user (`true`/`false`)",
+                required=False,
+                type=OpenApiTypes.BOOL,
+            ),
+            # OpenApiParameter(name='not_mastered', description='Filter for skills the user has not mastered (`true`) - Requires Study App logic', required=False, type=OpenApiTypes.BOOL), # Add when ready
+            OpenApiParameter(
+                name="search",
+                description="Search term in question text, options, hints, explanation",
+                required=False,
+                type=OpenApiTypes.STR,
+            ),
+            OpenApiParameter(
+                name="ordering",
+                description="Order results by field (e.g., `difficulty`, `-difficulty`)",
+                required=False,
+                type=OpenApiTypes.STR,
+            ),
+            OpenApiParameter(
+                name="exclude_ids",
+                description="Comma-separated list of question IDs to exclude",
+                required=False,
+                type=OpenApiTypes.STR,
+            ),
+            OpenApiParameter(
+                name="limit",
+                description="Number of questions to return (used with pagination)",
+                required=False,
+                type=OpenApiTypes.INT,
+            ),
+            OpenApiParameter(
+                name="offset",
+                description="Offset for pagination",
+                required=False,
+                type=OpenApiTypes.INT,
+            ),
+            OpenApiParameter(
+                name="page",
+                description="Page number for pagination",
+                required=False,
+                type=OpenApiTypes.INT,
+            ),
+            OpenApiParameter(
+                name="page_size",
+                description="Number of items per page",
+                required=False,
+                type=OpenApiTypes.INT,
+            ),
+        ],
+        responses={
+            200: QuestionListSerializer(many=True)
+        },  # Document the response serializer
+        tags=["Learning Content"],
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve a specific Question",
+        description="Retrieves detailed information for a single question, including the correct answer and explanation. Requires subscription.",
+        responses={200: QuestionDetailSerializer},  # Document the response serializer
+        tags=["Learning Content"],
+    ),
+)
 class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint for retrieving Questions.
@@ -95,9 +246,7 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Question.objects.filter(is_active=True).select_related(
         "subsection", "skill"
     )
-    permission_classes = [
-        IsSubscribed
-    ]  # Requires active subscription to view questions
+    permission_classes = [IsSubscribed]  # Requires active subscription
     filter_backends = [
         DjangoFilterBackend,
         filters.OrderingFilter,
@@ -117,7 +266,7 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
         "hint",
         "explanation",
     ]
-    ordering_fields = ["id", "difficulty", "created_at"]  # Add more as needed
+    ordering_fields = ["id", "difficulty", "created_at"]
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -136,8 +285,6 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.annotate(user_has_starred=Exists(starred_subquery))
 
         # --- Filtering Logic ---
-
-        # Handle 'starred=true' filter
         is_starred_filter = self.request.query_params.get("starred", "").lower()
         if is_starred_filter == "true" and user.is_authenticated:
             queryset = queryset.filter(starred_by=user)
@@ -175,9 +322,28 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
 
     # --- Custom Actions for Star/Unstar ---
 
+    @extend_schema(  # Decorate the custom action
+        summary="Star a Question",
+        description="Marks the specified question as starred (bookmarked) for the currently authenticated user.",
+        request=None,  # No request body needed
+        responses={
+            201: OpenApiResponse(description="Question successfully starred."),
+            200: OpenApiResponse(
+                description="Question was already starred by the user."
+            ),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided."
+            ),
+            403: OpenApiResponse(
+                description="User does not have permission (e.g., not subscribed)."
+            ),
+            404: OpenApiResponse(description="Question not found."),
+        },
+        tags=["Learning Content"],
+    )
     @action(
         detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated]
-    )
+    )  # Ensure IsAuthenticated is sufficient here
     def star(self, request, pk=None):
         """Stars a question for the current user."""
         question = self.get_object()  # Gets the specific question instance
@@ -191,11 +357,29 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
         else:
             return Response({"status": "already starred"}, status=status.HTTP_200_OK)
 
+    @extend_schema(  # Decorate the custom action
+        summary="Unstar a Question",
+        description="Removes the star (bookmark) from the specified question for the currently authenticated user.",
+        request=None,  # No request body needed
+        responses={
+            200: OpenApiResponse(
+                description="Question successfully unstarred."
+            ),  # Changed from 204 for consistency if returning status
+            404: OpenApiResponse(
+                description="Question not found or not starred by the user."
+            ),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided."
+            ),
+            403: OpenApiResponse(description="User does not have permission."),
+        },
+        tags=["Learning Content"],
+    )
     @action(
         detail=True,
         methods=["delete"],
         permission_classes=[permissions.IsAuthenticated],
-    )
+    )  # Ensure IsAuthenticated is sufficient here
     def unstar(self, request, pk=None):
         """Unstars a question for the current user."""
         question = self.get_object()
@@ -205,8 +389,7 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
         ).delete()
 
         if deleted_count > 0:
-            return Response(
-                {"status": "unstarred"}, status=status.HTTP_200_OK
-            )  # Or 204 No Content
+            return Response({"status": "unstarred"}, status=status.HTTP_200_OK)
         else:
+            # More specific: return 404 if the question exists but wasn't starred by this user
             return Response({"status": "not starred"}, status=status.HTTP_404_NOT_FOUND)
