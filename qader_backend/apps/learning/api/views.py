@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Exists, OuterRef
-from apps.users.api.permissions import IsSubscribed
+from apps.api.permissions import IsSubscribed
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,

@@ -2,7 +2,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.views import APIView
 from django.utils.translation import gettext_lazy as _
-from ..models import UserProfile
+from ..users.models import UserProfile
 
 import logging  # Use standard logging
 
