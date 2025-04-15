@@ -101,7 +101,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"  # Or 'ar' if primary language is Arabic
 TIME_ZONE = "UTC"  # Or your relevant timezone like 'Asia/Riyadh'
-USE_I18N = True
+USE_I18N = False
+USE_L10N = True
+USE_FORMAT_REPLICATION = True
 USE_TZ = True
 
 LANGUAGES = [
