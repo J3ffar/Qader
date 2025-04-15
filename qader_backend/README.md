@@ -13,11 +13,25 @@
 **Assumptions:**
 
 1.  **Authentication:** JWT (JSON Web Tokens). Requests to protected endpoints require an `Authorization: Bearer <access_token>` header.
-2.  **Permissions:** Standard DRF permissions (`AllowAny`, `IsAuthenticated`) and custom permissions (`IsSubscribed`, `IsAdmin`, `IsOwnerOrAdmin`, `IsSubAdminWithPermission`) will be used as needed. `IsSubscribed` checks `UserProfile.subscription_expires_at > now()`.
+2.  **Permissions:** Standard DRF permissions (`AllowAny`, `IsAuthenticated`) and custom permissions (`IsSubscribed`, `IsAdmin`, `IsOwnerOrAdmin`, `IsSubAdminWithPermission`) will be used as needed. `IsSubscribed` checks if the user has an active subscription (e.g., `UserProfile.subscription_expires_at > now()`).
 3.  **Base URL:** All API endpoints are prefixed with `/api/v1/`.
 4.  **Response Format:** Consistent JSON responses. Success responses will generally include requested data or a success message. Error responses will use DRF's default structured format (e.g., `{"field_name": ["Error message."], "non_field_errors": ["General error."]}`) with appropriate HTTP status codes (400, 401, 403, 404, 500, etc.).
 5.  **Versioning:** Using URL Path Versioning (`/api/v1/`).
-6.  **Data Transfer Objects:** Serializers will define the structure for request validation and response formatting. JSON examples below reflect the expected serialized data.
+6.  **Data Transfer Objects:** Serializers define the structure for request validation and response formatting. JSON examples reflect the expected serialized data.
+7.  **Pagination:** List endpoints (e.g., `GET /learning/questions/`, `GET /study/tests/`) use page number pagination by default. Responses for paginated lists will have the following structure:
+    ```json
+    {
+      "count": 150, // Total number of items across all pages
+      "next": "https://domain.com/api/v1/app/?page=2", // URL for the next page (or null)
+      "previous": null, // URL for the previous page (or null)
+      "results": [
+        // Array of objects for the current page
+        { ... },
+        { ... }
+      ]
+    }
+    ```
+    Pagination is controlled via `page` (integer, page number) and `page_size` (integer, items per page) query parameters. The default `page_size` is 20, but can be overridden by the client if configured on the backend.
 
 ---
 
