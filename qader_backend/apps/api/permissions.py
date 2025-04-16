@@ -2,6 +2,8 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.views import APIView
 from django.utils.translation import gettext_lazy as _
+
+from apps.study.models import UserTestAttempt
 from ..users.models import UserProfile
 
 import logging  # Use standard logging
@@ -40,6 +42,39 @@ class IsSubscribed(BasePermission):
                 f"AttributeError: UserProfile for user ID {request.user.id} is missing 'is_subscribed' property."
             )
             return False
+
+
+class IsOwnerOfTestAttempt(BasePermission):
+    """
+    Object-level permission to only allow owners of a test attempt to access it.
+    """
+
+    message = "You do not have permission to access this test attempt."
+
+    def has_object_permission(self, request, view, obj):
+        # Instance must have an attribute named `user`.
+        if not UserTestAttempt:
+            # If study app models cannot be imported, deny permission.
+            # This prevents errors if apps are loaded in different orders.
+            return False
+        # Check if the obj is a UserTestAttempt and the user matches
+        return isinstance(obj, UserTestAttempt) and obj.user == request.user
+
+
+class HasDeterminedLevel(BasePermission):
+    """
+    Allows access only if the user has completed their level assessment.
+    """
+
+    message = "Please complete the level assessment test first."
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        profile = getattr(request.user, "userprofile", None)
+        if not profile:
+            return False
+        return profile.level_determined
 
 
 # --- Example Usage in a View ---
