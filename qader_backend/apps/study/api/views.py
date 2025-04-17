@@ -1,10 +1,11 @@
-from rest_framework import generics, status, views
+import random
+from rest_framework import generics, status, views, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import get_object_or_404
-from django.db.models import Exists, Q, OuterRef
+from django.db.models import Exists, Q, OuterRef, Case, When, IntegerField
 
 from apps.learning.models import Question, UserStarredQuestion
 from apps.learning.api.serializers import QuestionListSerializer
@@ -16,9 +17,16 @@ from .serializers import (
     LevelAssessmentResultSerializer,
     TraditionalLearningAnswerSerializer,
     TraditionalLearningResponseSerializer,
+    TestStartSerializer,
+    TestStartResponseSerializer,
+    UserTestAttemptListSerializer,
+    UserTestAttemptDetailSerializer,
+    TestSubmitSerializer,
+    TestSubmitResponseSerializer,
+    TestReviewSerializer,
 )
 from apps.api.permissions import IsSubscribed  # Import custom permission
-from ..models import UserSkillProficiency, UserTestAttempt
+from ..models import UserQuestionAttempt, UserSkillProficiency, UserTestAttempt
 
 import logging
 
@@ -372,6 +380,466 @@ class TraditionalLearningAnswerView(generics.GenericAPIView):
         # Use the response serializer for consistent output structure
         response_serializer = TraditionalLearningResponseSerializer(result_data)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=["Study & Progress"],
+    summary="List User Test Attempts",
+    description="Retrieves a paginated list of the authenticated user's previous test attempts (practice, simulations, custom, level assessments).",
+    parameters=[
+        OpenApiParameter(name="page", description="Page number", type=int),
+        OpenApiParameter(
+            name="page_size", description="Number of results per page", type=int
+        ),
+    ],
+    responses={
+        200: OpenApiResponse(
+            response=UserTestAttemptListSerializer(many=True),
+            description="Paginated list of test attempts.",
+        ),
+        403: OpenApiResponse(
+            description="Forbidden - Authentication required or user lacks an active subscription."
+        ),
+    },
+)
+class UserTestAttemptListView(generics.ListAPIView):
+    """
+    Lists the current user's test attempts.
+
+    GET /api/v1/study/tests/
+    """
+
+    serializer_class = UserTestAttemptListSerializer
+    permission_classes = [IsAuthenticated, IsSubscribed]
+
+    def get_queryset(self):
+        """Return attempts belonging to the current authenticated user."""
+        user = self.request.user
+        # Order by start time, newest first (default ordering in model Meta)
+        return UserTestAttempt.objects.filter(user=user)
+
+
+@extend_schema(
+    tags=["Study & Progress"],
+    summary="Start New Test",
+    description="Initiates a new test (practice, simulation, custom) based on the provided configuration. Selects questions according to the criteria.",
+    request=TestStartSerializer,
+    responses={
+        201: OpenApiResponse(
+            response=TestStartResponseSerializer,
+            description="Test started successfully. Returns new attempt ID and questions.",
+        ),
+        400: OpenApiResponse(
+            description="Bad Request - Validation Error (e.g., invalid config, no questions found)."
+        ),
+        403: OpenApiResponse(
+            description="Forbidden - Authentication required or user lacks an active subscription."
+        ),
+    },
+)
+class StartTestAttemptView(generics.GenericAPIView):
+    """
+    Starts a new practice, simulation, or custom test.
+
+    POST /api/v1/study/tests/start/
+    """
+
+    serializer_class = TestStartSerializer
+    permission_classes = [IsAuthenticated, IsSubscribed]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        result_data = serializer.save()  # Calls create method in serializer
+
+        response_serializer = TestStartResponseSerializer(
+            result_data, context={"request": request}
+        )
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+
+@extend_schema(
+    tags=["Study & Progress"],
+    summary="Retrieve Test Attempt Details",
+    description="Gets the details of a specific test attempt, including its status and associated questions (without answers if ongoing). Requires ownership.",
+    responses={
+        200: OpenApiResponse(
+            response=UserTestAttemptDetailSerializer,
+            description="Details of the test attempt.",
+        ),
+        403: OpenApiResponse(
+            description="Forbidden - Authentication required, user lacks subscription, or user is not the owner."
+        ),
+        404: OpenApiResponse(
+            description="Not Found - Test attempt with the given ID not found."
+        ),
+    },
+)
+class UserTestAttemptDetailView(generics.RetrieveAPIView):
+    """
+    Retrieves details for a specific test attempt owned by the user.
+
+    GET /api/v1/study/tests/{attempt_id}/
+    """
+
+    serializer_class = UserTestAttemptDetailSerializer
+    permission_classes = [
+        IsAuthenticated,
+        IsSubscribed,
+    ]  # Ownership checked in get_queryset
+    lookup_field = "pk"  # CORRECT
+    lookup_url_kwarg = "attempt_id"
+
+    def get_queryset(self):
+        """Ensure only the owner can retrieve the attempt."""
+        user = self.request.user
+        return UserTestAttempt.objects.filter(user=user)
+
+
+@extend_schema(
+    tags=["Study & Progress"],
+    summary="Submit Test Answers",
+    description="Submits answers for an ongoing test attempt. Calculates score, updates status, awards points, updates proficiency.",
+    request=TestSubmitSerializer,
+    responses={
+        200: OpenApiResponse(
+            response=TestSubmitResponseSerializer,
+            description="Test submitted successfully. Returns final results and analysis.",
+        ),
+        400: OpenApiResponse(
+            description="Bad Request - Validation Error (e.g., already submitted, wrong answers, invalid data)."
+        ),
+        403: OpenApiResponse(
+            description="Forbidden - Authentication required, user lacks subscription, or user is not the owner."
+        ),
+        404: OpenApiResponse(
+            description="Not Found - Test attempt with the given ID not found."
+        ),
+    },
+)
+class SubmitTestAttemptView(generics.GenericAPIView):
+    """
+    Handles the submission of answers for a specific test attempt.
+
+    POST /api/v1/study/tests/{attempt_id}/submit/
+    """
+
+    serializer_class = TestSubmitSerializer
+    permission_classes = [
+        IsAuthenticated,
+        IsSubscribed,
+    ]  # Ownership checked in serializer validation
+
+    def post(self, request, attempt_id, *args, **kwargs):
+        # Pass request and view context (for attempt_id) to serializer
+        serializer = self.get_serializer(
+            data=request.data, context={"request": request, "view": self}
+        )
+        serializer.is_valid(raise_exception=True)
+        result_data = serializer.save()  # Serializer handles processing
+
+        response_serializer = TestSubmitResponseSerializer(result_data)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=["Study & Progress"],
+    summary="Review Completed Test",
+    description="Retrieves a detailed question-by-question review for a *completed* test attempt, including user answers, correct answers, and explanations.",
+    parameters=[
+        OpenApiParameter(
+            name="incorrect_only",
+            description="If true, return only incorrectly answered questions.",
+            type=bool,
+        ),
+    ],
+    responses={
+        200: OpenApiResponse(
+            response=TestReviewSerializer, description="Detailed review questions."
+        ),
+        400: OpenApiResponse(description="Bad Request - Attempt is not completed."),
+        403: OpenApiResponse(
+            description="Forbidden - Authentication required, user lacks subscription, or user is not the owner."
+        ),
+        404: OpenApiResponse(
+            description="Not Found - Test attempt with the given ID not found."
+        ),
+    },
+)
+class ReviewTestAttemptView(generics.GenericAPIView):
+    """
+    Provides a detailed review of a completed test attempt.
+
+    GET /api/v1/study/tests/{attempt_id}/review/
+    """
+
+    permission_classes = [
+        IsAuthenticated,
+        IsSubscribed,
+    ]  # Ownership checked in get_object
+    serializer_class = TestReviewSerializer  # For response serialization
+
+    def get_object(self):
+        """Get the test attempt, ensuring ownership and completion status."""
+        user = self.request.user
+        attempt_id = self.kwargs.get("attempt_id")
+        attempt = get_object_or_404(UserTestAttempt, pk=attempt_id, user=user)
+
+        if attempt.status != UserTestAttempt.Status.COMPLETED:
+            # Use DRF's validation error mechanism for a 400 response
+            raise serializers.ValidationError(
+                _("Cannot review an ongoing or abandoned test attempt.")
+            )
+        return attempt
+
+    def get(self, request, attempt_id, *args, **kwargs):
+        test_attempt = self.get_object()  # Handles 404, ownership, and status check
+
+        # Fetch questions associated with the attempt
+        questions_queryset = test_attempt.get_questions_queryset().select_related(
+            "subsection", "skill"
+        )
+
+        # Fetch user's answers for these questions within this attempt
+        user_attempts_queryset = UserQuestionAttempt.objects.filter(
+            test_attempt=test_attempt,
+            question_id__in=test_attempt.question_ids,  # Ensure we only get attempts for this test
+        )
+
+        # Filter by incorrect_only if requested
+        incorrect_only = (
+            request.query_params.get("incorrect_only", "").lower() == "true"
+        )
+        if incorrect_only:
+            incorrect_question_ids = user_attempts_queryset.filter(
+                is_correct=False
+            ).values_list("question_id", flat=True)
+            questions_queryset = questions_queryset.filter(
+                id__in=list(incorrect_question_ids)
+            )
+            # Re-apply ordering if filtering changes it significantly
+            preserved_order = Case(
+                *[
+                    When(pk=pk, then=pos)
+                    for pos, pk in enumerate(test_attempt.question_ids)
+                    if pk in incorrect_question_ids
+                ],
+                output_field=IntegerField(),
+            )
+            questions_queryset = questions_queryset.order_by(preserved_order)
+
+        # Create a map for faster lookup in the serializer
+        user_attempts_map = {
+            attempt.question_id: attempt for attempt in user_attempts_queryset
+        }
+
+        # Prepare context for the review question serializer
+        context = {
+            "request": request,
+            "user_attempts_map": user_attempts_map,
+        }
+
+        # Serialize the data for the response
+        response_data = {
+            "attempt_id": test_attempt.id,
+            "review_questions": questions_queryset,  # Pass the queryset
+        }
+        serializer = self.get_serializer(response_data, context=context)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=["Study & Progress"],
+    summary="Retake Similar Test",
+    description="Starts a *new* test attempt using the same configuration as a previous attempt. Generates a fresh set of questions.",
+    request=None,  # No request body needed
+    responses={
+        201: OpenApiResponse(
+            response=TestStartResponseSerializer,
+            description="New similar test started successfully. Returns new attempt ID and questions.",
+        ),
+        400: OpenApiResponse(
+            description="Bad Request - Original attempt has no valid configuration."
+        ),
+        403: OpenApiResponse(
+            description="Forbidden - Authentication required, user lacks subscription, or user is not the owner of the original attempt."
+        ),
+        404: OpenApiResponse(
+            description="Not Found - Original test attempt with the given ID not found."
+        ),
+    },
+)
+class RetakeSimilarTestAttemptView(generics.GenericAPIView):
+    """
+    Starts a new test attempt based on the configuration of a previous one.
+
+    POST /api/v1/study/tests/{attempt_id}/retake-similar/
+    """
+
+    permission_classes = [
+        IsAuthenticated,
+        IsSubscribed,
+    ]  # Ownership checked in get_object
+    serializer_class = TestStartResponseSerializer  # We reuse the response serializer
+
+    def get_object(self):
+        """Get the original test attempt, ensuring ownership."""
+        user = self.request.user
+        attempt_id = self.kwargs.get("attempt_id")
+        # No status check needed here, can retake completed or even abandoned? (Decide policy)
+        return get_object_or_404(UserTestAttempt, pk=attempt_id, user=user)
+
+    def post(self, request, attempt_id, *args, **kwargs):
+        original_attempt = self.get_object()
+
+        # --- Extract and Validate Original Config ---
+        original_config_snapshot = original_attempt.test_configuration
+        if (
+            not isinstance(original_config_snapshot, dict)
+            or "config" not in original_config_snapshot
+        ):
+            raise serializers.ValidationError(
+                _("Original test attempt configuration is missing or invalid.")
+            )
+
+        original_config_dict = original_config_snapshot["config"]
+        original_attempt_type = (
+            original_config_snapshot.get("test_type") or original_attempt.attempt_type
+        )  # Get type
+
+        # --- Re-validate the config data (use TestConfigSerializer logic if possible) ---
+        # Need to convert slugs back to objects for validation if using the serializer directly
+        # Simpler approach: manually extract and check required fields
+        num_questions = original_config_dict.get("num_questions")
+        sub_slugs = original_config_dict.get("subsections", [])
+        skill_slugs = original_config_dict.get("skills", [])
+        starred = original_config_dict.get("starred", False)
+        not_mastered = original_config_dict.get("not_mastered", False)
+
+        if not num_questions:
+            raise serializers.ValidationError(
+                _("Original configuration missing 'num_questions'.")
+            )
+        if not sub_slugs and not skill_slugs and not starred:
+            raise serializers.ValidationError(
+                _(
+                    "Original configuration must specify subsections, skills, or starred filter."
+                )
+            )
+
+        # --- Select New Questions using the same logic as TestStartSerializer ---
+        # Define a low proficiency threshold (adjust as needed)
+        PROFICIENCY_THRESHOLD = 0.7
+        user = request.user
+
+        question_filters = Q(is_active=True)
+        if sub_slugs:
+            question_filters &= Q(subsection__slug__in=sub_slugs)
+        if skill_slugs:
+            question_filters &= Q(skill__slug__in=skill_slugs)
+        if starred:
+            starred_ids = UserStarredQuestion.objects.filter(user=user).values_list(
+                "question_id", flat=True
+            )
+            question_filters &= Q(id__in=list(starred_ids))
+        if not_mastered and UserSkillProficiency:
+            try:
+                low_prof = UserSkillProficiency.objects.filter(
+                    user=user, proficiency_score__lt=PROFICIENCY_THRESHOLD
+                ).values_list("skill_id", flat=True)
+                attempted = UserSkillProficiency.objects.filter(user=user).values_list(
+                    "skill_id", flat=True
+                )
+                not_mastered_filter = Q(skill_id__in=list(low_prof)) | (
+                    Q(skill__isnull=False) & ~Q(skill_id__in=list(attempted))
+                )
+                question_filters &= not_mastered_filter
+            except Exception as e:
+                logger.error(
+                    f"Error applying 'not_mastered' filter during retake for user {user.id}: {e}"
+                )
+
+        question_pool_query = Question.objects.filter(question_filters).exclude(
+            id__in=original_attempt.question_ids
+        )  # Exclude original questions
+        question_pool_ids = list(question_pool_query.values_list("id", flat=True))
+        pool_count = len(question_pool_ids)
+
+        if pool_count == 0:
+            # Maybe try without excluding original questions as a fallback?
+            question_pool_query_fallback = Question.objects.filter(question_filters)
+            question_pool_ids = list(
+                question_pool_query_fallback.values_list("id", flat=True)
+            )
+            pool_count = len(question_pool_ids)
+            if pool_count == 0:
+                raise serializers.ValidationError(
+                    _("No suitable questions found to generate a similar test.")
+                )
+
+        actual_num_questions = min(num_questions, pool_count)
+        if actual_num_questions == 0:
+            raise serializers.ValidationError(
+                _("Could not select any questions for the new test.")
+            )
+
+        new_question_ids = random.sample(question_pool_ids, actual_num_questions)
+
+        # --- Create New Test Attempt ---
+        # Update config snapshot for the new attempt
+        new_config_snapshot = (
+            original_config_snapshot.copy()
+        )  # Shallow copy is fine for dict
+        new_config_snapshot["config"][
+            "actual_num_questions_selected"
+        ] = actual_num_questions
+        # Add reference to original attempt? Optional.
+        # new_config_snapshot['retake_of_attempt_id'] = original_attempt.id
+
+        try:
+            new_attempt = UserTestAttempt.objects.create(
+                user=user,
+                attempt_type=original_attempt_type,  # Use the original attempt type
+                test_configuration=new_config_snapshot,  # Use the copied/updated config
+                question_ids=new_question_ids,
+                status=UserTestAttempt.Status.STARTED,
+            )
+        except Exception as e:
+            logger.exception(
+                f"Error creating retake UserTestAttempt for user {user.id} (original: {original_attempt.id}): {e}"
+            )
+            raise serializers.ValidationError(
+                _("Failed to start the new similar test.")
+            )
+
+        # --- Prepare and Return Response ---
+        questions_queryset = new_attempt.get_questions_queryset()
+        result_data = {
+            "new_attempt_id": new_attempt.id,
+            "message": _(
+                "New test started based on the configuration of attempt #{}."
+            ).format(original_attempt.id),
+            "questions": questions_queryset,
+        }
+
+        # Need to serialize slightly differently than TestStartResponseSerializer expects input
+        response_data = {
+            "attempt_id": result_data["new_attempt_id"],
+            "questions": result_data["questions"],
+        }
+
+        # Manually add the message to the serialized data if not part of the serializer
+        final_response_data = self.get_serializer(
+            response_data, context={"request": request}
+        ).data
+        final_response_data["message"] = result_data["message"]
+        final_response_data["new_attempt_id"] = result_data[
+            "new_attempt_id"
+        ]  # Ensure ID is present
+
+        return Response(final_response_data, status=status.HTTP_201_CREATED)
 
 
 # Add other study-related views here later

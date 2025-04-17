@@ -12,7 +12,7 @@ class UserFactory(DjangoModelFactory):
     class Meta:
         model = User
         # If using signals to create profile, prevent recursion:
-        # django_get_or_create = ('username',) # Use if needed
+        django_get_or_create = ("username",)  # Use if needed
 
     username = factory.Sequence(lambda n: f"user{n}")
     email = factory.LazyAttribute(lambda o: f"{o.username}@example.com")
