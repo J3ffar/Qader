@@ -119,11 +119,11 @@ def test_register_used_serial_code(api_client, used_serial_code):
     assert not User.objects.filter(username="newuser3").exists()
 
 
-def test_register_duplicate_username(api_client, active_serial_code, user):
+def test_register_duplicate_username(api_client, active_serial_code, base_user):
     """Test registration attempt with an existing username."""
     url = reverse("api:v1:auth:register")
     data = {
-        "username": user.username,  # Existing username
+        "username": base_user.username,  # Existing username
         "email": "new4@example.com",
         "password": "StrongPassword123!",
         "password_confirm": "StrongPassword123!",
@@ -158,39 +158,39 @@ def test_register_password_mismatch(api_client, active_serial_code):
 # === Login Tests ===
 
 
-def test_login_success(api_client, user):
+def test_login_success(api_client, base_user):
     """Test successful login and token retrieval."""
     # Ensure user has a password set by the factory
     password = "defaultpassword"  # As set in factory
     url = reverse("api:v1:auth:token_obtain_pair")
-    data = {"username": user.username, "password": password}
+    data = {"username": base_user.username, "password": password}
     response = api_client.post(url, data, format="json")
 
     assert response.status_code == status.HTTP_200_OK
     assert "access" in response.data
     assert "refresh" in response.data
     assert "user" in response.data  # Check for custom user data
-    assert response.data["user"]["username"] == user.username
+    assert response.data["user"]["username"] == base_user.username
     assert response.data["user"]["role"] == "student"  # Check role
 
 
-def test_login_fail_wrong_password(api_client, user):
+def test_login_fail_wrong_password(api_client, base_user):
     """Test login failure with incorrect password."""
     url = reverse("api:v1:auth:token_obtain_pair")
-    data = {"username": user.username, "password": "wrongpassword"}
+    data = {"username": base_user.username, "password": "wrongpassword"}
     response = api_client.post(url, data, format="json")
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert "detail" in response.data  # DRF default error key
 
 
-def test_login_fail_inactive_user(api_client, user):
+def test_login_fail_inactive_user(api_client, base_user):
     """Test login failure for an inactive user."""
-    user.is_active = False
-    user.save()
+    base_user.is_active = False
+    base_user.save()
     password = "defaultpassword"
     url = reverse("api:v1:auth:token_obtain_pair")
-    data = {"username": user.username, "password": password}
+    data = {"username": base_user.username, "password": password}
     response = api_client.post(url, data, format="json")
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -272,16 +272,16 @@ def test_patch_profile_me_update_read_only_field_ignored(authenticated_client):
 # === Password Reset Tests ===
 
 
-def test_password_reset_request_success(api_client, user):
+def test_password_reset_request_success(api_client, base_user):
     """Test successful password reset request."""
     url = reverse("api:v1:auth:password_reset_request")
-    data = {"identifier": user.email}  # Use identifier field
+    data = {"identifier": base_user.email}  # Use identifier field
     response = api_client.post(url, data, format="json")
 
     assert response.status_code == status.HTTP_200_OK
     assert "If an account with that identifier exists" in response.data["detail"]
     assert len(mail.outbox) == 1  # Check email was sent
-    assert user.email in mail.outbox[0].to
+    assert base_user.email in mail.outbox[0].to
     # Further checks could inspect email content for token/uid if needed
 
 

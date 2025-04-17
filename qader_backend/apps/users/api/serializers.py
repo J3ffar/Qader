@@ -313,9 +313,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     user = SimpleUserSerializer(read_only=True)  # Nested basic user info
     # Properties exposed as read-only fields
-    level_determined = serializers.BooleanField(
-        read_only=True, source="profile.level_determined"
-    )
+    level_determined = serializers.BooleanField(read_only=True)
     # Method fields for custom structured output
     subscription = SubscriptionDetailSerializer(
         read_only=True, source="*"

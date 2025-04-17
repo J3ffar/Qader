@@ -1,29 +1,45 @@
-# apps/study/api/serializers.py
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from django.db import transaction
 from django.utils import timezone
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 
 from ..models import UserTestAttempt, UserQuestionAttempt, Test
 from apps.learning.models import LearningSection, Question
 from apps.learning.api.serializers import (
-    QuestionListSerializer,
-)  # Reuse for questions list
+    QuestionListSerializer,  # Reused for questions list in response
+    # QuestionDetailSerializer # Not directly needed here, but maybe for review later
+)
 from apps.users.models import UserProfile
 
-# from apps.users.api.serializers import UserProfileMinimalSerializer # Use for basic user info
+# Import the full UserProfileSerializer to represent the updated profile structure
+from apps.users.api.serializers import UserProfileSerializer
 
 import random
 import logging
 
 logger = logging.getLogger(__name__)
 
+# --- Helper: Get User from Context ---
+
+
+def _get_user_from_context(context):
+    """Helper to safely get the authenticated user from serializer context."""
+    request = context.get("request")
+    if request and hasattr(request, "user") and request.user.is_authenticated:
+        return request.user
+    logger.error("Authenticated user could not be retrieved from serializer context.")
+    # Raise PermissionDenied, as this implies an authentication issue if called within protected views.
+    raise PermissionDenied(
+        _("User not found or not authenticated in serializer context.")
+    )
+
+
 # --- Level Assessment Serializers ---
 
 
 class LevelAssessmentStartSerializer(serializers.Serializer):
-    """Serializer for starting a level assessment."""
+    """Serializer for validating the request to start a level assessment."""
 
     sections = serializers.ListField(
         child=serializers.SlugRelatedField(
@@ -36,64 +52,48 @@ class LevelAssessmentStartSerializer(serializers.Serializer):
         ),
     )
     num_questions = serializers.IntegerField(
-        min_value=5,  # Sensible minimum
+        # min_value=5,  # Sensible minimum
         max_value=100,  # Sensible maximum
         default=30,
-        help_text=_("Number of questions for the assessment."),
+        help_text=_("Desired number of questions for the assessment."),
     )
 
-    def _get_user_from_context(self):
-        """Helper to safely get the authenticated user from context."""
-        request = self.context.get("request")
-        if request and hasattr(request, "user") and request.user.is_authenticated:
-            return request.user
-        # Log error and raise a specific exception if user is not found/authenticated
-        logger.error(
-            "Authenticated user could not be retrieved from serializer context."
-        )
-        raise PermissionDenied(
-            "User not found or not authenticated in serializer context."
-        )
-
     def validate(self, data):
-        user = self._get_user_from_context()  # Use the helper
+        """Perform cross-field validation and checks."""
+        user = _get_user_from_context(self.context)
 
-        # Check profile existence defensively
+        # 1. Check if profile level is already determined
         try:
-            profile = user.profile  # Access the profile
+            profile = user.profile  # Access profile via related name
             if profile.level_determined:
-                # Use non_field_errors for general validation errors
+                # Use non_field_errors for general validation errors related to state
                 raise serializers.ValidationError(
                     {
-                        "non_field_errors": [
-                            _(
-                                "Level assessment already completed. Feature to retake is not yet implemented or requires specific flag."
-                            )
-                        ]
+                        "non_field_errors": [_("Level assessment already completed.")]
+                        # Add note about retake if that feature exists:
+                        # " Feature to retake is not yet implemented or requires specific flag."
                     }
                 )
         except UserProfile.DoesNotExist:
-            # This indicates a setup issue (user exists but profile doesn't)
             logger.error(
-                f"UserProfile missing for authenticated user ID: {user.id}. Check signals/factory."
+                f"UserProfile missing for authenticated user ID: {user.id}. Check signals/initial setup."
             )
-            # Raise validation error
             raise serializers.ValidationError(
                 {"non_field_errors": [_("User profile could not be found.")]}
             )
-        except AttributeError as e:
-            # Catch if user object doesn't even have .profile
-            logger.error(f"AttributeError accessing profile for user ID {user.id}: {e}")
+        except AttributeError:
+            logger.error(
+                f"AttributeError accessing profile for user ID {user.id}. Check user model/signal."
+            )
             raise serializers.ValidationError(
                 {"non_field_errors": [_("Error accessing user profile.")]}
             )
 
-        # Check for ongoing assessments
+        # 2. Check for existing *ongoing* Level Assessments for this user
         if UserTestAttempt.objects.filter(
             user=user,
             status=UserTestAttempt.Status.STARTED,
-            # Make the check for assessment_type safer
-            test_configuration__assessment_type="level",
+            attempt_type=UserTestAttempt.AttemptType.LEVEL_ASSESSMENT,  # Check specific type
         ).exists():
             raise serializers.ValidationError(
                 {
@@ -105,198 +105,289 @@ class LevelAssessmentStartSerializer(serializers.Serializer):
                 }
             )
 
+        # 3. Check if enough questions exist for the request
+        sections = data["sections"]
+        num_questions_requested = data["num_questions"]
+        self.question_pool_count = Question.objects.filter(
+            subsection__section__in=sections, is_active=True
+        ).count()
+
+        if self.question_pool_count < num_questions_requested:
+            logger.warning(
+                f"User {user.id} requested {num_questions_requested} level assessment questions for sections "
+                f"{[s.slug for s in sections]}, but only {self.question_pool_count} active questions are available."
+            )
+            # Optionally, allow proceeding with fewer questions or raise an error
+            # if (
+            #     self.question_pool_count < 5
+            # ):  # If fewer than minimum required, definitely raise error
+            #     raise serializers.ValidationError(
+            #         {
+            #             "non_field_errors": [
+            #                 _(
+            #                     "Not enough active questions available in the selected sections to start the assessment."
+            #                 )
+            #             ]
+            #         }
+            #     )
+            # If proceeding with fewer: Adjust num_questions in data? Or handle in create?
+            # Let's adjust in create for now. Validation passes if minimum is met.
+
         return data
 
     def create(self, validated_data):
-        user = self._get_user_from_context()  # Use the helper
+        """Creates the UserTestAttempt and selects questions."""
+        user = _get_user_from_context(self.context)
         sections = validated_data["sections"]
-        num_questions = validated_data["num_questions"]
+        num_questions_requested = validated_data["num_questions"]
 
-        # --- Question Selection Logic ---
+        # --- Question Selection ---
+        # Use the count calculated during validation
         question_pool = Question.objects.filter(
             subsection__section__in=sections, is_active=True
-        ).values_list("id", flat=True)
+        ).values_list(
+            "id", flat=True
+        )  # More efficient
 
-        if not question_pool:
-            # Ensure this matches the expected error structure
-            raise serializers.ValidationError(
-                {
-                    "non_field_errors": [
-                        _("No active questions found for the selected sections.")
-                    ]
-                }
-            )
+        actual_num_questions = min(num_questions_requested, len(question_pool))
 
-        actual_num_questions = min(num_questions, len(question_pool))
-        if actual_num_questions < num_questions:
-            logger.warning(
-                f"Requested {num_questions} questions for level assessment for user {user.id}, "
-                f"but only {actual_num_questions} were available in sections: {[s.slug for s in sections]}."
-            )
-
-        # Convert QuerySet to list for random.sample only if needed
+        # Sample the questions
+        # Ensure random.sample gets a list or tuple
         question_ids = random.sample(list(question_pool), actual_num_questions)
 
-        # --- Create the Test Attempt ---
+        # --- Create Test Attempt ---
         config_snapshot = {
-            "assessment_type": "level",
-            "sections": [s.slug for s in sections],
-            "requested_num_questions": num_questions,
-            "actual_num_questions": actual_num_questions,
+            # Removed "assessment_type": "level" - now handled by attempt_type field
+            "sections_requested": [s.slug for s in sections],
+            "num_questions_requested": num_questions_requested,
+            "actual_num_questions_selected": actual_num_questions,
+            # Add any other relevant context for this specific attempt if needed
         }
 
-        test_attempt = UserTestAttempt.objects.create(
-            user=user,
-            test_configuration=config_snapshot,
-            question_ids=question_ids,
-            status=UserTestAttempt.Status.STARTED,
-        )
+        try:
+            test_attempt = UserTestAttempt.objects.create(
+                user=user,
+                attempt_type=UserTestAttempt.AttemptType.LEVEL_ASSESSMENT,  # Set the type explicitly
+                test_configuration=config_snapshot,
+                question_ids=question_ids,
+                status=UserTestAttempt.Status.STARTED,
+                # test_definition can be null here, as it's dynamically generated
+            )
+        except Exception as e:
+            logger.exception(f"Error creating UserTestAttempt for user {user.id}: {e}")
+            # Use non_field_errors for creation failures
+            raise serializers.ValidationError(
+                {"non_field_errors": [_("Failed to start the assessment.")]}
+            )
 
-        # Retrieve the actual Question objects to return
-        # Ensure questions are returned in a consistent order if required by frontend
-        # Fetching by filter(id__in=...) doesn't guarantee order. Fetch and sort if needed.
-        questions = Question.objects.filter(pk__in=question_ids)
-        questions_dict = {q.id: q for q in questions}
-        ordered_questions = [
-            questions_dict[qid] for qid in question_ids if qid in questions_dict
-        ]
+        # --- Prepare Response Data ---
+        # Fetch the actual Question objects ordered correctly
+        questions_queryset = test_attempt.get_questions_queryset()
 
-        # Return data needed by the frontend
+        # Return data structured for LevelAssessmentResponseSerializer
         return {
             "attempt_id": test_attempt.id,
-            "questions": ordered_questions,  # Return the ordered list/queryset
+            "questions": questions_queryset,  # Pass the queryset directly
         }
+
+
+# --- Level Assessment Submission Serializers ---
 
 
 class LevelAssessmentAnswerSerializer(serializers.Serializer):
-    """Serializer for individual answers within the submission."""
+    """Serializer for individual answers within the submission payload."""
 
-    question_id = serializers.IntegerField()
+    question_id = serializers.IntegerField(required=True)
     selected_answer = serializers.ChoiceField(
-        choices=UserQuestionAttempt.AnswerChoice.choices
+        choices=UserQuestionAttempt.AnswerChoice.choices, required=True
     )
     time_taken_seconds = serializers.IntegerField(
         required=False, min_value=0, allow_null=True
     )
 
+    # Add validation if needed, e.g., check if question_id exists, but primary check is in parent
+
 
 class LevelAssessmentSubmitSerializer(serializers.Serializer):
-    """Serializer for submitting all answers for a level assessment attempt."""
+    """Serializer for validating and processing the submission of level assessment answers."""
 
-    answers = LevelAssessmentAnswerSerializer(many=True)
+    answers = LevelAssessmentAnswerSerializer(many=True, allow_empty=False)
 
     def validate(self, data):
-        user = self.context["request"].user
-        view = self.context["view"]
-        attempt_id = view.kwargs.get("attempt_id")
+        """Validate the submission against the specific test attempt."""
+        request = self.context["request"]
+        user = _get_user_from_context(self.context)
+        view = self.context.get("view")
+        attempt_id = (
+            view.kwargs.get("attempt_id") if view and hasattr(view, "kwargs") else None
+        )
 
+        if not attempt_id:
+            # Should not happen with URL routing, but check defensively
+            raise serializers.ValidationError(_("Assessment attempt ID missing."))
+
+        # 1. Fetch the Test Attempt and check ownership, status, and type
         try:
-            test_attempt = UserTestAttempt.objects.get(pk=attempt_id, user=user)
+            test_attempt = UserTestAttempt.objects.select_related("user").get(
+                pk=attempt_id, user=user  # Ensure ownership
+            )
         except UserTestAttempt.DoesNotExist:
             raise serializers.ValidationError(
-                _("Assessment attempt not found or does not belong to you.")
+                {
+                    "non_field_errors": [
+                        _("Assessment attempt not found or does not belong to you.")
+                    ]
+                }
             )
 
         if test_attempt.status != UserTestAttempt.Status.STARTED:
             raise serializers.ValidationError(
-                _(
-                    "This assessment attempt is not active or has already been submitted."
-                )
+                {
+                    "non_field_errors": [
+                        _(
+                            "This assessment attempt is not active or has already been submitted."
+                        )
+                    ]
+                }
             )
 
-        submitted_question_ids = {answer["question_id"] for answer in data["answers"]}
+        if test_attempt.attempt_type != UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
+            raise serializers.ValidationError(
+                {"non_field_errors": [_("This is not a level assessment attempt.")]}
+            )
+
+        # 2. Validate submitted answers against expected questions
+        submitted_answers_data = data["answers"]
+        submitted_question_ids = {
+            answer["question_id"] for answer in submitted_answers_data
+        }
         expected_question_ids = set(test_attempt.question_ids)
 
         if submitted_question_ids != expected_question_ids:
             missing = expected_question_ids - submitted_question_ids
             extra = submitted_question_ids - expected_question_ids
-            errors = {}
+            error_detail = {}
             if missing:
-                errors["missing_answers_for_ids"] = list(missing)
+                error_detail["missing_answers_for_question_ids"] = list(missing)
             if extra:
-                errors["unexpected_answers_for_ids"] = list(extra)
+                error_detail["unexpected_answers_for_question_ids"] = list(extra)
+
             raise serializers.ValidationError(
                 {
-                    "answers": _(
-                        "Mismatch between submitted answers and questions in the assessment attempt."
-                    ),
-                    **errors,
+                    "answers": [
+                        _(
+                            "Mismatch between submitted answers and questions in the assessment attempt."
+                        ),
+                        error_detail,
+                    ]
                 }
             )
 
-        # Add test_attempt to context for the save method
+        # Make the validated test_attempt available to the save method via context
         self.context["test_attempt"] = test_attempt
         return data
 
-    @transaction.atomic  # Ensure all updates happen or none do
+    @transaction.atomic  # Ensure all DB updates succeed or fail together
     def save(self, **kwargs):
+        """Processes the validated answers, calculates results, updates models."""
         test_attempt = self.context["test_attempt"]
         answers_data = self.validated_data["answers"]
-        user = self.context["request"].user
+        user = test_attempt.user  # Get user from the validated attempt
 
-        question_map = {q.id: q for q in test_attempt.get_questions_queryset()}
+        # Fetch related questions efficiently
+        questions_in_attempt = test_attempt.get_questions_queryset().select_related(
+            "subsection", "subsection__section"  # Preload for scoring
+        )
+        question_map = {q.id: q for q in questions_in_attempt}
 
-        question_attempts = []
+        # --- Create UserQuestionAttempt records ---
+        question_attempts_to_create = []
         for answer_data in answers_data:
             question_id = answer_data["question_id"]
             question = question_map.get(question_id)
             if not question:
-                # This should theoretically be caught by validation, but double-check
+                # Should be caught by validation, but handle defensively
                 logger.error(
-                    f"Question ID {question_id} in submit data but not found for test attempt {test_attempt.id}"
+                    f"Question ID {question_id} from submit data not found in fetched questions for test attempt {test_attempt.id}"
                 )
-                continue  # Or raise error
+                # Consider raising an error or logging and skipping
+                raise serializers.ValidationError(
+                    {
+                        "answers": _(
+                            f"Internal error: Question {question_id} not found during processing."
+                        )
+                    }
+                )
 
-            is_correct = answer_data["selected_answer"] == question.correct_answer
+            # is_correct is calculated in the model's save method now, but we can set it here too
+            is_correct_flag = answer_data["selected_answer"] == question.correct_answer
 
             attempt = UserQuestionAttempt(
                 user=user,
                 question=question,
-                test_attempt=test_attempt,
+                test_attempt=test_attempt,  # Link to the parent attempt
                 selected_answer=answer_data["selected_answer"],
                 time_taken_seconds=answer_data.get("time_taken_seconds"),
-                mode=UserQuestionAttempt.Mode.LEVEL_ASSESSMENT,
-                is_correct=is_correct,
+                mode=UserQuestionAttempt.Mode.LEVEL_ASSESSMENT,  # Set mode explicitly
+                is_correct=is_correct_flag,  # Set correctness
+                # attempted_at is handled by default=timezone.now
             )
-            question_attempts.append(attempt)
+            question_attempts_to_create.append(attempt)
 
-        # Bulk create for efficiency
-        UserQuestionAttempt.objects.bulk_create(question_attempts)
+        try:
+            # Bulk create for performance
+            created_attempts = UserQuestionAttempt.objects.bulk_create(
+                question_attempts_to_create
+            )
+        except Exception as e:
+            logger.exception(
+                f"Error bulk creating UserQuestionAttempts for test attempt {test_attempt.id}: {e}"
+            )
+            raise serializers.ValidationError(
+                {"non_field_errors": [_("Failed to save assessment answers.")]}
+            )
 
         # --- Calculate Scores ---
-        # Reload attempts from DB to be safe
-        final_attempts = test_attempt.question_attempts.all()
-        total_questions = final_attempts.count()
-        correct_answers = final_attempts.filter(is_correct=True).count()
+        # Use the created attempts for calculation
+        total_questions = len(created_attempts)
+        correct_answers = sum(1 for attempt in created_attempts if attempt.is_correct)
 
-        # Calculate Overall Score
         overall_score = (
             (correct_answers / total_questions * 100) if total_questions > 0 else 0.0
         )
 
-        # Calculate Section Scores (Verbal/Quantitative)
+        # Calculate Section Scores (Verbal/Quantitative) & Detailed Summary
         verbal_correct = 0
         verbal_total = 0
         quant_correct = 0
         quant_total = 0
-        # Store results per subsection for summary
-        results_summary = {}
+        results_summary = {}  # Store detailed breakdown by subsection slug
 
-        for attempt in final_attempts:
+        for attempt in created_attempts:
+            # Access preloaded related fields
             subsection = attempt.question.subsection
-            section_slug = (
-                subsection.section.slug
-                if subsection and subsection.section
-                else "unknown"
-            )
-            subsection_slug = subsection.slug if subsection else "unknown"
+            if not subsection:
+                logger.warning(
+                    f"Question {attempt.question.id} in attempt {test_attempt.id} has no subsection."
+                )
+                continue  # Skip questions without subsection for scoring
+
+            section = subsection.section
+            if not section:
+                logger.warning(
+                    f"Subsection {subsection.id} for question {attempt.question.id} has no parent section."
+                )
+                continue  # Skip subsections without section
+
+            section_slug = section.slug
+            subsection_slug = subsection.slug
 
             # Initialize subsection summary if not present
             if subsection_slug not in results_summary:
                 results_summary[subsection_slug] = {
                     "correct": 0,
                     "total": 0,
-                    "name": subsection.name if subsection else "Unknown",
+                    "name": subsection.name,
                 }
 
             results_summary[subsection_slug]["total"] += 1
@@ -311,7 +402,7 @@ class LevelAssessmentSubmitSerializer(serializers.Serializer):
                 if attempt.is_correct:
                     quant_correct += 1
                     results_summary[subsection_slug]["correct"] += 1
-            # Handle other sections if they exist
+            # Handle other potential sections if needed
 
         verbal_score = (
             (verbal_correct / verbal_total * 100) if verbal_total > 0 else 0.0
@@ -320,10 +411,12 @@ class LevelAssessmentSubmitSerializer(serializers.Serializer):
             (quant_correct / quant_total * 100) if quant_total > 0 else 0.0
         )
 
-        # Calculate subsection scores for the summary
+        # Calculate final scores within the results_summary dict
         for slug, data in results_summary.items():
             data["score"] = (
-                (data["correct"] / data["total"] * 100) if data["total"] > 0 else 0.0
+                round((data["correct"] / data["total"] * 100), 2)
+                if data["total"] > 0
+                else 0.0
             )
 
         # --- Update Test Attempt ---
@@ -333,50 +426,102 @@ class LevelAssessmentSubmitSerializer(serializers.Serializer):
         test_attempt.score_verbal = round(verbal_score, 2)
         test_attempt.score_quantitative = round(quantitative_score, 2)
         test_attempt.results_summary = results_summary
-        test_attempt.save()
+        test_attempt.save(
+            update_fields=[
+                "status",
+                "end_time",
+                "score_percentage",
+                "score_verbal",
+                "score_quantitative",
+                "results_summary",
+                "updated_at",
+            ]
+        )
 
         # --- Update User Profile ---
-        profile = user.profile
+        profile = user.profile  # Assumes profile exists (checked earlier)
         profile.current_level_verbal = test_attempt.score_verbal
         profile.current_level_quantitative = test_attempt.score_quantitative
-        # profile.level_determined = True  # Mark level as determined
-        profile.save()
+        # No need to set profile.level_determined explicitly, the property handles it.
+        profile.save(
+            update_fields=[
+                "current_level_verbal",
+                "current_level_quantitative",
+                "updated_at",
+            ]
+        )
 
         # --- Award Points ---
-        # TODO: Implement PointLog creation later (needs Gamification app)
-        # points_earned = settings.POINTS_LEVEL_ASSESSMENT_COMPLETED # Example setting
-        # PointLog.objects.create(user=user, points_change=points_earned, reason_code="LEVEL_ASSESSMENT_COMPLETED", ...)
+        # Placeholder for Gamification integration
+        # points_earned = settings.POINTS_LEVEL_ASSESSMENT_COMPLETED # Example
+        # PointLog.objects.create(...)
+        logger.info(
+            f"Level assessment attempt {test_attempt.id} completed for user {user.id}."
+        )
 
-        # --- Return Result Data ---
+        # --- Prepare and Return Result Data ---
+        # Refresh profile from DB to get the latest state for the response
+        profile.refresh_from_db()
         return {
             "attempt_id": test_attempt.id,
             "results": {
                 "overall_score": test_attempt.score_percentage,
                 "verbal_score": test_attempt.score_verbal,
                 "quantitative_score": test_attempt.score_quantitative,
-                "proficiency_summary": results_summary,  # More detailed than just scores
+                "proficiency_summary": results_summary,  # Detailed breakdown
                 "message": _(
                     "Your level assessment is complete. Your personalized learning path is now adjusted!"
                 ),
             },
-            "updated_profile": {  # Return relevant updated fields
-                "current_level_verbal": profile.current_level_verbal,
-                "current_level_quantitative": profile.current_level_quantitative,
-                "level_determined": profile.level_determined,
-            },
+            # Return the actual UserProfile object here, not its serialized data
+            "updated_profile": profile,
+            # *************************
         }
 
 
-class LevelAssessmentResponseSerializer(serializers.Serializer):
-    """Response serializer for the start assessment endpoint."""
+# --- Level Assessment Response Serializers ---
 
-    attempt_id = serializers.IntegerField()
+
+class LevelAssessmentResponseSerializer(serializers.Serializer):
+    """Response serializer for the start assessment endpoint (POST /level-assessment/start/)."""
+
+    attempt_id = serializers.IntegerField(read_only=True)
+    # Use QuestionListSerializer to format the questions (no answers/explanations)
+    # Important: Pass context for `is_starred` calculation
     questions = QuestionListSerializer(many=True, read_only=True)
 
 
 class LevelAssessmentResultSerializer(serializers.Serializer):
-    """Response serializer for the submit assessment endpoint."""
+    """Response serializer for the submit assessment endpoint (POST /level-assessment/{id}/submit/)."""
 
-    attempt_id = serializers.IntegerField()
-    results = serializers.JSONField()  # Contains scores and summary
-    updated_profile = serializers.JSONField()  # Contains updated profile fields
+    attempt_id = serializers.IntegerField(read_only=True)
+    # Results dictionary as calculated in the submit serializer's save method
+    results = serializers.JSONField(read_only=True)
+    # Updated profile represented using the standard UserProfileSerializer
+    # Ensure context is passed if UserProfileSerializer needs the request (e.g., for URLs)
+    updated_profile = UserProfileSerializer(read_only=True)
+
+
+# --- Serializers for Traditional Learning, Tests, Emergency Mode, etc. will go here ---
+# Example:
+# class TraditionalLearningAnswerSerializer(serializers.Serializer):
+#     question_id = serializers.IntegerField()
+#     selected_answer = serializers.ChoiceField(choices=UserQuestionAttempt.AnswerChoice.choices)
+#     time_taken_seconds = serializers.IntegerField(required=False, min_value=0, allow_null=True)
+#     used_hint = serializers.BooleanField(default=False)
+#     # ... other fields ...
+#
+#     def save(self):
+#         # Logic to create UserQuestionAttempt with mode='traditional'
+#         # Update UserSkillProficiency, award points, update streak etc.
+#         pass
+
+# class TraditionalLearningResponseSerializer(serializers.Serializer):
+#      question_id = serializers.IntegerField()
+#      is_correct = serializers.BooleanField()
+#      correct_answer = serializers.CharField()
+#      explanation = serializers.CharField()
+#      points_earned = serializers.IntegerField()
+#      current_total_points = serializers.IntegerField()
+#      streak_updated = serializers.BooleanField()
+#      current_streak = serializers.IntegerField()
