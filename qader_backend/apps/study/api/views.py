@@ -1,18 +1,24 @@
 from rest_framework import generics, status, views
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from django.utils.translation import gettext_lazy as _
-from django.shortcuts import get_object_or_404  # Use get_object_or_404
+from django.shortcuts import get_object_or_404
+from django.db.models import Exists, Q, OuterRef
+
+from apps.learning.models import Question, UserStarredQuestion
+from apps.learning.api.serializers import QuestionListSerializer
 
 from .serializers import (
     LevelAssessmentStartSerializer,
     LevelAssessmentSubmitSerializer,
     LevelAssessmentResponseSerializer,
     LevelAssessmentResultSerializer,
+    TraditionalLearningAnswerSerializer,
+    TraditionalLearningResponseSerializer,
 )
 from apps.api.permissions import IsSubscribed  # Import custom permission
-from ..models import UserTestAttempt
+from ..models import UserSkillProficiency, UserTestAttempt
 
 import logging
 
@@ -130,5 +136,243 @@ class LevelAssessmentSubmitView(generics.GenericAPIView):
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    tags=["Study & Progress"],
+    summary="Fetch Questions for Traditional Learning",
+    description=(
+        "Retrieves a list of questions for traditional practice based on specified filters. "
+        "Allows filtering by subsections, skills, starred status, or skills the user hasn't mastered. "
+        "Use `exclude_ids` to avoid fetching questions already seen in the current frontend session."
+    ),
+    parameters=[
+        OpenApiParameter(
+            name="limit",
+            description="Maximum number of questions to return.",
+            required=False,
+            type=int,
+            default=10,
+        ),
+        OpenApiParameter(
+            name="subsection__slug__in",
+            description="Comma-separated list of subsection slugs to include.",
+            required=False,
+            type=str,
+        ),
+        OpenApiParameter(
+            name="skill__slug__in",
+            description="Comma-separated list of skill slugs to include.",
+            required=False,
+            type=str,
+        ),
+        OpenApiParameter(
+            name="starred",
+            description="Filter by questions starred by the user (`true`).",
+            required=False,
+            type=bool,
+        ),
+        OpenApiParameter(
+            name="not_mastered",
+            description="Filter by questions related to skills the user hasn't mastered (`true`). Requires proficiency tracking.",
+            required=False,
+            type=bool,
+        ),
+        OpenApiParameter(
+            name="exclude_ids",
+            description="Comma-separated list of question IDs to exclude.",
+            required=False,
+            type=str,
+        ),
+    ],
+    responses={
+        200: OpenApiResponse(
+            response=QuestionListSerializer(many=True),
+            description="Successfully retrieved a list of questions matching the criteria.",
+        ),
+        400: OpenApiResponse(description="Bad Request - Invalid filter parameters."),
+        403: OpenApiResponse(
+            description="Forbidden - Authentication required or user lacks an active subscription."
+        ),
+    },
+)
+class TraditionalLearningQuestionListView(generics.ListAPIView):
+    """
+    Provides questions for the Traditional Learning mode based on filters.
+
+    GET /api/v1/study/traditional/questions/
+    """
+
+    serializer_class = QuestionListSerializer
+    permission_classes = [IsAuthenticated, IsSubscribed]
+
+    # Define a low proficiency threshold (adjust as needed)
+    PROFICIENCY_THRESHOLD = 0.7
+
+    def get_queryset(self):
+        """
+        Filters the queryset based on query parameters provided in the request.
+        """
+        user = self.request.user
+        queryset = Question.objects.filter(is_active=True).select_related(
+            "subsection", "skill"  # Optimize related lookups
+        )
+
+        # --- Basic Filters ---
+        subsection_slugs = self.request.query_params.get("subsection__slug__in")
+        skill_slugs = self.request.query_params.get("skill__slug__in")
+        exclude_ids_str = self.request.query_params.get("exclude_ids")
+
+        if subsection_slugs:
+            slug_list = [
+                slug.strip() for slug in subsection_slugs.split(",") if slug.strip()
+            ]
+            queryset = queryset.filter(subsection__slug__in=slug_list)
+
+        if skill_slugs:
+            slug_list = [
+                slug.strip() for slug in skill_slugs.split(",") if slug.strip()
+            ]
+            queryset = queryset.filter(skill__slug__in=slug_list)
+
+        # --- Starred Filter ---
+        # Requires UserStarredQuestion model
+        is_starred = self.request.query_params.get("starred", "").lower() == "true"
+        if is_starred and UserStarredQuestion:
+            # Subquery to check existence
+            starred_subquery = UserStarredQuestion.objects.filter(
+                user=user, question=OuterRef("pk")
+            )
+            queryset = queryset.annotate(
+                is_starred_annotation=Exists(starred_subquery)
+            ).filter(is_starred_annotation=True)
+            # Note: The serializer will also calculate is_starred, this filter ensures ONLY starred are returned.
+            # Alternatively, fetch all and let serializer handle display, but filtering is usually better.
+
+        # --- Not Mastered Filter ---
+        # Requires UserSkillProficiency model
+        not_mastered = (
+            self.request.query_params.get("not_mastered", "").lower() == "true"
+        )
+        if not_mastered and UserSkillProficiency:
+            try:
+                # Find skills where the user's proficiency is below the threshold
+                low_proficiency_skills = UserSkillProficiency.objects.filter(
+                    user=user, proficiency_score__lt=self.PROFICIENCY_THRESHOLD
+                ).values_list("skill_id", flat=True)
+
+                # Also include skills the user hasn't attempted yet (proficiency record doesn't exist)
+                # Get IDs of all skills the user HAS attempted
+                attempted_skill_ids = UserSkillProficiency.objects.filter(
+                    user=user
+                ).values_list("skill_id", flat=True)
+
+                # Filter questions:
+                # 1. EITHER the skill is in the low_proficiency list
+                # 2. OR the question has a skill AND that skill is NOT in the attempted list
+                queryset = queryset.filter(
+                    Q(skill_id__in=list(low_proficiency_skills))
+                    | (
+                        Q(skill__isnull=False)
+                        & ~Q(skill_id__in=list(attempted_skill_ids))
+                    )
+                )
+            except Exception as e:
+                # Log error if proficiency filtering fails, but don't crash the request
+                logger.error(
+                    f"Error filtering 'not_mastered' questions for user {user.id}: {e}"
+                )
+
+        # --- Exclude IDs ---
+        if exclude_ids_str:
+            try:
+                exclude_ids = [
+                    int(id_str.strip())
+                    for id_str in exclude_ids_str.split(",")
+                    if id_str.strip().isdigit()
+                ]
+                queryset = queryset.exclude(id__in=exclude_ids)
+            except ValueError:
+                # Ignore invalid IDs, maybe log a warning
+                logger.warning(
+                    f"Invalid non-integer value found in exclude_ids: {exclude_ids_str}"
+                )
+
+        # --- Limit and Order ---
+        limit_str = self.request.query_params.get(
+            "limit", "10"
+        )  # Default to 10 questions
+        try:
+            limit = int(limit_str)
+            if limit <= 0:
+                limit = 10  # Fallback to default if invalid
+        except ValueError:
+            limit = 10  # Fallback to default
+
+        # Randomize the order and take the limit
+        # Using order_by('?') can be inefficient on large tables, especially PostgreSQL.
+        # A more performant way for random selection:
+        count = queryset.count()
+        if count == 0:
+            return Question.objects.none()
+
+        num_to_fetch = min(limit, count)
+
+        # Method 1: Efficient random sampling (requires knowing IDs)
+        # all_ids = list(queryset.values_list('id', flat=True))
+        # random_ids = random.sample(all_ids, num_to_fetch)
+        # return Question.objects.filter(id__in=random_ids).select_related('subsection', 'skill') # Re-fetch with select_related
+
+        # Method 2: Using order_by('?') - simpler, but potentially slower
+        return queryset.order_by("?")[:num_to_fetch]
+
+
+@extend_schema(
+    tags=["Study & Progress"],
+    summary="Submit Answer for Traditional Learning",
+    description=(
+        "Submits the user's answer for a single question attempted in the traditional learning mode. "
+        "Validates the question, records the attempt, calculates correctness, awards points, updates the study streak, "
+        "and triggers proficiency updates. Returns immediate feedback including the correct answer and explanation."
+    ),
+    request=TraditionalLearningAnswerSerializer,
+    responses={
+        200: OpenApiResponse(
+            response=TraditionalLearningResponseSerializer,
+            description="Answer processed successfully. Returns correctness, explanation, points, and streak info.",
+        ),
+        400: OpenApiResponse(
+            description="Bad Request - Invalid input data (e.g., invalid question ID, missing fields)."
+        ),
+        403: OpenApiResponse(
+            description="Forbidden - Authentication required or user lacks an active subscription."
+        ),
+        404: OpenApiResponse(
+            description="Not Found - The specified question ID does not exist or is inactive."
+        ),  # Handled by serializer's PrimaryKeyRelatedField
+    },
+)
+class TraditionalLearningAnswerView(generics.GenericAPIView):
+    """
+    Handles the submission of an answer in Traditional Learning mode.
+
+    POST /api/v1/study/traditional/answer/
+    """
+
+    serializer_class = TraditionalLearningAnswerSerializer
+    permission_classes = [IsAuthenticated, IsSubscribed]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        # .save() method in the serializer handles all the logic
+        result_data = serializer.save()
+
+        # Use the response serializer for consistent output structure
+        response_serializer = TraditionalLearningResponseSerializer(result_data)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
 # Add other study-related views here later
-# (Traditional Learning Answer, Emergency Mode, Conversation, Tests, Stats etc.)
+# (Emergency Mode, Conversation, Tests, Stats etc.)

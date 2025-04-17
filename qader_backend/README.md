@@ -649,6 +649,37 @@
         ```
     *   **Notes:** Backend calculates scores, updates `UserTestAttempt`, `UserProfile`, and potentially `UserSkillProficiency`. Creates `UserQuestionAttempt` records.
 
+*   **`GET /traditional/questions/`**
+    *   **Action:** Fetch a list of questions for traditional learning based on filters.
+    *   **Permissions:** `IsSubscribed`
+    *   **Query Parameters:**
+        *   `limit` (integer, default: 10): Max number of questions.
+        *   `subsection__slug__in` (string): Comma-separated subsection slugs.
+        *   `skill__slug__in` (string): Comma-separated skill slugs.
+        *   `starred` (boolean): `true` to fetch only starred questions.
+        *   `not_mastered` (boolean): `true` to fetch questions from skills below the proficiency threshold.
+        *   `exclude_ids` (string): Comma-separated question IDs to exclude from results.
+    *   **Success Response (200 OK):** Returns a list of question objects (structure like `GET /learning/questions/` - uses `QuestionListSerializer`).
+        ```json
+        [
+          {
+            "id": 501,
+            "question_text": "If 2x + 5 = 15, what is the value of x?",
+            "option_a": "3",
+            "option_b": "5",
+            "option_c": "7",
+            "option_d": "10",
+            "hint": "Isolate the term with x first.",
+            "solution_method_summary": "Solve the linear equation.",
+            "difficulty": 2,
+            "subsection": "algebra-problems",
+            "skill": "solving-linear-equations",
+            "is_starred": true // Reflects if starred by the requesting user
+          },
+          // ... other questions
+        ]
+        ```
+
 *   **`POST /traditional/answer/`**
     *   **Action:** Submit an answer for a single question in Traditional Learning mode.
     *   **Permissions:** `IsSubscribed`

@@ -354,6 +354,38 @@ class UserQuestionAttempt(models.Model):
         super().save(*args, **kwargs)
 
 
+class UserSkillProficiency(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="skill_proficiencies",
+    )
+    skill = models.ForeignKey("learning.Skill", on_delete=models.CASCADE)
+    proficiency_score = models.FloatField(
+        default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(1.0)]
+    )
+    attempts_count = models.IntegerField(default=0)
+    correct_count = models.IntegerField(default=0)
+    last_calculated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [["user", "skill"]]
+        verbose_name = _("User Skill Proficiency")
+        verbose_name_plural = _("User Skill Proficiencies")
+
+    def update_proficiency(self, is_correct):
+        self.attempts_count += 1
+        if is_correct:
+            self.correct_count += 1
+        # Simple moving average or more complex algorithm
+        # Example: Basic accuracy
+        if self.attempts_count > 0:
+            self.proficiency_score = self.correct_count / self.attempts_count
+        else:
+            self.proficiency_score = 0.0
+        self.save()
+
+
 # --- Other Study Models (Placeholders) ---
 
 # class EmergencyModeSession(models.Model):
