@@ -38,7 +38,7 @@ urlpatterns = [
         TraditionalLearningAnswerView.as_view(),
         name="traditional-answer-submit",
     ),
-    # --- General Tests ---
+    # --- General Tests (Practice/Simulation) ---
     path("tests/", UserTestAttemptListView.as_view(), name="test-attempt-list"),
     path("tests/start/", StartTestAttemptView.as_view(), name="test-attempt-start"),
     path(
@@ -61,5 +61,7 @@ urlpatterns = [
         RetakeSimilarTestAttemptView.as_view(),
         name="test-attempt-retake-similar",
     ),
-    # Add other study-related endpoints here later (tests, etc.)
+    # --- Other Study Endpoints ---
+    # Add endpoints for Emergency Mode, Conversation, Statistics, etc. here
+    # e.g., path("emergency-mode/start/", EmergencyModeStartView.as_view(), name="emergency-start"),
 ]
