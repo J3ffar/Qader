@@ -13,6 +13,7 @@ class UserFactory(DjangoModelFactory):
         model = User
         # If using signals to create profile, prevent recursion:
         django_get_or_create = ("username",)  # Use if needed
+        skip_postgeneration_save = True
 
     username = factory.Sequence(lambda n: f"user{n}")
     email = factory.LazyAttribute(lambda o: f"{o.username}@example.com")
@@ -22,8 +23,8 @@ class UserFactory(DjangoModelFactory):
     @factory.post_generation
     def password(self, create, extracted, **kwargs):
         password = extracted or "defaultpassword"  # Use provided password or default
+        self.set_password(password)
         if create:
-            self.set_password(password)
             self.save()  # Save after setting password
 
     # Helper flags for creating different user types easily

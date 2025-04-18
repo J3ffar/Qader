@@ -117,9 +117,12 @@ class TestLevelAssessmentAPI:
         payload = {"sections": ["verbal"], "num_questions": 2}  # Below min_value=5
         response = subscribed_client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "num_questions" in response.data and "at least 5" in str(
+        # --- ADJUSTED ASSERTION ---
+        assert "num_questions" in response.data
+        assert "Ensure this value is greater than or equal to 5." in str(
             response.data["num_questions"]
         )
+        # --- END ADJUSTED ASSERTION ---
 
     def test_start_assessment_no_active_questions_available(
         self, subscribed_client, setup_learning_content
