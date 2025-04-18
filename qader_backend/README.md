@@ -649,6 +649,37 @@
         ```
     *   **Notes:** Backend calculates scores, updates `UserTestAttempt`, `UserProfile`, and potentially `UserSkillProficiency`. Creates `UserQuestionAttempt` records.
 
+*   **`GET /traditional/questions/`**
+    *   **Action:** Fetch a list of questions for traditional learning based on filters.
+    *   **Permissions:** `IsSubscribed`
+    *   **Query Parameters:**
+        *   `limit` (integer, default: 10): Max number of questions.
+        *   `subsection__slug__in` (string): Comma-separated subsection slugs.
+        *   `skill__slug__in` (string): Comma-separated skill slugs.
+        *   `starred` (boolean): `true` to fetch only starred questions.
+        *   `not_mastered` (boolean): `true` to fetch questions from skills below the proficiency threshold.
+        *   `exclude_ids` (string): Comma-separated question IDs to exclude from results.
+    *   **Success Response (200 OK):** Returns a list of question objects (structure like `GET /learning/questions/` - uses `QuestionListSerializer`).
+        ```json
+        [
+          {
+            "id": 501,
+            "question_text": "If 2x + 5 = 15, what is the value of x?",
+            "option_a": "3",
+            "option_b": "5",
+            "option_c": "7",
+            "option_d": "10",
+            "hint": "Isolate the term with x first.",
+            "solution_method_summary": "Solve the linear equation.",
+            "difficulty": 2,
+            "subsection": "algebra-problems",
+            "skill": "solving-linear-equations",
+            "is_starred": true // Reflects if starred by the requesting user
+          },
+          // ... other questions
+        ]
+        ```
+
 *   **`POST /traditional/answer/`**
     *   **Action:** Submit an answer for a single question in Traditional Learning mode.
     *   **Permissions:** `IsSubscribed`
@@ -679,14 +710,14 @@
     *   **Notes:** Backend creates `UserQuestionAttempt` (mode='traditional'), updates `UserSkillProficiency`, updates `UserProfile.points` via `PointLog`, updates `UserProfile` streak.
 
 *   **`POST /emergency-mode/start/`**
-    *   **Action:** Initiate Emergency Mode, get a suggested plan.
+    *   **Action:** Initiate Emergency Mode, get a suggested plan and session ID.
     *   **Permissions:** `IsSubscribed`
     *   **Request Body:**
         ```json
         {
-          "reason": "Feeling overwhelmed before the test.", // Optional
-          "available_time_hours": 2, // Optional, influences plan
-          "focus_areas": ["quantitative"] // Optional list of section slugs to prioritize
+          "reason": "Feeling overwhelmed before the test.", // Optional, String (max 500 chars)
+          "available_time_hours": 2, // Optional, Integer (1-24)
+          "focus_areas": ["quantitative"] // Optional, List of strings ["verbal", "quantitative"]
         }
         ```
     *   **Success Response (201 Created):** Returns session ID and the plan.
@@ -699,7 +730,7 @@
               "data-analysis-graphs"
             ],
             "recommended_questions": 15, // Suggested number based on time/weakness
-            "quick_review_topics": ["Linear equations formula", "Common geometry shapes"]
+            "quick_review_topics": ["Linear equations formula", "Common geometry shapes"] // Basic concepts from related subsections
           },
           "tips": [ // General tips
             "Take deep breaths before starting.",
@@ -707,57 +738,61 @@
           ]
         }
         ```
-    *   **Notes:** Backend creates `EmergencyModeSession`, analyzes `UserSkillProficiency` (or test history) to generate the plan.
+    *   **Error Response (400 Bad Request):** If input validation fails or plan generation fails.
+    *   **Notes:** Backend creates `EmergencyModeSession`, analyzes `UserSkillProficiency` to generate the plan. Fetches questions based on `suggested_plan.focus_skills` via `GET /learning/questions/`.
 
 *   **`PATCH /emergency-mode/{session_id}/`**
-    *   **Action:** Update settings for an active Emergency Mode session.
+    *   **Action:** Update settings (calm mode activation, sharing status) for an active Emergency Mode session.
     *   **Permissions:** `IsSubscribed` & Owner of `session_id`.
-    *   **Request Body:**
+    *   **URL Parameter:** `session_id` (integer) - ID of the emergency session.
+    *   **Request Body:** Send only fields to update.
         ```json
         {
-          "calm_mode_active": true, // Activate/deactivate calm visual/audio settings
+          "calm_mode_active": true, // Activate/deactivate calm visual/audio settings (frontend responsibility mostly)
           "shared_with_admin": true // Share status with admin (creates notification/flag)
         }
         ```
     *   **Success Response (200 OK):** Returns the updated session status.
         ```json
         {
-          "session_id": 45,
+          "id": 45,
+          "user": "ali_student99", // String representation or ID
+          "reason": "Feeling overwhelmed...",
+          "suggested_plan": { ... },
           "calm_mode_active": true,
-          "shared_with_admin": true
-          // ... other session details
+          "start_time": "2024-07-23T10:00:00Z",
+          "end_time": null,
+          "shared_with_admin": true,
+          "created_at": "...",
+          "updated_at": "..."
         }
         ```
-
-*   **`GET /emergency-mode/questions/`** (Implementation Detail: Often combined with POST answer)
-    *   **Action:** Get the next question based on the emergency plan.
-    *   **Permissions:** `IsSubscribed` & Owner of active `session_id`.
-    *   **Query Parameters:** `session_id`
-    *   **Success Response (200 OK):** Returns a single question object (structure like GET `/learning/questions/` but focused on weak areas from the plan). *Note: Often, the frontend fetches a batch via `/learning/questions/?skill=...` based on the plan, rather than one-by-one.*
+    *   **Error Responses:** `403 Forbidden` (not owner), `404 Not Found` (invalid session ID), `400 Bad Request` (session ended).
 
 *   **`POST /emergency-mode/answer/`**
-    *   **Action:** Submit an answer in Emergency Mode.
-    *   **Permissions:** `IsSubscribed` & Owner of active `session_id`.
+    *   **Action:** Submit an answer for a question attempted during an emergency mode session.
+    *   **Permissions:** `IsSubscribed`
     *   **Request Body:**
         ```json
         {
-          "question_id": 701,
-          "selected_answer": "C",
-          "session_id": 45
-          // No timer/hint data needed if Calm Mode is active
+          "question_id": 701, // Integer ID of the question being answered
+          "selected_answer": "C", // String ("A", "B", "C", or "D")
+          "session_id": 45 // Integer ID of the active emergency session
         }
         ```
-    *   **Success Response (200 OK):** Returns correctness and explanation.
+    *   **Success Response (200 OK):** Returns correctness information.
         ```json
         {
           "question_id": 701,
           "is_correct": false,
           "correct_answer": "D",
-          "explanation": "...",
-          "points_earned": 0 // Or maybe partial points for trying
+          "explanation": "Detailed explanation for question 701...",
+          "points_earned": 0 // Points usually not awarded in emergency mode
         }
         ```
-    *   **Notes:** Creates `UserQuestionAttempt` (mode='emergency'), updates proficiency.
+    *   **Error Responses:** `400 Bad Request` (invalid input, session ended), `404 Not Found` (invalid session or question ID).
+    *   **Notes:** Creates `UserQuestionAttempt` (mode='emergency'), updates `UserSkillProficiency`. Backend verifies the user owns the active `session_id`.
+
 
 *   **`POST /conversation/start/`**
     *   **Action:** Start a new conversational learning session.
