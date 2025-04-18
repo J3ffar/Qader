@@ -115,11 +115,22 @@ class RegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {"email": {"required": True}}
 
     def validate_serial_code(self, value):
-        """Use the helper serializer to validate the code."""
-        validator = SerialCodeValidatorSerializer(data={"serial_code": value})
-        validator.is_valid(raise_exception=True)
-        # Return the validated code string for use in the create method
-        return value
+        """Validate the serial code's existence, activity, and unused status directly."""
+        try:
+            # Retrieve the code object. Use __iexact for case-insensitivity.
+            # This ensures the code exists and is currently usable.
+            code_instance = SerialCode.objects.get(
+                code__iexact=value, is_active=True, is_used=False
+            )
+            # Return the code string itself (the cleaned data for the field)
+            return value
+        except SerialCode.DoesNotExist:
+            # Raise validation error directly on this field
+            raise serializers.ValidationError(_("Invalid or already used serial code."))
+        except Exception as e:
+            # Catch any unexpected database errors during lookup
+            logger.error(f"Unexpected error validating serial code {value}: {e}")
+            raise serializers.ValidationError(_("Error validating serial code."))
 
     def validate(self, attrs):
         """Validate password confirmation."""

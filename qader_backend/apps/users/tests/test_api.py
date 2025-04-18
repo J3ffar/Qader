@@ -95,7 +95,7 @@ def test_register_invalid_serial_code(api_client):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "serial_code" in response.data
     # Updated assertion to handle nested error
-    assert "Invalid or already used serial code." in response.data["serial_code"][0]
+    assert "Invalid or already used serial code." in response.data["serial_code"]
     assert not User.objects.filter(username="newuser2").exists()
 
 
@@ -115,7 +115,7 @@ def test_register_used_serial_code(api_client, used_serial_code):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "serial_code" in response.data
     # Updated assertion to handle nested error
-    assert "Invalid or already used serial code." in response.data["serial_code"][0]
+    assert "Invalid or already used serial code." in response.data["serial_code"]
     assert not User.objects.filter(username="newuser3").exists()
 
 
