@@ -1,4 +1,3 @@
-# qader_backend/apps/study/api/views/traditional.py
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -8,7 +7,7 @@ import logging
 from apps.api.permissions import IsSubscribed
 from apps.learning.api.serializers import QuestionListSerializer  # Used for response
 from apps.study.services import get_filtered_questions  # Use the service
-from ..serializers.traditional import (  # Import specific serializers
+from apps.study.api.serializers import (  # Import specific serializers
     TraditionalLearningAnswerSerializer,
     TraditionalLearningResponseSerializer,
 )

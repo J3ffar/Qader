@@ -1,6 +1,5 @@
-# qader_backend/apps/study/api/urls/statistics.py
 from django.urls import path
-from ..views.statistics import UserStatisticsView
+from apps.study.api.views.statistics import UserStatisticsView
 
 
 urlpatterns = [

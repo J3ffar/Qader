@@ -1,4 +1,3 @@
-# qader_backend/apps/study/api/views/__init__.py
 from .level_assessment import LevelAssessmentStartView, LevelAssessmentSubmitView
 from .traditional import (
     TraditionalLearningQuestionListView,

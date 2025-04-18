@@ -1,4 +1,3 @@
-# qader_backend/apps/study/api/views/tests.py
 from rest_framework import generics, status, serializers, views
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -12,7 +11,7 @@ import random
 from apps.api.permissions import IsSubscribed
 from apps.study.models import UserTestAttempt, UserQuestionAttempt
 from apps.study.services import get_filtered_questions  # Use the service
-from ..serializers.tests import (  # Import specific serializers
+from apps.study.api.serializers import (  # Import specific serializers
     TestStartSerializer,
     TestStartResponseSerializer,
     UserTestAttemptListSerializer,
@@ -20,7 +19,7 @@ from ..serializers.tests import (  # Import specific serializers
     TestSubmitSerializer,
     TestSubmitResponseSerializer,
 )
-from ..serializers.review import (  # Import review serializers used here
+from apps.study.api.serializers import (  # Import review serializers used here
     TestReviewSerializer,
     TestReviewQuestionSerializer,  # Though used *by* TestReviewSerializer
 )

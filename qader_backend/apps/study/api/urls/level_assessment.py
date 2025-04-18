@@ -1,6 +1,5 @@
-# qader_backend/apps/study/api/urls/level_assessment.py
 from django.urls import path
-from ..views import LevelAssessmentStartView, LevelAssessmentSubmitView
+from apps.study.api.views import LevelAssessmentStartView, LevelAssessmentSubmitView
 
 
 # Define urlpatterns for this specific feature

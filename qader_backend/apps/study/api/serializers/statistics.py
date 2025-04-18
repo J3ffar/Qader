@@ -1,4 +1,3 @@
-# qader_backend/apps/study/api/serializers/statistics.py
 from rest_framework import serializers
 from django.db.models import Count, Sum, Case, When, IntegerField, FloatField, Q
 import logging

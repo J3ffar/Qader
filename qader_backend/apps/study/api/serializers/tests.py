@@ -1,4 +1,3 @@
-# qader_backend/apps/study/api/serializers/tests.py
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from django.db import transaction

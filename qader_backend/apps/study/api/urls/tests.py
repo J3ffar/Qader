@@ -1,6 +1,5 @@
-# qader_backend/apps/study/api/urls/tests.py
 from django.urls import path
-from ..views.tests import (
+from apps.study.api.views import (
     UserTestAttemptListView,
     StartTestAttemptView,
     UserTestAttemptDetailView,

@@ -1,4 +1,3 @@
-# qader_backend/apps/study/api/views/level_assessment.py
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -6,7 +5,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 import logging
 
 from apps.api.permissions import IsSubscribed
-from ..serializers.level_assessment import (  # Import specific serializers
+from apps.study.api.serializers.level_assessment import (  # Import specific serializers
     LevelAssessmentStartSerializer,
     LevelAssessmentSubmitSerializer,
     LevelAssessmentResponseSerializer,

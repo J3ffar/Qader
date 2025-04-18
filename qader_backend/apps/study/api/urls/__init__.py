@@ -1,4 +1,3 @@
-# qader_backend/apps/study/api/urls.py (MODIFIED Original File)
 from django.urls import path, include
 
 app_name = "study"

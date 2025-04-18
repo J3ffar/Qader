@@ -1,4 +1,3 @@
-# qader_backend/apps/study/api/views/statistics.py
 from rest_framework import generics, status, views, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -7,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 import logging
 
 from apps.api.permissions import IsSubscribed
-from ..serializers.statistics import (
+from apps.study.api.serializers.statistics import (
     UserStatisticsSerializer,
 )  # Import specific serializer
 

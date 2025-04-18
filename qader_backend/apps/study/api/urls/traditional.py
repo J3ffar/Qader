@@ -1,6 +1,5 @@
-# qader_backend/apps/study/api/urls/traditional.py
 from django.urls import path
-from ..views import (
+from apps.study.api.views import (
     TraditionalLearningQuestionListView,
     TraditionalLearningAnswerView,
 )
