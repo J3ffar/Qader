@@ -21,7 +21,7 @@ from apps.study.tests.factories import (
     create_completed_attempt,
 )
 from apps.learning.models import Skill, LearningSection, LearningSubSection
-from apps.study.api.serializers import RECENT_TESTS_LIMIT  # Import constant
+from apps.study.api.serializers.statistics import RECENT_TESTS_LIMIT  # Import constant
 
 # Mark all tests in this module to use the database
 pytestmark = pytest.mark.django_db
