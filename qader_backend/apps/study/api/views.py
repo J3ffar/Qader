@@ -23,6 +23,7 @@ from .serializers import (
     TraditionalLearningResponseSerializer,
     TestStartSerializer,
     TestStartResponseSerializer,
+    UserStatisticsSerializer,
     UserTestAttemptListSerializer,
     UserTestAttemptDetailSerializer,
     TestSubmitSerializer,
@@ -647,11 +648,68 @@ class RetakeSimilarTestAttemptView(generics.GenericAPIView):
         return Response(response_data, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(
+    tags=["Study & Progress - Statistics"],  # New tag group
+    summary="Retrieve User Statistics",
+    description=(
+        "Fetches aggregated statistics for the authenticated user, including overall progress, "
+        "performance breakdown by section/subsection/skill, and recent test history."
+    ),
+    responses={
+        200: OpenApiResponse(
+            response=UserStatisticsSerializer, description="User statistics data."
+        ),
+        403: OpenApiResponse(
+            description="Permission Denied (Authentication/Subscription)."
+        ),
+        400: OpenApiResponse(
+            description="Bad Request (e.g., User profile missing)."
+        ),  # If profile validation fails
+    },
+)
+class UserStatisticsView(views.APIView):
+    """
+    Provides aggregated statistics for the authenticated user's study progress.
+    """
+
+    permission_classes = [IsAuthenticated, IsSubscribed]
+
+    def get(self, request, *args, **kwargs):
+        # The serializer calculates everything based on the user in the request context
+        try:
+            serializer = UserStatisticsSerializer(
+                instance=None, context={"request": request}
+            )
+            # The serializer itself doesn't need an object instance here,
+            # as it pulls data based on the user from the context.
+            # Calling .data triggers the SerializerMethodFields.
+            data = serializer.data
+            return Response(data, status=status.HTTP_200_OK)
+        except serializers.ValidationError as e:
+            # Catch validation errors raised within the serializer (e.g., profile not found)
+            logger.warning(
+                f"Validation error during statistics generation for user {request.user.id}: {e.detail}"
+            )
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            # Catch unexpected errors during statistics generation
+            logger.exception(
+                f"Unexpected error generating statistics for user {request.user.id}: {e}"
+            )
+            return Response(
+                {
+                    "detail": _(
+                        "An unexpected error occurred while generating statistics."
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
 # --- Placeholder Views for other features ---
 # class EmergencyModeStartView(generics.GenericAPIView): ...
 # class EmergencyModeUpdateView(generics.GenericAPIView): ...
 # class EmergencyModeAnswerView(generics.GenericAPIView): ...
 # class ConversationStartView(generics.GenericAPIView): ...
 # class ConversationMessageView(generics.GenericAPIView): ...
-# class StatisticsView(views.APIView): ...
 # class SaveLastVisitedOptionView(generics.UpdateAPIView): ...

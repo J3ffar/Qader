@@ -4,6 +4,7 @@ from .views import (
     LevelAssessmentSubmitView,
     TraditionalLearningAnswerView,
     TraditionalLearningQuestionListView,
+    UserStatisticsView,
     UserTestAttemptListView,
     StartTestAttemptView,
     UserTestAttemptDetailView,
@@ -61,6 +62,8 @@ urlpatterns = [
         RetakeSimilarTestAttemptView.as_view(),
         name="test-attempt-retake-similar",
     ),
+    # --- Statistics ---
+    path("statistics/", UserStatisticsView.as_view(), name="user-statistics"),
     # --- Other Study Endpoints ---
     # Add endpoints for Emergency Mode, Conversation, Statistics, etc. here
     # e.g., path("emergency-mode/start/", EmergencyModeStartView.as_view(), name="emergency-start"),
