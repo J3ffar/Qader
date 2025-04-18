@@ -1,4 +1,3 @@
-# qader_backend/apps/study/tests/factories.py
 import factory
 from factory.django import DjangoModelFactory
 from django.utils import timezone
@@ -8,7 +7,12 @@ import random
 # Use specific imports for clarity
 from apps.learning.tests.factories import QuestionFactory, SkillFactory
 from apps.users.tests.factories import UserFactory
-from apps.study.models import UserQuestionAttempt, UserSkillProficiency, UserTestAttempt
+from apps.study.models import (
+    EmergencyModeSession,
+    UserQuestionAttempt,
+    UserSkillProficiency,
+    UserTestAttempt,
+)
 from apps.learning.models import LearningSubSection, Question  # Needed for helper
 
 
@@ -236,3 +240,37 @@ def create_completed_attempt(
 
     attempt.refresh_from_db()  # Ensure final state is loaded
     return attempt, questions
+
+
+class EmergencyModeSessionFactory(DjangoModelFactory):
+    class Meta:
+        model = EmergencyModeSession
+
+    user = factory.SubFactory(UserFactory)
+    reason = factory.Faker("sentence", nb_words=10)
+    # Provide a default valid plan structure
+    suggested_plan = factory.LazyFunction(
+        lambda: {
+            "focus_skills": ["skill-slug-1", "skill-slug-2"],
+            "recommended_questions": 15,
+            "quick_review_topics": ["Topic A", "Topic B"],
+        }
+    )
+    calm_mode_active = False
+    start_time = factory.LazyFunction(timezone.now)
+    end_time = None  # Active by default
+    shared_with_admin = False
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+    class Params:
+        # Trait for an ended session
+        ended = factory.Trait(
+            end_time=factory.LazyAttribute(
+                lambda o: (
+                    o.start_time + timedelta(minutes=random.randint(10, 30))
+                    if o.start_time
+                    else timezone.now()
+                )
+            )
+        )

@@ -513,14 +513,44 @@ class UserSkillProficiency(models.Model):
             self.save(update_fields=["proficiency_score"])
 
 
-# --- Other Study Models (Placeholders) ---
+class EmergencyModeSession(models.Model):
+    """
+    Records details when a user enters "Emergency Mode".
+    """
 
-# class EmergencyModeSession(models.Model):
-#     user = models.ForeignKey(settings.AUTH_USER_MODEL, ...)
-#     reason = models.TextField(...)
-#     suggested_plan = models.JSONField(...)
-#     # ... other fields ...
-#     pass
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="emergency_sessions",
+        verbose_name=_("user"),
+        db_index=True,
+    )
+    reason = models.TextField(_("reason"), blank=True, null=True)
+    # Stores the plan details: {"focus_skills": ["slug1", "slug2"], "recommended_questions": N, "quick_review_topics": ["topic1", ...]}
+    suggested_plan = models.JSONField(_("suggested plan"), null=True, blank=True)
+    calm_mode_active = models.BooleanField(_("calm mode active"), default=False)
+    start_time = models.DateTimeField(_("start time"), auto_now_add=True, db_index=True)
+    end_time = models.DateTimeField(_("end time"), null=True, blank=True)
+    shared_with_admin = models.BooleanField(_("shared with admin"), default=False)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("Emergency Mode Session")
+        verbose_name_plural = _("Emergency Mode Sessions")
+        ordering = ["-start_time"]
+
+    def __str__(self):
+        return f"{self.user.username} - Emergency Session @ {self.start_time.strftime('%Y-%m-%d %H:%M')}"
+
+    def mark_as_ended(self):
+        """Sets the end time for the session."""
+        if not self.end_time:
+            self.end_time = timezone.now()
+            self.save(update_fields=["end_time", "updated_at"])
+
+
+# --- Other Study Models (Placeholders) ---
 
 # class ConversationSession(models.Model):
 #     user = models.ForeignKey(settings.AUTH_USER_MODEL, ...)

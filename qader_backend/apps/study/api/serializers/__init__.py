@@ -34,6 +34,14 @@ from .statistics import (
     TestHistorySummarySerializer,
     UserStatisticsSerializer,
 )
+from .emergency import (
+    EmergencyModeStartSerializer,
+    EmergencyModeStartResponseSerializer,
+    EmergencyModeUpdateSerializer,
+    EmergencyModeSessionSerializer,
+    EmergencyModeAnswerSerializer,
+    EmergencyModeAnswerResponseSerializer,
+)
 
 __all__ = [
     # Level Assessment
@@ -67,4 +75,11 @@ __all__ = [
     "SkillProficiencySummarySerializer",
     "TestHistorySummarySerializer",
     "UserStatisticsSerializer",
+    # Emergency Mode
+    "EmergencyModeStartSerializer",
+    "EmergencyModeStartResponseSerializer",
+    "EmergencyModeUpdateSerializer",
+    "EmergencyModeSessionSerializer",
+    "EmergencyModeAnswerSerializer",
+    "EmergencyModeAnswerResponseSerializer",
 ]

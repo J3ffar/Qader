@@ -62,6 +62,8 @@ def setup_learning_content(db):
     QuestionFactory.create_batch(
         15, subsection=geometry_sub, skill=geometry_skill, is_active=True
     )
+    QuestionFactory.create_batch(5, subsection=analogy_sub, skill=None, is_active=True)
+    QuestionFactory.create_batch(5, subsection=algebra_sub, skill=None, is_active=True)
 
     # print(f"Setup Learning Content: Created {Question.objects.count()} questions.")
 
