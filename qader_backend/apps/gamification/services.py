@@ -39,7 +39,7 @@ def award_points(
     Awards points to a user, logs the transaction, and updates the profile.
     Uses transaction and F() expression for atomic update.
     """
-    if not user or not hasattr(user, "userprofile"):
+    if not user or not hasattr(user, "profile"):
         logger.error(f"Attempted to award points to invalid user: {user}")
         return False
 
@@ -62,6 +62,9 @@ def award_points(
             )
 
             # Update UserProfile atomically
+            # Get profile using the correct related name
+            profile = user.profile
+            # Lock the profile row for update
             profile = UserProfile.objects.select_for_update().get(user=user)
             profile.points = F("points") + points_change
             profile.save(update_fields=["points"])  # Only update points field
@@ -87,7 +90,7 @@ def award_points(
 
 def check_and_award_badge(user: User, badge_slug: str):
     """Checks if user qualifies for a badge and awards it if not already earned."""
-    if not user or not hasattr(user, "userprofile"):
+    if not user or not hasattr(user, "profile"):
         return False
 
     try:
@@ -128,11 +131,12 @@ def update_streak(user: User):
     Updates the user's study streak based on their last activity.
     Should be called after any significant study activity (e.g., solving question, completing test).
     """
-    if not user or not hasattr(user, "userprofile"):
+    if not user or not hasattr(user, "profile"):
         return
 
     try:
         profile = UserProfile.objects.get(user=user)
+        profile = user.profile
         today = timezone.now().date()
         last_activity_date = None
         if profile.last_study_activity_at:
@@ -217,18 +221,28 @@ class PurchaseError(Exception):
 
 def purchase_reward(user: User, item_id: int):
     """Handles the purchase of a reward store item."""
-    if not user or not hasattr(user, "userprofile"):
+    if not user or not hasattr(user, "profile"):
+        # Use PurchaseError consistent with other checks
         raise PurchaseError(_("Invalid user."))
 
     try:
+        # Fetch the item first - DoesNotExist will propagate if it fails here
+        item = RewardStoreItem.objects.get(pk=item_id, is_active=True)
+    except RewardStoreItem.DoesNotExist:
+        # Re-raise explicitly for clarity, although view catches it too
+        raise RewardStoreItem.DoesNotExist(_("Reward item not found or is inactive."))
+
+    try:
         with transaction.atomic():
-            item = RewardStoreItem.objects.get(pk=item_id, is_active=True)
+            # Use select_for_update to lock the profile row during the transaction
             profile = UserProfile.objects.select_for_update().get(user=user)
 
             if profile.points < item.cost_points:
                 raise PurchaseError(_("Insufficient points to purchase this item."))
 
             # Deduct points using the award_points service (negative value)
+            # Pass the profile instance to avoid refetching inside award_points if possible
+            # (Note: award_points current implementation refetches with select_for_update anyway)
             point_deducted = award_points(
                 user=user,
                 points_change=-item.cost_points,
@@ -242,7 +256,7 @@ def purchase_reward(user: User, item_id: int):
                 raise PurchaseError(_("Failed to deduct points during purchase."))
 
             # Record the purchase
-            purchase = UserRewardPurchase.objects.create(
+            UserRewardPurchase.objects.create(
                 user=user, item=item, points_spent=item.cost_points
             )
 
@@ -250,24 +264,24 @@ def purchase_reward(user: User, item_id: int):
                 f"User {user.username} purchased reward '{item.name}' (ID: {item.id})."
             )
 
-            # Return relevant info (might need profile state *after* point update)
-            profile.refresh_from_db()
+            # Return a dictionary matching the RewardPurchaseResponseSerializer
+            profile.refresh_from_db()  # Refresh to get the final point count
             return {
-                "purchase": purchase,
+                "item_id": item.id,  # Add item_id
                 "item_name": item.name,
                 "points_spent": item.cost_points,
                 "remaining_points": profile.points,
+                # "message": _("Purchase successful!") # Can be added here or rely on serializer default
             }
 
-    except RewardStoreItem.DoesNotExist:
-        raise PurchaseError(_("Reward item not found or is inactive."))
     except UserProfile.DoesNotExist:
         logger.error(
             f"UserProfile not found for user {user.username} during reward purchase."
         )
+        # Consistent error type for the view to potentially handle (though view expects 400/404)
         raise PurchaseError(_("User profile not found."))
     except PurchaseError as pe:
-        # Re-raise specific purchase errors
+        # Re-raise specific purchase errors (like insufficient points)
         raise pe
     except Exception as e:
         logger.error(

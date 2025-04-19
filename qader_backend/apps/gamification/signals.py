@@ -2,9 +2,14 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext as _
+from django.db import transaction
 
 from apps.study.models import UserQuestionAttempt, UserTestAttempt
 from .models import PointLog  # Assuming models are here
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 # from apps.challenges.models import Challenge # Assuming model is here
 from .services import award_points, update_streak, check_and_award_badge, PointReason
@@ -39,30 +44,51 @@ def award_point_on_question_solved(
 
 @receiver(post_save, sender=UserTestAttempt, dispatch_uid="award_point_test_completed")
 def award_point_on_test_completed(sender, instance: UserTestAttempt, created, **kwargs):
-    """Award 10 points upon completing a test."""
-    if instance.status == UserTestAttempt.StatusChoices.COMPLETED and not created:
-        # Award points when status changes to completed, not on creation
-        # Check if points were already awarded for this completion to prevent duplicates
-        # This check is crude, a flag on UserTestAttempt or check in PointLog might be better
-        if not PointLog.objects.filter(
-            user=instance.user,
-            reason_code=PointReason.TEST_COMPLETED,
-            object_id=instance.id,
-        ).exists():
-            award_points(
-                user=instance.user,
-                points_change=10,  # Configurable?
-                reason_code=PointReason.TEST_COMPLETED,
-                description=_("Completed Test Attempt #{instance_id}").format(
-                    instance_id=instance.id
-                ),
-                related_object=instance,
+    """Award 10 points upon completing a test, only once."""
+    # Check if completed AND points not already awarded for this instance
+    if (
+        instance.status == UserTestAttempt.Status.COMPLETED
+        and not instance.completion_points_awarded
+    ):
+        points_awarded = False
+        try:
+            # Use a transaction to ensure point award and flag update are atomic
+            with transaction.atomic():
+                points_awarded = award_points(
+                    user=instance.user,
+                    points_change=10,  # Configurable?
+                    reason_code=PointReason.TEST_COMPLETED,
+                    description=_("Completed Test Attempt #{instance_id}").format(
+                        instance_id=instance.id
+                    ),
+                    related_object=instance,
+                )
+                if points_awarded:
+                    # Mark points as awarded ONLY if award_points succeeded
+                    instance.completion_points_awarded = True
+                    # Save the flag directly to avoid recursion and ensure it's part of the transaction
+                    UserTestAttempt.objects.filter(pk=instance.pk).update(
+                        completion_points_awarded=True
+                    )
+                    logger.info(
+                        f"Marked completion points awarded for UserTestAttempt {instance.id}"
+                    )
+
+                    # Update streak only if points were successfully awarded
+                    update_streak(instance.user)
+
+                    # Check for 'first full test' badge (Example)
+                    # config = instance.test_configuration or {}
+                    # is_simulation = config.get('config', {}).get('full_simulation', False) \
+                    #                 or instance.attempt_type == UserTestAttempt.AttemptType.SIMULATION
+                    # if is_simulation:
+                    #      check_and_award_badge(instance.user, 'first-full-test') # Assuming slug exists
+
+        except Exception as e:
+            logger.error(
+                f"Error processing test completion points/streak for attempt {instance.id}: {e}",
+                exc_info=True,
             )
-            # Update streak after completing a test
-            update_streak(instance.user)
-            # Check for 'first full test' badge
-            # if instance.test and instance.test.test_type == 'simulation': # Assuming 'simulation' type exists
-            #    check_and_award_badge(instance.user, 'first-full-test')
 
 
 # Add signal for Challenge win points when Challenge model is available
