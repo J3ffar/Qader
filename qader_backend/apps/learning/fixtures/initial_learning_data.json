@@ -1,0 +1,321 @@
+[
+  {
+    "model": "learning.learningsection",
+    "pk": 1,
+    "fields": {
+      "name": "القسم اللفظي",
+      "slug": "verbal",
+      "description": "يختبر القدرات المتعلقة باللغة وفهم النصوص والعلاقات بين الكلمات.",
+      "order": 1,
+      "created_at": "2023-10-27T10:00:00Z",
+      "updated_at": "2023-10-27T10:00:00Z"
+    }
+  },
+  {
+    "model": "learning.learningsection",
+    "pk": 2,
+    "fields": {
+      "name": "القسم الكمي",
+      "slug": "quantitative",
+      "description": "يختبر القدرات المتعلقة بالرياضيات وحل المشكلات العددية والهندسية وتحليل البيانات.",
+      "order": 2,
+      "created_at": "2023-10-27T10:00:00Z",
+      "updated_at": "2023-10-27T10:00:00Z"
+    }
+  },
+  {
+    "model": "learning.learningsubsection",
+    "pk": 10,
+    "fields": {
+      "section": 1,
+      "name": "استيعاب المقروء",
+      "slug": "verbal-reading-comprehension",
+      "description": "فهم وتحليل النصوص المقروءة واستخلاص الأفكار الرئيسية والتفاصيل.",
+      "order": 1,
+      "created_at": "2023-10-27T10:01:00Z",
+      "updated_at": "2023-10-27T10:01:00Z"
+    }
+  },
+  {
+    "model": "learning.learningsubsection",
+    "pk": 11,
+    "fields": {
+      "section": 1,
+      "name": "إكمال الجمل",
+      "slug": "verbal-sentence-completion",
+      "description": "اختيار الكلمات الأنسب لإكمال جمل ناقصة بما يتوافق مع المعنى العام.",
+      "order": 2,
+      "created_at": "2023-10-27T10:01:00Z",
+      "updated_at": "2023-10-27T10:01:00Z"
+    }
+  },
+  {
+    "model": "learning.learningsubsection",
+    "pk": 12,
+    "fields": {
+      "section": 1,
+      "name": "التناظر اللفظي",
+      "slug": "verbal-verbal-analogy",
+      "description": "تحديد العلاقة بين زوج من الكلمات واختيار الزوج الذي يماثلها في العلاقة.",
+      "order": 3,
+      "created_at": "2023-10-27T10:01:00Z",
+      "updated_at": "2023-10-27T10:01:00Z"
+    }
+  },
+  {
+    "model": "learning.learningsubsection",
+    "pk": 13,
+    "fields": {
+      "section": 1,
+      "name": "الخطأ السياقي",
+      "slug": "verbal-contextual-error",
+      "description": "تحديد الكلمة التي لا تتناسب مع المعنى العام للسياق في الجملة.",
+      "order": 4,
+      "created_at": "2023-10-27T10:01:00Z",
+      "updated_at": "2023-10-27T10:01:00Z"
+    }
+  },
+  {
+    "model": "learning.learningsubsection",
+    "pk": 14,
+    "fields": {
+      "section": 1,
+      "name": "المفردة الشاذة",
+      "slug": "verbal-odd-one-out",
+      "description": "تحديد الكلمة التي تختلف عن باقي الكلمات في المجموعة من حيث المعنى أو النوع.",
+      "order": 5,
+      "created_at": "2023-10-27T10:01:00Z",
+      "updated_at": "2023-10-27T10:01:00Z"
+    }
+  },
+  {
+    "model": "learning.learningsubsection",
+    "pk": 20,
+    "fields": {
+      "section": 2,
+      "name": "المسائل الجبرية",
+      "slug": "quantitative-algebra-problems",
+      "description": "حل المعادلات والمتباينات والتعامل مع الدوال والأسس والجذور.",
+      "order": 1,
+      "created_at": "2023-10-27T10:02:00Z",
+      "updated_at": "2023-10-27T10:02:00Z"
+    }
+  },
+  {
+    "model": "learning.learningsubsection",
+    "pk": 21,
+    "fields": {
+      "section": 2,
+      "name": "المسائل الهندسية",
+      "slug": "quantitative-engineering-problems",
+      "description": "التعامل مع الأشكال الهندسية المستوية والمجسمة وحساب المساحات والحجوم والزوايا.",
+      "order": 2,
+      "created_at": "2023-10-27T10:02:00Z",
+      "updated_at": "2023-10-27T10:02:00Z"
+    }
+  },
+  {
+    "model": "learning.learningsubsection",
+    "pk": 22,
+    "fields": {
+      "section": 2,
+      "name": "المسائل الحسابية",
+      "slug": "quantitative-arithmetic-problems",
+      "description": "إجراء العمليات الحسابية الأساسية، والتعامل مع النسب المئوية، والمتوسطات، والأنماط.",
+      "order": 3,
+      "created_at": "2023-10-27T10:02:00Z",
+      "updated_at": "2023-10-27T10:02:00Z"
+    }
+  },
+  {
+    "model": "learning.learningsubsection",
+    "pk": 23,
+    "fields": {
+      "section": 2,
+      "name": "المقارنات",
+      "slug": "quantitative-comparisons",
+      "description": "مقارنة بين قيمتين وتحديد أيهما أكبر أو أصغر أو إذا كانتا متساويتين.",
+      "order": 4,
+      "created_at": "2023-10-27T10:02:00Z",
+      "updated_at": "2023-10-27T10:02:00Z"
+    }
+  },
+  {
+    "model": "learning.learningsubsection",
+    "pk": 24,
+    "fields": {
+      "section": 2,
+      "name": "تحليل البيانات",
+      "slug": "quantitative-data-analysis",
+      "description": "قراءة وتفسير الرسوم البيانية والجداول والإحصاءات.",
+      "order": 5,
+      "created_at": "2023-10-27T10:02:00Z",
+      "updated_at": "2023-10-27T10:02:00Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 100,
+    "fields": {
+      "subsection": 10,
+      "name": "تحديد الفكرة الرئيسية",
+      "slug": "verbal-reading-comprehension-main-idea",
+      "description": "القدرة على استخلاص الفكرة المحورية أو الهدف الأساسي للنص.",
+      "created_at": "2023-10-27T10:03:00Z",
+      "updated_at": "2023-10-27T10:03:00Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 101,
+    "fields": {
+      "subsection": 10,
+      "name": "استنتاج المعلومات الضمنية",
+      "slug": "verbal-reading-comprehension-inference",
+      "description": "فهم ما لم يصرح به الكاتب مباشرة بناءً على المعطيات في النص.",
+      "created_at": "2023-10-27T10:03:00Z",
+      "updated_at": "2023-10-27T10:03:00Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 120,
+    "fields": {
+      "subsection": 12,
+      "name": "تحديد علاقة التضاد",
+      "slug": "verbal-verbal-analogy-antonym-relation",
+      "description": "التعرف على العلاقة العكسية بين كلمتين.",
+      "created_at": "2023-10-27T10:03:00Z",
+      "updated_at": "2023-10-27T10:03:00Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 200,
+    "fields": {
+      "subsection": 20,
+      "name": "حل معادلات الدرجة الأولى",
+      "slug": "quantitative-algebra-problems-linear-equations",
+      "description": "إيجاد قيمة المتغير المجهول في المعادلات الخطية.",
+      "created_at": "2023-10-27T10:04:00Z",
+      "updated_at": "2023-10-27T10:04:00Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 210,
+    "fields": {
+      "subsection": 21,
+      "name": "حساب مساحة المثلث",
+      "slug": "quantitative-engineering-problems-triangle-area",
+      "description": "تطبيق قانون مساحة المثلث (نصف القاعدة × الارتفاع).",
+      "created_at": "2023-10-27T10:04:00Z",
+      "updated_at": "2023-10-27T10:04:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 1000,
+    "fields": {
+      "subsection": 10,
+      "skill": 100,
+      "question_text": "النص: 'تعتبر الطاقة الشمسية مصدرًا واعدًا للطاقة النظيفة والمتجددة، وتسعى العديد من الدول للاستثمار فيها لتقليل الاعتماد على الوقود الأحفوري وحماية البيئة.' ما هي الفكرة الرئيسية في النص؟",
+      "option_a": "أهمية حماية البيئة.",
+      "option_b": "مستقبل الطاقة الشمسية كمصدر بديل ونظيف.",
+      "option_c": "أنواع الوقود الأحفوري.",
+      "option_d": "الاستثمارات الدولية في الطاقة.",
+      "correct_answer": "B",
+      "explanation": "النص يركز بشكل أساسي على دور الطاقة الشمسية كبديل مستقبلي نظيف ويذكر سعي الدول للاستثمار فيها لهذا الغرض.",
+      "hint": "ابحث عن الجملة التي تلخص هدف النص العام.",
+      "solution_method_summary": "قراءة النص وتحديد الموضوع المحوري الذي يدور حوله.",
+      "difficulty": 2,
+      "is_active": true,
+      "created_at": "2023-10-27T10:05:00Z",
+      "updated_at": "2023-10-27T10:05:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 1001,
+    "fields": {
+      "subsection": 12,
+      "skill": 120,
+      "question_text": "ليل : نهار",
+      "option_a": "شمس : قمر",
+      "option_b": "حار : بارد",
+      "option_c": "كبير : ضخم",
+      "option_d": "سريع : بطيء",
+      "correct_answer": "B",
+      "explanation": "العلاقة بين ليل ونهار هي علاقة تضاد (عكس). العلاقة بين حار وبارد هي أيضاً علاقة تضاد.",
+      "hint": "ما نوع العلاقة بين الكلمتين الأوليين؟ ابحث عن نفس العلاقة في الخيارات.",
+      "solution_method_summary": "تحديد العلاقة بين زوج الكلمات الأول ثم البحث عن زوج له نفس العلاقة في الخيارات.",
+      "difficulty": 1,
+      "is_active": true,
+      "created_at": "2023-10-27T10:06:00Z",
+      "updated_at": "2023-10-27T10:06:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 1002,
+    "fields": {
+      "subsection": 11,
+      "skill": null,
+      "question_text": "يجب على الإنسان أن يكون ..... في أقواله وأفعاله حتى ..... ثقة الآخرين.",
+      "option_a": "صادقًا - يكسب",
+      "option_b": "حذرًا - يفقد",
+      "option_c": "متسرعًا - يحافظ",
+      "option_d": "غامضًا - ينال",
+      "correct_answer": "A",
+      "explanation": "الصدق في القول والفعل يؤدي إلى كسب ثقة الآخرين، وهذا هو المعنى المنطقي والمناسب لإكمال الجملة.",
+      "hint": "فكر في الصفة التي تؤدي إلى نيل الثقة.",
+      "solution_method_summary": "فهم معنى الجملة وتجربة الخيارات لاختيار الأنسب للمعنى والسياق.",
+      "difficulty": 2,
+      "is_active": true,
+      "created_at": "2023-10-27T10:07:00Z",
+      "updated_at": "2023-10-27T10:07:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2000,
+    "fields": {
+      "subsection": 20,
+      "skill": 200,
+      "question_text": "إذا كان 3س + 5 = 14، فما قيمة س؟",
+      "option_a": "2",
+      "option_b": "3",
+      "option_c": "4",
+      "option_d": "5",
+      "correct_answer": "B",
+      "explanation": "3س = 14 - 5 => 3س = 9 => س = 9 / 3 => س = 3",
+      "hint": "اطرح 5 من كلا الطرفين ثم اقسم على 3.",
+      "solution_method_summary": "حل معادلة من الدرجة الأولى بنقل الثوابت وقسمة معامل المتغير.",
+      "difficulty": 1,
+      "is_active": true,
+      "created_at": "2023-10-27T10:08:00Z",
+      "updated_at": "2023-10-27T10:08:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2001,
+    "fields": {
+      "subsection": 21,
+      "skill": 210,
+      "question_text": "مثلث طول قاعدته 10 سم وارتفاعه 5 سم، ما مساحته؟",
+      "option_a": "15 سم²",
+      "option_b": "25 سم²",
+      "option_c": "50 سم²",
+      "option_d": "100 سم²",
+      "correct_answer": "B",
+      "explanation": "مساحة المثلث = 0.5 * القاعدة * الارتفاع = 0.5 * 10 * 5 = 25 سم²",
+      "hint": "تذكر قانون مساحة المثلث.",
+      "solution_method_summary": "تطبيق قانون مساحة المثلث: نصف القاعدة مضروبة في الارتفاع.",
+      "difficulty": 2,
+      "is_active": true,
+      "created_at": "2023-10-27T10:09:00Z",
+      "updated_at": "2023-10-27T10:09:00Z"
+    }
+  }
+]
