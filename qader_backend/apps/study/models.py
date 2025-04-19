@@ -164,6 +164,11 @@ class UserTestAttempt(models.Model):
     )
     # Stores detailed breakdown, e.g., {"subsection_slug": {"correct": X, "total": Y, "score": Z, "name": "Sub Name"}}
     results_summary = models.JSONField(_("results summary"), null=True, blank=True)
+    completion_points_awarded = models.BooleanField(
+        _("completion points awarded"),
+        default=False,
+        help_text=_("Indicates if points for completing this test have been awarded."),
+    )
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
     updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 

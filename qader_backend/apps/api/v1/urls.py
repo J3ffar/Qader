@@ -11,4 +11,5 @@ urlpatterns = [
     path("users/", include("apps.users.api.users_urls"), name="users"),
     path("learning/", include("apps.learning.api.urls"), name="learning"),
     path("study/", include("apps.study.api.urls"), name="study"),
+    path("gamification/", include("apps.gamification.api.urls"), name="gamification"),
 ]
