@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "apps.learning",
     "apps.study",
     "apps.gamification",
+    "apps.admin_panel",
 ]
 
 MIDDLEWARE = [
@@ -215,7 +216,10 @@ SPECTACULAR_SETTINGS = {
             "name": "Admin Panel",
             "description": "Endpoints for platform administration (requires admin/sub-admin privileges).",
         },
-        # Add more tags as other apps are implemented
+        {
+            "name": "Admin Panel - User Management",
+            "description": "Endpoints for administrators to manage users, sub-admins, points, and passwords.",
+        },
     ],
     "SWAGGER_UI_SETTINGS": {  # Fine-tune Swagger UI appearance/behavior
         "deepLinking": True,
