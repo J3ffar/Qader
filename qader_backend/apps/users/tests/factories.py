@@ -2,6 +2,7 @@ import factory
 from factory.django import DjangoModelFactory
 from django.contrib.auth.models import User
 from ..models import (
+    SubscriptionTypeChoices,
     UserProfile,
     SerialCode,
     RoleChoices,
@@ -59,14 +60,32 @@ class SerialCodeFactory(DjangoModelFactory):
         model = SerialCode
 
     code = factory.Sequence(lambda n: f"QADER-TEST-{n:05d}")
+    subscription_type = None  # Default to None unless specified
     duration_days = 30
     is_active = True
     is_used = False
     used_by = None
     used_at = None
-    created_by = (
-        None  # Optional: Link to an admin UserFactory instance if needed for tests
-    )
+    created_by = None
+
+    # Optional: Add traits for common types
+    class Params:
+        type_1_month = factory.Trait(
+            subscription_type=SubscriptionTypeChoices.MONTH_1,
+            duration_days=30,  # Set corresponding duration
+        )
+        type_6_months = factory.Trait(
+            subscription_type=SubscriptionTypeChoices.MONTH_6,
+            duration_days=183,  # Set corresponding duration
+        )
+        type_12_months = factory.Trait(
+            subscription_type=SubscriptionTypeChoices.MONTH_12,
+            duration_days=365,  # Set corresponding duration
+        )
+        type_custom = factory.Trait(
+            subscription_type=SubscriptionTypeChoices.CUSTOM,
+            # duration_days should be set manually for custom
+        )
 
 
 # Optional: UserProfileFactory - generally not needed if signal works reliably

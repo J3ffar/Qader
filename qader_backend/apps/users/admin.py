@@ -167,21 +167,46 @@ class SerialCodeAdmin(admin.ModelAdmin):
 
     list_display = (
         "code",
+        "subscription_type",  # Add type to display
         "duration_days",
         "is_active",
         "is_used",
-        "get_used_by_username",  # Custom method for username
+        "get_used_by_username",
         "used_at",
         "created_at",
-        "get_created_by_username",  # Custom method for creator
+        "get_created_by_username",
     )
-    list_filter = ("is_active", "is_used", "duration_days", "created_at")
+    list_filter = (
+        "subscription_type",  # Add type filter
+        "is_active",
+        "is_used",
+        "created_at",
+        "duration_days",  # Keep duration filter if useful
+    )
     search_fields = ("code", "used_by__username", "notes", "created_by__username")
-    # Fields that shouldn't be edited directly in the admin
     readonly_fields = ("used_by", "used_at", "created_at", "updated_at")
-    list_select_related = ("used_by", "created_by")  # Optimize queries
-    # Add actions if needed (e.g., bulk activate/deactivate codes)
-    # actions = ['activate_codes', 'deactivate_codes']
+    list_select_related = ("used_by", "created_by")
+
+    # Add the new field to the admin form details view
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "code",
+                    "subscription_type",
+                    "duration_days",
+                    "is_active",
+                    "notes",
+                )
+            },
+        ),
+        (_("Usage Information"), {"fields": ("is_used", "used_by", "used_at")}),
+        (_("Metadata"), {"fields": ("created_by", "created_at", "updated_at")}),
+    )
+
+    # If you prefer 'fields' instead of 'fieldsets':
+    # fields = ('code', 'subscription_type', 'duration_days', 'is_active', 'notes', 'is_used', 'used_by', 'used_at', 'created_by')
 
     @admin.display(description=_("Used By"), ordering="used_by__username")
     def get_used_by_username(self, obj):
@@ -191,16 +216,17 @@ class SerialCodeAdmin(admin.ModelAdmin):
     def get_created_by_username(self, obj):
         return obj.created_by.username if obj.created_by else "-"
 
-    # Example Admin Action
-    # @admin.action(description=_('Activate selected codes'))
-    # def activate_codes(self, request, queryset):
-    #     updated = queryset.update(is_active=True)
-    #     self.message_user(request, _(f'{updated} codes were successfully activated.'))
-
-    # @admin.action(description=_('Deactivate selected codes'))
-    # def deactivate_codes(self, request, queryset):
-    #     updated = queryset.update(is_active=False)
-    #     self.message_user(request, _(f'{updated} codes were successfully deactivated.'))
+    # Optional: Add logic to auto-populate duration_days based on type selection
+    # This often requires overriding save_model or using admin JS, adding complexity.
+    # For now, we rely on the admin user to set both correctly, possibly aided by the `clean` method warning.
+    # def save_model(self, request, obj, form, change):
+    #     # Example: Only set duration if type is chosen and duration wasn't manually set
+    #     if obj.subscription_type and not form.cleaned_data.get('duration_days_manually_changed', False): # Needs extra logic in form
+    #         if obj.subscription_type == SubscriptionTypeChoices.MONTH_1: obj.duration_days = 30
+    #         elif obj.subscription_type == SubscriptionTypeChoices.MONTH_6: obj.duration_days = 183
+    #         elif obj.subscription_type == SubscriptionTypeChoices.MONTH_12: obj.duration_days = 365
+    #         # else: let manual duration stand for 'custom' or if type is cleared
+    #     super().save_model(request, obj, form, change)
 
 
 # Re-register User model with the custom UserAdmin

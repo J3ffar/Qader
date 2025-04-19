@@ -26,6 +26,13 @@ class DarkModePrefChoices(models.TextChoices):
     SYSTEM = "system", _("System")
 
 
+class SubscriptionTypeChoices(models.TextChoices):
+    MONTH_1 = "1_month", _("1 Month")
+    MONTH_6 = "6_months", _("6 Months")
+    MONTH_12 = "12_months", _("12 Months")
+    CUSTOM = "custom", _("Custom")
+
+
 # --- Models ---
 
 
@@ -39,10 +46,24 @@ class SerialCode(models.Model):
         db_index=True,
         help_text=_("The unique serial code string."),
     )
+    # Add the subscription type field
+    subscription_type = models.CharField(
+        _("Subscription Type"),
+        max_length=20,
+        choices=SubscriptionTypeChoices.choices,
+        null=True,  # Allow null initially for existing codes / flexibility
+        blank=True,  # Allow blank in forms
+        db_index=True,
+        help_text=_(
+            "Categorizes the intended duration of the code (e.g., 1 Month, 6 Months)."
+        ),
+    )
     duration_days = models.PositiveIntegerField(
         _("Duration (Days)"),
         default=30,
-        help_text=_("Subscription length in days granted by this code."),
+        help_text=_(
+            "Subscription length in days granted by this code. Should align with Subscription Type if set."
+        ),
     )
     is_active = models.BooleanField(
         _("Is Active?"),
@@ -100,6 +121,46 @@ class SerialCode(models.Model):
 
     def __str__(self):
         return self.code
+
+    def clean(self):
+        """
+        Optional: Add validation to suggest correct duration_days based on type.
+        This runs before saving in the admin or via ModelForms.
+        """
+        from django.core.exceptions import ValidationError
+
+        if self.subscription_type:
+            expected_duration = None
+            if self.subscription_type == SubscriptionTypeChoices.MONTH_1:
+                expected_duration = 30  # Or 31? Be consistent.
+            elif self.subscription_type == SubscriptionTypeChoices.MONTH_6:
+                expected_duration = 183  # Approx 6 months
+            elif self.subscription_type == SubscriptionTypeChoices.MONTH_12:
+                expected_duration = 365  # Approx 12 months
+
+            # Only warn if duration doesn't match *and* it's not 'custom'
+            if (
+                expected_duration is not None
+                and self.duration_days != expected_duration
+                and self.subscription_type != SubscriptionTypeChoices.CUSTOM
+            ):
+                # We won't raise ValidationError here to allow flexibility, but you could.
+                # A warning in the admin interface might be better.
+                pass
+                # Example if you wanted to enforce:
+                # raise ValidationError(
+                #    _("Duration in days ({days}) does not match the expected duration ({expected}) for the selected subscription type '{type}'. Use 'Custom' type or adjust days.").format(
+                #       days=self.duration_days, expected=expected_duration, type=self.get_subscription_type_display()
+                #    )
+                # )
+            if expected_duration is not None:
+                self.duration_days = expected_duration
+
+        super().clean()
+
+    def save(self, *args, **kwargs):
+        self.clean()  # Ensure clean is called even if not using ModelForm
+        super().save(*args, **kwargs)
 
     def mark_used(self, user: User) -> bool:
         """Marks the code as used by a specific user if it's valid."""

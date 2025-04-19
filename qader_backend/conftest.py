@@ -54,9 +54,15 @@ def unsubscribed_user(db):
 
 @pytest.fixture
 def admin_user(db):
-    """Creates an admin user instance."""
-    user = UserFactory(make_admin=True, username="admin_user_fixture")
+    """Creates an admin user instance with a known password."""
+    # Use a predictable password for admin login during tests
+    admin_password = "testadminpassword"
+    user = UserFactory(
+        make_admin=True, username="admin_user_fixture", password=admin_password
+    )
     UserProfile.objects.get_or_create(user=user)  # Ensure profile exists
+    # Store password with the user object for easy access in the client fixture
+    user._test_admin_password = admin_password
     return user
 
 
@@ -86,12 +92,24 @@ def authenticated_client(api_client, unsubscribed_user):
 
 
 @pytest.fixture
-def admin_client(api_client, admin_user):
-    """Provides an API client authenticated as an admin user."""
-    api_client.force_authenticate(user=admin_user)
-    api_client.user = admin_user
+def admin_client(db, api_client, admin_user):  # Add db dependency for login
+    """
+    Provides an API client LOGGED IN via Django sessions as an admin user.
+    This is necessary for testing Django Admin views.
+    """
+    # Use client.login() for session-based authentication
+    login_successful = api_client.login(
+        username=admin_user.username,
+        password=admin_user._test_admin_password,  # Use the password set in the admin_user fixture
+    )
+    # Add an assertion to make sure the login worked, crucial for debugging
+    assert (
+        login_successful
+    ), f"Admin client login failed for user '{admin_user.username}'"
+
+    api_client.user = admin_user  # Attach user object for convenience
     yield api_client
-    api_client.force_authenticate(user=None)
+    api_client.logout()  # Use logout to clear the session
 
 
 @pytest.fixture
