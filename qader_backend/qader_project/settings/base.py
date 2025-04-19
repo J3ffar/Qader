@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.learning",
     "apps.study",
+    "apps.gamification",
 ]
 
 MIDDLEWARE = [
