@@ -44,21 +44,26 @@ def award_points(
     reason_code: str,
     description: str,
     related_object=None,
-) -> bool:  # Return boolean for success/failure
+) -> bool:
     """
     Awards points to a user, logs the transaction, and updates the profile.
     Uses transaction and F() expression for atomic update.
     Returns True if successful, False otherwise.
     """
-    if points_change == 0:  # No need to process if no change
+    if not user or not hasattr(user, "profile"):
+        # Check added to ensure user/profile exist before logging username attempt
+        logger.error(
+            f"Attempted to award points to invalid user object or user without profile: {user}"
+        )
+        return False
+
+    if points_change == 0:
         return True
 
     try:
         with transaction.atomic():
-            # Use select_for_update to lock the profile during point modification
             profile = UserProfile.objects.select_for_update().get(user=user)
 
-            # Create the log entry before updating points
             content_type = None
             object_id = None
             if related_object:
@@ -74,28 +79,29 @@ def award_points(
                 object_id=object_id,
             )
 
-            # Update UserProfile points atomically
             profile.points = F("points") + points_change
             profile.save(update_fields=["points", "updated_at"])
 
-            # Refresh to log the correct new balance (F() is lazy)
+            # Refresh AFTER save to get correct value from F() expression
             profile.refresh_from_db(fields=["points"])
+            # Safe logging for username
+            username = getattr(user, "username", "UnknownUser")
             logger.info(
-                f"Awarded {points_change} points to {user.username} for {reason_code}. New balance: {profile.points}"
+                f"Awarded {points_change} points to {username} for {reason_code}. New balance: {profile.points}"
             )
             return True
 
     except UserProfile.DoesNotExist:
+        username = getattr(user, "username", "UnknownUser")  # Safe username access
         logger.error(
-            f"UserProfile not found for user {user.username} during point award for {reason_code}."
+            f"UserProfile not found for user {username} during point award for {reason_code}."
         )
         return False
     except Exception as e:
+        username = getattr(user, "username", "UnknownUser")  # Safe username access
         logger.error(
-            f"Error awarding points to {user.username} for {reason_code}: {e}",
-            exc_info=True,
+            f"Error awarding points to {username} for {reason_code}: {e}", exc_info=True
         )
-        # Transaction rolls back automatically
         return False
 
 

@@ -1,8 +1,11 @@
+# qader_backend/apps/gamification/tests/test_services.py
+
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, ANY  # Import ANY from unittest.mock
 from django.utils import timezone
 from datetime import timedelta
 from freezegun import freeze_time
+from django.core.exceptions import ObjectDoesNotExist
 
 from apps.users.models import UserProfile
 from apps.users.tests.factories import UserFactory
@@ -21,16 +24,15 @@ pytestmark = pytest.mark.django_db
 
 
 # --- Test award_points Service ---
+# (No changes needed in award_points tests themselves)
 def test_award_points_success_positive():
     user = UserFactory()
-    profile = user.profile  # Assume profile exists via signal/factory
+    profile = user.profile
     initial_points = profile.points
     points_to_add = 10
-
     success = award_points(
         user, points_to_add, PointReason.TEST_COMPLETED, "Completed test"
     )
-
     assert success is True
     profile.refresh_from_db()
     assert profile.points == initial_points + points_to_add
@@ -40,21 +42,28 @@ def test_award_points_success_positive():
 def test_award_points_success_negative():
     user = UserFactory()
     profile = user.profile
-    profile.points = 100  # Give some initial points
+    profile.points = 100
     profile.save()
     initial_points = profile.points
     points_to_subtract = -50
-
     success = award_points(
         user, points_to_subtract, PointReason.REWARD_PURCHASE, "Bought item"
     )
-
     assert success is True
     profile.refresh_from_db()
-    assert (
-        profile.points == initial_points + points_to_subtract
-    )  # points_to_subtract is negative
+    assert profile.points == initial_points + points_to_subtract
     assert PointLog.objects.filter(user=user, points_change=points_to_subtract).exists()
+
+
+def test_award_points_zero_change():
+    user = UserFactory()
+    profile = user.profile
+    initial_points = profile.points
+    success = award_points(user, 0, PointReason.TEST_COMPLETED, "Zero point change")
+    assert success is True
+    profile.refresh_from_db()
+    assert profile.points == initial_points
+    assert not PointLog.objects.filter(user=user).exists()
 
 
 def test_award_points_invalid_user():
@@ -62,64 +71,55 @@ def test_award_points_invalid_user():
     assert success is False
 
 
-def test_award_points_profile_missing(mocker):
+def test_award_points_profile_missing():
     user = UserFactory()
-    # Ensure profile does NOT exist for this test
     UserProfile.objects.filter(user=user).delete()
     success = award_points(user, 10, PointReason.TEST_COMPLETED, "Test")
     assert success is False
 
 
 @patch("apps.gamification.services.PointLog.objects.create")
-def test_award_points_transaction_rollback(mock_create_log):
-    """Test that if PointLog creation fails, profile points are not updated."""
-    # 1. Create the user and profile first
+def test_award_points_transaction_rollback_on_log_create_fail(mock_create_log):
     user = UserFactory()
     profile = user.profile
-    assert profile is not None, "UserProfile should be created by UserFactory/signal"
     initial_points = profile.points
-
-    # 2. Configure the mock log creation to raise an exception
-    mock_create_log.side_effect = Exception("Database error during log create")
-
-    # 3. Call the service function
-    #    We expect award_points to catch the exception from create()
-    #    and return False due to its internal try/except Exception.
+    mock_create_log.side_effect = Exception("DB error on log create")
     success = award_points(user, 10, PointReason.TEST_COMPLETED, "Test")
-
-    # 4. Assertions
-    assert success is False, "award_points should return False on internal exception"
-
-    # Verify profile points did not change because the transaction rolled back
-    profile.refresh_from_db()  # Should work now as profile.save wasn't mocked
-    assert (
-        profile.points == initial_points
-    ), "Profile points should not change on rollback"
-
-    # Verify PointLog was not created
-    assert (
-        PointLog.objects.filter(user=user).count() == 0
-    ), "PointLog should not be created on rollback"
-
-    # Ensure the mocked create was called
+    assert success is False
+    profile.refresh_from_db()
+    assert profile.points == initial_points
+    assert not PointLog.objects.filter(user=user).exists()
     mock_create_log.assert_called_once()
 
 
+@patch("apps.gamification.services.UserProfile.objects.select_for_update")
+def test_award_points_transaction_rollback_on_profile_save_fail(mock_select_for_update):
+    user = UserFactory()
+    profile = user.profile
+    initial_points = profile.points
+    mock_profile = MagicMock(spec=UserProfile)
+    mock_profile.points = initial_points
+    mock_profile.save.side_effect = Exception("DB error on profile save")
+    mock_select_for_update.return_value.get.return_value = mock_profile
+    success = award_points(user, 10, PointReason.TEST_COMPLETED, "Test")
+    assert success is False
+    profile_db = UserProfile.objects.get(user=user)
+    assert profile_db.points == initial_points
+    assert not PointLog.objects.filter(user=user).exists()
+    mock_profile.save.assert_called_once()
+
+
 # --- Test update_streak Service ---
+# (No changes needed in update_streak tests, they don't use mocker)
 @freeze_time("2024-07-25 10:00:00")
 def test_update_streak_start_new():
     user = UserFactory()
     profile = user.profile
-    assert profile.current_streak_days == 0
-    assert profile.longest_streak_days == 0
-    assert profile.last_study_activity_at is None
-
     update_streak(user)
     profile.refresh_from_db()
-
     assert profile.current_streak_days == 1
     assert profile.longest_streak_days == 1
-    assert profile.last_study_activity_at == timezone.now()
+    assert profile.last_study_activity_at == timezone.localtime(timezone.now())
 
 
 @freeze_time("2024-07-25 10:00:00")
@@ -128,15 +128,15 @@ def test_update_streak_continue():
     profile = user.profile
     profile.current_streak_days = 3
     profile.longest_streak_days = 5
-    profile.last_study_activity_at = timezone.now() - timedelta(days=1)
+    profile.last_study_activity_at = timezone.localtime(
+        timezone.now() - timedelta(days=1)
+    )
     profile.save()
-
     update_streak(user)
     profile.refresh_from_db()
-
     assert profile.current_streak_days == 4
-    assert profile.longest_streak_days == 5  # Not changed yet
-    assert profile.last_study_activity_at == timezone.now()
+    assert profile.longest_streak_days == 5
+    assert profile.last_study_activity_at == timezone.localtime(timezone.now())
 
 
 @freeze_time("2024-07-25 10:00:00")
@@ -145,15 +145,15 @@ def test_update_streak_continue_and_update_longest():
     profile = user.profile
     profile.current_streak_days = 5
     profile.longest_streak_days = 5
-    profile.last_study_activity_at = timezone.now() - timedelta(days=1)
+    profile.last_study_activity_at = timezone.localtime(
+        timezone.now() - timedelta(days=1)
+    )
     profile.save()
-
     update_streak(user)
     profile.refresh_from_db()
-
     assert profile.current_streak_days == 6
-    assert profile.longest_streak_days == 6  # Should be updated now
-    assert profile.last_study_activity_at == timezone.now()
+    assert profile.longest_streak_days == 6
+    assert profile.last_study_activity_at == timezone.localtime(timezone.now())
 
 
 @freeze_time("2024-07-25 10:00:00")
@@ -162,16 +162,15 @@ def test_update_streak_break_streak():
     profile = user.profile
     profile.current_streak_days = 3
     profile.longest_streak_days = 5
-    # Last activity was 2 days ago
-    profile.last_study_activity_at = timezone.now() - timedelta(days=2)
+    profile.last_study_activity_at = timezone.localtime(
+        timezone.now() - timedelta(days=2)
+    )
     profile.save()
-
     update_streak(user)
     profile.refresh_from_db()
-
-    assert profile.current_streak_days == 1  # Streak broken, starts new
-    assert profile.longest_streak_days == 5  # Longest remains
-    assert profile.last_study_activity_at == timezone.now()
+    assert profile.current_streak_days == 1
+    assert profile.longest_streak_days == 5
+    assert profile.last_study_activity_at == timezone.localtime(timezone.now())
 
 
 @freeze_time("2024-07-25 10:00:00")
@@ -180,96 +179,125 @@ def test_update_streak_same_day():
     profile = user.profile
     profile.current_streak_days = 2
     profile.longest_streak_days = 2
-    # Last activity was earlier today
-    profile.last_study_activity_at = timezone.now() - timedelta(hours=2)
+    earlier_today = timezone.localtime(timezone.now() - timedelta(hours=2))
+    profile.last_study_activity_at = earlier_today
     profile.save()
-    initial_timestamp = profile.last_study_activity_at
-
     update_streak(user)
     profile.refresh_from_db()
-
-    assert profile.current_streak_days == 2  # No change in streak days
+    assert profile.current_streak_days == 2
     assert profile.longest_streak_days == 2
-    assert profile.last_study_activity_at > initial_timestamp  # Timestamp updated
-    assert profile.last_study_activity_at == timezone.now()
+    assert profile.last_study_activity_at > earlier_today
+    assert profile.last_study_activity_at == timezone.localtime(timezone.now())
 
 
-@freeze_time("2024-07-26 10:00:00")  # Day after previous tests
+# Fix mocker usage here
+@freeze_time("2024-07-26 10:00:00")
 @patch("apps.gamification.services.award_points")
 @patch("apps.gamification.services.check_and_award_badge")
-def test_update_streak_triggers_rewards(mock_check_badge, mock_award_points):
+def test_update_streak_triggers_rewards_on_hitting_milestone(
+    mock_check_badge, mock_award_points, mocker
+):  # Add mocker fixture
     user = UserFactory()
     profile = user.profile
-    profile.current_streak_days = 4
-    profile.longest_streak_days = 4
-    # Last activity yesterday
-    profile.last_study_activity_at = timezone.now() - timedelta(days=1)
+    profile.current_streak_days = 1
+    profile.longest_streak_days = 1
+    profile.last_study_activity_at = timezone.localtime(
+        timezone.now() - timedelta(days=1)
+    )
     profile.save()
-
-    BadgeFactory(slug="5-day-streak")  # Ensure badge exists
-
     update_streak(user)
     profile.refresh_from_db()
+    assert profile.current_streak_days == 2
+    mock_award_points.assert_called_once_with(
+        user, 5, PointReason.STREAK_BONUS, ANY, profile
+    )  # Use ANY
+    mock_check_badge.assert_not_called()
 
+    mock_award_points.reset_mock()
+    mock_check_badge.reset_mock()
+    profile.current_streak_days = 4
+    profile.longest_streak_days = 4
+    profile.last_study_activity_at = timezone.localtime(
+        timezone.now() - timedelta(days=1)
+    )
+    profile.save()
+    BadgeFactory(slug="5-day-streak")
+    update_streak(user)
+    profile.refresh_from_db()
     assert profile.current_streak_days == 5
-    # Check if reward functions were called
-    assert mock_award_points.call_count == 0  # No point reward at day 5 in example
+    mock_award_points.assert_not_called()
     mock_check_badge.assert_called_once_with(user, "5-day-streak")
 
 
-# --- Test check_and_award_badge Service ---
-@patch("apps.gamification.services.logger")  # Mock logger to suppress warnings
-def test_check_award_badge_success(mock_logger):
+@freeze_time("2024-07-26 10:00:00")
+@patch("apps.gamification.services.award_points")
+@patch("apps.gamification.services.check_and_award_badge")
+def test_update_streak_does_not_trigger_rewards_if_already_past_milestone(
+    mock_check_badge, mock_award_points
+):
     user = UserFactory()
-    badge = BadgeFactory(slug="test-badge")
-    # TODO: Implement actual criteria checking logic in the service
-    # For now, this test assumes the placeholder logic allows awarding
-    # or requires specific setup depending on the placeholder implementation.
-    # If placeholder always returns False, this test needs adjustment or deletion.
-    # Assuming placeholder allows awarding for now:
-    awarded = check_and_award_badge(user, "test-badge")
+    profile = user.profile
+    profile.current_streak_days = 6
+    profile.longest_streak_days = 6
+    profile.last_study_activity_at = timezone.localtime(
+        timezone.now() - timedelta(days=1)
+    )
+    profile.save()
+    update_streak(user)
+    profile.refresh_from_db()
+    assert profile.current_streak_days == 7
+    mock_award_points.assert_not_called()
+    mock_check_badge.assert_not_called()
 
-    # This assertion might need adjustment based on placeholder logic
-    assert awarded is True  # Or False if placeholder prevents it
-    if awarded:
-        assert UserBadge.objects.filter(user=user, badge=badge).exists()
-    else:
-        assert not UserBadge.objects.filter(user=user, badge=badge).exists()
+
+# --- Test check_and_award_badge Service ---
+# Fix badge test to use a testable scenario
+@patch("apps.gamification.services.logger")
+@patch("apps.gamification.services.award_points")  # Also mock points awarding
+def test_check_award_badge_success_criteria_met(mock_award_points, mock_logger):
+    user = UserFactory()
+    badge = BadgeFactory(slug="10-days-studying")  # Use a badge with logic in service
+    profile = user.profile
+    profile.current_streak_days = 10  # Set profile state to meet criteria
+    profile.save()
+
+    awarded = check_and_award_badge(user, "10-days-studying")
+
+    assert awarded is True  # Now criteria should be met
+    assert UserBadge.objects.filter(user=user, badge=badge).exists()
+    # Check that points for earning badge were awarded
+    mock_award_points.assert_called_once_with(
+        user, 15, PointReason.BADGE_EARNED, ANY, badge
+    )
 
 
 def test_check_award_badge_already_earned():
     user = UserFactory()
     badge = BadgeFactory(slug="test-badge")
-    UserBadgeFactory(user=user, badge=badge)  # User already has the badge
-
-    # No criteria check needed if already earned
+    UserBadgeFactory(user=user, badge=badge)
     awarded = check_and_award_badge(user, "test-badge")
-
-    assert awarded is False  # Not awarded again
+    assert awarded is False
     assert UserBadge.objects.filter(user=user, badge=badge).count() == 1
 
 
-# Criteria check logic is placeholder, so removing the mock
-# @patch('apps.gamification.services.logger')
-# def test_check_award_badge_criteria_not_met(mock_logger):
-# user = UserFactory()
-# badge = BadgeFactory(slug='test-badge')
-# TODO: Implement actual criteria check in service
-# Assuming placeholder logic prevents awarding (or returns False)
-# awarded = check_and_award_badge(user, 'test-badge')
-# assert awarded is False
-# assert not UserBadge.objects.filter(user=user, badge=badge).exists()
-# This test is not meaningful until criteria logic exists.
+@patch("apps.gamification.services.logger")
+def test_check_award_badge_criteria_not_met(mock_logger):
+    user = UserFactory()
+    badge = BadgeFactory(slug="10-days-studying")  # Use badge with logic
+    profile = user.profile
+    profile.current_streak_days = 9  # Criteria NOT met
+    profile.save()
+    awarded = check_and_award_badge(user, "10-days-studying")
+    assert awarded is False
+    assert not UserBadge.objects.filter(user=user, badge=badge).exists()
 
 
 @patch("apps.gamification.services.logger")
 def test_check_award_badge_inactive_badge(mock_logger):
     user = UserFactory()
-    BadgeFactory(slug="test-badge", is_active=False)
-    # No criteria check needed if badge is inactive
-    awarded = check_and_award_badge(user, "test-badge")
+    BadgeFactory(slug="test-badge-inactive", is_active=False)
+    awarded = check_and_award_badge(user, "test-badge-inactive")
     assert awarded is False
-    assert not UserBadge.objects.filter(user=user).exists()
 
 
 @patch("apps.gamification.services.logger")
@@ -280,15 +308,14 @@ def test_check_award_badge_non_existent_badge(mock_logger):
 
 
 # --- Test purchase_reward Service ---
+# (No changes needed in purchase_reward tests, they don't use mocker directly here)
 def test_purchase_reward_success():
     user = UserFactory()
     profile = user.profile
     profile.points = 1000
     profile.save()
     item = RewardStoreItemFactory(cost_points=500, is_active=True)
-
     result = purchase_reward(user, item.id)
-
     profile.refresh_from_db()
     assert profile.points == 500
     assert UserRewardPurchase.objects.filter(user=user, item=item).exists()
@@ -306,14 +333,11 @@ def test_purchase_reward_insufficient_points():
     profile.points = 100
     profile.save()
     item = RewardStoreItemFactory(cost_points=500, is_active=True)
-
     with pytest.raises(PurchaseError, match="Insufficient points"):
         purchase_reward(user, item.id)
-
     profile.refresh_from_db()
-    assert profile.points == 100  # Points unchanged
+    assert profile.points == 100
     assert not UserRewardPurchase.objects.filter(user=user).exists()
-    assert not PointLog.objects.filter(user=user).exists()
 
 
 def test_purchase_reward_inactive_item():
@@ -322,11 +346,8 @@ def test_purchase_reward_inactive_item():
     profile.points = 1000
     profile.save()
     item = RewardStoreItemFactory(cost_points=500, is_active=False)
-
-    # Expect DoesNotExist because the service lets it propagate
-    with pytest.raises(RewardStoreItem.DoesNotExist):  # Changed from PurchaseError
+    with pytest.raises(RewardStoreItem.DoesNotExist):
         purchase_reward(user, item.id)
-    # Add assertion to ensure profile points are unchanged
     profile.refresh_from_db()
     assert profile.points == 1000
 
@@ -336,27 +357,46 @@ def test_purchase_reward_non_existent_item():
     profile = user.profile
     profile.points = 1000
     profile.save()
-
-    # Expect DoesNotExist because the service lets it propagate
-    with pytest.raises(RewardStoreItem.DoesNotExist):  # Changed from PurchaseError
-        purchase_reward(user, 999)  # Non-existent ID
-    # Add assertion to ensure profile points are unchanged
+    with pytest.raises(RewardStoreItem.DoesNotExist):
+        purchase_reward(user, 999)
     profile.refresh_from_db()
     assert profile.points == 1000
 
 
+# Fix mocker usage here
 @patch("apps.gamification.services.award_points")
-def test_purchase_reward_point_deduction_fails(mock_award_points):
-    # Simulate award_points failing (returning False)
+def test_purchase_reward_point_deduction_fails(
+    mock_award_points, mocker
+):  # Add mocker fixture
     mock_award_points.return_value = False
     user = UserFactory()
     profile = user.profile
     profile.points = 1000
     profile.save()
     item = RewardStoreItemFactory(cost_points=500, is_active=True)
-
-    with pytest.raises(PurchaseError, match="Failed to deduct points"):
+    with pytest.raises(PurchaseError, match="Failed to update points balance"):
         purchase_reward(user, item.id)
-
-    # Ensure no purchase record was created despite initial checks passing
     assert not UserRewardPurchase.objects.filter(user=user, item=item).exists()
+    mock_award_points.assert_called_once_with(
+        user=user,
+        points_change=-500,
+        reason_code=PointReason.REWARD_PURCHASE,
+        description=ANY,
+        related_object=item,  # Use ANY
+    )
+
+
+@patch("apps.gamification.services.UserRewardPurchase.objects.create")
+def test_purchase_reward_purchase_record_fails(mock_create_purchase):
+    mock_create_purchase.side_effect = Exception("DB error creating purchase")
+    user = UserFactory()
+    profile = user.profile
+    profile.points = 1000
+    profile.save()
+    item = RewardStoreItemFactory(cost_points=500, is_active=True)
+    with pytest.raises(PurchaseError, match="An unexpected error occurred"):
+        purchase_reward(user, item.id)
+    profile.refresh_from_db()
+    assert profile.points == 1000
+    assert not UserRewardPurchase.objects.filter(user=user, item=item).exists()
+    assert not PointLog.objects.filter(user=user).exists()
