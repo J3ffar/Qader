@@ -232,6 +232,10 @@ def send_admin_password_reset_email(user: User):
         return False
 
 
+@extend_schema(
+    tags=["Admin Panel - User Management"],
+    summary="Trigger Password Reset for User (Admin)",
+)
 class AdminPasswordResetView(generics.GenericAPIView):
     """Triggers a password reset email for a specific user."""
 

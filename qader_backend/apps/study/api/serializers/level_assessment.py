@@ -47,8 +47,16 @@ class LevelAssessmentStartSerializer(serializers.Serializer):
         try:
             profile = user.profile
             # Simplified logic: Allow retake if needed, endpoint controls start
-            # if profile.level_determined:
-            #     raise serializers.ValidationError(...)
+            if profile.level_determined:
+                raise serializers.ValidationError(
+                    {
+                        "non_field_errors": [
+                            _(
+                                "Your level has already been determined. Assessment cannot be started again unless explicitly reset."
+                            )
+                        ]
+                    }
+                )
         except UserProfile.DoesNotExist:
             logger.error(f"UserProfile missing for user ID: {user.id}.")
             raise serializers.ValidationError(
@@ -319,12 +327,10 @@ class LevelAssessmentSubmitSerializer(serializers.Serializer):
         # --- Update User Profile ---
         profile.current_level_verbal = test_attempt.score_verbal
         profile.current_level_quantitative = test_attempt.score_quantitative
-        profile.level_determined = True  # Mark level as determined
         profile.save(
             update_fields=[
                 "current_level_verbal",
                 "current_level_quantitative",
-                "level_determined",
                 "updated_at",
             ]
         )
