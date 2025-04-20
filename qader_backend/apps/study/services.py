@@ -306,9 +306,7 @@ def generate_emergency_plan(
         # or skills never attempted. Logic can be refined based on requirements.
         # For simplicity, let's pick *any* skills if none are weak.
         all_skills = list(
-            Skill.objects.filter(is_active=True).values_list("slug", flat=True)[
-                :num_weak_skills
-            ]
+            Skill.objects.filter().values_list("slug", flat=True)[:num_weak_skills]
         )
         plan["focus_skills"] = random.sample(
             all_skills, min(len(all_skills), num_weak_skills)
