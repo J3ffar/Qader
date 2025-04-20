@@ -47,21 +47,17 @@ class UserStatisticsView(views.APIView):
     def get(self, request, *args, **kwargs):
         # The serializer calculates everything based on the user in the request context
         try:
-            # Pass None as instance; serializer fetches data via context
             serializer = UserStatisticsSerializer(
-                instance=None, context={"request": request}
+                instance=request.user, context={"request": request}
             )
-            # Accessing .data triggers the SerializerMethodFields and validation (like profile check)
             data = serializer.data
             return Response(data, status=status.HTTP_200_OK)
         except serializers.ValidationError as e:
-            # Catch validation errors raised within the serializer (e.g., profile not found)
             logger.warning(
                 f"Validation error during statistics generation for user {request.user.id}: {e.detail}"
             )
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            # Catch unexpected errors during statistics generation
             logger.exception(
                 f"Unexpected error generating statistics for user {request.user.id}: {e}"
             )
