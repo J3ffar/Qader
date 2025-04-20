@@ -4,7 +4,10 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import APIException
+
 from django.db.models import Case, When, IntegerField
+from django.http import Http404
 import logging
 import random
 
@@ -185,102 +188,105 @@ class ReviewTestAttemptView(generics.GenericAPIView):
         user = self.request.user
         attempt_id = self.kwargs.get("attempt_id")
         try:
-            # Ensure attempt exists, belongs to user, and is completed
+            # Ensure attempt exists and belongs to user. get_object_or_404 handles the 404.
             attempt = get_object_or_404(
-                UserTestAttempt.objects.select_related(
-                    "user"
-                ),  # Select user if needed later
+                UserTestAttempt.objects.select_related("user"),  # Keep select_related
                 pk=attempt_id,
                 user=user,
             )
+
+            # Check if the attempt is completed. Raise ValidationError (400) if not.
             if attempt.status != UserTestAttempt.Status.COMPLETED:
-                # Raise validation error for a cleaner 400 response
-                raise serializers.ValidationError(
-                    _("Cannot review an ongoing or abandoned test attempt.")
+                logger.warning(
+                    f"User {user.id} attempted to review non-completed test attempt {attempt_id} (status: {attempt.status})."
                 )
+                raise serializers.ValidationError(
+                    {"detail": _("Cannot review an ongoing or abandoned test attempt.")}
+                )
+
             return attempt
+        except Http404:
+            # Let Http404 propagate naturally, DRF will handle it as a 404 response.
+            logger.info(
+                f"Test attempt {attempt_id} not found for user {user.id} during review request."
+            )
+            raise
         except serializers.ValidationError:
-            raise  # Re-raise validation errors
+            # Re-raise validation errors (e.g., from the status check) to be handled as 400.
+            raise
         except Exception as e:
-            # Catch other potential errors during fetch
-            logger.error(f"Error fetching test attempt {attempt_id} for review: {e}")
-            # Use a generic error, or re-raise if appropriate
-            raise serializers.ValidationError(
-                _("Error retrieving test attempt details.")
+            # Catch other unexpected errors during fetch and log them.
+            # Return a generic 500 or a specific error if identifiable,
+            # but avoid raising ValidationError here for non-validation issues.
+            logger.exception(
+                f"Unexpected error fetching test attempt {attempt_id} for review by user {user.id}: {e}"
+            )
+            # Raise a standard APIException for server errors
+            raise APIException(
+                _("An error occurred while retrieving test attempt details."),
+                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def get(self, request, attempt_id, *args, **kwargs):
+        # No changes needed here if get_object handles exceptions correctly
         try:
-            test_attempt = (
-                self.get_object()
-            )  # Handles 404, ownership, status check, raises ValidationError on status fail
+            test_attempt = self.get_object()
         except serializers.ValidationError as e:
+            # This will now only catch the explicit ValidationError from the status check
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        # Http404 raised by get_object will be handled by DRF's default handler
+        # APIException raised by get_object will be handled by DRF's default handler (or custom handler)
 
-        # Fetch questions associated with the attempt (ordered)
-        questions_queryset = (
-            test_attempt.get_questions_queryset()
-        )  # Includes select_related
+        # --- Existing logic for fetching questions/answers ---
+        questions_queryset = test_attempt.get_questions_queryset()
 
-        # Fetch user's answers for these questions within this attempt
         user_attempts = UserQuestionAttempt.objects.filter(
             test_attempt=test_attempt,
-            question_id__in=test_attempt.question_ids,  # Ensure we only get attempts for *this* test
-        ).select_related(
-            "question"
-        )  # Select question if needed by filtering logic
+            question_id__in=test_attempt.question_ids,
+        ).select_related("question")
 
-        # --- Filter by incorrect_only if requested ---
         incorrect_only_param = request.query_params.get("incorrect_only", "").lower()
         incorrect_only = incorrect_only_param in ["true", "1"]
 
         if incorrect_only:
-            # Filter attempts first
             incorrect_attempts = [ua for ua in user_attempts if not ua.is_correct]
             incorrect_question_ids = {ua.question_id for ua in incorrect_attempts}
-
-            # Filter the main questions queryset based on incorrect question IDs
             questions_queryset = questions_queryset.filter(
                 pk__in=incorrect_question_ids
             )
+            # Reapply ordering if needed (consider if ordering is crucial after filtering)
+            if incorrect_question_ids:
+                # Apply original ordering to the filtered set
+                filtered_original_ids = [
+                    qid
+                    for qid in test_attempt.question_ids
+                    if qid in incorrect_question_ids
+                ]
+                if filtered_original_ids:
+                    preserved_order = Case(
+                        *[
+                            When(pk=pk, then=pos)
+                            for pos, pk in enumerate(filtered_original_ids)
+                        ],
+                        output_field=IntegerField(),
+                    )
+                    questions_queryset = questions_queryset.order_by(preserved_order)
+                else:  # Handle empty incorrect set edge case
+                    questions_queryset = questions_queryset.none()
 
-            # Reapply ordering based on the *original* order of the filtered IDs
-            filtered_original_ids = [
-                qid
-                for qid in test_attempt.question_ids
-                if qid in incorrect_question_ids
-            ]
-            if filtered_original_ids:
-                preserved_order = Case(
-                    *[
-                        When(pk=pk, then=pos)
-                        for pos, pk in enumerate(filtered_original_ids)
-                    ],
-                    output_field=IntegerField(),
-                )
-                questions_queryset = questions_queryset.order_by(preserved_order)
-            else:  # Handle case where no incorrect questions exist
-                questions_queryset = questions_queryset.none()
-
-            # Create map from the filtered attempts
             user_attempts_map = {
                 attempt.question_id: attempt for attempt in incorrect_attempts
             }
         else:
-            # Create a map for all attempts for faster lookup in the serializer
             user_attempts_map = {
                 attempt.question_id: attempt for attempt in user_attempts
             }
 
-        # Prepare context for the review question serializer
         context = {"request": request, "user_attempts_map": user_attempts_map}
-
-        # Prepare data structure for the response serializer
         response_data = {
             "attempt_id": test_attempt.id,
-            "review_questions": questions_queryset,  # Pass queryset
+            "review_questions": questions_queryset,
         }
-        # Use the TestReviewSerializer for the final output
         serializer = self.get_serializer(response_data, context=context)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
