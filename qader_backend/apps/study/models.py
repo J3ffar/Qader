@@ -555,11 +555,106 @@ class EmergencyModeSession(models.Model):
             self.save(update_fields=["end_time", "updated_at"])
 
 
-# --- Other Study Models (Placeholders) ---
+class ConversationSession(models.Model):
+    """Records details of a 'Learning via Conversation' session."""
 
-# class ConversationSession(models.Model):
-#     user = models.ForeignKey(settings.AUTH_USER_MODEL, ...)
-#     ai_tone = models.CharField(...)
-#     chat_log = models.JSONField(...)
-#     # ... other fields ...
-#     pass
+    class AiTone(models.TextChoices):
+        CHEERFUL = "cheerful", _("Cheerful")
+        SERIOUS = "serious", _("Serious")
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", _("Active")
+        COMPLETED = "completed", _("Completed")
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="conversation_sessions",
+        verbose_name=_("user"),
+        db_index=True,
+    )
+    ai_tone = models.CharField(
+        _("AI tone"),
+        max_length=10,
+        choices=AiTone.choices,
+        default=AiTone.SERIOUS,
+    )
+    status = models.CharField(
+        _("status"),
+        max_length=10,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+        db_index=True,
+    )
+    # Tracks the main question/concept being discussed for "Got it" testing
+    current_topic_question = models.ForeignKey(
+        Question,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",  # No reverse relation needed from Question
+        verbose_name=_("current topic question"),
+    )
+    start_time = models.DateTimeField(_("start time"), auto_now_add=True)
+    end_time = models.DateTimeField(_("end time"), null=True, blank=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("Conversation Session")
+        verbose_name_plural = _("Conversation Sessions")
+        ordering = ["-start_time"]
+
+    def __str__(self):
+        return f"Conversation for {self.user.username} ({self.get_status_display()}) started {self.start_time.strftime('%Y-%m-%d %H:%M')}"
+
+    def end_session(self):
+        """Marks the session as completed."""
+        if self.status == self.Status.ACTIVE:
+            self.status = self.Status.COMPLETED
+            self.end_time = timezone.now()
+            self.save(update_fields=["status", "end_time", "updated_at"])
+
+
+class ConversationMessage(models.Model):
+    """Stores a single message within a conversation session."""
+
+    class SenderType(models.TextChoices):
+        USER = "user", _("User")
+        AI = "ai", _("AI")
+
+    session = models.ForeignKey(
+        ConversationSession,
+        on_delete=models.CASCADE,
+        related_name="messages",
+        verbose_name=_("session"),
+        db_index=True,
+    )
+    sender_type = models.CharField(
+        _("sender type"),
+        max_length=4,
+        choices=SenderType.choices,
+        db_index=True,
+    )
+    message_text = models.TextField(_("message text"))
+    timestamp = models.DateTimeField(_("timestamp"), auto_now_add=True, db_index=True)
+    # Optional: Link message to a specific question if relevant
+    related_question = models.ForeignKey(
+        Question,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",  # No reverse relation needed
+        verbose_name=_("related question"),
+    )
+
+    class Meta:
+        verbose_name = _("Conversation Message")
+        verbose_name_plural = _("Conversation Messages")
+        ordering = ["timestamp"]
+
+    def __str__(self):
+        return f"{self.get_sender_type_display()} in session {self.session_id} @ {self.timestamp.strftime('%H:%M:%S')}"
+
+
+# --- Other Study Models (Placeholders) ---
