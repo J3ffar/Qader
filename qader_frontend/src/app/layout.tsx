@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans_Arabic, Harmattan } from "next/font/google";
 import "./globals.css";
-import Footer from "@/components/layout/Footer";
-import Navbar from "@/components/layout/Navbar";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 
 const ibm = IBM_Plex_Sans_Arabic({
@@ -38,13 +36,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex flex-col min-h-screen">
-            {" "}
-            {/* Ensure footer sticks to bottom */}
-            <Navbar />
-            <main className="flex-grow">{children}</main> {/* Use main tag */}
-            <Footer />
-          </div>
+          {children}
         </ThemeProvider>
       </body>
     </html>
