@@ -1,19 +1,19 @@
-import Head from "../components/public/Head/page";
-import About from "../components/public/About/page";
-import Review from "../components/public/Review/page";
-import Advantage from "../components/public/Advantage/page";
-import Statistics from "../components/public/Statistics/page";
-import Term from "../components/public/Term/page";
+import HeroSection from "@/components/sections/home/HeroSection";
+import AboutSection from "@/components/sections/home/AboutSection";
+import ReviewSection from "@/components/sections/home/ReviewSection";
+import AdvantageSection from "@/components/sections/home/AdvantageSection";
+import StatisticsSection from "@/components/sections/home/StatisticsSection";
+import CallToActionSection from "@/components/sections/home/CallToActionSection";
 
 export default function Home() {
   return (
-    <div>
-      <Head/>
-      <About/>
-      <Review />
-      <Advantage />
-      <Statistics />
-      <Term/>
+    <div className="container mx-auto px-4">
+      <HeroSection />
+      <AboutSection />
+      <ReviewSection />
+      <AdvantageSection />
+      <StatisticsSection />
+      <CallToActionSection />
     </div>
   );
 }
