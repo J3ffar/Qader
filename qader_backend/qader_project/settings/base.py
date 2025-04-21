@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "apps.learning",
     "apps.study",
     "apps.gamification",
+    "apps.support",
     "apps.admin_panel",
 ]
 
@@ -212,10 +213,13 @@ SPECTACULAR_SETTINGS = {
             "name": "Student Community",
             "description": "Endpoints for the community forum.",
         },
-        {"name": "Admin Support", "description": "Endpoints for user support tickets."},
         {
-            "name": "Admin Panel",
-            "description": "Endpoints for platform administration (requires admin/sub-admin privileges).",
+            "name": "Support (User)",
+            "description": "Endpoints for users to manage their support tickets.",
+        },
+        {
+            "name": "Support (Admin)",
+            "description": "Endpoints for administrators to manage support tickets.",
         },
         {
             "name": "Admin Panel - User Management",
