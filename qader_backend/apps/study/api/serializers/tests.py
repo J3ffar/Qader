@@ -19,8 +19,6 @@ from apps.study.services import (
     update_user_skill_proficiency,
 )
 
-# Removed direct import of record_user_study_activity
-
 logger = logging.getLogger(__name__)
 
 # --- Constants ---
@@ -538,9 +536,6 @@ class TestSubmitSerializer(serializers.Serializer):
         test_attempt.end_time = timezone.now()
         # Note: completion_points_awarded flag will be set by the signal receiver
         test_attempt.save(update_fields=["status", "end_time", "updated_at"])
-
-        # --- Gamification points/streak handled by signal: gamify_on_test_completed ---
-        # Removed call to record_user_study_activity
 
         # --- Generate Smart Analysis (Example) ---
         results_summary = test_attempt.results_summary or {}

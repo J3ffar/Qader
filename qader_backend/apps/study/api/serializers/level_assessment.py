@@ -16,8 +16,6 @@ from apps.users.api.serializers import UserProfileSerializer
 from apps.learning.api.serializers import QuestionListSerializer
 from apps.api.utils import get_user_from_context
 
-# Remove direct import of study service for points/streak
-# from apps.study.services import record_user_study_activity
 # Import only proficiency service if needed
 from apps.study.services import update_user_skill_proficiency
 
@@ -367,9 +365,6 @@ class LevelAssessmentSubmitSerializer(serializers.Serializer):
         logger.info(
             f"Level assessment attempt {test_attempt.id} completed for user {user.id}. Profile level scores updated."
         )
-
-        # --- Gamification points/streak handled by signal: gamify_on_test_completed ---
-        # Removed call to record_user_study_activity
 
         # --- Prepare and Return Result Data ---
         # Refresh profile to show latest levels

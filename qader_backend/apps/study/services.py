@@ -1,5 +1,4 @@
 from django.db.models import QuerySet, Q, Exists, OuterRef, F
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -122,95 +121,6 @@ def get_filtered_questions(
     return Question.objects.filter(id__in=random_ids).select_related(
         "subsection", "skill"
     )
-
-
-# --- Profile Update Logic ---
-
-
-def record_user_study_activity(
-    user,
-    points_to_add: int = 0,
-    reason_code: Optional[str] = None,
-    description: Optional[str] = None,
-) -> Dict[str, Any]:
-    """
-    Updates user's points and study streak. Creates PointLog entry if points are added.
-
-    Args:
-        user: The user instance.
-        points_to_add: Number of points to add (can be 0).
-        reason_code: Code for PointLog entry (e.g., 'TRADITIONAL_CORRECT').
-        description: Description for PointLog entry.
-
-    Returns:
-        A dictionary containing {'streak_updated': bool, 'current_streak': int, 'current_total_points': int}.
-    """
-    try:
-        profile = user.profile
-    except ObjectDoesNotExist:
-        logger.error(
-            f"UserProfile not found for user {user.id} during study activity recording."
-        )
-        return {"streak_updated": False, "current_streak": 0, "current_total_points": 0}
-
-    now_local = timezone.localtime(timezone.now())
-    today = now_local.date()
-    yesterday = today - timezone.timedelta(days=1)
-
-    last_activity_date = None
-    if profile.last_study_activity_at:
-        last_activity_local_dt = timezone.localtime(profile.last_study_activity_at)
-        last_activity_date = last_activity_local_dt.date()
-
-    streak_updated = False
-    streak_update_needed = False
-    points_update_needed = points_to_add != 0
-    profile_update_fields = ["updated_at"]  # Always update 'updated_at'
-
-    # --- Streak Logic ---
-    if last_activity_date != today:  # Only update streak if first activity today
-        if last_activity_date == yesterday:
-            profile.current_streak_days = F("current_streak_days") + 1
-        else:  # Streak broken or first ever activity
-            profile.current_streak_days = 1
-        streak_updated = True
-        streak_update_needed = True
-        profile.last_study_activity_at = now_local
-        profile_update_fields.extend(["current_streak_days", "last_study_activity_at"])
-
-    # --- Points Logic ---
-    if points_update_needed:
-        profile.points = F("points") + points_to_add
-        profile_update_fields.append("points")
-        # TODO: Implement PointLog creation (consider signals or direct creation)
-        # try:
-        #     from apps.gamification.models import PointLog # Lazy import or signal preferred
-        #     if reason_code:
-        #         PointLog.objects.create(...)
-        # except ImportError:
-        #     logger.warning("Gamification app or PointLog model not found for logging points.")
-        # except Exception as e:
-        #      logger.error(f"Error creating PointLog for user {user.id}: {e}")
-
-    # --- Save Profile (Atomic updates) ---
-    if points_update_needed or streak_update_needed:
-        # Ensure F expressions are resolved before checking longest_streak
-        profile.save(update_fields=list(set(profile_update_fields)))
-        profile.refresh_from_db(
-            fields=["current_streak_days", "longest_streak_days", "points"]
-        )
-
-        # Update longest streak if needed *after* refresh
-        if streak_updated and profile.current_streak_days > profile.longest_streak_days:
-            profile.longest_streak_days = profile.current_streak_days
-            profile.save(update_fields=["longest_streak_days"])
-            # No need to refresh again unless immediately used elsewhere
-
-    return {
-        "streak_updated": streak_updated,
-        "current_streak": profile.current_streak_days,
-        "current_total_points": profile.points,
-    }
 
 
 # --- Skill Proficiency Update Logic ---

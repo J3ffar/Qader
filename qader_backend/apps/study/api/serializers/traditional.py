@@ -10,8 +10,6 @@ from apps.study.models import UserQuestionAttempt
 from apps.learning.models import Question
 from apps.api.utils import get_user_from_context
 
-# Remove direct import of study service for points/streak
-# from apps.study.services import record_user_study_activity
 # Import proficiency service only
 from apps.study.services import update_user_skill_proficiency
 
@@ -74,9 +72,6 @@ class TraditionalLearningAnswerSerializer(serializers.Serializer):
         update_user_skill_proficiency(
             user=user, skill=question.skill, is_correct=is_correct
         )
-
-        # --- Gamification points/streak are handled by signals (post_save on UserQuestionAttempt) ---
-        # We don't call record_user_study_activity here anymore.
 
         # --- Prepare and Return Response Data ---
         # Return feedback, but not the exact points/streak which are updated by async signals.
