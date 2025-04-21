@@ -88,10 +88,14 @@ class SupportTicket(models.Model):
 
     @property
     def last_reply_by_role(self):
-        last_reply = self.replies.order_by("-created_at").first()
+        """Determines if the last reply was by an admin or a non-admin user."""
+        # Order replies by creation date, descending, to get the latest first
+        last_reply = self.replies.order_by("-created_at", "-id").first()
         if last_reply:
+            # Check if the user who made the *last reply* is staff
             return "admin" if last_reply.user.is_staff else "user"
-        return "user"  # Assume user created it initially
+        # If no replies, the 'last action' was the creation by the user
+        return "user"
 
 
 class SupportTicketReply(models.Model):
@@ -128,5 +132,7 @@ class SupportTicketReply(models.Model):
         ordering = ["created_at"]
 
     def __str__(self):
-        note = "(Internal)" if self.is_internal_note else ""
-        return f"Reply by {self.user.username} on Ticket #{self.ticket.pk} {note}"
+        note = (
+            " (Internal)" if self.is_internal_note else ""
+        )  # Corrected: No space before (Internal), no trailing space if public
+        return f"Reply by {self.user.username} on Ticket #{self.ticket.pk}{note}"  # Note removed potential trailing space

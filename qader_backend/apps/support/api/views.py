@@ -230,29 +230,57 @@ class AdminSupportTicketViewSet(viewsets.ModelViewSet):
         return super().get_serializer_class()
 
     def perform_update(self, serializer):
-        """Handle side effects of updating, e.g., setting closed_at."""
-        instance = serializer.instance
-        # Check if 'status' is actually being updated before accessing it
-        new_status = serializer.validated_data.get("status", instance.status)
+        """Handle side effects of updating, e.g., setting/clearing closed_at."""
+        # Validate the incoming data first
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.instance  # Get the instance *before* saving changes
 
-        closed_at_update = None
+        # Get validated data (don't rely solely on serializer.save to handle everything)
+        validated_data = serializer.validated_data
+        new_status = validated_data.get("status", instance.status)
+        new_priority = validated_data.get("priority", instance.priority)
+        new_assigned_to = validated_data.get(
+            "assigned_to", instance.assigned_to
+        )  # From source='assigned_to'
+
+        update_fields = []
+        original_status = instance.status  # Store original status for comparison
+
+        # Prepare fields to update based on validated data
+        if new_status != instance.status:
+            instance.status = new_status
+            update_fields.append("status")
+        if new_priority != instance.priority:
+            instance.priority = new_priority
+            update_fields.append("priority")
+        if new_assigned_to != instance.assigned_to:
+            instance.assigned_to = new_assigned_to
+            update_fields.append("assigned_to")
+
+        # Handle closed_at based on status change
         if (
             new_status == SupportTicket.Status.CLOSED
-            and instance.status != SupportTicket.Status.CLOSED
+            and original_status != SupportTicket.Status.CLOSED
         ):
-            closed_at_update = timezone.now()
+            instance.closed_at = timezone.now()
+            update_fields.append("closed_at")
         elif (
             new_status != SupportTicket.Status.CLOSED
-            and instance.status == SupportTicket.Status.CLOSED
+            and original_status == SupportTicket.Status.CLOSED
         ):
-            closed_at_update = None
+            instance.closed_at = None
+            update_fields.append("closed_at")
 
-        # Save with potentially updated closed_at timestamp
-        if closed_at_update is not None:
-            serializer.save(closed_at=closed_at_update)
-        else:
-            # If only priority/assignment is changed, closed_at remains unchanged
-            serializer.save()
+        # Always update 'updated_at' timestamp
+        update_fields.append("updated_at")
+
+        # Save the instance with only the specified fields
+        if update_fields:
+            # Ensure unique fields if list has duplicates (though unlikely here)
+            instance.save(update_fields=list(set(update_fields)))
+
+        # Note: We don't call serializer.save() here anymore because we handled the save manually.
+        # The serializer was primarily used for validation and accessing validated_data.
 
         # TODO: Send notification to user about status change/assignment
 
