@@ -353,6 +353,15 @@ class UserQuestionAttempt(models.Model):
         blank=True,
         db_index=True,
     )
+    conversation_session = models.ForeignKey(
+        "ConversationSession",  # Use string quote if defined later
+        on_delete=models.SET_NULL,  # Or CASCADE if appropriate
+        related_name="question_attempts",
+        verbose_name=_("conversation session"),
+        null=True,
+        blank=True,
+        db_index=True,
+    )
     # --- Link to other contexts ---
     # challenge_attempt = models.ForeignKey(
     #     'challenges.ChallengeAttempt', # Use string for forward reference
@@ -361,10 +370,8 @@ class UserQuestionAttempt(models.Model):
     #     verbose_name=_("challenge attempt"),
     #     null=True, blank=True, db_index=True
     # )
-    # conversation_session = models.ForeignKey(...)
     # emergency_session = models.ForeignKey(...)
     # ---
-
     selected_answer = models.CharField(
         _("selected answer"),
         max_length=1,

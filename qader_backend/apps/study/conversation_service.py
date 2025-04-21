@@ -180,7 +180,7 @@ def record_conversation_test_attempt(
         question=test_question,
         selected_answer=selected_answer,
         mode=UserQuestionAttempt.Mode.CONVERSATION,
-        # test_attempt = None # Not linked to a full test session
+        conversation_session=session,
         attempted_at=timezone.now(),
         # is_correct will be calculated on save
     )

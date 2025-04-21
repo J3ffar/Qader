@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext_lazy as _
 from django.db import transaction
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
@@ -134,11 +135,7 @@ class ConversationViewSet(
         input_serializer.is_valid(raise_exception=True)
         user_message_text = input_serializer.validated_data["message_text"]
         related_question_id = input_serializer.validated_data.get("related_question_id")
-        related_question = (
-            get_object_or_404(Question, pk=related_question_id)
-            if related_question_id
-            else None
-        )
+        related_question = input_serializer.validated_data.get("related_question_id")
 
         try:
             with transaction.atomic():
@@ -285,16 +282,16 @@ class ConversationViewSet(
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        question_id = serializer.validated_data["question_id"]
+        test_question = serializer.validated_data["question_id"]
         selected_answer = serializer.validated_data["selected_answer"]
 
-        try:
-            test_question = Question.objects.get(pk=question_id)
-        except Question.DoesNotExist:
-            return Response(
-                {"detail": _("Test question not found.")},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        # try:
+        #     test_question = Question.objects.get(pk=question_id)
+        # except Question.DoesNotExist:
+        #     return Response(
+        #         {"detail": _("Test question not found.")},
+        #         status=status.HTTP_404_NOT_FOUND,
+        #     )
 
         try:
             # Record the attempt and update stats via service layer

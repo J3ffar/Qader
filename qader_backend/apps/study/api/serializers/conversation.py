@@ -45,7 +45,7 @@ class ConversationSessionListSerializer(serializers.ModelSerializer):
 
     user = SimpleUserSerializer(read_only=True)
     url = serializers.HyperlinkedIdentityField(
-        view_name="study:conversation-detail", read_only=True
+        view_name="api:v1:study:conversation-detail", read_only=True
     )
 
     class Meta:
