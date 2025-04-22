@@ -48,6 +48,15 @@ class LearningSectionSerializer(serializers.ModelSerializer):
         ]  # Add 'subsections' if needed
 
 
+class LearningSectionBasicSerializer(serializers.ModelSerializer):
+    """Basic serializer for LearningSection (ID, Name, Slug)."""
+
+    class Meta:
+        model = LearningSection
+        fields = ["id", "name", "slug"]
+        read_only_fields = fields
+
+
 # --- Question Serializers ---
 
 

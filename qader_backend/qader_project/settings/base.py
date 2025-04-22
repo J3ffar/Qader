@@ -31,14 +31,16 @@ INSTALLED_APPS = [
     "corsheaders",
     "drf_spectacular",
     "django_filters",
+    "taggit",
     # Project apps
     "apps.api",
     "apps.users",
     "apps.learning",
     "apps.study",
     "apps.gamification",
-    "apps.support",
     "apps.content",
+    "apps.community",
+    "apps.support",
     "apps.admin_panel",
 ]
 
@@ -165,6 +167,8 @@ REST_FRAMEWORK = {
     # "EXCEPTION_HANDLER": "apps.api.exceptions.custom_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "PAGE_SIZE_QUERY_PARAM": "page_size",
+    "MAX_PAGE_SIZE": 100,
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.OrderingFilter",
