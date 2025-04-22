@@ -12,6 +12,7 @@ from drf_spectacular.utils import (
     OpenApiExample,
 )
 from django.utils.translation import gettext_lazy as _  # Added for translation
+from django.db.models import Prefetch
 
 from apps.content import models
 from . import serializers
@@ -129,7 +130,7 @@ class FAQListView(generics.ListAPIView):
     def get_queryset(self):
         # Prefetch related items for efficiency
         return models.FAQCategory.objects.prefetch_related(
-            models.Prefetch(
+            Prefetch(
                 "items",
                 queryset=models.FAQItem.objects.filter(is_active=True).order_by(
                     "order"
