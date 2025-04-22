@@ -76,8 +76,8 @@ class CommunityPostListSerializer(TaggitSerializer, serializers.ModelSerializer)
     author = SimpleUserSerializer(read_only=True)
     tags = TagListSerializerField(required=False)
     reply_count = serializers.IntegerField(
-        read_only=True
-    )  # Must be annotated in queryset
+        source="reply_count_annotated", read_only=True
+    )
     content_excerpt = serializers.CharField(
         read_only=True
     )  # Must be annotated or property
@@ -158,7 +158,9 @@ class CommunityPostDetailSerializer(TaggitSerializer, serializers.ModelSerialize
         read_only=True
     )  # Tags usually read-only on detail view
     section_filter = LearningSectionBasicSerializer(read_only=True)
-    reply_count = serializers.IntegerField(read_only=True)  # Annotated
+    reply_count = serializers.IntegerField(
+        source="reply_count_annotated", read_only=True
+    )
     # Replies will be added manually in the view using pagination
     # We define a placeholder field for documentation purposes
 

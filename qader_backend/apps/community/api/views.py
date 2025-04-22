@@ -3,7 +3,7 @@ from rest_framework import viewsets, generics, status
 from rest_framework.serializers import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, NotFound
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from taggit.models import Tag
@@ -68,12 +68,12 @@ class CommunityPostViewSet(viewsets.ModelViewSet):
     """
 
     queryset = (
-        CommunityPost.objects.select_related("author__userprofile", "section_filter")
+        CommunityPost.objects.select_related("author__profile", "section_filter")
         .prefetch_related(
             "tags",
             # 'replies' # Pre-fetching all replies might be too heavy here, handle in retrieve
         )
-        .annotate(reply_count=Count("replies", distinct=True))
+        .annotate(reply_count_annotated=Count("replies", distinct=True))
         .order_by("-is_pinned", "-created_at")
     )  # Default ordering
     permission_classes = [
@@ -98,18 +98,40 @@ class CommunityPostViewSet(viewsets.ModelViewSet):
     # Optionally restrict update/delete to author or admin
     def perform_update(self, serializer):
         post = self.get_object()
-        if post.author != self.request.user and not self.request.user.is_staff:
-            raise PermissionDenied(_("You do not have permission to edit this post."))
-        # Admins can pin/close posts
-        if not self.request.user.is_staff:
-            serializer.validated_data.pop("is_pinned", None)
-            serializer.validated_data.pop("is_closed", None)
-        serializer.save()
+        is_author = post.author == self.request.user
+        is_staff = self.request.user.is_staff  # Check staff status
+
+        # Check permission to edit *at all*
+        if not is_author and not is_staff:
+            raise PermissionDenied("You do not have permission to edit this post.")
+
+        # Separate logic for admin-only fields
+        pinned = serializer.validated_data.pop("is_pinned", None)
+        closed = serializer.validated_data.pop("is_closed", None)
+
+        # Save the main data first
+        instance = serializer.save()
+
+        # Apply admin-only changes if user is staff and values were provided
+        needs_extra_save = False
+        if is_staff:
+            if pinned is not None and instance.is_pinned != pinned:
+                instance.is_pinned = pinned
+                needs_extra_save = True
+            if closed is not None and instance.is_closed != closed:
+                instance.is_closed = closed
+                needs_extra_save = True
+
+        # Save again only if admin fields were changed
+        if needs_extra_save:
+            instance.save(update_fields=["is_pinned", "is_closed", "updated_at"])
 
     def perform_destroy(self, instance):
-        if instance.author != self.request.user and not self.request.user.is_staff:
-            raise PermissionDenied(_("You do not have permission to delete this post."))
-        instance.delete()
+        # Clarified permission check
+        if instance.author == self.request.user or self.request.user.is_staff:
+            instance.delete()
+        else:
+            raise PermissionDenied("You do not have permission to delete this post.")
 
     def retrieve(self, request, *args, **kwargs):
         """
@@ -121,7 +143,7 @@ class CommunityPostViewSet(viewsets.ModelViewSet):
 
         # Paginate replies
         reply_queryset = instance.replies.select_related(
-            "author__userprofile", "parent_reply"
+            "author__profile", "parent_reply"
         ).order_by(
             "created_at"
         )  # Get replies for this post
@@ -164,30 +186,45 @@ class CommunityReplyListCreateView(generics.ListCreateAPIView):
     serializer_class = CommunityReplySerializer
     permission_classes = [IsAuthenticated, IsSubscribed]
 
+    def get_post_object(self):
+        """Helper to get the post or raise 404."""
+        post_pk = self.kwargs.get("post_pk")
+        try:
+            post = CommunityPost.objects.get(pk=post_pk)
+            return post
+        except CommunityPost.DoesNotExist:
+            raise NotFound(detail="Post not found.")
+
     def get_queryset(self):
         post_pk = self.kwargs.get("post_pk")
         return (
             CommunityReply.objects.filter(post_id=post_pk)
-            .select_related("author__userprofile", "parent_reply")
+            .select_related("author__profile", "parent_reply")
             .order_by("created_at")
         )
 
-    def perform_create(self, serializer):
-        post_pk = self.kwargs.get("post_pk")
-        try:
-            post = CommunityPost.objects.get(pk=post_pk)
-            if post.is_closed and not self.request.user.is_staff:
-                raise PermissionDenied(
-                    _("This post is closed and does not accept new replies.")
-                )
-        except CommunityPost.DoesNotExist:
-            raise ValidationError({"post": _("Post not found.")})  # Or return 404
+    def list(self, request, *args, **kwargs):
+        # Check post existence before listing replies
+        self.get_post_object()  # This will raise 404 if post not found
+        return super().list(request, *args, **kwargs)
 
-        # Check if parent_reply belongs to the same post (optional but good practice)
-        parent_reply_id = serializer.validated_data.get("parent_reply")
-        if parent_reply_id and parent_reply_id.post != post:
+    def post(self, request, *args, **kwargs):
+        # Post existence is checked in perform_create
+        return super().post(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        # Use helper to get post, handles 404
+        post = self.get_post_object()
+
+        if post.is_closed and not self.request.user.is_staff:
+            raise PermissionDenied(
+                "This post is closed and does not accept new replies."
+            )
+
+        parent_reply_obj = serializer.validated_data.get("parent_reply")
+        if parent_reply_obj and parent_reply_obj.post != post:
             raise ValidationError(
-                {"parent_reply_id": _("Parent reply does not belong to this post.")}
+                {"parent_reply_id": "Parent reply does not belong to this post."}
             )
 
         serializer.save(author=self.request.user, post=post)
