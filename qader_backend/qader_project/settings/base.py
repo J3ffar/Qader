@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "apps.study",
     "apps.gamification",
     "apps.support",
+    "apps.content",
     "apps.admin_panel",
 ]
 
@@ -224,6 +225,10 @@ SPECTACULAR_SETTINGS = {
         {
             "name": "Admin Panel - User Management",
             "description": "Endpoints for administrators to manage users, sub-admins, points, and passwords.",
+        },
+        {
+            "name": "Admin Panel - Content Management",
+            "description": "Endpoints for administrators to manage public content (Pages, FAQ, Partners, Contact Messages).",
         },
     ],
     "SWAGGER_UI_SETTINGS": {  # Fine-tune Swagger UI appearance/behavior
