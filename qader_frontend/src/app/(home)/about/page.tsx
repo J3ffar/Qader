@@ -1,93 +1,51 @@
 import React from "react";
+import { UsersIcon } from '@heroicons/react/24/solid';
 import Image from "next/image";
-import type { Metadata } from "next";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 
-// Optional: Add specific metadata for this page
-export const metadata: Metadata = {
-  title: "قصتنا | منصة قادر",
-  description:
-    "تعرف على قصة منصة قادر، مهمتنا، ورؤيتنا لمساعدة الطلاب في اختبار القدرات.",
-};
 
 const AboutPage = () => {
   return (
-    <div className="container mx-auto px-4 py-12 md:py-16">
-      {" "}
-      {/* Page container */}
-      <section className="text-center mb-12 md:mb-16">
-        <h1 className="text-4xl md:text-5xl font-bold font-heading mb-4 text-primary">
-          قصتنا: شغف بمستقبلكم
-        </h1>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-          نؤمن في قادر بأن كل طالب يمتلك القدرة على التفوق. وُلدت منصتنا من رغبة
-          حقيقية في تمكينكم بالأدوات والمعرفة اللازمة لاجتياز اختبار القدرات
-          بثقة وتحقيق طموحاتكم الأكاديمية.
-        </p>
-      </section>
-      <section className="mb-12 md:mb-16">
-        <Image
-          src="/images/about-hero.jpg" // Replace with your actual image path
-          alt="فريق عمل منصة قادر أو صورة تعبيرية عن التعليم"
-          width={1200}
-          height={500}
-          className="rounded-lg object-cover w-full h-auto max-h-[500px] shadow-md" // Style the image
-          priority // Load this image early if it's prominent
-        />
-      </section>
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center mb-12 md:mb-16">
-        <div>
-          <h2 className="text-3xl font-bold font-heading mb-4 text-secondary-foreground">
-            مهمتنا
-          </h2>
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            مهمتنا هي توفير تجربة تعليمية شاملة ومبتكرة تجعل الاستعداد لاختبار
-            القدرات رحلة ممتعة ومثمرة. نسعى لتقديم محتوى عالي الجودة، أدوات
-            تدريب فعالة، ودعم مستمر لمساعدة كل طالب على اكتشاف إمكاناته الكاملة.
-            {/* Add more details about your mission */}
-          </p>
+    <div className="flex flex-col justify-center items-center gap-7 p-7">
+      <h2 className="text-5xl font-bold">البداية من حلم...<span className="text-[#E78B48]">والتحقيق معك</span></h2>
+      <p className="text-lg">فى عالم تتسارع فيه التحديات وتتشابه فيه المنصات, كنا نبحث عن شئ واحد فقط أن نكون <span className="text-[#E78B48]">مختلفين بحق</span></p>
+      <div className="flex justify-center gap-6 p-9 max-md:flex-col">
+        <div className="bg-[#e7f1fe] rounded-3xl flex flex-1/2 flex-col gap-5 justify-center items-center p-4 border border-[#cfe4fc]">
+         <span className="w-16 h-16 rounded-full flex justify-center items-center bg-[#9ec9fa] border border-[#074182]"><Image src={"/images/Storytelling.png"} width={40} height={400} alt="" /></span>
+         <p className="text-center text-lg">بدأت<span className="text-[#E78B48]">"قادر"</span>من إيمان بسيط و عميق فى نفس الوقت: أن كل طالب قادر على الإنجاز...غذا وجد البيئةالصحيحةوالدعم المناسب</p>
         </div>
-        {/* Optional: Add an image related to the mission */}
-        <div className="order-first md:order-last">
-          <Image
-            src="/images/mission-focus.png" // Replace with relevant image
-            alt="أيقونة أو صورة تعبر عن مهمة قادر"
-            width={400}
-            height={400}
-            className="rounded-lg mx-auto"
-          />
+        <div className="bg-[#e7f1fe] rounded-3xl flex flex-1/2 flex-col gap-5 justify-center items-center p-4 border border-[#cfe4fc]">
+         <span className="w-16 h-16 rounded-full flex justify-center items-center bg-[#9ec9fa] border border-[#074182] p-1"><UsersIcon className="w-8 h-8 text-[#172bab]"/></span>
+         <p className="text-center text-lg">لم نرد ان نقدم مجرد منصة تعليميةأخرى, بل أردنا أن نبنى مجتمعا<span className="text-[#E78B48]">يتعلم, يشارك, ويكبر سويا.</span></p>
         </div>
-      </section>
-      <section className="bg-muted dark:bg-slate-800/50 p-8 md:p-12 rounded-lg mb-12 md:mb-16">
-        <h2 className="text-3xl font-bold font-heading mb-6 text-center text-secondary-foreground">
-          رؤيتنا
-        </h2>
-        <p className="text-lg text-center text-muted-foreground leading-relaxed max-w-3xl mx-auto">
-          نتطلع لأن نكون الوجهة الأولى والموثوقة لطلاب المملكة العربية السعودية
-          في رحلتهم نحو التفوق في اختبار القدرات، وأن نساهم بفعالية في بناء جيل
-          واثق ومؤهل لتحقيق رؤية المملكة 2030.
-          {/* Add more details about your vision */}
-        </p>
-      </section>
-      {/* Optional: Add a section about your team or values */}
-      <section className="mb-12 md:mb-16">
-        <h2 className="text-3xl font-bold font-heading mb-6 text-center">
-          فريقنا
-        </h2>
-        <p className="text-lg text-center text-muted-foreground max-w-3xl mx-auto mb-8">
-          يقف خلف منصة قادر فريق من الخبراء التربويين والمطورين الملتزمين
-          بنجاحكم.
-        </p>
-        {/* Add team member cards or a general description here */}
-      </section>
-      {/* Optional: Add a call to action */}
-      <section className="text-center">
-        <h2 className="text-2xl font-bold mb-4">مستعد لتبدأ رحلتك؟</h2>
-        <Button asChild>
-          <Link href="/login">انضم إلينا الآن</Link>
-        </Button>
-      </section>
+        <div className="bg-[#e7f1fe] rounded-3xl flex flex-1/2 flex-col gap-5 justify-center items-center p-4 border border-[#cfe4fc]">
+         <span className="w-16 h-16 rounded-full flex justify-center items-center bg-[#9ec9fa] border border-[#074182] p-1"><Image src={"/images/Greeting.png"} width={60} height={60} alt="" /></span>
+         <p className="text-center text-lg">جمعنا بين البساطة و التقنية, بين المناهج الدقيقة و الاختبارات الذكية<span className="text-[#E78B48]">من أجلك أنت.</span></p>
+        </div>
+      </div>
+      <Image src={"/images/phon.png"} width={700} height={700} alt="" />
+      <div className="bg-[#e7f1fe] rounded-2xl mx-11 my-9 p-7">
+        <div className="flex justify-between items-center gap-20 max-lg:gap-7 max-lg:flex-col-reverse">
+          <div>
+            <h3 className="text-3xl font-bold">لماذا نحن مختلفون؟</h3>
+            <ul className="list-disc list-inside text-right text-lg">
+              <li>لأننا نراك قبل أن نرى درجاتك.</li>
+              <li>لأننا نفهم أن التعليم ليس بالحفظ, بل فهم وتجربة</li>
+              <li>لأننا نطور المنصة كل يوم بناء على صوتك.</li>
+              <li>لأننا لا نبيع المحتوى...بل نبنى ثقة.س</li>
+            </ul>
+          </div>
+          <Image src={"/images/labtop.png"} width={500} height={500} alt=""/>
+        </div>
+        <div className="flex justify-between items-center gap-20 max-lg:gap-7 max-lg:flex-col mt-9">
+          <Image src={"/images/labtop1.png"} width={500} height={500} alt="" />
+          <div>
+            <h3 className="text-3xl font-bold">رسالتنا</h3>
+            <ul className="list-disc list-inside text-right text-lg">
+              <li>أن نكون دليلك الذكى فى رحلة التعليم, وأن نمنحك الأدوات لتكون دائما...قادر على الفهم, على التقدم, وعلى التميز.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

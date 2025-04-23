@@ -78,12 +78,13 @@ const Footer = () => {
               >
                 {" "}
                 {/* Use anchor tags for external links */}
-                <span className="flex p-1 rounded-full bg-[#e7f1fe]">
+                <span className="">
                   <Image
                     src={social.icon}
                     alt={social.alt}
-                    width={24} // Adjusted size slightly
-                    height={24}
+                    width={10} // Adjusted size slightly
+                    height={10}
+                    className='w-10 h-10 p-2 rounded-full bg-gray-200 transition delay-150 duration-300 ease-in-out hover:bg-gray-300'
                   />
                 </span>
               </a>
@@ -118,13 +119,13 @@ const Footer = () => {
               {" "}
               {/* Added margin and spacing */}
               <li>
-                <Link href="/faq" className="hover:text-[#7ba3d8]">
+                <Link href="/questions" className="hover:text-[#7ba3d8]">
                   الأسئلة الشائعة
                 </Link>
               </li>{" "}
               {/* Assuming /faq is the correct link */}
               <li>
-                <Link href="/terms" className="hover:text-[#7ba3d8]">
+                <Link href="/conditions" className="hover:text-[#7ba3d8]">
                   الشروط و الأحكام
                 </Link>
               </li>{" "}
