@@ -1,5 +1,6 @@
 from datetime import timedelta
 from django.utils import timezone
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.contrib.auth.password_validation import validate_password
@@ -172,6 +173,26 @@ class RegisterSerializer(serializers.ModelSerializer):
             "username": {"required": True},
             # Add validators for username format if needed
         }
+
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate password confirmation AND password complexity."""
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError(
+                {"password_confirm": _("Password fields didn't match.")}
+            )
+
+        # *** Manually trigger password validation here ***
+        # This ensures AUTH_PASSWORD_VALIDATORS are checked before create_user
+        try:
+            # We don't have the user object yet, so pass None
+            validate_password(attrs["password"], user=None)
+        except DjangoValidationError as e:
+            # Raise DRF validation error based on Django validation error
+            raise serializers.ValidationError({"password": list(e.messages)})
+
+        # ... (other cross-field validation like self-referral if needed) ...
+
+        return attrs
 
     def validate_email(self, value: str) -> str:
         """Ensure email is unique (case-insensitive)."""
