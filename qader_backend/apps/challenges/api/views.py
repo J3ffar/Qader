@@ -1,4 +1,7 @@
+from django.db.models import Q
 from rest_framework import viewsets, status, mixins
+from rest_framework.serializers import ValidationError
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -120,7 +123,7 @@ class ChallengeViewSet(
             return (
                 super()
                 .get_queryset()
-                .filter(models.Q(challenger=user) | models.Q(opponent=user))
+                .filter(Q(challenger=user) | Q(opponent=user))
                 .distinct()
             )
         return Challenge.objects.none()  # Should not happen due to permissions

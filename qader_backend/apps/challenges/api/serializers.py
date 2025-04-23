@@ -1,5 +1,6 @@
 import logging
 from rest_framework import serializers
+from rest_framework.serializers import ValidationError
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.db import transaction
@@ -114,20 +115,25 @@ class ChallengeCreateSerializer(serializers.Serializer):
     def validate(self, attrs):
         challenger = self.context["request"].user
         opponent_username = attrs.get("opponent_username")
+        opponent = None
 
         if opponent_username:
             if opponent_username == challenger.username:
                 raise serializers.ValidationError(_("You cannot challenge yourself."))
             try:
                 opponent = User.objects.get(username=opponent_username, is_active=True)
-                attrs["opponent"] = opponent
+                # Pop username only if opponent found and validated
+                attrs.pop("opponent_username")
             except User.DoesNotExist:
                 raise serializers.ValidationError(
                     _("Opponent user not found or inactive.")
                 )
-        else:
-            # Logic for random matchmaking (requires opponent=None initially)
-            attrs["opponent"] = None
+            if opponent_username == challenger.username:
+                raise serializers.ValidationError(
+                    {"opponent_username": _("You cannot challenge yourself.")}
+                )
+
+        attrs["opponent"] = opponent
 
         # TODO: Add validation for challenge_type if needed (e.g., check if user level is suitable?)
         # TODO: Validate if the challenger/opponent already have an active challenge together?
