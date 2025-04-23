@@ -1,68 +1,103 @@
-# apps/community/tests/factories.py
-
 import factory
+import random  # Import random for the tags hook
 from factory.django import DjangoModelFactory
 from factory import Faker, SubFactory, LazyAttribute, post_generation
+from django.utils.text import slugify
 
-from apps.community.models import CommunityPost, CommunityReply, LearningSection
+from apps.community.models import CommunityPost, CommunityReply
+
+# Use forward reference string to avoid potential circular import issues
+# from apps.learning.models import LearningSection
 from apps.users.tests.factories import UserFactory
 
-# Assuming a LearningSectionFactory exists or create a basic one here if needed
+# --- Learning Section Factory (Robust Fallback/Example) ---
 try:
-    # Attempt to import from learning app's factories first
     from apps.learning.tests.factories import LearningSectionFactory
 except ImportError:
-    # Define a basic fallback LearningSectionFactory if not found
+    print(
+        "Warning: LearningSectionFactory not found in apps.learning.tests.factories. Using fallback."
+    )
+
     class LearningSectionFactory(DjangoModelFactory):
         class Meta:
-            model = LearningSection
-            django_get_or_create = ("slug",)  # Avoid creating duplicates
+            model = "learning.LearningSection"  # Use string reference
+            django_get_or_create = ("slug",)
 
-        name = Faker("bs")
-        slug = Faker("slug")
+        name = Faker("catch_phrase")
+        slug = factory.LazyAttribute(lambda o: slugify(o.name))
+        description = Faker("text", max_nb_chars=150)
         order = factory.Sequence(lambda n: n)
+
+
+# --- End Learning Section Factory ---
 
 
 class CommunityPostFactory(DjangoModelFactory):
     class Meta:
         model = CommunityPost
+        skip_postgeneration_save = True
 
     author = SubFactory(UserFactory)
-    post_type = factory.Iterator(CommunityPost.PostType.choices, getter=lambda c: c[0])
-    title = factory.Maybe(
-        # Provide title only for certain types or randomly
-        LazyAttribute(
-            lambda o: o.post_type
-            in [CommunityPost.PostType.DISCUSSION, CommunityPost.PostType.TIP]
-        ),
-        Faker("sentence", nb_words=6),
-        "",  # Empty string if no title
-    )
-    content = Faker("text", max_nb_chars=500)
+    post_type = factory.Iterator(CommunityPost.PostType.values)
+
+    # Simplified title logic: More likely present for certain types
+    @factory.lazy_attribute
+    def title(self):
+        if self.post_type in [
+            CommunityPost.PostType.DISCUSSION,
+            CommunityPost.PostType.TIP,
+            CommunityPost.PostType.COMPETITION,
+        ]:
+            return Faker("sentence", nb_words=5).evaluate(
+                None, None, extra={"locale": None}
+            )
+        # For other types (achievement, partner_search), 50% chance of having a title
+        elif random.choice([True, False]):
+            return Faker("sentence", nb_words=5).evaluate(
+                None, None, extra={"locale": None}
+            )
+        else:
+            return None  # Use None if title is absent, matching null=True
+
+    content = Faker("text", max_nb_chars=600)
     section_filter = factory.Maybe(
-        # 50% chance of having a section filter if learning app is integrated
         Faker("boolean", chance_of_getting_true=50),
-        SubFactory(LearningSectionFactory),
-        None,
+        yes_declaration=SubFactory(LearningSectionFactory),
+        no_declaration=None,
     )
     is_pinned = False
     is_closed = False
 
-    # Handle tags using post_generation hook
     @post_generation
     def tags(self, create, extracted, **kwargs):
         if not create:
-            # Simple build, do nothing.
             return
 
         if extracted:
-            # A list of tags were passed in, use them
-            for tag in extracted:
-                self.tags.add(tag)
+            # Handle passed-in tags
+            tags_to_add = []
+            if isinstance(extracted, (list, tuple)):
+                tags_to_add.extend(tag for tag in extracted if isinstance(tag, str))
+            elif isinstance(extracted, str):
+                tags_to_add.append(extracted)
+            self.tags.add(*tags_to_add)
         else:
-            # Add some default tags maybe?
-            # self.tags.add('test', 'community')
-            pass
+            # Use random.sample for default tags without needing Faker.generate
+            possible_tags = [
+                "python",
+                "django",
+                "testing",
+                "question",
+                "help",
+                "general",
+                "quant",
+                "verbal",
+            ]
+            num_tags = random.randint(1, 3)
+            default_tags = random.sample(
+                possible_tags, min(num_tags, len(possible_tags))
+            )
+            self.tags.add(*default_tags)
 
 
 class CommunityReplyFactory(DjangoModelFactory):
@@ -71,5 +106,5 @@ class CommunityReplyFactory(DjangoModelFactory):
 
     post = SubFactory(CommunityPostFactory)
     author = SubFactory(UserFactory)
-    content = Faker("text", max_nb_chars=200)
-    parent_reply = None  # Default to top-level reply
+    content = Faker("paragraph", nb_sentences=3)
+    parent_reply = None
