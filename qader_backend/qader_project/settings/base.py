@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "apps.learning",
     "apps.study",
     "apps.gamification",
+    "apps.challenges",
     "apps.content",
     "apps.community",
     "apps.support",

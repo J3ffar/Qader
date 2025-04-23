@@ -112,8 +112,8 @@ class RewardStoreItem(models.Model):
     """Defines items available for purchase in the rewards store."""
 
     class ItemType(models.TextChoices):
-        AVATAR = "avatar", _("Avatar/Theme")  # أشعار/تصاميم
-        MATERIAL = "material", _("Study Material/Outline")  # مخطوطات
+        AVATAR = "avatar", _("Avatar/Theme")
+        MATERIAL = "material", _("Study Material/Outline")
         COMPETITION_ENTRY = "competition_entry", _("Competition Entry")
         OTHER = "other", _("Other")
 
