@@ -46,7 +46,7 @@
         ```json
         {
           "full_name": "Ali Ahmed Mohamed",
-          "gender": "male", // "male", "female", "other", "prefer_not_say"
+          "gender": "male", // "male", "female"
           "preferred_name": "Ali",
           "grade": "Grade 12",
           "has_taken_qiyas_before": true,
