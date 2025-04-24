@@ -228,17 +228,26 @@ SPECTACULAR_SETTINGS = {
             "name": "Support (User)",
             "description": "Endpoints for users to manage their support tickets.",
         },
-        {
-            "name": "Support (Admin)",
-            "description": "Endpoints for administrators to manage support tickets.",
-        },
+        # --- Admin Panel Tags ---
         {
             "name": "Admin Panel - User Management",
             "description": "Endpoints for administrators to manage users, sub-admins, points, and passwords.",
         },
         {
+            "name": "Admin Panel - Learning Management",
+            "description": "Endpoints for administrators to manage learning content (Sections, Subsections, Skills, Questions).",
+        },
+        {
             "name": "Admin Panel - Content Management",
             "description": "Endpoints for administrators to manage public content (Pages, FAQ, Partners, Contact Messages).",
+        },
+        {
+            "name": "Admin Panel - Support Management",
+            "description": "Endpoints for administrators to manage all support tickets.",
+        },
+        {
+            "name": "Admin Panel - Platform Management",
+            "description": "Endpoints for administrators to manage platform settings, serial codes, etc.",
         },
     ],
     "SWAGGER_UI_SETTINGS": {  # Fine-tune Swagger UI appearance/behavior

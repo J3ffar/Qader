@@ -384,10 +384,8 @@ def test_question_unstar_success(subscribed_client):
     url = reverse("api:v1:learning:question-unstar", kwargs={"pk": question.pk})
     response = subscribed_client.delete(url)
 
-    assert (
-        response.status_code == status.HTTP_200_OK
-    )  # Or 204 No Content if view returns that
-    assert response.data == {"status": "unstarred"}
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not response.content
     assert not UserStarredQuestion.objects.filter(user=user, question=question).exists()
 
 
@@ -401,7 +399,10 @@ def test_question_unstar_not_starred(subscribed_client):
     response = subscribed_client.delete(url)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.data == {"status": "not starred"}
+    # FIX: Assert the standard DRF detail message
+    assert "detail" in response.data
+    # Optionally check part of the message for more specificity
+    assert "not found or not starred" in response.data["detail"]
 
 
 def test_question_unstar_unauthenticated(api_client):
