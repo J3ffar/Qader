@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from typing import TYPE_CHECKING, Dict, Any
+
 from ..models import (
     LearningSection,
     LearningSubSection,
@@ -7,17 +9,23 @@ from ..models import (
     UserStarredQuestion,
 )
 
+# --- Learning Structure Serializers ---
+
 
 class SkillSerializer(serializers.ModelSerializer):
+    """Serializer for Skill model (basic details)."""
+
     class Meta:
         model = Skill
         fields = ["id", "name", "slug", "description"]
+        read_only_fields = fields
 
 
 class LearningSubSectionSerializer(serializers.ModelSerializer):
-    skills = SkillSerializer(
-        many=True, read_only=True
-    )  # Optionally include nested skills
+    """Serializer for LearningSubSection, optionally including nested skills."""
+
+    # Optionally include nested skills - keep this lean for lists if not always needed
+    # skills = SkillSerializer(many=True, read_only=True)
 
     class Meta:
         model = LearningSubSection
@@ -27,14 +35,29 @@ class LearningSubSectionSerializer(serializers.ModelSerializer):
             "slug",
             "description",
             "order",
-            "skills",
-        ]  # Add 'skills' if needed
+            # "skills",  # Uncomment if nested skills are desired in Subsection list/detail views
+        ]
+        read_only_fields = fields
+
+
+class LearningSubSectionDetailSerializer(LearningSubSectionSerializer):
+    """
+    Serializer for LearningSubSection detail view, including nested skills.
+    """
+
+    skills = SkillSerializer(many=True, read_only=True)  # Include skills here
+
+    class Meta(LearningSubSectionSerializer.Meta):
+        # Inherit fields and add 'skills'
+        fields = LearningSubSectionSerializer.Meta.fields + ["skills"]
+        read_only_fields = fields
 
 
 class LearningSectionSerializer(serializers.ModelSerializer):
-    subsections = LearningSubSectionSerializer(
-        many=True, read_only=True
-    )  # Optionally include nested subsections
+    """Serializer for LearningSection, optionally including nested subsections."""
+
+    # Optionally include nested subsections - keep this lean for lists if not always needed
+    subsections = LearningSubSectionSerializer(many=True, read_only=True)
 
     class Meta:
         model = LearningSection
@@ -44,8 +67,9 @@ class LearningSectionSerializer(serializers.ModelSerializer):
             "slug",
             "description",
             "order",
-            "subsections",
-        ]  # Add 'subsections' if needed
+            "subsections",  # Uncomment if nested subsections are desired in Section list/detail views
+        ]
+        read_only_fields = fields
 
 
 class LearningSectionBasicSerializer(serializers.ModelSerializer):
@@ -61,12 +85,21 @@ class LearningSectionBasicSerializer(serializers.ModelSerializer):
 
 
 class QuestionListSerializer(serializers.ModelSerializer):
-    """Serializer for listing questions (excludes answers/explanations)."""
+    """
+    Serializer for listing Questions. Excludes sensitive information like
+    correct answers and full explanations. Optimized for list views.
+    """
 
-    # Use simple subsection/skill representation for lists
+    # Use SlugRelatedField for performance in lists
     subsection = serializers.SlugRelatedField(slug_field="slug", read_only=True)
-    skill = serializers.SlugRelatedField(slug_field="slug", read_only=True)
-    is_starred = serializers.SerializerMethodField()
+    skill = serializers.SlugRelatedField(
+        slug_field="slug", read_only=True, required=False  # Skill is nullable
+    )
+    # Use the 'user_has_starred' annotation added in the ViewSet's get_queryset method
+    # This is more efficient than calculating it per-object in the serializer.
+    is_starred = serializers.BooleanField(
+        source="user_has_starred", read_only=True, default=False
+    )
 
     class Meta:
         model = Question
@@ -77,45 +110,60 @@ class QuestionListSerializer(serializers.ModelSerializer):
             "option_b",
             "option_c",
             "option_d",
-            "hint",  # Include hint for traditional/emergency modes
-            "solution_method_summary",  # Include summary for traditional/emergency
+            "hint",
+            "solution_method_summary",
             "difficulty",
-            "subsection",
-            "skill",
+            "subsection",  # slug
+            "skill",  # slug
             "is_starred",
         ]
-        read_only_fields = fields  # Make all fields read-only for this list view
+        # Ensure all fields are read-only as this is for listing
+        read_only_fields = fields
 
-    def get_is_starred(self, obj):
-        """Check if the current user has starred this question."""
-        user = self.context.get("request").user
-        if user and user.is_authenticated:
-            # Efficient check using the reverse relationship defined in models
-            return obj.starred_by.filter(pk=user.pk).exists()
-            # Alternative (slightly less efficient if not prefeched/annotated):
-            # return UserStarredQuestion.objects.filter(user=user, question=obj).exists()
-        return False
+    def to_representation(self, instance: Question) -> Dict[str, Any]:
+        """Ensure default=False for is_starred if annotation is missing (e.g., anonymous user)."""
+        ret = super().to_representation(instance)
+        # Ensure is_starred is present and boolean, defaulting to False
+        ret["is_starred"] = getattr(instance, "user_has_starred", False)
+        return ret
 
 
 class QuestionDetailSerializer(QuestionListSerializer):
-    """Serializer for retrieving a single question (includes answers/explanations)."""
+    """
+    Serializer for retrieving a single Question. Includes all details,
+    including the correct answer and full explanation. Uses nested serializers
+    for related subsection and skill for richer context.
+    """
 
-    # Inherits 'is_starred' and other fields from QuestionListSerializer
-    # Use nested serializers for richer subsection/skill info on detail view
+    # Override related fields to use nested serializers for detail view
     subsection = LearningSubSectionSerializer(read_only=True)
-    skill = SkillSerializer(read_only=True)
+    skill = SkillSerializer(read_only=True, required=False)  # Skill is nullable
 
     class Meta(QuestionListSerializer.Meta):
-        # Extend fields from the base class
+        # Inherit fields from list serializer and add detail-specific fields
         fields = QuestionListSerializer.Meta.fields + [
             "correct_answer",
             "explanation",
+            # Ensure related fields are included if overridden
+            "subsection",
+            "skill",
         ]
-        read_only_fields = fields  # Make all fields read-only
+        # Ensure all fields are read-only
+        read_only_fields = fields
 
 
-# Simple serializer for the star/unstar action if needed
-class UserStarredQuestionSerializer(serializers.ModelSerializer):
+# --- Star/Unstar Action Serializer (Minimal) ---
+
+
+class StarActionSerializer(serializers.Serializer):
+    """Minimal serializer for documenting the star/unstar response."""
+
+    status = serializers.ChoiceField(
+        choices=["starred", "unstarred", "already starred", "not starred"]
+    )
+
     class Meta:
-        model = UserStarredQuestion
-        fields = ["user", "question", "starred_at"]
+        fields = ["status"]
+
+
+# Note: UserStarredQuestionSerializer might be useful for admin views, but not needed for basic user star/unstar actions.

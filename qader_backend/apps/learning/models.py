@@ -1,11 +1,15 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
+# --- Abstract Base Models ---
 
-# Consider adding shared timestamp model in core app later
+
+# Consider moving TimeStampedModel to a shared 'common' or 'core' app if used elsewhere.
 class TimeStampedModel(models.Model):
+    """Abstract base model with auto-updating created_at and updated_at fields."""
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -13,20 +17,42 @@ class TimeStampedModel(models.Model):
         abstract = True
 
 
-class LearningSection(TimeStampedModel):
-    """Represents the main branches of study (e.g., Verbal, Quantitative)."""
+# --- Main Learning Structure Models ---
 
-    name = models.CharField(_("Name"), max_length=100, unique=True)
-    slug = models.SlugField(
+
+class LearningSection(TimeStampedModel):
+    """
+    Represents the main branches of study (e.g., Verbal, Quantitative).
+    Accessible via API: /api/v1/learning/sections/
+    """
+
+    name: str = models.CharField(
+        _("Name"),
+        max_length=100,
+        unique=True,
+        help_text=_("The primary name of the learning section (e.g., Verbal Section)."),
+    )
+    slug: str = models.SlugField(
         _("Slug"),
         max_length=120,
         unique=True,
         blank=True,
-        help_text=_("URL-friendly identifier (leave blank to auto-generate)"),
+        help_text=_(
+            "URL-friendly identifier (leave blank to auto-generate from name)."
+        ),
     )
-    description = models.TextField(_("Description"), blank=True, null=True)
-    order = models.PositiveIntegerField(
-        _("Order"), default=0, help_text=_("Display order in UI")
+    description: str | None = models.TextField(
+        _("Description"),
+        blank=True,
+        null=True,
+        help_text=_("Optional description of the learning section."),
+    )
+    order: int = models.PositiveIntegerField(
+        _("Order"),
+        default=0,
+        help_text=_(
+            "Determines the display order in lists (lower numbers appear first)."
+        ),
     )
 
     class Meta:
@@ -34,35 +60,55 @@ class LearningSection(TimeStampedModel):
         verbose_name_plural = _("Learning Sections")
         ordering = ["order", "name"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
+        """Overrides save method to auto-generate slug if blank."""
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
 
 class LearningSubSection(TimeStampedModel):
-    """Represents categories within a main section (e.g., Reading Comprehension)."""
+    """
+    Represents categories within a main section (e.g., Reading Comprehension within Verbal).
+    Accessible via API: /api/v1/learning/subsections/
+    """
 
-    section = models.ForeignKey(
+    section: LearningSection = models.ForeignKey(
         LearningSection,
         related_name="subsections",
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE,  # Deleting a Section also deletes its SubSections
         verbose_name=_("Section"),
+        help_text=_("The parent Learning Section this sub-section belongs to."),
     )
-    name = models.CharField(_("Name"), max_length=150)
-    slug = models.SlugField(
+    name: str = models.CharField(
+        _("Name"),
+        max_length=150,
+        help_text=_("The name of the sub-section (e.g., Reading Comprehension)."),
+    )
+    slug: str = models.SlugField(
         _("Slug"),
         max_length=170,
         unique=True,
         blank=True,
-        help_text=_("URL-friendly identifier (leave blank to auto-generate)"),
+        help_text=_(
+            "URL-friendly identifier (leave blank to auto-generate from section and name)."
+        ),
     )
-    description = models.TextField(_("Description"), blank=True, null=True)
-    order = models.PositiveIntegerField(
-        _("Order"), default=0, help_text=_("Display order in UI")
+    description: str | None = models.TextField(
+        _("Description"),
+        blank=True,
+        null=True,
+        help_text=_("Optional description of the learning sub-section."),
+    )
+    order: int = models.PositiveIntegerField(
+        _("Order"),
+        default=0,
+        help_text=_(
+            "Determines the display order within its parent section (lower numbers first)."
+        ),
     )
 
     class Meta:
@@ -71,33 +117,60 @@ class LearningSubSection(TimeStampedModel):
         ordering = ["section__order", "order", "name"]
         unique_together = ("section", "name")  # Name must be unique within a section
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.section.name} - {self.name}"
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
+        """Overrides save method to auto-generate slug if blank."""
         if not self.slug:
-            self.slug = slugify(f"{self.section.slug}-{self.name}")
+            # Ensure uniqueness and clarity in generated slugs
+            base_slug = slugify(f"{self.section.slug}-{self.name}")
+            self.slug = base_slug
+            # Simple uniqueness check (consider more robust slug uniqueness generation if needed)
+            num = 1
+            while (
+                LearningSubSection.objects.filter(slug=self.slug)
+                .exclude(pk=self.pk)
+                .exists()
+            ):
+                self.slug = f"{base_slug}-{num}"
+                num += 1
         super().save(*args, **kwargs)
 
 
 class Skill(TimeStampedModel):
-    """Represents specific skills tested within a subsection."""
+    """
+    Represents specific skills tested within a subsection (e.g., Identifying Main Idea).
+    Accessible via API: /api/v1/learning/skills/
+    """
 
-    subsection = models.ForeignKey(
+    subsection: LearningSubSection = models.ForeignKey(
         LearningSubSection,
         related_name="skills",
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE,  # Deleting a SubSection deletes its Skills
         verbose_name=_("Sub-Section"),
+        help_text=_("The parent Learning Sub-Section this skill belongs to."),
     )
-    name = models.CharField(_("Name"), max_length=200)
-    slug = models.SlugField(
+    name: str = models.CharField(
+        _("Name"),
+        max_length=200,
+        help_text=_("The name of the specific skill (e.g., Solving Linear Equations)."),
+    )
+    slug: str = models.SlugField(
         _("Slug"),
         max_length=220,
         unique=True,
         blank=True,
-        help_text=_("URL-friendly identifier (leave blank to auto-generate)"),
+        help_text=_(
+            "URL-friendly identifier (leave blank to auto-generate from subsection and name)."
+        ),
     )
-    description = models.TextField(_("Description"), blank=True, null=True)
+    description: str | None = models.TextField(
+        _("Description"),
+        blank=True,
+        null=True,
+        help_text=_("Optional description of the skill."),
+    )
 
     class Meta:
         verbose_name = _("Skill")
@@ -108,17 +181,29 @@ class Skill(TimeStampedModel):
             "name",
         )  # Name must be unique within a subsection
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.subsection} - {self.name}"
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
+        """Overrides save method to auto-generate slug if blank."""
         if not self.slug:
-            self.slug = slugify(f"{self.subsection.slug}-{self.name}")
+            base_slug = slugify(f"{self.subsection.slug}-{self.name}")
+            self.slug = base_slug
+            num = 1
+            while Skill.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                self.slug = f"{base_slug}-{num}"
+                num += 1
         super().save(*args, **kwargs)
 
 
+# --- Question Model ---
+
+
 class Question(TimeStampedModel):
-    """Stores individual practice or test questions."""
+    """
+    Stores individual practice or test questions.
+    Accessible via API: /api/v1/learning/questions/
+    """
 
     class DifficultyLevel(models.IntegerChoices):
         VERY_EASY = 1, _("Very Easy")
@@ -133,54 +218,103 @@ class Question(TimeStampedModel):
         C = "C", "C"
         D = "D", "D"
 
-    subsection = models.ForeignKey(
+    subsection: LearningSubSection = models.ForeignKey(
         LearningSubSection,
         related_name="questions",
         on_delete=models.PROTECT,  # Prevent deleting subsection if questions exist
         verbose_name=_("Sub-Section"),
         db_index=True,
+        help_text=_("The primary sub-section this question belongs to."),
     )
-    skill = models.ForeignKey(
+    skill: Skill | None = models.ForeignKey(
         Skill,
         related_name="questions",
-        on_delete=models.SET_NULL,  # Allow skill to be removed without deleting question
+        on_delete=models.SET_NULL,  # Allow skill removal without deleting question
         null=True,
         blank=True,
         verbose_name=_("Primary Skill"),
         db_index=True,
+        help_text=_("The main skill tested by this question (optional)."),
     )
-    question_text = models.TextField(_("Question Text"))
-    option_a = models.TextField(_("Option A"))
-    option_b = models.TextField(_("Option B"))
-    option_c = models.TextField(_("Option C"))
-    option_d = models.TextField(_("Option D"))
-    correct_answer = models.CharField(
-        _("Correct Answer"), max_length=1, choices=CorrectAnswerChoices.choices
+    question_text: str = models.TextField(
+        _("Question Text"),
+        help_text=_("The main text or problem statement of the question."),
     )
-    explanation = models.TextField(_("Explanation"), blank=True, null=True)
-    hint = models.TextField(_("Hint"), blank=True, null=True)
-    solution_method_summary = models.TextField(
-        _("Solution Method Summary"), blank=True, null=True
+    option_a: str = models.TextField(_("Option A"))
+    option_b: str = models.TextField(_("Option B"))
+    option_c: str = models.TextField(_("Option C"))
+    option_d: str = models.TextField(_("Option D"))
+    correct_answer: str = models.CharField(
+        _("Correct Answer"),
+        max_length=1,
+        choices=CorrectAnswerChoices.choices,
+        help_text=_("The letter corresponding to the correct option."),
     )
-    difficulty = models.IntegerField(
-        _("Difficulty"), choices=DifficultyLevel.choices, default=DifficultyLevel.MEDIUM
+    explanation: str | None = models.TextField(
+        _("Explanation"),
+        blank=True,
+        null=True,
+        help_text=_(
+            "Detailed step-by-step explanation for the solution (supports Markdown/HTML)."
+        ),
     )
-    is_active = models.BooleanField(
+    hint: str | None = models.TextField(
+        _("Hint"),
+        blank=True,
+        null=True,
+        help_text=_(
+            "A small hint to guide the student without giving away the answer."
+        ),
+    )
+    solution_method_summary: str | None = models.TextField(
+        _("Solution Method Summary"),
+        blank=True,
+        null=True,
+        help_text=_(
+            "A brief summary of the general strategy or method to solve the question."
+        ),
+    )
+    difficulty: int = models.IntegerField(
+        _("Difficulty"),
+        choices=DifficultyLevel.choices,
+        default=DifficultyLevel.MEDIUM,
+        db_index=True,
+        help_text=_("Estimated difficulty level of the question."),
+    )
+    is_active: bool = models.BooleanField(
         _("Is Active"),
         default=True,
-        help_text=_("Whether the question should be used in the platform"),
         db_index=True,
+        help_text=_(
+            "Uncheck this to hide the question from students without deleting it."
+        ),
     )
-    # ManyToMany relationship for starred questions defined below
+    # ManyToMany relationship defined via UserStarredQuestion below
+    starred_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through="UserStarredQuestion",
+        related_name="starred_questions",
+        verbose_name=_("Starred By Users"),
+        blank=True,
+    )
 
     class Meta:
         verbose_name = _("Question")
         verbose_name_plural = _("Questions")
         ordering = ["subsection", "skill", "id"]  # Default ordering
 
-    def __str__(self):
-        # Truncate long question text for display
-        return f"({self.id}) {self.question_text[:80]}{'...' if len(self.question_text) > 80 else ''}"
+    def __str__(self) -> str:
+        # Truncate long question text for display in Admin or logs
+        limit = 80
+        truncated_text = (
+            f"{self.question_text[:limit]}..."
+            if len(self.question_text) > limit
+            else self.question_text
+        )
+        return f"Q{self.id}: {truncated_text} ({self.subsection.slug})"
+
+
+# --- Intermediate Model for Starred Questions ---
 
 
 class UserStarredQuestion(TimeStampedModel):
@@ -192,9 +326,13 @@ class UserStarredQuestion(TimeStampedModel):
         related_name="starred_questions_link",
     )
     question = models.ForeignKey(
-        Question, on_delete=models.CASCADE, related_name="starrers_link"
+        Question,
+        on_delete=models.CASCADE,
+        related_name="starrers_link",
     )
-    starred_at = models.DateTimeField(_("Starred At"), auto_now_add=True)
+    starred_at = models.DateTimeField(
+        _("Starred At"), auto_now_add=True, editable=False
+    )
 
     class Meta:
         verbose_name = _("User Starred Question")
@@ -203,21 +341,7 @@ class UserStarredQuestion(TimeStampedModel):
             "user",
             "question",
         )  # Ensure a user can only star a question once
-        ordering = ["-starred_at"]
+        ordering = ["-starred_at"]  # Show most recently starred first
 
-    def __str__(self):
-        return f"{self.user.username} starred Question {self.question.id}"
-
-
-# Add a ManyToMany field to User model (implicitly via UserStarredQuestion)
-# Or add related_name to Question for easier access (optional but helpful):
-Question.add_to_class(
-    "starred_by",
-    models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through=UserStarredQuestion,
-        related_name="starred_questions",
-        verbose_name=_("Starred By Users"),
-        blank=True,
-    ),
-)
+    def __str__(self) -> str:
+        return f"{self.user.username} starred Question {self.question_id}"
