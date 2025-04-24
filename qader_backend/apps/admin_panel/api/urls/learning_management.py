@@ -6,20 +6,18 @@ from ..views import learning_management as views
 # Create a router instance specific to learning management
 router = DefaultRouter()
 router.register(
-    r"learning/sections",
+    r"sections",
     views.AdminLearningSectionViewSet,
     basename="admin-learning-section",
 )
 router.register(
-    r"learning/subsections",
+    r"subsections",
     views.AdminLearningSubSectionViewSet,
     basename="admin-learning-subsection",
 )
+router.register(r"skills", views.AdminSkillViewSet, basename="admin-learning-skill")
 router.register(
-    r"learning/skills", views.AdminSkillViewSet, basename="admin-learning-skill"
-)
-router.register(
-    r"learning/questions",
+    r"questions",
     views.AdminQuestionViewSet,
     basename="admin-learning-question",
 )
