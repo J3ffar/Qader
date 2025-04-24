@@ -15,6 +15,7 @@ urlpatterns = [
     path("challenges/", include("apps.challenges.api.urls"), name="challenges"),
     path("content/", include("apps.content.api.urls"), name="content"),
     path("community/", include("apps.community.api.urls"), name="community"),
+    path("blog/", include("apps.blog.api.urls"), name="blog"),
     path("support/", include("apps.support.api.urls"), name="support"),
     path("admin/", include("apps.admin_panel.api.urls"), name="admin_panel"),
 ]

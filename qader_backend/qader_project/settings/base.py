@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "apps.challenges",
     "apps.content",
     "apps.community",
+    "apps.blog",
     "apps.support",
     "apps.admin_panel",
 ]
@@ -218,6 +219,10 @@ SPECTACULAR_SETTINGS = {
         {
             "name": "Student Community",
             "description": "Endpoints for the community forum.",
+        },
+        {
+            "name": "Blog",
+            "description": "Endpoints for blog posts and advice requests.",
         },
         {
             "name": "Support (User)",
