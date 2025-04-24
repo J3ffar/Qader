@@ -82,10 +82,9 @@ class BlogPost(models.Model):
     def __str__(self):
         return self.title
 
-    @property
-    def excerpt(self, words=30) -> str:
+    def get_excerpt(self, words=30) -> str:  # Should just be 'def', not '@property'
         """Generates a short plain text excerpt from the content."""
-        return truncatewords_html(strip_tags(self.content), words)
+        return truncatewords_html(strip_tags(self.content or ""), words)
 
     @property
     def author_display_name(self) -> str:

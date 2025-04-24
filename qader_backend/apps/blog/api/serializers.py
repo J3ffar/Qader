@@ -27,6 +27,12 @@ class BlogPostListSerializer(TaggitSerializer, serializers.ModelSerializer):
         ]
         read_only_fields = fields  # This serializer is read-only
 
+    def get_excerpt(self, obj: BlogPost) -> str:
+        """Call the model's get_excerpt method."""
+        # You can optionally specify the word count here if needed,
+        # otherwise it uses the model method's default (30).
+        return obj.get_excerpt()
+
 
 class BlogPostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
     """Serializer for retrieving a single Blog Post detail."""
