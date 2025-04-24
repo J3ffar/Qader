@@ -746,3 +746,46 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             )
         # uidb64 and token validity are checked in the view using Django's tools
         return attrs
+
+
+class ApplySerialCodeSerializer(serializers.Serializer):
+    """Serializer for validating and applying a new serial code."""
+
+    serial_code = serializers.CharField(
+        write_only=True,
+        required=True,
+        label=_("Serial Code"),
+        help_text=_("The new serial code to activate or extend subscription."),
+    )
+
+    def validate_serial_code(self, value: str) -> SerialCode:
+        """Validate the serial code is active and unused, return the instance."""
+        try:
+            # Use __iexact for case-insensitivity matching user input behavior
+            code_instance = SerialCode.objects.get(
+                code__iexact=value, is_active=True, is_used=False
+            )
+            return code_instance  # Return the object for use in the view's logic
+        except SerialCode.DoesNotExist:
+            raise serializers.ValidationError(_("Invalid or already used serial code."))
+        except Exception as e:
+            logger.error(
+                f"Unexpected error validating serial code {value} for application: {e}"
+            )
+            raise serializers.ValidationError(_("Error validating serial code."))
+
+    # Note: The actual application logic (marking used, updating profile) happens in the View
+    # to ensure atomicity and access to the request.user.
+
+
+# --- Subscription Plans ---
+
+
+class SubscriptionPlanSerializer(serializers.Serializer):
+    """Serializer for representing available subscription plans."""
+
+    id = serializers.CharField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    description = serializers.CharField(read_only=True)
+    duration_days = serializers.IntegerField(read_only=True)
+    requires_code_type = serializers.CharField(read_only=True, allow_null=True)

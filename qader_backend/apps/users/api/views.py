@@ -8,6 +8,7 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
+from django.db import transaction, DatabaseError
 from django.db.utils import IntegrityError  # Import for specific exception handling
 from django.core.exceptions import (
     ValidationError as DjangoValidationError,
@@ -34,11 +35,18 @@ from drf_spectacular.utils import (
 )
 from drf_spectacular.types import OpenApiTypes  # For response schema types
 
-from typing import Optional  # For type hinting
+from typing import Optional
+
+from apps.users.api.permissions import (
+    IsCurrentlySubscribed,
+)  # For type hinting
 
 from .serializers import (
+    ApplySerialCodeSerializer,
     AuthUserResponseSerializer,
     RegisterSerializer,
+    SubscriptionDetailSerializer,
+    SubscriptionPlanSerializer,
     UserProfileSerializer,
     UserProfileUpdateSerializer,
     PasswordChangeSerializer,
@@ -46,7 +54,11 @@ from .serializers import (
     PasswordResetConfirmSerializer,
     # Removed unused imports: SimpleUserSerializer, SubscriptionDetailSerializer
 )
-from ..models import UserProfile, SerialCode  # Added SerialCode import
+from ..models import (
+    SubscriptionTypeChoices,
+    UserProfile,
+    SerialCode,
+)  # Added SerialCode import
 
 import logging
 
@@ -784,3 +796,313 @@ class PasswordResetConfirmView(generics.GenericAPIView):
             # Catch various potential errors during decoding or user lookup
             logger.debug(f"Failed to get active user from UIDB64 '{uidb64}': {e}")
             return None
+
+
+@extend_schema(
+    tags=["User Profile"],
+    summary="Apply New Serial Code",
+    description="Applies a new, valid serial code to activate or extend the authenticated user's subscription.",
+    request=ApplySerialCodeSerializer,
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=SubscriptionDetailSerializer,  # Shows updated subscription
+            description="Serial code applied successfully. Returns updated subscription details.",
+            examples=[
+                OpenApiExample(
+                    "Success",
+                    value={
+                        "subscription": {
+                            "is_active": True,
+                            "expires_at": "2025-02-15T10:00:00Z",
+                            "serial_code": "QADER-NEWCODE-789",
+                        }
+                    },
+                )
+            ],
+        ),
+        status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+            description="Bad Request: Serial code is missing, invalid, inactive, or already used."
+        ),
+        status.HTTP_401_UNAUTHORIZED: OpenApiResponse(
+            description="Authentication required."
+        ),
+        status.HTTP_500_INTERNAL_SERVER_ERROR: OpenApiResponse(
+            description="Internal server error during code application."
+        ),
+    },
+)
+class ApplySerialCodeView(generics.GenericAPIView):
+    """Allows authenticated users to apply a new serial code."""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = ApplySerialCodeSerializer  # For request validation
+
+    @transaction.atomic  # Ensure code marking and profile update are atomic
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            # Serializer validation returns the valid SerialCode object
+            serial_code: SerialCode = serializer.validated_data["serial_code"]
+            user: User = request.user
+            profile: UserProfile = user.profile
+
+            # Re-fetch code inside transaction with lock to prevent race conditions
+            try:
+                code_to_use = SerialCode.objects.select_for_update().get(
+                    pk=serial_code.pk, is_active=True, is_used=False
+                )
+            except SerialCode.DoesNotExist:
+                # Code became invalid between initial validation and lock acquisition
+                logger.warning(
+                    f"Serial code {serial_code.code} became invalid during transaction for user {user.username}"
+                )
+                raise DRFValidationError(
+                    {
+                        "serial_code": [
+                            _(
+                                "Serial code became invalid or used before application could complete."
+                            )
+                        ]
+                    }
+                )
+
+            # Mark used and apply subscription
+            if code_to_use.mark_used(user):
+                profile.apply_subscription(code_to_use)
+                profile.refresh_from_db()  # Get the updated profile state
+
+                # Serialize the updated subscription details for the response
+                response_serializer = SubscriptionDetailSerializer(
+                    profile
+                )  # Source is '*' by default
+                logger.info(
+                    f"User '{user.username}' successfully applied serial code '{code_to_use.code}'. New expiry: {profile.subscription_expires_at}"
+                )
+                # Return the nested structure as requested
+                return Response(
+                    {"subscription": response_serializer.data},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                # This should ideally not happen if re-fetched correctly, but handle defensively
+                logger.error(
+                    f"Failed to mark serial code {code_to_use.code} used for user {user.username} within transaction despite lock."
+                )
+                raise DRFValidationError(
+                    {
+                        "serial_code": [
+                            _("Failed to process serial code. Please try again.")
+                        ]
+                    }
+                )
+
+        except DRFValidationError as e:
+            # Catch validation errors from serializer or raised manually
+            logger.warning(
+                f"Applying serial code failed for user '{request.user.username}': {e.detail}"
+            )
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except (DatabaseError, Exception) as e:
+            # Catch potential DB errors during transaction or other unexpected issues
+            logger.exception(
+                f"Database or unexpected error applying serial code for user '{request.user.username}': {e}"
+            )
+            return Response(
+                {"detail": _("An error occurred while applying the serial code.")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+@extend_schema(
+    tags=["Subscription Plans"],  # Maybe a new tag?
+    summary="List Available Subscription Plans",
+    description="Provides a list of available subscription plans, their details, and associated serial code types.",
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=SubscriptionPlanSerializer(many=True),
+            description="List of available subscription plans.",
+            examples=[
+                OpenApiExample(
+                    "Plans List",
+                    value=[
+                        {
+                            "id": "1_month",
+                            "name": "1 Month Access",
+                            "description": "Full access for 30 days.",
+                            "duration_days": 30,
+                            "requires_code_type": "1_month",
+                        },
+                        {
+                            "id": "6_months",
+                            "name": "6 Months Access",
+                            "description": "Full access for 183 days.",
+                            "duration_days": 183,
+                            "requires_code_type": "6_months",
+                        },
+                        {
+                            "id": "12_months",
+                            "name": "12 Months Access",
+                            "description": "Full access for 365 days.",
+                            "duration_days": 365,
+                            "requires_code_type": "12_months",
+                        },
+                    ],
+                )
+            ],
+        ),
+        # No specific errors expected for simple GET list if data is hardcoded
+    },
+)
+class SubscriptionPlanListView(views.APIView):
+    """Lists available subscription plans (currently hardcoded)."""
+
+    permission_classes = [AllowAny]  # Allow anyone to see the plans
+
+    def get(self, request: Request, *args, **kwargs) -> Response:
+        # TODO: Replace hardcoded data with fetching from a `SubscriptionPlan` model if created later.
+        plans_data = [
+            {
+                "id": "1_month",
+                "name": _("1 Month Access"),
+                "description": _("Full access to all platform features for 30 days."),
+                "duration_days": 30,
+                "requires_code_type": SubscriptionTypeChoices.MONTH_1.value,  # Use value from choices
+            },
+            {
+                "id": "6_months",
+                "name": _("6 Months Access"),
+                "description": _(
+                    "Full access to all platform features for 183 days (approx. 6 months)."
+                ),
+                "duration_days": 183,
+                "requires_code_type": SubscriptionTypeChoices.MONTH_6.value,
+            },
+            {
+                "id": "12_months",
+                "name": _("12 Months Access"),
+                "description": _(
+                    "Full access to all platform features for 365 days (1 year)."
+                ),
+                "duration_days": 365,
+                "requires_code_type": SubscriptionTypeChoices.MONTH_12.value,
+            },
+            # Add a representation for custom codes if needed, though they aren't a 'plan'
+            # {
+            #     "id": "custom",
+            #     "name": _("Custom Duration"),
+            #     "description": _("Subscription duration determined by the specific serial code."),
+            #     "duration_days": None, # Duration varies
+            #     "requires_code_type": SubscriptionTypeChoices.CUSTOM.value
+            # },
+        ]
+        serializer = SubscriptionPlanSerializer(plans_data, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=["User Profile"],
+    summary="Cancel Active Subscription",
+    description="Allows an authenticated user with an active subscription to cancel it. This typically sets the expiry date to the past or nullifies it.",
+    request=None,  # No request body needed for basic cancel
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=inline_serializer(  # Define response schema inline
+                name="CancelSubscriptionResponse",
+                fields={
+                    "detail": serializers.CharField(),
+                    "subscription": SubscriptionDetailSerializer(),  # Include updated status
+                },
+            ),
+            description="Subscription cancelled successfully.",
+            examples=[
+                OpenApiExample(
+                    "Success",
+                    value={
+                        "detail": "Subscription cancelled successfully.",
+                        "subscription": {
+                            "is_active": False,
+                            "expires_at": None,
+                            "serial_code": None,
+                        },
+                    },
+                )
+            ],
+        ),
+        status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+            description="Bad Request: No active subscription found to cancel."
+        ),
+        status.HTTP_401_UNAUTHORIZED: OpenApiResponse(
+            description="Authentication required."
+        ),
+        status.HTTP_403_FORBIDDEN: OpenApiResponse(
+            description="Permission Denied: User does not have an active subscription."
+        ),
+    },
+)
+class CancelSubscriptionView(generics.GenericAPIView):
+    """Allows authenticated, subscribed users to cancel their active subscription."""
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCurrentlySubscribed,
+    ]  # Must be logged in AND subscribed
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        user: User = request.user
+        try:
+            profile: UserProfile = user.profile
+
+            # Double check subscription status (already checked by permission, but good practice)
+            if not profile.is_subscribed:
+                # This case should ideally be caught by IsCurrentlySubscribed permission
+                logger.warning(
+                    f"Cancel subscription attempt by user '{user.username}' who is not subscribed (permission bypass?)."
+                )
+                return Response(
+                    {"detail": _("No active subscription to cancel.")},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Perform cancellation: Nullify expiry date and related code
+            profile.subscription_expires_at = None
+            profile.serial_code_used = None
+            # Add any other fields related to active subscription status if needed
+            profile.save(
+                update_fields=[
+                    "subscription_expires_at",
+                    "serial_code_used",
+                    "updated_at",
+                ]
+            )
+
+            logger.info(
+                f"Subscription cancelled successfully for user '{user.username}' (ID: {user.id})."
+            )
+
+            # Return confirmation and updated (now inactive) subscription status
+            response_serializer = SubscriptionDetailSerializer(profile)
+            return Response(
+                {
+                    "detail": _("Subscription cancelled successfully."),
+                    "subscription": response_serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except UserProfile.DoesNotExist:
+            logger.error(
+                f"CRITICAL: UserProfile not found during subscription cancellation for authenticated user '{user.username}' (ID: {user.id})."
+            )
+            return Response(
+                {"detail": _("User profile not found.")},
+                status=status.HTTP_404_NOT_FOUND,
+            )  # Or 500 if it's unexpected
+        except Exception as e:
+            logger.exception(
+                f"Unexpected error cancelling subscription for user '{user.username}': {e}"
+            )
+            return Response(
+                {"detail": _("An error occurred while cancelling the subscription.")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

@@ -12,6 +12,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile  # For file upload
 import json  # For checking JSON response structure
 from rest_framework.test import APIClient
 
+from apps.users.tests.factories import SerialCodeFactory
+
 from ..models import (
     DarkModePrefChoices,
     UserProfile,
@@ -739,3 +741,114 @@ def test_password_reset_confirm_fail_password_mismatch(api_client, standard_user
     assert (
         "New password fields didn't match" in response.data["new_password_confirm"][0]
     )
+
+
+# === Apply Serial Code Tests ===
+
+
+def test_apply_serial_code_success(subscribed_client, active_serial_code):
+    """Test applying a new valid code successfully updates expiry."""
+    profile = subscribed_client.user.profile
+    original_expiry = profile.subscription_expires_at
+    new_code = SerialCodeFactory(
+        is_active=True, is_used=False, duration_days=15
+    )  # Different code
+    url = reverse("api:v1:users:me_apply_serial_code")
+    data = {"serial_code": new_code.code}
+
+    response = subscribed_client.post(url, data, format="json")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert "subscription" in response.data
+    assert response.data["subscription"]["is_active"] is True
+    assert response.data["subscription"]["serial_code"] == new_code.code
+
+    profile.refresh_from_db()
+    new_code.refresh_from_db()
+    assert new_code.is_used is True
+    assert new_code.used_by == subscribed_client.user
+    assert profile.serial_code_used == new_code
+    expected_expiry = (original_expiry or timezone.now()) + timedelta(
+        days=15
+    )  # Check extension logic
+    assert profile.subscription_expires_at == pytest.approx(
+        expected_expiry, abs=timedelta(seconds=5)
+    )
+
+
+def test_apply_serial_code_fail_invalid(
+    authenticated_client,
+):  # Use any authenticated client
+    """Test applying a non-existent code fails."""
+    url = reverse("api:v1:users:me_apply_serial_code")
+    data = {"serial_code": "INVALID-NONEXISTENT-CODE"}
+    response = authenticated_client.post(url, data, format="json")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "serial_code" in response.data
+    assert "Invalid or already used serial code." in response.data["serial_code"]
+
+
+# ... add tests for used, inactive, unauthenticated cases ...
+
+
+# === Subscription Plan List Tests ===
+
+
+def test_list_subscription_plans_success(
+    api_client,
+):  # Use unauthenticated client as it's AllowAny
+    """Test retrieving the list of subscription plans."""
+    url = reverse("api:v1:users:subscription_plans_list")
+    response = api_client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+    assert isinstance(response.data, list)
+    assert len(response.data) > 0  # Check it's not empty
+    # Check structure of the first plan
+    assert "id" in response.data[0]
+    assert "name" in response.data[0]
+    assert "duration_days" in response.data[0]
+
+
+# === Cancel Subscription Tests ===
+
+
+def test_cancel_subscription_success(subscribed_client):
+    """Test successfully cancelling an active subscription."""
+    profile = subscribed_client.user.profile
+    assert profile.is_subscribed is True  # Pre-condition
+
+    url = reverse("api:v1:users:me_cancel_subscription")
+    response = subscribed_client.post(url, {}, format="json")  # No body needed
+
+    assert response.status_code == status.HTTP_200_OK
+    assert "Subscription cancelled successfully" in response.data["detail"]
+    assert "subscription" in response.data
+    assert response.data["subscription"]["is_active"] is False
+    assert response.data["subscription"]["expires_at"] is None
+
+    profile.refresh_from_db()
+    assert profile.is_subscribed is False
+    assert profile.subscription_expires_at is None
+    assert profile.serial_code_used is None
+
+
+def test_cancel_subscription_fail_not_subscribed(
+    authenticated_client,
+):  # Use unsubscribed client
+    """Test cancelling fails if the user has no active subscription."""
+    profile = authenticated_client.user.profile
+    assert profile.is_subscribed is False  # Pre-condition
+
+    url = reverse("api:v1:users:me_cancel_subscription")
+    response = authenticated_client.post(url, {}, format="json")
+
+    # Should be denied by permission
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "active subscription" in response.data["detail"]
+
+
+def test_cancel_subscription_fail_unauthenticated(api_client):
+    """Test cancelling requires authentication."""
+    url = reverse("api:v1:users:me_cancel_subscription")
+    response = api_client.post(url, {}, format="json")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
