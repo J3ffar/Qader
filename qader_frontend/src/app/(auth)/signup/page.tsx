@@ -22,9 +22,9 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onClose }) => {
       />
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div
-          className="relative w-full max-w-3xl bg-background rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
-          onClick={(e) => e.stopPropagation()}
-        >
+  className="relative w-full max-w-md lg:max-w-3xl bg-background rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
+  onClick={(e) => e.stopPropagation()}
+>
           <button
             onClick={onClose}
             className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors z-10"
@@ -79,7 +79,11 @@ const SignupModal: React.FC<SignupModalProps> = ({ show, onClose }) => {
                 </div>
 
                 {/* Signup Button */}
-                <Button variant={"outline"} className="w-full">إنشاء حساب</Button>
+                <Button variant={"outline"} className="w-full">
+                  <Link href={"/completsignup"}>
+                  إنشاء حساب
+                   </Link>
+                </Button>
               </div>
 
               {/* Login Prompt */}
