@@ -1,0 +1,235 @@
+from rest_framework import viewsets, permissions, filters, mixins
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema_view, extend_schema
+
+from apps.content import models as content_models
+from apps.admin_panel.api.serializers import content_management as admin_serializers
+
+# Assuming you have a standard IsAdmin permission, otherwise use IsAdminUser
+# from apps.api.permissions import IsAdmin
+from rest_framework.permissions import IsAdminUser  # Using built-in for simplicity
+
+
+ADMIN_CONTENT_TAG = ["Admin Panel - Content Management"]
+
+
+@extend_schema_view(
+    list=extend_schema(tags=ADMIN_CONTENT_TAG, summary="List Pages (Admin)"),
+    create=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Create Page (Admin)"),
+    retrieve=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Retrieve Page (Admin)"),
+    update=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Update Page (Admin)"),
+    partial_update=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Partially Update Page (Admin)"
+    ),
+    destroy=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Delete Page (Admin)"),
+)
+class PageAdminViewSet(viewsets.ModelViewSet):
+    """Admin ViewSet for managing static Pages."""
+
+    queryset = content_models.Page.objects.all().order_by("title")
+    serializer_class = admin_serializers.AdminPageSerializer
+    permission_classes = [IsAdminUser]  # Or your custom IsAdmin
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["slug", "title", "content"]
+    ordering_fields = ["title", "slug", "is_published", "created_at", "updated_at"]
+    lookup_field = "slug"  # Maintain consistency with public view
+
+
+@extend_schema_view(
+    list=extend_schema(tags=ADMIN_CONTENT_TAG, summary="List FAQ Categories (Admin)"),
+    create=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Create FAQ Category (Admin)"),
+    retrieve=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Retrieve FAQ Category (Admin)"
+    ),
+    update=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Update FAQ Category (Admin)"),
+    partial_update=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Partially Update FAQ Category (Admin)"
+    ),
+    destroy=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Delete FAQ Category (Admin)"
+    ),
+)
+class FAQCategoryAdminViewSet(viewsets.ModelViewSet):
+    """Admin ViewSet for managing FAQ Categories."""
+
+    queryset = content_models.FAQCategory.objects.all().order_by("order", "name")
+    serializer_class = admin_serializers.AdminFAQCategorySerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name"]
+    ordering_fields = ["name", "order", "created_at"]
+
+
+@extend_schema_view(
+    list=extend_schema(tags=ADMIN_CONTENT_TAG, summary="List FAQ Items (Admin)"),
+    create=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Create FAQ Item (Admin)"),
+    retrieve=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Retrieve FAQ Item (Admin)"),
+    update=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Update FAQ Item (Admin)"),
+    partial_update=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Partially Update FAQ Item (Admin)"
+    ),
+    destroy=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Delete FAQ Item (Admin)"),
+)
+class FAQItemAdminViewSet(viewsets.ModelViewSet):
+    """Admin ViewSet for managing FAQ Items."""
+
+    queryset = (
+        content_models.FAQItem.objects.select_related("category")
+        .all()
+        .order_by("category__order", "order", "question")
+    )
+    serializer_class = admin_serializers.AdminFAQItemSerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = ["category", "is_active"]
+    search_fields = ["question", "answer", "category__name"]
+    ordering_fields = ["category__name", "order", "question", "is_active", "created_at"]
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="List Partner Categories (Admin)"
+    ),
+    create=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Create Partner Category (Admin)"
+    ),
+    retrieve=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Retrieve Partner Category (Admin)"
+    ),
+    update=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Update Partner Category (Admin)"
+    ),
+    partial_update=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Partially Update Partner Category (Admin)"
+    ),
+    destroy=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Delete Partner Category (Admin)"
+    ),
+)
+class PartnerCategoryAdminViewSet(viewsets.ModelViewSet):
+    """Admin ViewSet for managing Partner Categories."""
+
+    queryset = content_models.PartnerCategory.objects.all().order_by("order", "name")
+    serializer_class = admin_serializers.AdminPartnerCategorySerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description"]
+    ordering_fields = ["name", "order", "is_active", "created_at"]
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="List Homepage Feature Cards (Admin)"
+    ),
+    create=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Create Homepage Feature Card (Admin)"
+    ),
+    retrieve=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Retrieve Homepage Feature Card (Admin)"
+    ),
+    update=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Update Homepage Feature Card (Admin)"
+    ),
+    partial_update=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Partially Update Homepage Feature Card (Admin)"
+    ),
+    destroy=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Delete Homepage Feature Card (Admin)"
+    ),
+)
+class HomepageFeatureCardAdminViewSet(viewsets.ModelViewSet):
+    """Admin ViewSet for managing Homepage Feature Cards."""
+
+    queryset = content_models.HomepageFeatureCard.objects.all().order_by("order")
+    serializer_class = admin_serializers.AdminHomepageFeatureCardSerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["title", "text"]
+    ordering_fields = ["title", "order", "is_active", "created_at"]
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="List Homepage Statistics (Admin)"
+    ),
+    create=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Create Homepage Statistic (Admin)"
+    ),
+    retrieve=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Retrieve Homepage Statistic (Admin)"
+    ),
+    update=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Update Homepage Statistic (Admin)"
+    ),
+    partial_update=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Partially Update Homepage Statistic (Admin)"
+    ),
+    destroy=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Delete Homepage Statistic (Admin)"
+    ),
+)
+class HomepageStatisticAdminViewSet(viewsets.ModelViewSet):
+    """Admin ViewSet for managing Homepage Statistics."""
+
+    queryset = content_models.HomepageStatistic.objects.all().order_by("order")
+    serializer_class = admin_serializers.AdminHomepageStatisticSerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["label", "value"]
+    ordering_fields = ["label", "order", "is_active", "created_at"]
+
+
+# For Contact Messages, we don't want Admins to 'create' them.
+# We only need List, Retrieve, Update (status/response), and Destroy.
+@extend_schema_view(
+    list=extend_schema(tags=ADMIN_CONTENT_TAG, summary="List Contact Messages (Admin)"),
+    retrieve=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Retrieve Contact Message (Admin)"
+    ),
+    update=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Update Contact Message Status/Response (Admin)"
+    ),
+    partial_update=extend_schema(
+        tags=ADMIN_CONTENT_TAG,
+        summary="Partially Update Contact Message Status/Response (Admin)",
+    ),
+    destroy=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Delete Contact Message (Admin)"
+    ),
+)
+class ContactMessageAdminViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    Admin ViewSet for managing Contact Messages.
+    Allows viewing, updating status/response, and deleting. Does NOT allow creation.
+    """
+
+    queryset = (
+        content_models.ContactMessage.objects.select_related("responder")
+        .all()
+        .order_by("-created_at")
+    )
+    serializer_class = admin_serializers.AdminContactMessageSerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = ["status", "email"]
+    search_fields = ["full_name", "email", "subject", "message", "response"]
+    ordering_fields = ["status", "created_at", "responded_at", "full_name", "email"]
+
+    # The update method in the serializer handles setting responder/responded_at
+    def perform_update(self, serializer):
+        # Pass request context to serializer for accessing the user
+        serializer.save()
