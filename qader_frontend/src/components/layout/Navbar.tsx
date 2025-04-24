@@ -24,7 +24,7 @@ const navLinks = [
   { name: "الرئيسية", ref: "/", icon: HomeIcon },
   { name: "قصتنا", ref: "/about", icon: BookOpenIcon },
   { name: "شركاء النجاح", ref: "/partners", icon: UsersIcon },
-  { name: "صفحة المذكرة", ref: "/notes", icon: PencilIcon },
+  { name: "صفحة المذكرة", ref: "/study", icon: PencilIcon },
   { name: "الأسئلة الشائعة", ref: "/questions", icon: QuestionMarkCircleIcon },
   { name: "تواصل معنا", ref: "/contact", icon: ChatBubbleOvalLeftEllipsisIcon },
 ];
@@ -129,15 +129,15 @@ const Navbar = () => {
 
             {/* Mobile Buttons */}
             <div className="flex flex-col items-start gap-4 p-5 border-t border-border max-lg:hidden max-md:flex">
-              <Button variant="outline" className="w-full justify-start gap-2" onClick={() => { openSignup(); closeNav(); }}>
+              <Button variant="outline" className="w-full  gap-2" onClick={() => { openSignup(); closeNav(); }}>
                 <UserPlusIcon className="w-5 h-5" />
                 <span> اشتراك</span>
               </Button>
-              <Button variant="default" className="w-full justify-start gap-2" onClick={() => { openLogin(); closeNav(); }}>
+              <Button variant="default" className="w-full gap-2" onClick={() => { openLogin(); closeNav(); }}>
                 <UserIcon className="w-5 h-5" />
                 <span>تسجيل الدخول</span>
               </Button>
-              <div className="w-full flex justify-start pt-2">
+              <div className="w-full flex justify-center pt-2">
                 <ThemeToggle />
               </div>
             </div>

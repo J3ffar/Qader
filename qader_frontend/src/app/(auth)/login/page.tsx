@@ -24,7 +24,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onClose }) => {
       {/* Modal */}
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div
-          className="relative w-full max-w-3xl bg-background rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
+          className="relative w-full max-w-sm lg:max-w-3xl bg-background rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -37,7 +37,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onClose }) => {
 
           {/* Form Wrapper */}
           <div className="w-full md:w-1/2 flex items-center justify-center max-md:flex-col">
-            <div className="w-full p-6 sm:p-8 space-y-6">
+            <div className="w-full p-4 sm:p-6 lg:p-8 space-y-6">
               <div>
                 <h2 className="text-3xl font-bold text-center">أهلاً بعودتك!!!</h2>
                 <p className="text-xl text-gray-600 text-center">اكمل السير معنا...</p>
