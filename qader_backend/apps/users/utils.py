@@ -3,6 +3,15 @@ import string
 import uuid
 import logging
 from typing import TYPE_CHECKING
+from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
+from django.utils.translation import gettext_lazy as _
+from decouple import config
 
 # Avoid circular import for type checking
 if TYPE_CHECKING:
@@ -90,3 +99,47 @@ def generate_unique_serial_code(
         if not SerialCode.objects.filter(code__iexact=code).exists():
             return code
         # If collision (rare), loop continues to generate a new one
+
+
+def send_password_reset_email(user: User, context: dict = None):
+    """
+    Sends the standard password reset email to a user.
+    Can be used by both public and admin reset views.
+    """
+    try:
+        token = default_token_generator.make_token(user)
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        # Get frontend URL from settings/config
+        frontend_base_url = getattr(
+            settings, "FRONTEND_BASE_URL", "https://example.com"
+        )  # Use settings
+        password_reset_path = getattr(
+            settings, "FRONTEND_PASSWORD_RESET_PATH", "/reset-password-confirm"
+        )  # Use settings
+        reset_link = f"{frontend_base_url}{password_reset_path}/{uidb64}/{token}/"
+
+        # Prepare email context - merge provided context with defaults
+        email_context = {
+            "email": user.email,
+            "username": user.username,
+            "reset_link": reset_link,
+            "site_name": "Qader Platform",  # Get from settings?
+            "user": user,
+            **(context or {}),  # Merge any additional context provided
+        }
+        subject = render_to_string(
+            "emails/password_reset_subject.txt", email_context
+        ).strip()
+        html_body = render_to_string("emails/password_reset_body.html", email_context)
+        text_body = render_to_string("emails/password_reset_body.txt", email_context)
+
+        msg = EmailMultiAlternatives(
+            subject, text_body, settings.DEFAULT_FROM_EMAIL, [user.email]
+        )
+        msg.attach_alternative(html_body, "text/html")
+        msg.send()
+        logger.info(f"Password reset email sent successfully to {user.email}")
+        return True
+    except Exception as e:
+        logger.exception(f"Error sending password reset email to {user.email}: {e}")
+        return False

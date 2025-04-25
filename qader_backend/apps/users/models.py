@@ -4,6 +4,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
 
+from apps.admin_panel.models import AdminPermission
+
 # Import the utility function
 from .utils import generate_unique_referral_code
 
@@ -340,6 +342,13 @@ class UserProfile(models.Model):
         related_name="referrals_made",
         help_text=_("The user whose referral code this user signed up with."),
     )
+    admin_permissions = models.ManyToManyField(
+        AdminPermission,
+        verbose_name=_("Admin Permissions"),
+        blank=True,
+        related_name="sub_admins",
+        help_text=_("Specific permissions granted to this sub-admin user."),
+    )
 
     # Timestamps
     created_at = models.DateTimeField(_("Profile Created At"), auto_now_add=True)
@@ -402,17 +411,56 @@ class UserProfile(models.Model):
                 f"Error applying subscription timedelta for user {self.user.username} using code {serial_code.code}: {e}"
             )
 
+    def has_permission(self, perm_slug: str) -> bool:
+        """
+        Checks if the user (if a sub-admin) has the specified granular permission.
+        Superusers/main admins implicitly have all permissions.
+        """
+        if (
+            self.user.is_superuser
+            or self.user.is_staff
+            and self.role == RoleChoices.ADMIN
+        ):
+            return True
+        if self.role == RoleChoices.SUB_ADMIN and self.user.is_staff:
+            # Optimized check using exists()
+            return self.admin_permissions.filter(slug=perm_slug).exists()
+        return False
+
     def save(self, *args, **kwargs):
         # Generate referral code on first save if it doesn't exist, using the utility function
         if not self.referral_code:
-            # Ensure user object is available (should be, but defensive check)
             if hasattr(self, "user") and self.user:
-                self.referral_code = generate_unique_referral_code(self.user.username)
-                logger.info(
-                    f"Generated referral code '{self.referral_code}' for user {self.user.username}"
-                )
+                # Ensure username exists before generating code
+                if self.user.username:
+                    self.referral_code = generate_unique_referral_code(
+                        self.user.username
+                    )
+                    logger.info(
+                        f"Generated referral code '{self.referral_code}' for user {self.user.username}"
+                    )
+                else:
+                    logger.warning(
+                        "Cannot generate referral code: User has no username."
+                    )
+
             else:
                 logger.warning(
                     "Could not generate referral code during profile save: User object not available."
                 )
+
+        # Ensure is_staff is True for ADMIN and SUB_ADMIN roles
+        if (
+            self.role in [RoleChoices.ADMIN, RoleChoices.SUB_ADMIN]
+            and not self.user.is_staff
+        ):
+            self.user.is_staff = True
+            # Save the related user if is_staff was changed
+            if self.user.pk:  # Ensure user exists before trying to save it
+                self.user.save(
+                    update_fields=["is_staff", "last_login"]
+                )  # Added last_login to update_fields to avoid potential issues
+            # Note: This save *might* need to be done within a transaction if User and Profile saves are separate.
+            # However, given OneToOneField and signals, it's often handled. Be mindful in `create`.
+
         super().save(*args, **kwargs)
