@@ -1,8 +1,10 @@
+import datetime
 import logging
 from datetime import timedelta
 from typing import Optional, Any, Callable, Dict  # Added Callable, Dict
 from django.db import transaction, models
 from django.db.models import F
+from django.utils import timezone
 
 # from django.contrib.auth import get_user_model # Use settings instead
 from django.contrib.contenttypes.models import ContentType
@@ -151,16 +153,25 @@ def _check_streak_badge(
 # Maps badge slugs (from settings) to their respective checker functions.
 # This makes adding new badges much easier (Open/Closed Principle).
 BADGE_CHECKERS: Dict[str, BadgeChecker] = {
-    settings.BADGE_SLUG_50_QUESTIONS: _check_50_questions_solved,
-    settings.BADGE_SLUG_FIRST_FULL_TEST: _check_first_full_test,
-    settings.BADGE_SLUG_5_DAY_STREAK: lambda u, p: _check_streak_badge(u, p, 5),
-    settings.BADGE_SLUG_10_DAY_STREAK: lambda u, p: _check_streak_badge(u, p, 10),
+    # Use actual slugs from settings
+    getattr(
+        settings, "BADGE_SLUG_50_QUESTIONS", "50-questions-solved"
+    ): _check_50_questions_solved,
+    getattr(
+        settings, "BADGE_SLUG_FIRST_FULL_TEST", "first-full-test"
+    ): _check_first_full_test,
+    getattr(
+        settings, "BADGE_SLUG_5_DAY_STREAK", "5-day-streak"
+    ): lambda u, p: _check_streak_badge(u, p, 5),
+    getattr(
+        settings, "BADGE_SLUG_10_DAY_STREAK", "10-day-streak"
+    ): lambda u, p: _check_streak_badge(u, p, 10),
     # Add entries for ALL other badge slugs defined in settings here
     # "another-badge-slug": _check_another_badge_logic,
 }
 
 
-def check_and_award_badge(user: DjangoUser, badge_slug: str):
+def check_and_award_badge(user: DjangoUser, badge_slug: str) -> bool:  # <-- Return bool
     """
     Checks if a user qualifies for a specific badge and awards it if not already earned.
     Uses the BADGE_CHECKERS dictionary to find the correct logic.
@@ -168,10 +179,13 @@ def check_and_award_badge(user: DjangoUser, badge_slug: str):
     Args:
         user: The user to check.
         badge_slug: The unique slug of the badge to check (should match settings).
+
+    Returns:
+        True if the badge was newly awarded in this call, False otherwise.
     """
     if not user or not hasattr(user, "pk"):
         logger.warning(f"Badge check skipped for invalid user object: {user}")
-        return
+        return False
 
     username = getattr(user, "username", f"UserID_{user.pk}")
 
@@ -179,25 +193,18 @@ def check_and_award_badge(user: DjangoUser, badge_slug: str):
     checker_func = BADGE_CHECKERS.get(badge_slug)
     if not checker_func:
         logger.error(f"No checker function defined for badge slug: {badge_slug}")
-        return
+        return False
 
     try:
-        # Use select_related('profile') if profile is accessed frequently
-        # Or get profile separately if needed for checker
         profile = UserProfile.objects.get(user=user)
-
         badge = Badge.objects.get(slug=badge_slug, is_active=True)
 
-        # Check if already earned using exists() for efficiency
         if UserBadge.objects.filter(user=user, badge=badge).exists():
-            # logger.debug(f"User {username} already has badge '{badge_slug}'.")
-            return  # Already earned
+            return False
 
-        # --- Execute the specific criteria check function ---
         criteria_met = checker_func(user, profile)
 
         if criteria_met:
-            # Use transaction to ensure badge award and point award are atomic
             with transaction.atomic():
                 user_badge = UserBadge.objects.create(user=user, badge=badge)
                 logger.info(
@@ -205,27 +212,37 @@ def check_and_award_badge(user: DjangoUser, badge_slug: str):
                 )
 
                 # Award points for earning the badge, using constant from settings
-                if settings.POINTS_BADGE_EARNED > 0:
+                points_badge_earned = getattr(
+                    settings, "POINTS_BADGE_EARNED", 0
+                )  # Safe getattr
+                if points_badge_earned > 0:
+                    # --- Pass the profile object to award_points if needed ---
+                    # Note: award_points currently doesn't *use* profile, but might later
                     award_points(
                         user=user,
-                        points_change=settings.POINTS_BADGE_EARNED,
+                        points_change=points_badge_earned,
                         reason_code=PointReason.BADGE_EARNED,
                         description=f"Earned badge: {badge.name}",
                         related_object=user_badge,  # Link points to the UserBadge record
                     )
-        # else:
-        # logger.debug(f"Criteria not met for badge '{badge_slug}' for user {username}")
+                return True  # <-- Return True (newly awarded)
+        else:
+            # logger.debug(f"Criteria not met for badge '{badge_slug}' for user {username}")
+            return False
 
     except Badge.DoesNotExist:
         logger.warning(
             f"Badge with slug '{badge_slug}' not found or inactive during check for user {username}."
         )
+        return False
     except UserProfile.DoesNotExist:
         logger.error(f"UserProfile not found for user {username} during badge check.")
+        return False
     except Exception as e:
         logger.exception(
             f"Error checking/awarding badge '{badge_slug}' for {username}: {e}"
         )
+        return False
 
 
 # --- Streak Management ---
@@ -256,7 +273,7 @@ def update_streak(user: DjangoUser):
             if profile.last_study_activity_at:
                 # Ensure comparison is done in UTC
                 last_activity_date_utc = profile.last_study_activity_at.astimezone(
-                    timezone.utc
+                    datetime.timezone.utc
                 ).date()
 
             # If last activity was today (UTC), only update timestamp if necessary

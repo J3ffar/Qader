@@ -10,7 +10,14 @@ from .factories import (
     RewardStoreItemFactory,
     UserRewardPurchaseFactory,
 )
-from ..models import PointLog, Badge, UserBadge, RewardStoreItem, UserRewardPurchase
+from ..models import (
+    PointLog,
+    Badge,
+    PointReason,
+    UserBadge,
+    RewardStoreItem,
+    UserRewardPurchase,
+)
 from apps.users.tests.factories import UserFactory
 from apps.learning.tests.factories import QuestionFactory  # Example for related object
 
@@ -19,12 +26,15 @@ pytestmark = pytest.mark.django_db
 
 # --- Test PointLog Model ---
 def test_point_log_creation():
-    log = PointLogFactory()
+    log = PointLogFactory(reason_code=PointReason.TEST_COMPLETED)
     assert PointLog.objects.count() == 1
-    assert (
-        str(log)
-        == f"{log.user.username}: {log.points_change:+} points at {log.timestamp}"
+    reason_display = log.get_reason_code_display()
+    expected_str = (
+        f"{log.user.username}: {log.points_change:+} points "
+        f"({reason_display}) at {log.timestamp}"
     )
+    # --- END FIXED ---
+
     assert str(log) == expected_str
 
 
