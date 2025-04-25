@@ -1,6 +1,7 @@
 import logging
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from rest_framework.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 from django.db import IntegrityError, transaction
 from django.utils.translation import gettext_lazy as _
@@ -400,7 +401,7 @@ class AdminSubAdminSerializer(serializers.ModelSerializer):
         try:
             # Pass None for the user object during creation validation
             validate_password(attrs["password"], user=None)
-        except DjangoValidationError as e:
+        except ValidationError as e:
             raise serializers.ValidationError({"password": list(e.messages)})
 
         return attrs
@@ -431,22 +432,25 @@ class AdminSubAdminSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data: dict) -> UserProfile:
-        """Creates User, Profile, and assigns permissions."""
+        """Creates User, gets the auto-created Profile, and updates it."""
 
-        # Pop user/profile fields that need specific handling
+        # Pop user/profile/permission fields that need specific handling
         username = validated_data.pop("username")
         email = validated_data.pop("email")
         password = validated_data.pop("password")
-        validated_data.pop("password_confirm", None)  # Remove confirm
+        validated_data.pop("password_confirm", None)  # Remove confirm password
         permission_ids = validated_data.pop(
             "permission_ids", []
         )  # List of permission IDs
 
-        # Define profile data from remaining validated_data
+        # Remaining items in validated_data are for the UserProfile
+        # We only expect fields defined as editable in the serializer's fields
         profile_data = validated_data
 
         try:
-            # Create the User instance. is_staff=True for sub-admins.
+            # 1. Create the User instance.
+            #    This action *should* trigger a signal (or default ORM behavior)
+            #    to automatically create the related UserProfile immediately.
             user = User.objects.create_user(
                 username=username,
                 email=email,
@@ -455,27 +459,79 @@ class AdminSubAdminSerializer(serializers.ModelSerializer):
                 is_superuser=False,
             )
 
-            # Create the UserProfile linked to the user, setting the role
-            profile = UserProfile.objects.create(
-                user=user,
-                role=RoleChoices.SUB_ADMIN,  # Explicitly set role
-                **profile_data,  # Apply other profile fields (full_name, gender etc.)
-            )
+            # 2. Retrieve the UserProfile instance that was *just* created
+            #    automatically when the user was saved.
+            #    Access it via the reverse relationship: user.profile
+            #    We use select_for_update within the transaction to lock the profile row
+            #    in case there's another process somehow trying to touch it (less likely here, but good practice).
+            try:
+                profile = UserProfile.objects.select_for_update().get(user=user)
+            except UserProfile.DoesNotExist:
+                # This case indicates the signal/auto-creation failed.
+                # Log a critical error as this is unexpected setup failure.
+                logger.critical(
+                    f"UserProfile signal/auto-creation failed for new user {user.username} (ID: {user.id}) during sub-admin creation."
+                )
+                # Clean up the created User if possible, or raise a specific error
+                # user.delete() # Consider deleting the user if profile is essential
+                raise serializers.ValidationError(
+                    _("Failed to create user profile automatically. Contact support.")
+                )
 
-            # Assign granular permissions
+            # 3. Update the attributes of the existing profile instance
+            #    with the data provided in the serializer's validated_data.
+            #    Ensure we only set fields allowed for creation/update via this serializer.
+            #    The 'role' field is explicitly set for sub-admin creation.
+            profile.role = RoleChoices.SUB_ADMIN  # Explicitly set the role
+
+            # Iterate through the remaining profile_data and set attributes on the profile
+            # Only set fields that are actually defined in the serializer's Meta fields
+            # and are expected to be provided for a SUB_ADMIN creation.
+            allowed_profile_fields = [
+                f.name for f in self.Meta.model._meta.fields if f.name in profile_data
+            ]
+            for attr in allowed_profile_fields:
+                # Exclude fields that should NOT be set directly like points, timestamps, etc.
+                # The `profile_data` here should only contain 'full_name', 'preferred_name', 'gender' etc.
+                # based on the `validated_data` after popping user/permission fields.
+                # It's generally safe to set these basic profile fields.
+                setattr(profile, attr, profile_data[attr])
+
+            # 4. Save the updated profile instance.
+            profile.save(
+                update_fields=[
+                    "role",
+                    "full_name",
+                    "preferred_name",
+                    "gender",
+                    "updated_at",
+                ]
+            )  # Explicitly update changed fields
+
+            # 5. Assign granular permissions
             if permission_ids:
-                profile.admin_permissions.set(permission_ids)
+                # Ensure permission_ids are AdminPermission instances before setting
+                # The PrimaryKeyRelatedField should return instances, but defensive check doesn't hurt.
+                valid_permissions = [
+                    p for p in permission_ids if isinstance(p, AdminPermission)
+                ]
+                profile.admin_permissions.set(valid_permissions)
             else:
                 profile.admin_permissions.clear()  # Ensure no default permissions if none provided
 
+            # Log the successful creation and permissions assignment
+            assigned_slugs = [p.slug for p in profile.admin_permissions.all()]
             logger.info(
-                f"Admin '{self.context['request'].user.username}' created sub-admin '{user.username}' (ID: {user.id}) with permissions: {[p.slug for p in permission_ids]}."
+                f"Admin '{self.context['request'].user.username}' created sub-admin '{user.username}' (ID: {user.id}) with role {profile.role} and permissions: {assigned_slugs}."
             )
 
+            # 6. Return the profile instance
             return profile
 
+        # Catch IntegrityError for User creation (username/email unique)
+        # These should ideally be caught by validate_username/validate_email first,
+        # but catching here provides a fallback if something unexpected happens.
         except IntegrityError as e:
-            # Catch potential IntegrityErrors from User creation (username/email unique)
             logger.warning(f"IntegrityError creating sub-admin {username}: {e}")
             error_msg = str(e).lower()
             if "unique constraint" in error_msg:
@@ -487,8 +543,12 @@ class AdminSubAdminSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         {"email": [_("A user with that email already exists.")]}
                     )
-            raise serializers.ValidationError(_("Error creating sub-admin account."))
+            # Re-raise if it's an unexpected IntegrityError
+            raise serializers.ValidationError(
+                _("Error creating sub-admin account due to a data conflict.")
+            )
         except Exception as e:
+            # Catch any other unexpected exceptions during the creation process
             logger.exception(f"Unexpected error creating sub-admin {username}: {e}")
             raise serializers.ValidationError(
                 _("An unexpected error occurred during sub-admin creation.")
