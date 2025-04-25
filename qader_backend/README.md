@@ -1177,7 +1177,7 @@
             "name": "First Full Test",
             "slug": "first-full-test",
             "description": "Completed your first full simulation test.",
-            "icon_class_or_image": "badge-icon-test",
+            "icon": "badges/icons/icon.png",
             "criteria_description": "Complete one test marked as 'Full Simulation'.",
             "is_earned": true,
             "earned_at": "2024-07-19T11:00:00Z" // Included if earned
@@ -1187,8 +1187,8 @@
             "name": "10-Day Streak",
             "slug": "10-day-streak",
             "description": "Studied for 10 consecutive days.",
-            "icon_class_or_image": "badge-icon-streak-10",
-             "criteria_description": "Log in and complete at least one question or test for 10 days in a row.",
+            "icon": "badges/icons/icon.png",
+            "criteria_description": "Log in and complete at least one question or test for 10 days in a row.",
             "is_earned": false,
             "earned_at": null
           }

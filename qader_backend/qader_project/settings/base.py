@@ -255,6 +255,7 @@ SPECTACULAR_SETTINGS = {
         "persistAuthorization": True,
         "displayRequestDuration": True,
         "filter": True,
+        "docExpansion": "list",
     },
     "PREPROCESSING_HOOKS": [],
     "POSTPROCESSING_HOOKS": [],
@@ -300,3 +301,35 @@ SIMPLE_JWT = {
 
 # CORS Settings
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
+
+# --- Gamification Point Constants ---
+POINTS_QUESTION_SOLVED_CORRECT = config(
+    "POINTS_QUESTION_SOLVED_CORRECT", default=1, cast=int
+)
+POINTS_TEST_COMPLETED = config("POINTS_TEST_COMPLETED", default=10, cast=int)
+POINTS_LEVEL_ASSESSMENT_COMPLETED = config(
+    "POINTS_LEVEL_ASSESSMENT_COMPLETED", default=25, cast=int
+)
+POINTS_STREAK_BONUS_MAP = {  # More flexible than individual settings
+    2: config("POINTS_STREAK_BONUS_2_DAYS", default=5, cast=int),
+    10: config("POINTS_STREAK_BONUS_10_DAYS", default=20, cast=int),
+    # Add more milestones here: 30: config(...)
+}
+POINTS_BADGE_EARNED = config("POINTS_BADGE_EARNED", default=15, cast=int)
+POINTS_CHALLENGE_PARTICIPATION = config(
+    "POINTS_CHALLENGE_PARTICIPATION", default=5, cast=int
+)
+POINTS_CHALLENGE_WIN = config("POINTS_CHALLENGE_WIN", default=10, cast=int)
+POINTS_REFERRAL_BONUS = config("POINTS_REFERRAL_BONUS", default=25, cast=int)  # Example
+
+# Define Badge Slugs constants (optional but good practice)
+BADGE_SLUG_5_DAY_STREAK = config("BADGE_SLUG_5_DAY_STREAK", default="5-day-streak")
+BADGE_SLUG_10_DAY_STREAK = config(
+    "BADGE_SLUG_10_DAY_STREAK", default="10-days-studying"
+)  # Matches description
+BADGE_SLUG_FIRST_FULL_TEST = config(
+    "BADGE_SLUG_FIRST_FULL_TEST", default="first-full-test"
+)
+BADGE_SLUG_50_QUESTIONS = config(
+    "BADGE_SLUG_50_QUESTIONS", default="50-questions-solved"
+)
