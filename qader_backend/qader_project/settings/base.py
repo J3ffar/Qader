@@ -246,8 +246,8 @@ SPECTACULAR_SETTINGS = {
             "description": "Endpoints for administrators to manage all support tickets.",
         },
         {
-            "name": "Admin Panel - Platform Management",
-            "description": "Endpoints for administrators to manage platform settings, serial codes, etc.",
+            "name": "Admin Panel - Serial Code Management",
+            "description": "Endpoints for administrators to manage subscription serial codes.",
         },
     ],
     "SWAGGER_UI_SETTINGS": {  # Fine-tune Swagger UI appearance/behavior

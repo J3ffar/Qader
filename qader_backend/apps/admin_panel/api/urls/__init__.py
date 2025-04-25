@@ -7,6 +7,7 @@ urlpatterns = [
     path("content/", include("apps.admin_panel.api.urls.content_management")),
     path("learning/", include("apps.admin_panel.api.urls.learning_management")),
     path("support/", include("apps.admin_panel.api.urls.support_management")),
+    path("serial-codes/", include("apps.admin_panel.api.urls.serial_code_management")),
     # You can add other top-level admin routes here if needed in the future
     # path("dashboard-summary/", SomeDashboardView.as_view(), name="admin-dashboard-summary"),
 ]
