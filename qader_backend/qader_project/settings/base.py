@@ -238,6 +238,10 @@ SPECTACULAR_SETTINGS = {
             "description": "Endpoints for administrators to manage learning content (Sections, Subsections, Skills, Questions).",
         },
         {
+            "name": "Admin Panel - Gamification Management",
+            "description": "Endpoints for administrators to manage Badge and Reward Store Item definitions.",
+        },
+        {
             "name": "Admin Panel - Content Management",
             "description": "Endpoints for administrators to manage public content (Pages, FAQ, Partners, Contact Messages).",
         },
