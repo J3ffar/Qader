@@ -206,19 +206,19 @@ class TestUserSupportTicketViewSet:
 class TestAdminSupportTicketViewSet:
 
     def test_admin_list_tickets_unauthenticated(self, api_client):
-        url = reverse("api:v1:support:admin-ticket-list")
+        url = reverse("api:v1:admin_panel:admin-ticket-list")
         response = api_client.get(url)
         assert response.status_code == 401
 
     def test_admin_list_tickets_non_admin(self, authenticated_client):
-        url = reverse("api:v1:support:admin-ticket-list")
+        url = reverse("api:v1:admin_panel:admin-ticket-list")
         response = authenticated_client.get(url)
         assert response.status_code == 403
 
     def test_admin_list_all_tickets(self, admin_client):
         user1_ticket = SupportTicketFactory()
         user2_ticket = SupportTicketFactory()
-        url = reverse("api:v1:support:admin-ticket-list")
+        url = reverse("api:v1:admin_panel:admin-ticket-list")
         response = admin_client.get(url)
 
         assert response.status_code == 200
@@ -230,7 +230,7 @@ class TestAdminSupportTicketViewSet:
     def test_admin_list_filter_by_status(self, admin_client):
         open_ticket = SupportTicketFactory(status=SupportTicket.Status.OPEN)
         closed_ticket = SupportTicketFactory(status=SupportTicket.Status.CLOSED)
-        url = reverse("api:v1:support:admin-ticket-list")
+        url = reverse("api:v1:admin_panel:admin-ticket-list")
         response = admin_client.get(url, {"status": SupportTicket.Status.OPEN})
 
         assert response.status_code == 200
@@ -245,7 +245,9 @@ class TestAdminSupportTicketViewSet:
             ticket=ticket, internal=True
         )  # Internal note by admin
 
-        url = reverse("api:v1:support:admin-ticket-detail", kwargs={"pk": ticket.pk})
+        url = reverse(
+            "api:v1:admin_panel:admin-ticket-detail", kwargs={"pk": ticket.pk}
+        )
         response = admin_client.get(url)
 
         assert response.status_code == 200
@@ -258,7 +260,9 @@ class TestAdminSupportTicketViewSet:
         ticket = SupportTicketFactory(status=SupportTicket.Status.OPEN)
         assignee_admin = UserFactory(is_staff=True)  # Create another admin to assign to
 
-        url = reverse("api:v1:support:admin-ticket-detail", kwargs={"pk": ticket.pk})
+        url = reverse(
+            "api:v1:admin_panel:admin-ticket-detail", kwargs={"pk": ticket.pk}
+        )
         data = {
             "status": SupportTicket.Status.PENDING_USER,
             "priority": SupportTicket.Priority.HIGH,
@@ -277,7 +281,9 @@ class TestAdminSupportTicketViewSet:
 
     def test_admin_update_sets_closed_at(self, admin_client):
         ticket = SupportTicketFactory(status=SupportTicket.Status.OPEN, closed_at=None)
-        url = reverse("api:v1:support:admin-ticket-detail", kwargs={"pk": ticket.pk})
+        url = reverse(
+            "api:v1:admin_panel:admin-ticket-detail", kwargs={"pk": ticket.pk}
+        )
         data = {"status": SupportTicket.Status.CLOSED}
         response = admin_client.patch(url, data=data)
 
@@ -291,7 +297,9 @@ class TestAdminSupportTicketViewSet:
         ticket = SupportTicketFactory(
             status=SupportTicket.Status.CLOSED, closed_at=timezone.now()
         )
-        url = reverse("api:v1:support:admin-ticket-detail", kwargs={"pk": ticket.pk})
+        url = reverse(
+            "api:v1:admin_panel:admin-ticket-detail", kwargs={"pk": ticket.pk}
+        )
         data = {"status": SupportTicket.Status.OPEN}
         response = admin_client.patch(url, data=data)
 
@@ -302,7 +310,9 @@ class TestAdminSupportTicketViewSet:
 
     def test_admin_delete_ticket(self, admin_client):
         ticket = SupportTicketFactory()
-        url = reverse("api:v1:support:admin-ticket-detail", kwargs={"pk": ticket.pk})
+        url = reverse(
+            "api:v1:admin_panel:admin-ticket-detail", kwargs={"pk": ticket.pk}
+        )
         response = admin_client.delete(url)
 
         assert response.status_code == 204
@@ -316,7 +326,9 @@ class TestAdminSupportTicketViewSet:
             ticket=ticket, internal=True
         )  # Internal note
 
-        url = reverse("api:v1:support:admin-ticket-replies", kwargs={"pk": ticket.pk})
+        url = reverse(
+            "api:v1:admin_panel:admin-ticket-replies", kwargs={"pk": ticket.pk}
+        )
         response = admin_client.get(url)
 
         assert response.status_code == 200
@@ -328,7 +340,9 @@ class TestAdminSupportTicketViewSet:
 
     def test_admin_create_reply_public(self, admin_client):
         ticket = SupportTicketFactory(status=SupportTicket.Status.OPEN)
-        url = reverse("api:v1:support:admin-ticket-replies", kwargs={"pk": ticket.pk})
+        url = reverse(
+            "api:v1:admin_panel:admin-ticket-replies", kwargs={"pk": ticket.pk}
+        )
         data = {"message": "Admin response"}
 
         response = admin_client.post(url, data=data)
@@ -347,7 +361,9 @@ class TestAdminSupportTicketViewSet:
 
     def test_admin_create_reply_internal(self, admin_client):
         ticket = SupportTicketFactory(status=SupportTicket.Status.OPEN)
-        url = reverse("api:v1:support:admin-ticket-replies", kwargs={"pk": ticket.pk})
+        url = reverse(
+            "api:v1:admin_panel:admin-ticket-replies", kwargs={"pk": ticket.pk}
+        )
         data = {"message": "Internal discussion note", "is_internal_note": True}
 
         response = admin_client.post(url, data=data)
