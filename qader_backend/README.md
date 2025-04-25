@@ -1208,7 +1208,8 @@
             "description": "Show off your dedication with this cool frame.",
             "item_type": "avatar", // "avatar", "theme", "material", "competition_entry"
             "cost_points": 500,
-            "asset_url_or_data": "/media/rewards/avatar_frame_1.png" // Path or identifier
+            "image": "/media/preview/avatar_frame_1.png", // Path or identifier
+            "asset_file": "/media/rewards/avatar_frame_1.png"
           },
           {
             "id": 11,
@@ -1216,7 +1217,8 @@
             "description": "A special dark theme for focus.",
             "item_type": "theme",
             "cost_points": 300,
-             "asset_url_or_data": "theme-dark-variant-1" // Identifier for client-side theme
+            "image": "/media/preview/theme-dark-variant-1.png",
+            "asset_file": null
           },
            {
             "id": 12,
@@ -1224,7 +1226,8 @@
             "description": "Enter the monthly grand competition.",
             "item_type": "competition_entry",
             "cost_points": 1000,
-            "asset_url_or_data": null
+            "image": "/media/preview/competition.png",
+            "asset_file": null
           }
           // ... other items
         ]

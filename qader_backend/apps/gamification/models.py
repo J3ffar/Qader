@@ -201,14 +201,21 @@ class RewardStoreItem(models.Model):
         db_index=True,
     )
     cost_points = models.PositiveIntegerField(verbose_name=_("Cost (Points)"))
-    asset_url_or_data = models.CharField(
-        max_length=255,
-        blank=True,
+    image = models.ImageField(
+        upload_to="rewards/images/",
+        verbose_name=_("Item Image"),
+        help_text=_("Optional visual representation of the reward item."),
         null=True,
-        verbose_name=_("Asset URL or Data"),
+        blank=True,
+    )
+    asset_file = models.FileField(
+        upload_to="rewards/assets/",
+        verbose_name=_("Asset File"),
         help_text=_(
-            "Path to file, theme identifier, or other relevant data for the reward."
+            "Optional downloadable file associated with the reward (e.g., PDF outline)."
         ),
+        null=True,
+        blank=True,
     )
     is_active = models.BooleanField(
         default=True, db_index=True, verbose_name=_("Is Active")
@@ -223,6 +230,15 @@ class RewardStoreItem(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.cost_points} points)"
+
+    @property
+    def image_preview(self):
+        if self.image:
+            return format_html(
+                '<img src="{}" style="max-height: 50px; max-width: 50px;" />',
+                self.image.url,
+            )
+        return _("No image")
 
 
 class UserRewardPurchase(models.Model):

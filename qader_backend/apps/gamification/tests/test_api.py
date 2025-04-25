@@ -89,6 +89,12 @@ def test_list_badges_authenticated(authenticated_client):
     assert results_map[badge3.slug]["is_earned"] is True
     assert results_map[badge3.slug]["earned_at"] is not None
 
+    assert "icon_url" in results_map[badge1.slug]
+    assert results_map[badge1.slug]["icon_url"].startswith(
+        "/media/badges/icons/"
+    )  # Or your MEDIA_URL setting
+    assert results_map[badge1.slug]["icon_url"].endswith(".png")
+
 
 # --- Test RewardStoreItemViewSet (No change needed) ---
 def test_list_rewards_unauthenticated(api_client):

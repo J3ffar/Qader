@@ -1,17 +1,23 @@
+# qader_backend/apps/gamification/tests/factories.py
 import factory
 from factory.django import DjangoModelFactory
 from django.utils import timezone
 from django.conf import settings
 from django.utils.text import slugify
+from django.core.files.base import ContentFile  # Needed for ImageField
 
 # Import necessary factories from other apps
 from apps.users.tests.factories import UserFactory
 
-# from apps.learning.tests.factories import QuestionFactory  # If needed for PointLog related_object
-# from apps.study.tests.factories import UserTestAttemptFactory # If needed for PointLog related_object
-
 # Import models from the gamification app
-from ..models import PointLog, Badge, UserBadge, RewardStoreItem, UserRewardPurchase
+from ..models import (
+    PointLog,
+    Badge,
+    UserBadge,
+    RewardStoreItem,
+    UserRewardPurchase,
+    PointReason,
+)
 
 
 class PointLogFactory(DjangoModelFactory):
@@ -20,12 +26,17 @@ class PointLogFactory(DjangoModelFactory):
 
     user = factory.SubFactory(UserFactory)
     points_change = factory.Iterator([-10, -5, 1, 5, 10, 50])
+    # Use PointReason enum for choices
     reason_code = factory.Iterator(
-        ["QUESTION_SOLVED", "TEST_COMPLETED", "REWARD_PURCHASE", "ADMIN_ADJUSTMENT"]
+        [
+            PointReason.QUESTION_SOLVED,
+            PointReason.TEST_COMPLETED,
+            PointReason.REWARD_PURCHASE,
+            PointReason.ADMIN_ADJUSTMENT,
+        ]
     )
-    description = factory.LazyAttribute(lambda o: f"Log entry for {o.reason_code}")
+    description = factory.LazyAttribute(lambda o: f"Log entry for {o}")
     timestamp = factory.LazyFunction(timezone.now)
-    # related_object can be set explicitly in tests if needed
     content_type = None
     object_id = None
 
@@ -33,12 +44,24 @@ class PointLogFactory(DjangoModelFactory):
 class BadgeFactory(DjangoModelFactory):
     class Meta:
         model = Badge
-        django_get_or_create = ("slug",)  # Ensure unique slugs
+        django_get_or_create = ("slug",)
 
     name = factory.Sequence(lambda n: f"Awesome Badge {n}")
     slug = factory.LazyAttribute(lambda o: slugify(o.name))
     description = factory.LazyAttribute(lambda o: f"Description for {o.name}")
-    icon_class_or_image = factory.LazyAttribute(lambda o: f"icon-{o.slug}")
+
+    # --- FIXED FIELD ---
+    # Use factory.django.ImageField for image uploads in tests
+    icon = factory.django.ImageField(
+        filename=factory.LazyAttribute(lambda o: f"{o}.png"),
+        color="blue",  # Simple placeholder image
+        icon=ContentFile(
+            b"dummy image content",
+            name=factory.LazyAttribute(lambda o: f"{o}.png"),
+        ),
+    )
+    # --- END FIXED FIELD ---
+
     criteria_description = "Earn this by being awesome."
     is_active = True
 
@@ -46,7 +69,10 @@ class BadgeFactory(DjangoModelFactory):
 class UserBadgeFactory(DjangoModelFactory):
     class Meta:
         model = UserBadge
-        # django_get_or_create = ("user", "badge")  # Prevent duplicates
+        # Consider removing django_get_or_create from UserBadgeFactory unless
+        # you specifically need that behavior and handle potential IntegrityErrors
+        # in tests where duplicates might be created.
+        # django_get_or_create = ("user", "badge")
 
     user = factory.SubFactory(UserFactory)
     badge = factory.SubFactory(BadgeFactory)
@@ -67,8 +93,13 @@ class RewardStoreItemFactory(DjangoModelFactory):
         ]
     )
     cost_points = factory.Iterator([100, 250, 500, 1000])
-    asset_url_or_data = factory.LazyAttribute(
-        lambda o: f"/rewards/{slugify(o.name)}.png"
+    image = factory.django.ImageField(
+        filename=factory.LazyAttribute(lambda o: f"reward_{o}.jpg"),
+        color="green",
+    )
+    asset_file = factory.django.FileField(
+        filename=factory.LazyAttribute(lambda o: f"reward_asset_{o}.pdf"),
+        data=b"Dummy file content for testing.",  # Provide some dummy data
     )
     is_active = True
 

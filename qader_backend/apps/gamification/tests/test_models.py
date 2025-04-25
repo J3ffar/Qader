@@ -25,6 +25,7 @@ def test_point_log_creation():
         str(log)
         == f"{log.user.username}: {log.points_change:+} points at {log.timestamp}"
     )
+    assert str(log) == expected_str
 
 
 def test_point_log_generic_relation():
@@ -46,6 +47,7 @@ def test_badge_creation():
     badge = BadgeFactory(name="Super Learner")
     assert Badge.objects.count() == 1
     assert badge.slug == "super-learner"
+    assert badge.icon is not None
     assert str(badge) == "Super Learner"
 
 

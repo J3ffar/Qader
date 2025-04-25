@@ -90,6 +90,12 @@ class RewardStoreItemSerializer(serializers.ModelSerializer):
     item_type_display = serializers.CharField(
         source="get_item_type_display", read_only=True
     )
+    image_url = serializers.ImageField(
+        source="image", read_only=True, use_url=True, allow_null=True
+    )
+    asset_file_url = serializers.FileField(
+        source="asset_file", read_only=True, use_url=True, allow_null=True
+    )
 
     class Meta:
         model = RewardStoreItem
@@ -100,7 +106,8 @@ class RewardStoreItemSerializer(serializers.ModelSerializer):
             "item_type",
             "item_type_display",  # Add human-readable type
             "cost_points",
-            "asset_url_or_data",
+            "image_url",
+            "asset_file_url",
         )
         read_only_fields = fields  # Store items defined by admin
 

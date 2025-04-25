@@ -58,6 +58,15 @@ class RewardStoreItemAdmin(admin.ModelAdmin):
     list_display = ("name", "item_type", "cost_points", "is_active")
     list_filter = ("is_active", "item_type")
     search_fields = ("name", "description")
+    readonly_fields = ("image_preview",)
+    fieldsets = (
+        (None, {"fields": ("name", "description", "item_type", "cost_points")}),
+        (
+            _("Visuals & Assets"),
+            {"fields": ("image", "image_preview", "asset_file")},  # Include new fields
+        ),
+        (_("Status"), {"fields": ("is_active",)}),
+    )
 
 
 @admin.register(UserRewardPurchase)

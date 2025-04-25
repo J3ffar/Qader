@@ -119,7 +119,9 @@ def test_update_streak_start_new():
     profile.refresh_from_db()
     assert profile.current_streak_days == 1
     assert profile.longest_streak_days == 1
-    assert profile.last_study_activity_at == timezone.localtime(timezone.now())
+    assert profile.last_study_activity_at == timezone.make_aware(
+        timezone.datetime(2024, 7, 25, 10, 0, 0), timezone.UTC
+    )
 
 
 @freeze_time("2024-07-25 10:00:00")
