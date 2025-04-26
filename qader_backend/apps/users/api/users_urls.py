@@ -1,33 +1,40 @@
 from django.urls import path
 
 from .views import (
-    ApplySerialCodeView,
-    CancelSubscriptionView,
-    SubscriptionPlanListView,
     UserProfileView,
     PasswordChangeView,
+    CompleteProfileView,  # New
+    ApplySerialCodeView,  # Keep this if users can apply more codes later
+    CancelSubscriptionView,
+    SubscriptionPlanListView,
 )
 
 app_name = "users"
 
 urlpatterns = [
     # User Profile & Settings for logged-in user ('me')
-    path("me/", UserProfileView.as_view(), name="me_profile"),  # GET, PATCH
+    path(
+        "me/", UserProfileView.as_view(), name="me_profile"
+    ),  # GET, PATCH (for general updates)
+    path(
+        "me/complete-profile/",
+        CompleteProfileView.as_view(),
+        name="me_complete_profile",
+    ),  # New endpoint for initial completion
     path(
         "me/change-password/", PasswordChangeView.as_view(), name="me_change_password"
-    ),  # POST
-    # New Subscription Management Endpoints under /users/
+    ),
+    # Subscription Management
     path(
         "me/apply-serial-code/",
         ApplySerialCodeView.as_view(),
         name="me_apply_serial_code",
-    ),  # POST
+    ),  # Apply subsequent codes
     path(
         "me/subscription/cancel/",
         CancelSubscriptionView.as_view(),
         name="me_cancel_subscription",
-    ),  # POST
-    # Subscription Plans (could be moved to a separate app's urls later)
+    ),
     path(
         "subscription-plans/",
         SubscriptionPlanListView.as_view(),

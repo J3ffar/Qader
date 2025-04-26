@@ -15,6 +15,20 @@ OPENAI_API_KEY = config("OPENAI_API_KEY", default=None)
 DEBUG = config("DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="127.0.0.1,localhost", cast=Csv())
 
+# Constants
+
+FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:3000")
+FRONTEND_EMAIL_CONFIRMATION_PATH = config(
+    "FRONTEND_EMAIL_CONFIRMATION_PATH", default="/confirm-email"
+)  # Path before uid/token
+FRONTEND_PASSWORD_RESET_PATH = config(
+    "FRONTEND_PASSWORD_RESET_PATH", default="/reset-password-confirm"
+)  # Path before uid/token
+
+SITE_NAME = config("SITE_NAME", default=_("Qader Platform"))
+
+# Referral Settings
+REFERRAL_BONUS_DAYS = config("REFERRAL_BONUS_DAYS", default=3, cast=int)
 
 # Application definition
 INSTALLED_APPS = [

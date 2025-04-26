@@ -1,0 +1,1 @@
+{% block subject %}{% autoescape off %}Account Activation for {{ site_name }}{% endautoescape %}{% endblock subject %}

@@ -1,9 +1,10 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
-from .models import UserProfile
+from .models import UserProfile, RoleChoices  # Import RoleChoices if needed later
+from .utils import generate_unique_referral_code  # Import the utility
 
-import logging  # Use standard logging
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -11,25 +12,30 @@ logger = logging.getLogger(__name__)
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance: User, created: bool, **kwargs):
     """
-    Signal handler to create or update UserProfile when a User object is saved.
+    Signal handler to create UserProfile when a User object is created.
+    Profile details (except referral code) will be filled later.
     """
     if created:
-        # Only create profile if user is newly created
-        UserProfile.objects.create(user=instance)
+        # Profile is created empty initially, full_name added by signup view
+        # Referral code generated here.
+        profile = UserProfile.objects.create(user=instance)
         logger.info(
             f"UserProfile created for new user {instance.username} (ID: {instance.id})"
         )
-    else:
-        # If user is updated, ensure profile exists (defensive check)
-        # Typically, profile updates should happen via profile-specific views/serializers
-        try:
-            instance.profile.save()  # Trigger profile save to update `updated_at` if needed
-            logger.debug(
-                f"UserProfile updated for existing user {instance.username} (ID: {instance.id})"
+        # Ensure referral code is generated even if save isn't called immediately
+        if not profile.referral_code and instance.username:
+            profile.referral_code = generate_unique_referral_code(instance.username)
+            profile.save(update_fields=["referral_code"])  # Save just the code
+            logger.info(
+                f"Generated referral code '{profile.referral_code}' via signal."
             )
-        except UserProfile.DoesNotExist:
-            # This indicates a problem - profile should exist for existing users
-            logger.error(
-                f"UserProfile missing for existing user {instance.username} (ID: {instance.id}). Creating profile now."
-            )
-            UserProfile.objects.create(user=instance)
+
+    # No need to update profile here on user update unless syncing fields like email
+    # else:
+    #     try:
+    #         # If syncing email or username changes to profile fields, do it here.
+    #         # instance.profile.save() # Maybe trigger update_at? Careful.
+    #         pass
+    #     except UserProfile.DoesNotExist:
+    #         logger.error(f"UserProfile missing for existing user {instance.username} (ID: {instance.id}). Creating profile now.")
+    #         UserProfile.objects.create(user=instance)

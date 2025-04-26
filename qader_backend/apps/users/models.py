@@ -378,6 +378,24 @@ class UserProfile(models.Model):
             and self.current_level_quantitative is not None
         )
 
+    @property
+    def is_profile_complete(self) -> bool:
+        """
+        Checks if the essential profile information required after activation is filled.
+        Adjust required fields as necessary.
+        """
+        # Check if fields considered essential for using the platform are filled
+        required_fields_filled = all(
+            [
+                self.gender,
+                self.grade,
+                self.has_taken_qiyas_before is not None,  # Check boolean specifically
+                # Add other fields deemed essential for platform usage if any
+            ]
+        )
+        # Also check if full_name exists (should be set during initial signup)
+        return bool(self.full_name and required_fields_filled)
+
     def apply_subscription(self, serial_code: SerialCode):  # Added type hint
         """Applies or extends subscription duration based on a valid SerialCode."""
         if not serial_code or serial_code.duration_days <= 0:
@@ -396,13 +414,13 @@ class UserProfile(models.Model):
             new_expiry_date = start_date + timedelta(days=serial_code.duration_days)
             self.subscription_expires_at = new_expiry_date
             self.serial_code_used = serial_code
-            self.save(
-                update_fields=[
-                    "subscription_expires_at",
-                    "serial_code_used",
-                    "updated_at",
-                ]
-            )
+            # self.save(
+            #     update_fields=[
+            #         "subscription_expires_at",
+            #         "serial_code_used",
+            #         "updated_at",
+            #     ]
+            # )
             logger.info(
                 f"Subscription for user {self.user.username} updated. Expires: {new_expiry_date}. Using code: {serial_code.code}"
             )
@@ -410,6 +428,29 @@ class UserProfile(models.Model):
             logger.exception(
                 f"Error applying subscription timedelta for user {self.user.username} using code {serial_code.code}: {e}"
             )
+
+    def grant_trial_subscription(self, duration_days: int = 1):
+        """Grants a trial subscription if the user doesn't have an active one."""
+        now = timezone.now()
+        if not self.is_subscribed:  # Only grant if not already subscribed
+            try:
+                self.subscription_expires_at = now + timedelta(days=duration_days)
+                self.serial_code_used = None  # Ensure no serial code is linked to trial
+                # No save here, intended to be saved within a transaction in the calling view
+                logger.info(
+                    f"Granted {duration_days}-day trial subscription to user {self.user.username}. Expires: {self.subscription_expires_at}"
+                )
+                return True
+            except Exception as e:
+                logger.exception(
+                    f"Error granting trial subscription to user {self.user.username}: {e}"
+                )
+                raise
+        else:
+            logger.info(
+                f"User {self.user.username} already has an active subscription. Trial not granted."
+            )
+            return False
 
     def has_permission(self, perm_slug: str) -> bool:
         """
@@ -430,23 +471,14 @@ class UserProfile(models.Model):
     def save(self, *args, **kwargs):
         # Generate referral code on first save if it doesn't exist, using the utility function
         if not self.referral_code:
-            if hasattr(self, "user") and self.user:
-                # Ensure username exists before generating code
-                if self.user.username:
-                    self.referral_code = generate_unique_referral_code(
-                        self.user.username
-                    )
-                    logger.info(
-                        f"Generated referral code '{self.referral_code}' for user {self.user.username}"
-                    )
-                else:
-                    logger.warning(
-                        "Cannot generate referral code: User has no username."
-                    )
-
+            if hasattr(self, "user") and self.user and self.user.username:
+                self.referral_code = generate_unique_referral_code(self.user.username)
+                logger.info(
+                    f"Generated referral code '{self.referral_code}' for user {self.user.username}"
+                )
             else:
                 logger.warning(
-                    "Could not generate referral code during profile save: User object not available."
+                    "Could not generate referral code during profile save: User or username not available."
                 )
 
         # Ensure is_staff is True for ADMIN and SUB_ADMIN roles

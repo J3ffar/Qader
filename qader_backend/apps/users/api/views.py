@@ -1,10 +1,10 @@
+from datetime import timedelta
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.password_validation import validate_password
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
+from django.utils import timezone
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
 from django.conf import settings
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
@@ -13,7 +13,11 @@ from django.db.utils import IntegrityError  # Import for specific exception hand
 from django.core.exceptions import (
     ValidationError as DjangoValidationError,
 )  # For model validation errors
-from apps.users.utils import send_password_reset_email
+from apps.users.utils import (
+    get_user_from_uidb64,
+    send_confirmation_email,
+    send_password_reset_email,
+)
 
 from rest_framework import generics, status, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -45,7 +49,8 @@ from apps.users.api.permissions import (
 from .serializers import (
     ApplySerialCodeSerializer,
     AuthUserResponseSerializer,
-    RegisterSerializer,
+    CompleteProfileSerializer,
+    InitialSignupSerializer,
     SubscriptionDetailSerializer,
     SubscriptionPlanSerializer,
     UserProfileSerializer,
@@ -235,72 +240,215 @@ class LogoutView(views.APIView):
 
 @extend_schema(
     tags=["Authentication"],
-    summary="Register New Student User",
-    description="Creates a new student user, activates subscription via serial code, creates profile, applies referral if provided, and returns JWT tokens.",
-    request=RegisterSerializer,
+    summary="Initial User Signup (Stage 1)",
+    description="Registers a new user with email, full name, and password. Creates an inactive user account and sends a confirmation email.",
+    request=InitialSignupSerializer,
     responses={
         status.HTTP_201_CREATED: OpenApiResponse(
-            response=serializers.Serializer,  # Structure defined in example
-            description="User registered successfully.",
+            description="Registration initiated. Confirmation email sent.",
             examples=[
                 OpenApiExample(
-                    "Registration Success",
-                    summary="Successful registration response",
-                    description="Returns access/refresh tokens and nested user object.",
+                    "Success",
                     value={
-                        "access": "eyJhbGciOiJIUzI1NiIsIn...",
-                        "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
-                        "user": {  # Matches AuthUserResponseSerializer structure
-                            "id": 16,
-                            "username": "new_student",
-                            "email": "new@example.com",
-                            "full_name": "New Student Name",
-                            "preferred_name": "Newbie",
-                            "role": "student",
-                            "subscription": {
-                                "is_active": True,
-                                "expires_at": "2025-01-15T12:00:00Z",  # Example expiry
-                                "serial_code": "QADER-NEWREG-456",  # Example code used
-                            },
-                            "profile_picture_url": None,
-                            "level_determined": False,  # Starts as false
-                        },
+                        "detail": "Confirmation email sent. Please check your inbox."
                     },
-                    response_only=True,
                 )
             ],
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
-            description="Bad Request: Validation errors (e.g., duplicate username/email, invalid serial/referral code, password mismatch)."
+            description="Bad Request: Validation errors (e.g., duplicate email, password mismatch/policy violation)."
         ),
         status.HTTP_500_INTERNAL_SERVER_ERROR: OpenApiResponse(
-            description="Internal Server Error: Unexpected issue during registration process."
+            description="Internal Server Error: Failed to send confirmation email or other unexpected issue."
         ),
     },
 )
-class RegisterView(generics.CreateAPIView):
-    """Handles new user registration, profile creation, subscription activation, and returns tokens."""
+class InitialSignupView(generics.CreateAPIView):
+    """Handles Stage 1 of user registration."""
 
     queryset = User.objects.all()
     permission_classes = [AllowAny]
-    serializer_class = RegisterSerializer
+    serializer_class = InitialSignupSerializer
+
+    def perform_create(self, serializer):
+        """Creates inactive user and triggers confirmation email."""
+        try:
+            user = serializer.save()  # Creates inactive user, sets profile.full_name
+
+            # Send confirmation email
+            email_sent = send_confirmation_email(user, request=self.request)
+            if not email_sent:
+                # Although user is created, the process failed from user perspective
+                logger.error(
+                    f"Failed to send confirmation email to {user.email} during signup."
+                )
+                # Option 1: Delete the created user (rollback?) - complicates transaction
+                # Option 2: Leave user inactive, return error. Needs manual resend?
+                # Let's return an error indicating email failure.
+                # Raising validation error here feels wrong as user *was* saved.
+                # We'll let the response handling below indicate failure.
+                raise Exception(
+                    "Failed to send confirmation email."
+                )  # Will be caught below
+
+            logger.info(
+                f"Initial signup successful for {user.email}. Confirmation email triggered."
+            )
+            # Don't return user data here, just confirmation message.
+        except Exception as e:
+            # Catch errors from serializer.save() or email sending
+            logger.exception(
+                f"Error during perform_create in InitialSignupView for {serializer.validated_data.get('email')}: {e}"
+            )
+            # Re-raise to be handled by DRF exception handler or custom handling in create()
+            raise e
 
     def create(self, request: Request, *args, **kwargs) -> Response:
         serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
-            # serializer.save() handles the atomic transaction for User, Profile, SerialCode, Subscription
-            user = serializer.save()
-            profile = (
-                user.profile
-            )  # Profile is guaranteed to exist after serializer.save()
+            self.perform_create(serializer)  # Calls save() and sends email
+            return Response(
+                {"detail": _("Confirmation email sent. Please check your inbox.")},
+                status=status.HTTP_201_CREATED,
+            )
+        except DRFValidationError as e:
+            logger.warning(f"Initial signup validation failed: {e.detail}")
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            # Catch error from perform_create (e.g., email send failure)
+            logger.exception(
+                f"Initial signup failed after validation for {request.data.get('email')}: {e}"
+            )
+            # Determine appropriate response based on error
+            if "Failed to send confirmation email" in str(e):
+                return Response(
+                    {
+                        "detail": _(
+                            "Account created but failed to send confirmation email. Please contact support."
+                        )
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,  # Or 400 if considered client issue?
+                )
+            return Response(
+                {"detail": _("An unexpected error occurred during registration.")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-            # Generate JWT tokens for the new user
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Confirm Email Address (Stage 2)",
+    description="Confirms the user's email address using the link sent. Activates the account, generates JWT tokens, and indicates if profile completion is needed.",
+    parameters=[
+        # These are part of the URL path, not query params
+        # OpenApiParameter("uidb64", OpenApiTypes.STR, OpenApiParameter.PATH, required=True, description="User ID encoded in base64."),
+        # OpenApiParameter("token", OpenApiTypes.STR, OpenApiParameter.PATH, required=True, description="Password reset/confirmation token."),
+    ],
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=AuthUserResponseSerializer,  # Reuse the login response structure
+            description="Email confirmed successfully. Returns JWT tokens and user profile status.",
+            examples=[
+                OpenApiExample(
+                    "Confirmation Success (Profile Complete)",
+                    value={
+                        "access": "eyJhbGciOiJIUzI1NiIsIn...",
+                        "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
+                        "user": {
+                            "id": 1,
+                            "username": "test@example.com",
+                            "email": "test@example.com",
+                            "full_name": "Test User",
+                            "preferred_name": None,
+                            "role": "student",
+                            "subscription": {
+                                "is_active": True,
+                                "expires_at": "2024-12-31T23:59:59Z",
+                                "serial_code": "TRIAL",
+                            },
+                            "profile_picture_url": None,
+                            "level_determined": False,
+                            "profile_complete": True,
+                        },
+                    },
+                ),
+                OpenApiExample(
+                    "Confirmation Success (Profile Incomplete)",
+                    value={
+                        "access": "eyJhbGciOiJIUzI1NiIsIn...",
+                        "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
+                        "user": {
+                            "id": 2,
+                            "username": "new@example.com",
+                            "email": "new@example.com",
+                            "full_name": "New User",
+                            "preferred_name": None,
+                            "role": "student",
+                            "subscription": {
+                                "is_active": False,
+                                "expires_at": None,
+                                "serial_code": None,
+                            },
+                            "profile_picture_url": None,
+                            "level_determined": False,
+                            "profile_complete": False,  # Key flag
+                        },
+                    },
+                ),
+            ],
+        ),
+        status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+            description="Bad Request: Invalid or expired confirmation link/token."
+        ),
+        status.HTTP_404_NOT_FOUND: OpenApiResponse(
+            description="Not Found: User associated with the link not found."
+        ),
+    },
+)
+class ConfirmEmailView(views.APIView):
+    """Handles email confirmation link click."""
+
+    permission_classes = [AllowAny]
+
+    @transaction.atomic
+    def get(
+        self, request: Request, uidb64: str, token: str, *args, **kwargs
+    ) -> Response:
+        user = get_user_from_uidb64(uidb64)  # Util function fetches user by pk
+
+        if user is None:
+            logger.warning(
+                f"Email confirmation failed: User not found for uidb64 {uidb64}"
+            )
+            return Response(
+                {"detail": _("Invalid confirmation link.")},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if user.is_active:
+            logger.warning(
+                f"Email confirmation attempt for already active user: {user.email}"
+            )
+            # Optional: Re-issue tokens if they are already active? Or just say already confirmed?
+            # Let's treat it as potentially needing login tokens again.
+            # return Response({"detail": _("Email address already confirmed.")}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check the token using the default generator
+        if default_token_generator.check_token(user, token):
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+            logger.info(
+                f"User {user.email} successfully activated via email confirmation."
+            )
+
+            # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
 
-            # Serialize the user/profile data for the response using AuthUserResponseSerializer
+            # Get profile and check completion status
+            profile = user.profile  # Assumes profile exists via signal
             context = {"request": request}
             user_data_serializer = AuthUserResponseSerializer(profile, context=context)
 
@@ -309,52 +457,254 @@ class RegisterView(generics.CreateAPIView):
                 "access": access_token,
                 "refresh": refresh_token,
             }
-            logger.info(
-                f"User '{user.username}' (ID: {user.id}) registered successfully and tokens generated."
-            )
-            return Response(response_data, status=status.HTTP_201_CREATED)
-
-        except DRFValidationError as e:
-            # Handle validation errors raised by the serializer (including custom validation)
+            return Response(response_data, status=status.HTTP_200_OK)
+        else:
             logger.warning(
-                f"Registration validation failed for {request.data.get('username', 'N/A')}: {e.detail}"
-            )
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
-        except IntegrityError as e:
-            # Catch specific database integrity errors (e.g., unique constraints missed by validation)
-            logger.error(
-                f"Database integrity error during registration save for {request.data.get('username', 'N/A')}: {e}"
+                f"Email confirmation failed: Invalid token for user {user.email} (uidb64: {uidb64})"
             )
             return Response(
-                {
-                    "detail": _(
-                        "Registration failed due to a data conflict. Please check your username and email."
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST,  # Treat as bad request from user perspective
-            )
-        except SerialCode.DoesNotExist:
-            # Catch if serial code became invalid between validation and transaction lock
-            logger.error(
-                f"Serial code became invalid during registration transaction for {request.data.get('username')}."
-            )
-            return Response(
-                {
-                    "serial_code": [
-                        _(
-                            "Serial code became invalid during registration process. Please try again."
-                        )
-                    ]
-                },
+                {"detail": _("Invalid or expired confirmation link.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except Exception as e:
-            # Catch any other unexpected errors during the creation process
-            logger.exception(
-                f"Unexpected error during registration finalization for {request.data.get('username', 'N/A')}: {e}"
+
+
+@extend_schema(
+    tags=["User Profile"],
+    summary="Complete User Profile (Post-Confirmation)",
+    description=(
+        "Allows an authenticated user (whose profile is marked incomplete) to submit missing details "
+        "(`gender`, `grade`, `has_taken_qiyas_before`, and optionally `preferred_name`, `profile_picture`, `serial_code`, `referral_code_used`). "
+        "Activates subscription via `serial_code` or grants a 1-day trial if no code is provided and no active subscription exists. "
+        "Applies referral bonus if `referral_code_used` is valid. Uses `multipart/form-data` if `profile_picture` is included."
+    ),
+    request=CompleteProfileSerializer,
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=UserProfileSerializer,  # Return full profile on success
+            description="Profile completed and subscription activated/trial granted successfully.",
+        ),
+        status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+            description="Bad Request: Validation errors (missing required fields, invalid serial/referral code, invalid image)."
+        ),
+        status.HTTP_401_UNAUTHORIZED: OpenApiResponse(
+            description="Authentication required."
+        ),
+        status.HTTP_403_FORBIDDEN: OpenApiResponse(
+            description="Forbidden: Profile might already be complete or other permission issue."
+        ),
+        status.HTTP_404_NOT_FOUND: OpenApiResponse(
+            description="User profile not found (data integrity issue)."
+        ),
+        status.HTTP_500_INTERNAL_SERVER_ERROR: OpenApiResponse(
+            description="Internal Server Error: Issue during subscription/referral processing."
+        ),
+    },
+)
+class CompleteProfileView(generics.UpdateAPIView):
+    """Handles PATCH request to complete the user profile."""
+
+    serializer_class = CompleteProfileSerializer
+    permission_classes = [IsAuthenticated]  # Must be logged in
+    parser_classes = [JSONParser, MultiPartParser, FormParser]  # Handle image upload
+
+    def get_object(self) -> UserProfile:
+        """Return the profile of the current user."""
+        try:
+            profile = self.request.user.profile
+            # Optional: Add check if profile is already complete?
+            # if profile.is_profile_complete:
+            #     raise PermissionDenied(_("Profile is already complete."))
+            return profile
+        except UserProfile.DoesNotExist:
+            logger.error(
+                f"CRITICAL: UserProfile.DoesNotExist for authenticated user '{self.request.user.username}'"
             )
+            raise Http404(_("User profile not found."))
+
+    @transaction.atomic  # Crucial for atomicity
+    def perform_update(self, serializer: CompleteProfileSerializer):
+        """Saves profile, handles subscription, referral, and old picture deletion."""
+        profile: UserProfile = self.get_object()
+        user: User = profile.user
+        validated_data = serializer.validated_data
+
+        # Extract optional codes before saving profile data
+        serial_code_obj: Optional[SerialCode] = validated_data.get(
+            "serial_code"
+        )  # Validated instance or None
+        referring_user: Optional[User] = validated_data.get(
+            "referral_code_used"
+        )  # Validated instance or None
+
+        # Handle profile picture deletion logic (similar to UserProfileView)
+        new_picture_data = validated_data.get("profile_picture", "NOT_PRESENT")
+        new_picture_provided = new_picture_data != "NOT_PRESENT"
+        old_picture_instance = (
+            profile.profile_picture if profile.profile_picture else None
+        )
+
+        # Save the profile data using the serializer instance
+        # This updates gender, grade, etc.
+        instance: UserProfile = (
+            serializer.save()
+        )  # serializer is already initialized with instance
+
+        # --- Subscription Logic ---
+        subscription_updated = False
+        if serial_code_obj:
+            # Re-fetch with lock inside transaction
+            try:
+                code_to_use = SerialCode.objects.select_for_update().get(
+                    pk=serial_code_obj.pk, is_active=True, is_used=False
+                )
+                if code_to_use.mark_used(user):  # Mark used *before* applying
+                    instance.apply_subscription(
+                        code_to_use
+                    )  # Prepare expiry date changes
+                    instance.save(
+                        update_fields=[
+                            "subscription_expires_at",
+                            "serial_code_used",
+                            "updated_at",
+                        ]
+                    )
+                    subscription_updated = True
+                    logger.info(
+                        f"User {user.username} completed profile and applied serial code {code_to_use.code}"
+                    )
+                else:
+                    # Should not happen if lock works, but handle defensively
+                    logger.error(
+                        f"Failed to mark serial code {code_to_use.code} used during profile completion for {user.username}"
+                    )
+                    raise DRFValidationError(
+                        {
+                            "serial_code": [
+                                _("Failed to process serial code. Please try again.")
+                            ]
+                        }
+                    )
+            except SerialCode.DoesNotExist:
+                logger.warning(
+                    f"Serial code {serial_code_obj.code} became invalid during profile completion transaction for {user.username}"
+                )
+                raise DRFValidationError(
+                    {
+                        "serial_code": [
+                            _("Serial code became invalid during processing.")
+                        ]
+                    }
+                )
+
+        # Grant trial ONLY if no serial code was successfully applied AND user isn't already subscribed
+        if not subscription_updated and not instance.is_subscribed:
+            if instance.grant_trial_subscription(
+                duration_days=1
+            ):  # Prepare expiry date changes
+                instance.save(
+                    update_fields=[
+                        "subscription_expires_at",
+                        "serial_code_used",
+                        "updated_at",
+                    ]
+                )
+                subscription_updated = True
+                logger.info(
+                    f"User {user.username} completed profile and received 1-day trial."
+                )
+            else:
+                # grant_trial_subscription failed (should only happen on exception)
+                logger.error(
+                    f"Failed to grant trial subscription during profile completion for {user.username}"
+                )
+                # Raise an error? Or just log and continue? Let's raise.
+                raise Exception("Failed to grant trial subscription.")
+
+        # --- Referral Logic ---
+        if referring_user:
+            # Ensure the referred_by field is set correctly on the profile
+            if instance.referred_by != referring_user:
+                instance.referred_by = referring_user
+                instance.save(update_fields=["referred_by", "updated_at"])
+                logger.info(
+                    f"User {user.username} completed profile using referral code from {referring_user.username}"
+                )
+
+                # Apply bonus to referrer (example: 3 days) - MAKE THIS CONFIGURABLE
+                try:
+                    referrer_profile = referring_user.profile
+                    days_to_add = getattr(settings, "REFERRAL_BONUS_DAYS", 3)
+                    if days_to_add > 0:
+                        # Use apply_subscription logic or similar for referrer? Simpler: direct update.
+                        current_expiry = (
+                            referrer_profile.subscription_expires_at or timezone.now()
+                        )
+                        # Ensure expiry is in the future before adding days relative to it
+                        start_date = max(current_expiry, timezone.now())
+                        new_expiry = start_date + timedelta(days=days_to_add)
+
+                        referrer_profile.subscription_expires_at = new_expiry
+                        referrer_profile.save(
+                            update_fields=["subscription_expires_at", "updated_at"]
+                        )
+                        logger.info(
+                            f"Granted {days_to_add} referral bonus days to user {referring_user.username}"
+                        )
+                        # TODO: Add notification/point system integration here?
+                except UserProfile.DoesNotExist:
+                    logger.error(
+                        f"Could not find profile for referring user {referring_user.username} to grant bonus."
+                    )
+                except Exception as e:
+                    logger.exception(
+                        f"Error granting referral bonus to {referring_user.username}: {e}"
+                    )
+                    # Don't fail the whole request for bonus failure, just log.
+
+        # --- Delete old picture ---
+        if old_picture_instance and new_picture_provided:
+            if instance.profile_picture != old_picture_instance:
+                try:
+                    old_picture_instance.delete(save=False)
+                    logger.info(f"Deleted old profile picture for user {user.username}")
+                except Exception as e:
+                    logger.warning(
+                        f"Could not delete old profile picture for user {user.username}: {e}"
+                    )
+
+        logger.info(f"Profile completed successfully for user {user.username}")
+
+    # Override update to return full UserProfileSerializer data
+    def update(self, request: Request, *args, **kwargs) -> Response:
+        partial = kwargs.pop("partial", True)  # Use partial=True for PATCH
+        instance = self.get_object()
+        # Use CompleteProfileSerializer for validation
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)  # Handles save, subscription, referral
+
+            # Refresh instance to get all latest data after updates
+            instance.refresh_from_db()
+
+            # Return response using the full UserProfileSerializer
+            context = self.get_serializer_context()
+            response_serializer = UserProfileSerializer(instance, context=context)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+        except DRFValidationError as e:
+            logger.warning(
+                f"Profile completion validation failed for user '{request.user.username}': {e.detail}"
+            )
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except (DatabaseError, IntegrityError, Exception) as e:
+            # Catch potential DB errors during transaction or other unexpected issues
+            logger.exception(
+                f"Error during profile completion update for user '{request.user.username}': {e}"
+            )
+            # Check specific errors if needed (e.g., trial grant failure)
             return Response(
-                {"detail": _("An unexpected error occurred during registration.")},
+                {"detail": _("An error occurred while completing the profile.")},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
