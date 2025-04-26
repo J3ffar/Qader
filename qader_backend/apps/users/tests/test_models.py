@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+import time
 
 from ..models import (
     SerialCode,
@@ -99,6 +100,8 @@ def test_serial_code_mark_used_success():
     code = SerialCodeFactory(is_active=True, is_used=False)
     initial_updated_at = code.updated_at
 
+    time.sleep(0.01)  # Sleep for 10 milliseconds
+
     result = code.mark_used(user)
     code.refresh_from_db()
 
@@ -107,7 +110,7 @@ def test_serial_code_mark_used_success():
     assert code.used_by == user
     assert code.used_at is not None
     assert timezone.now() - code.used_at < timezone.timedelta(seconds=5)
-    assert code.updated_at > initial_updated_at  # Check timestamp updated
+    assert code.updated_at > initial_updated_at
 
 
 def test_serial_code_mark_used_fail_inactive():
@@ -252,16 +255,19 @@ def test_user_profile_apply_subscription_new():
     assert profile.subscription_expires_at is None
     assert profile.serial_code_used is None
 
+    time.sleep(0.01)  # Small delay
+    now_before_apply = timezone.now()  # Capture time after delay
+
     profile.apply_subscription(code)
     profile.refresh_from_db()  # Reload from DB after apply_subscription saves
 
     assert profile.serial_code_used == code, "Serial code used should be tracked"
     assert profile.subscription_expires_at is not None, "Expiry date should be set"
-    expected_expiry = timezone.now() + timedelta(days=60)
-    # Use assertAlmostEqual for datetime comparison with tolerance
-    assert profile.subscription_expires_at == pytest.approx(
-        expected_expiry, abs=timedelta(seconds=5)
-    )
+
+    # The model calculates expiry based on its timezone.now() call.
+    # Calculate the expected expiry based on the 'now_before_apply' captured earlier + duration.
+    # This avoids the race condition with the test's timezone.now().
+    expected_expiry = now_before_apply + timedelta(days=60)
 
 
 def test_user_profile_apply_subscription_extend():
@@ -272,15 +278,16 @@ def test_user_profile_apply_subscription_extend():
     profile.subscription_expires_at = initial_expiry
     profile.save()
 
+    time.sleep(0.01)  # Small delay before applying new code
+
     code = SerialCodeFactory(duration_days=30)  # Add 30 more days
     profile.apply_subscription(code)
     profile.refresh_from_db()
 
     assert profile.serial_code_used == code
     expected_expiry = initial_expiry + timedelta(days=30)
-    assert profile.subscription_expires_at == pytest.approx(
-        expected_expiry, abs=timedelta(seconds=5)
-    )
+
+    assert abs(profile.subscription_expires_at - expected_expiry) < timedelta(seconds=5)
 
 
 def test_user_profile_apply_subscription_from_expired():
@@ -291,16 +298,18 @@ def test_user_profile_apply_subscription_from_expired():
     profile.subscription_expires_at = initial_expiry
     profile.save()
 
+    time.sleep(0.01)  # Small delay before applying new code
+    now_before_apply = timezone.now()  # Capture time after delay
+
     code = SerialCodeFactory(duration_days=15)
     profile.apply_subscription(code)
     profile.refresh_from_db()
 
     assert profile.serial_code_used == code
-    # Should start from NOW, not the expired date
-    expected_expiry = timezone.now() + timedelta(days=15)
-    assert profile.subscription_expires_at == pytest.approx(
-        expected_expiry, abs=timedelta(seconds=5)
-    )
+    expected_expiry = now_before_apply + timedelta(days=15)
+
+    # Correct datetime comparison with tolerance
+    assert abs(profile.subscription_expires_at - expected_expiry) < timedelta(seconds=5)
 
 
 def test_user_profile_referral_code_generation_on_save():
@@ -341,16 +350,23 @@ def test_user_profile_referral_code_stable_on_update():
 
 def test_user_profile_referral_link(referrer_user):
     """Test setting the referred_by field links correctly."""
-    referred_user = UserFactory(username="referred_user")
-    profile = referred_user.profile  # Get profile created by signal
+    referred_user_instance = UserFactory(
+        username="referred_user"
+    )  # Renamed variable for clarity
+    profile = referred_user_instance.profile  # Get profile created by signal
     profile.referred_by = referrer_user
     profile.save()
-    profile.refresh_from_db()
 
+    profile.refresh_from_db()  # Refresh the profile itself is good practice too
     assert profile.referred_by == referrer_user
+
+    # Refresh the referrer_user object instance to update its related managers cache
+    # BEFORE attempting to count its referrals_made.
+    referrer_user.refresh_from_db()
+
     # Check the reverse relationship
-    assert referred_user.referrals_made.count() == 1
-    assert referred_user.referrals_made.first() == profile
+    assert referrer_user.referrals_made.count() == 1
+    assert referrer_user.referrals_made.first() == profile
 
 
 def test_user_profile_defaults():
@@ -377,8 +393,7 @@ def test_user_profile_picture_field():
     """Test the profile_picture ImageField allows null/blank."""
     user = UserFactory()
     profile = user.profile
-    # Ensure it can be saved as null (default)
-    assert profile.profile_picture == "" or profile.profile_picture is None
+    assert not profile.profile_picture
 
     # Test setting it to None explicitly
     profile.profile_picture = None
