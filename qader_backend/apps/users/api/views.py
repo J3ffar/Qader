@@ -13,6 +13,7 @@ from django.db.utils import IntegrityError  # Import for specific exception hand
 from django.core.exceptions import (
     ValidationError as DjangoValidationError,
 )  # For model validation errors
+from apps.users.utils import send_password_reset_email
 
 from rest_framework import generics, status, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -595,7 +596,7 @@ class PasswordChangeView(generics.GenericAPIView):
                 OpenApiExample(
                     "Success",
                     value={
-                        "detail": "If an account with this identifier exists, a password reset link has been sent."
+                        "detail": "If an active account with that identifier exists, a password reset link has been sent."
                     },
                 )
             ],
@@ -606,7 +607,7 @@ class PasswordChangeView(generics.GenericAPIView):
     },
 )
 class PasswordResetRequestView(generics.GenericAPIView):
-    """Handles requests to initiate the password reset flow."""
+    """Handles requests to initiate the password reset flow using the utility function."""
 
     permission_classes = [AllowAny]
     serializer_class = PasswordResetRequestSerializer
@@ -619,73 +620,17 @@ class PasswordResetRequestView(generics.GenericAPIView):
             user: Optional[User] = serializer.validated_data.get("identifier")
 
             if user:
-                # Proceed with sending the email only if user is found and active
-                try:
-                    token = default_token_generator.make_token(user)
-                    uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-
-                    # Construct the reset link using frontend URL from settings/env
-                    frontend_reset_url_template = getattr(
-                        settings, "PASSWORD_RESET_CONFIRM_URL_TEMPLATE", None
-                    )
-                    if not frontend_reset_url_template:
-                        logger.error(
-                            "PASSWORD_RESET_CONFIRM_URL_TEMPLATE setting is not configured."
-                        )
-                        # Still return 200 OK to user, but log the config error
-                        return Response(
-                            {
-                                "detail": _(
-                                    "Password reset request received, but system configuration error occurred."
-                                )
-                            },
-                            status=status.HTTP_200_OK,  # Don't reveal server error
-                        )
-
-                    # Ensure template includes placeholders for uid and token
-                    reset_link = frontend_reset_url_template.format(
-                        uidb64=uidb64, token=token
-                    )
-
-                    context = {
-                        "email": user.email,
-                        "username": user.username,
-                        "reset_link": reset_link,
-                        "site_name": getattr(settings, "SITE_NAME", "Qader Platform"),
-                        "user": user,
-                    }
-                    subject = render_to_string(
-                        "emails/password_reset_subject.txt", context
-                    ).strip()
-                    html_body = render_to_string(
-                        "emails/password_reset_body.html", context
-                    )
-                    text_body = render_to_string(
-                        "emails/password_reset_body.txt", context
-                    )
-
-                    msg = EmailMultiAlternatives(
-                        subject, text_body, settings.DEFAULT_FROM_EMAIL, [user.email]
-                    )
-                    msg.attach_alternative(html_body, "text/html")
-                    msg.send()
-                    logger.info(
-                        f"Password reset email sent successfully to {user.email} for user '{user.username}'"
-                    )
-
-                except Exception as e:
-                    # Log email sending failure but still return generic success to user
-                    logger.exception(
-                        f"Error sending password reset email to {user.email if user else 'unknown'}: {e}"
-                    )
+                # Call the utility function to handle the email sending logic
+                send_password_reset_email(user)
 
             else:
-                # User not found or inactive, log if desired but don't reveal to requester
+                # User not found or inactive. Log this internally but don't reveal to the client.
                 logger.info(
-                    f"Password reset requested for unknown or inactive identifier: {request.data.get('identifier')}"
+                    f"Password reset requested for unknown or inactive identifier: {request.data.get('identifier', 'N/A')}"
                 )
 
-            # Always return a generic success message for security
+            # Always return a generic success message for security,
+            # preventing attackers from discovering valid users.
             return Response(
                 {
                     "detail": _(
@@ -695,8 +640,21 @@ class PasswordResetRequestView(generics.GenericAPIView):
                 status=status.HTTP_200_OK,
             )
         except DRFValidationError as e:
-            # Handle validation errors from the serializer itself (e.g., field missing)
+            # Handle validation errors from the serializer itself (e.g., field missing, invalid format)
+            # This is a 400 Bad Request scenario.
+            logger.warning(f"Password reset request validation failed: {e.detail}")
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            # Catch any other unexpected errors during the *view's* execution
+            # (e.g., problems accessing settings, although utility should handle mail errors)
+            logger.exception(
+                f"Unexpected error during password reset request for identifier '{request.data.get('identifier', 'N/A')}': {e}"
+            )
+            # Return a 500 but with a generic message if possible
+            return Response(
+                {"detail": _("An unexpected error occurred.")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 @extend_schema(
