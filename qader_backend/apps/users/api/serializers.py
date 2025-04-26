@@ -275,6 +275,49 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
             # and their read-only status is defined above.
         )
 
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensure all required fields for completion are provided if profile is not yet complete."""
+        instance: Optional[UserProfile] = getattr(self, "instance", None)
+
+        # Only run this check if we have an instance (i.e., during update)
+        # and the profile is not already considered complete based on its current state
+        # NOTE: We check the instance *before* potential updates from attrs
+        if instance and not instance.is_profile_complete:
+            # Check if required fields are present in the incoming data (attrs) OR already exist on the instance
+            required_completion_fields = ["gender", "grade", "has_taken_qiyas_before"]
+            missing_fields = []
+
+            for field_name in required_completion_fields:
+                # Check if field is in incoming data OR already has a valid value on the instance
+                is_present_in_attrs = field_name in attrs
+                instance_value = getattr(instance, field_name, None)
+
+                # Special check for boolean field (None means not set)
+                if field_name == "has_taken_qiyas_before":
+                    has_instance_value = instance_value is not None
+                    is_present_in_attrs = (
+                        attrs.get(field_name) is not None
+                    )  # Check bool presence
+                else:  # For CharField, ChoiceField etc.
+                    has_instance_value = bool(
+                        instance_value
+                    )  # Check if not None or empty string
+
+                if not is_present_in_attrs and not has_instance_value:
+                    missing_fields.append(field_name)
+
+            if missing_fields:
+                errors = {
+                    field: [_("This field is required to complete your profile.")]
+                    for field in missing_fields
+                }
+                raise serializers.ValidationError(errors)
+
+        # Validate referral code against self if needed (though should be handled by validate_referral_code_used)
+        # ...
+
+        return attrs
+
     def get_profile_picture_url(self, profile: UserProfile) -> Optional[str]:
         request = self.context.get("request")
         if profile.profile_picture and hasattr(profile.profile_picture, "url"):

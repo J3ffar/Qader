@@ -414,13 +414,13 @@ class UserProfile(models.Model):
             new_expiry_date = start_date + timedelta(days=serial_code.duration_days)
             self.subscription_expires_at = new_expiry_date
             self.serial_code_used = serial_code
-            # self.save(
-            #     update_fields=[
-            #         "subscription_expires_at",
-            #         "serial_code_used",
-            #         "updated_at",
-            #     ]
-            # )
+            self.save(
+                update_fields=[
+                    "subscription_expires_at",
+                    "serial_code_used",
+                    "updated_at",
+                ]
+            )
             logger.info(
                 f"Subscription for user {self.user.username} updated. Expires: {new_expiry_date}. Using code: {serial_code.code}"
             )

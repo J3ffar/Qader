@@ -2,11 +2,20 @@ import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, date, time
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+
 
 # Use the specific factory path
 from apps.users.tests.factories import UserFactory, SerialCodeFactory
-from apps.users.models import SerialCode, UserProfile  # Direct import is fine here
+from apps.users.models import (
+    SerialCode,
+    UserProfile,
+    GenderChoices,
+    RoleChoices,
+)  # Direct import is fine here
 
 
 @pytest.fixture(scope="session")
@@ -25,86 +34,163 @@ def api_client() -> APIClient:
 
 
 @pytest.fixture
-def standard_user(db) -> User:  # Renamed from base_user for clarity
-    """Creates a standard, active user instance with a profile."""
-    user = UserFactory(username="standarduser")
-    # Ensure profile exists - factory or signal should handle, this is defensive
+def inactive_user(db) -> User:
+    """Creates an inactive user instance (e.g., after initial signup)."""
+    user = UserFactory(
+        username="inactive_user",
+        email="inactive@qader.test",
+        is_active=False,  # Explicitly inactive
+        profile_data={
+            "full_name": "Inactive User Test"
+        },  # Simulate initial signup data
+    )
+    # Signal should have created profile, this ensures it
     UserProfile.objects.get_or_create(user=user)
+    user.refresh_from_db()  # Ensure relations are loaded
+    return user
+
+
+@pytest.fixture
+def pending_profile_user(db) -> User:
+    """Creates an active user who has confirmed email but not completed profile."""
+    user = UserFactory(
+        username="pending_profile_user",
+        email="pending@qader.test",
+        is_active=True,  # Activated via confirmation
+        profile_data={
+            "full_name": "Pending Profile User",
+            # Ensure essential fields are missing
+            "gender": None,
+            "grade": None,
+            "has_taken_qiyas_before": None,
+        },
+    )
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    # Clear fields that might be set by factory defaults if necessary
+    profile.gender = None
+    profile.grade = None
+    profile.has_taken_qiyas_before = None
+    profile.save()
+    user.refresh_from_db()
+    assert not user.profile.is_profile_complete  # Verify state
+    return user
+
+
+@pytest.fixture
+def standard_user(db) -> User:  # Now represents a fully active, profile-complete user
+    """Creates a standard, active, profile-complete user instance."""
+    user = UserFactory(
+        username="standarduser",
+        email="standard@qader.test",
+        is_active=True,
+        profile_data={  # Add required profile fields
+            "full_name": "Standard User",
+            "gender": GenderChoices.MALE,
+            "grade": "Grade 12",
+            "has_taken_qiyas_before": False,
+        },
+    )
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile.gender = GenderChoices.MALE  # Ensure fields are set
+    profile.grade = "Grade 12"
+    profile.has_taken_qiyas_before = False
+    profile.save()
+    user.refresh_from_db()
+    assert user.profile.is_profile_complete  # Verify state
     return user
 
 
 @pytest.fixture
 def subscribed_user(db) -> User:
-    """Creates a distinct user with an active subscription."""
-    user = UserFactory(username="subscribed_user")
+    """Creates a distinct, active, profile-complete user with an active subscription."""
+    user = UserFactory(
+        username="subscribed_user",
+        email="subscribed@qader.test",
+        is_active=True,
+        profile_data={  # Add required profile fields
+            "full_name": "Subscribed User",
+            "gender": GenderChoices.FEMALE,
+            "grade": "University",
+            "has_taken_qiyas_before": True,
+        },
+    )
     profile, _ = UserProfile.objects.get_or_create(user=user)
+    # Ensure profile is complete
+    profile.gender = GenderChoices.FEMALE
+    profile.grade = "University"
+    profile.has_taken_qiyas_before = True
+    # Set subscription
     profile.subscription_expires_at = timezone.now() + timedelta(days=30)
-    profile.save(update_fields=["subscription_expires_at"])
-    user.profile = profile  # Attach profile for easier access if needed
-    return user
-
-
-@pytest.fixture
-def unsubscribed_user(db) -> User:
-    """Creates a distinct user with NO active subscription (or expired)."""
-    user = UserFactory(username="unsubscribed_user")
-    profile, _ = UserProfile.objects.get_or_create(user=user)
-    # Ensure subscription is not active
-    if (
-        profile.subscription_expires_at
-        and profile.subscription_expires_at > timezone.now()
-    ):
-        profile.subscription_expires_at = timezone.now() - timedelta(days=1)
-    elif profile.subscription_expires_at is None:
-        pass  # Already unsubscribed
-    else:  # In the past
-        pass
     profile.save()
-    user.profile = profile
+    user.refresh_from_db()
+    assert user.profile.is_profile_complete  # Verify state
+    assert user.profile.is_subscribed  # Verify state
     return user
+
+
+# Unsubscribed user is now effectively the same as standard_user unless explicitly given expired sub
+@pytest.fixture
+def unsubscribed_user(standard_user) -> User:
+    """Alias for standard_user, representing an active, complete but unsubscribed user."""
+    # Ensure subscription is not active (it shouldn't be by default for standard_user)
+    profile = standard_user.profile
+    if profile.is_subscribed:
+        profile.subscription_expires_at = timezone.now() - timedelta(days=1)
+        profile.save()
+        standard_user.refresh_from_db()
+    return standard_user
 
 
 @pytest.fixture
 def admin_user(db) -> User:
-    """Creates an admin user instance with is_staff=True, is_superuser=True, and a known password."""
-    admin_password = "testadminpassword123"  # Make slightly more complex
-    user = UserFactory(make_admin=True, username="admin_user", password=admin_password)
+    """Creates an admin user instance."""
+    user = UserFactory(make_admin=True, username="admin_user")
     # Profile role set via factory post-generation hook
-    user._test_admin_password = (
-        admin_password  # Attach password for admin_client fixture
-    )
+    # Ensure admin profile is also considered complete for consistency
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    if not profile.is_profile_complete:
+        profile.gender = GenderChoices.MALE  # Example completion data
+        profile.grade = "N/A"
+        profile.has_taken_qiyas_before = False
+        profile.role = RoleChoices.ADMIN  # Ensure role is admin
+        profile.save()
+    user.refresh_from_db()
     return user
 
 
 @pytest.fixture
-def referrer_user(db) -> User:
-    """Creates a standard user who can act as a referrer (has a profile and referral code)."""
-    user = UserFactory(username="referrer_user")
-    UserProfile.objects.get_or_create(
-        user=user
-    )  # Ensure profile and referral code exist
-    # Ensure referral code is generated
-    user.profile.save()
-    user.refresh_from_db()  # Reload profile with code
-    assert user.profile.referral_code is not None
-    return user
+def referrer_user(standard_user) -> User:
+    """Alias for standard_user, ensuring they have a referral code."""
+    # standard_user fixture already ensures profile + referral code exist
+    return standard_user
 
 
 # --- API Client Fixtures ---
 
 
 @pytest.fixture
-def subscribed_client(api_client: APIClient, subscribed_user: User) -> APIClient:
-    """Provides an API client authenticated as a subscribed user via token."""
-    api_client.force_authenticate(user=subscribed_user)
-    api_client.user = subscribed_user  # Attach user for convenience in tests
+def pending_profile_client(
+    api_client: APIClient, pending_profile_user: User
+) -> APIClient:
+    """Provides an API client authenticated as a user needing profile completion."""
+    api_client.force_authenticate(user=pending_profile_user)
+    api_client.user = pending_profile_user
     yield api_client
-    api_client.force_authenticate(user=None)  # Clean up authentication
+    api_client.force_authenticate(user=None)
+
+
+@pytest.fixture
+def subscribed_client(api_client: APIClient, subscribed_user: User) -> APIClient:
+    """Provides an API client authenticated as a subscribed user."""
+    api_client.force_authenticate(user=subscribed_user)
+    api_client.user = subscribed_user
+    yield api_client
+    api_client.force_authenticate(user=None)
 
 
 @pytest.fixture
 def authenticated_client(api_client: APIClient, unsubscribed_user: User) -> APIClient:
-    """Provides an API client authenticated as a standard, UNSUBSCRIBED user via token."""
+    """Provides an API client authenticated as a standard, unsubscribed user."""
     api_client.force_authenticate(user=unsubscribed_user)
     api_client.user = unsubscribed_user
     yield api_client
@@ -113,10 +199,11 @@ def authenticated_client(api_client: APIClient, unsubscribed_user: User) -> APIC
 
 @pytest.fixture
 def admin_client(db, api_client: APIClient, admin_user: User) -> APIClient:
-    """Provides an API client authenticated as an admin user via Django session (for Admin site tests)."""
+    """Provides an API client authenticated as an admin user via Django session."""
+    default_password = "defaultpassword"
     login_successful = api_client.login(
         username=admin_user.username,
-        password=admin_user._test_admin_password,
+        password=default_password,  # Use the known default
     )
     assert (
         login_successful
@@ -150,3 +237,11 @@ def used_serial_code(db, standard_user: User) -> SerialCode:
 def inactive_serial_code(db) -> SerialCode:
     """Provides an inactive, unused SerialCode instance."""
     return SerialCodeFactory(is_active=False, is_used=False)
+
+
+@pytest.fixture
+def confirmation_link_data(inactive_user):
+    """Generates uidb64 and token for email confirmation."""
+    token = default_token_generator.make_token(inactive_user)
+    uidb64 = urlsafe_base64_encode(force_bytes(inactive_user.pk))
+    return {"uidb64": uidb64, "token": token, "user": inactive_user}

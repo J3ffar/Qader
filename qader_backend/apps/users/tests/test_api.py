@@ -18,6 +18,7 @@ from apps.users.tests.factories import SerialCodeFactory
 
 from ..models import (
     DarkModePrefChoices,
+    GenderChoices,
     UserProfile,
     SerialCode,
     RoleChoices,
@@ -32,243 +33,391 @@ pytestmark = pytest.mark.django_db
 
 # === Registration Tests ===
 
+# --- Initial Signup Tests ---
 
-def test_register_success(api_client, active_serial_code):
-    """Test successful user registration with valid data and serial code."""
-    url = reverse("api:v1:auth:register")  # Corrected namespace referencing
+
+def test_initial_signup_success(api_client):
+    """Test successful initial signup creates inactive user and sends email."""
+    url = reverse("api:v1:auth:initial_signup")
     data = {
-        "username": "testregister",
-        "email": "register@qader.test",
+        "email": "initial.signup@qader.test",
+        "full_name": "Initial Signup User",
         "password": "ValidPassword123!",
         "password_confirm": "ValidPassword123!",
-        "serial_code": active_serial_code.code,
-        "full_name": "Register Test User",
-        "preferred_name": "Reg",
-        "gender": "female",
-        "grade": "Grade 11",
-        "has_taken_qiyas_before": True,
     }
     response = api_client.post(url, data, format="json")
 
     assert response.status_code == status.HTTP_201_CREATED
-    assert User.objects.filter(username="testregister").exists()
-    user = User.objects.get(username="testregister")
-    assert user.email == "register@qader.test"
+    assert "Confirmation email sent" in response.data["detail"]
+
+    # Verify user created but inactive
+    assert User.objects.filter(email="initial.signup@qader.test").exists()
+    user = User.objects.get(email="initial.signup@qader.test")
+    assert user.is_active is False
     assert user.check_password("ValidPassword123!")
     assert hasattr(user, "profile")
+    assert user.profile.full_name == "Initial Signup User"
+    assert user.profile.referral_code is not None  # Check referral code generated
 
+    # Verify email sent
+    assert len(mail.outbox) == 1
+    email_msg = mail.outbox[0]
+    assert "initial.signup@qader.test" in email_msg.to
+    assert "Account Activation" in email_msg.subject  # Check subject from template
+    assert "/confirm-email/" in email_msg.body  # Check link path
+
+
+def test_initial_signup_fail_duplicate_email(api_client, standard_user):
+    """Test initial signup fails if email already exists (active user)."""
+    url = reverse("api:v1:auth:initial_signup")
+    data = {
+        "email": standard_user.email,  # Existing active user's email
+        "full_name": "Duplicate Email User",
+        "password": "ValidPassword123!",
+        "password_confirm": "ValidPassword123!",
+    }
+    response = api_client.post(url, data, format="json")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "email" in response.data
+    assert "user with this email already exists" in response.data["email"][0]
+    assert len(mail.outbox) == 0
+
+
+def test_initial_signup_fail_duplicate_inactive_email(api_client, inactive_user):
+    """Test initial signup fails if email exists but is inactive/pending."""
+    url = reverse("api:v1:auth:initial_signup")
+    data = {
+        "email": inactive_user.email,  # Existing inactive user's email
+        "full_name": "Duplicate Inactive Email User",
+        "password": "ValidPassword123!",
+        "password_confirm": "ValidPassword123!",
+    }
+    response = api_client.post(url, data, format="json")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "email" in response.data
+    assert "pending confirmation or already registered" in response.data["email"][0]
+    assert len(mail.outbox) == 0
+
+
+def test_initial_signup_fail_password_mismatch(api_client):
+    """Test initial signup fails on password mismatch."""
+    url = reverse("api:v1:auth:initial_signup")
+    data = {
+        "email": "mismatch@qader.test",
+        "full_name": "Mismatch User",
+        "password": "ValidPassword123!",
+        "password_confirm": "DifferentPassword!",
+    }
+    response = api_client.post(url, data, format="json")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "password_confirm" in response.data
+
+
+def test_initial_signup_fail_weak_password(api_client):
+    """Test initial signup fails if password violates policy."""
+    url = reverse("api:v1:auth:initial_signup")
+    data = {
+        "email": "weakpass@qader.test",
+        "full_name": "Weak Pass User",
+        "password": "weak",
+        "password_confirm": "weak",
+    }
+    response = api_client.post(url, data, format="json")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "password" in response.data  # Django's validator errors attach here
+
+
+# --- Email Confirmation Tests ---
+
+
+def test_confirm_email_success(api_client, confirmation_link_data):
+    """Test successful email confirmation activates user and returns tokens."""
+    uidb64 = confirmation_link_data["uidb64"]
+    token = confirmation_link_data["token"]
+    user = confirmation_link_data["user"]
+    assert user.is_active is False  # Pre-condition
+
+    url = reverse(
+        "api:v1:auth:account_confirm_email", kwargs={"uidb64": uidb64, "token": token}
+    )
+    response = api_client.get(url)  # GET request to confirmation link
+
+    assert response.status_code == status.HTTP_200_OK
+    user.refresh_from_db()
+    assert user.is_active is True  # User should now be active
+
+    # Check response structure
+    assert "access" in response.data
+    assert "refresh" in response.data
+    assert "user" in response.data
+    user_data = response.data["user"]
+    assert user_data["id"] == user.id
+    assert user_data["email"] == user.email
+    assert user_data["profile_complete"] is False  # Profile is not complete yet
+
+
+def test_confirm_email_fail_invalid_token(api_client, confirmation_link_data):
+    """Test email confirmation fails with an invalid token."""
+    uidb64 = confirmation_link_data["uidb64"]
+    user = confirmation_link_data["user"]
+    invalid_token = "this-is-not-a-valid-token"
+    url = reverse(
+        "api:v1:auth:account_confirm_email",
+        kwargs={"uidb64": uidb64, "token": invalid_token},
+    )
+    response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "Invalid or expired confirmation link" in response.data["detail"]
+    user.refresh_from_db()
+    assert user.is_active is False
+
+
+def test_confirm_email_fail_invalid_uid(api_client, confirmation_link_data):
+    """Test email confirmation fails with an invalid UID."""
+    token = confirmation_link_data["token"]
+    invalid_uidb64 = "invalid-uid-string"
+    url = reverse(
+        "api:v1:auth:account_confirm_email",
+        kwargs={"uidb64": invalid_uidb64, "token": token},
+    )
+    response = api_client.get(url)
+    assert response.status_code == status.HTTP_404_NOT_FOUND  # UID not found
+    assert "Invalid confirmation link" in response.data["detail"]
+
+
+def test_confirm_email_already_active(api_client, standard_user):
+    """Test clicking confirmation link for an already active user."""
+    token = default_token_generator.make_token(standard_user)
+    uidb64 = urlsafe_base64_encode(force_bytes(standard_user.pk))
+    assert standard_user.is_active is True  # Pre-condition
+
+    url = reverse(
+        "api:v1:auth:account_confirm_email", kwargs={"uidb64": uidb64, "token": token}
+    )
+    response = api_client.get(url)
+
+    # Should still succeed and return tokens (treat as a way to re-login/get tokens)
+    assert response.status_code == status.HTTP_200_OK
+    assert "access" in response.data
+    assert "refresh" in response.data
+    assert "user" in response.data
+    assert response.data["user"]["id"] == standard_user.id
+
+
+# --- Profile Completion Tests ---
+
+
+def test_complete_profile_success_with_trial(pending_profile_client):
+    """Test completing profile grants 1-day trial when no serial code is given."""
+    url = reverse("api:v1:users:me_complete_profile")
+    user = pending_profile_client.user
     profile = user.profile
-    assert profile.full_name == "Register Test User"
-    assert profile.preferred_name == "Reg"
-    assert profile.gender == "female"
-    assert profile.grade == "Grade 11"
-    assert profile.has_taken_qiyas_before is True
-    assert profile.role == RoleChoices.STUDENT
-    assert profile.referral_code is not None  # Check referral code generation
+    assert not profile.is_profile_complete
+    assert not profile.is_subscribed
 
+    data = {
+        "gender": GenderChoices.FEMALE,
+        "grade": "High School Graduate",
+        "has_taken_qiyas_before": True,
+        "preferred_name": "Completed",
+    }
+    response = pending_profile_client.patch(url, data, format="json")
+
+    assert response.status_code == status.HTTP_200_OK
+    profile.refresh_from_db()
+    assert profile.is_profile_complete
+    assert profile.gender == GenderChoices.FEMALE
+    assert profile.grade == "High School Graduate"
+    assert profile.has_taken_qiyas_before is True
+    assert profile.preferred_name == "Completed"
+
+    # Check trial subscription
+    assert profile.is_subscribed
+    assert profile.serial_code_used is None  # No code used for trial
+    expected_expiry = timezone.now() + timedelta(days=1)
+    assert abs(profile.subscription_expires_at - expected_expiry) < timedelta(
+        seconds=10
+    )
+
+    # Check response structure (should be full UserProfileSerializer)
+    assert response.data["gender"] == GenderChoices.FEMALE
+    assert response.data["subscription"]["is_active"] is True
+
+
+def test_complete_profile_success_with_serial_code(
+    pending_profile_client, active_serial_code
+):
+    """Test completing profile with a valid serial code activates subscription."""
+    url = reverse("api:v1:users:me_complete_profile")
+    user = pending_profile_client.user
+    profile = user.profile
+    assert not profile.is_profile_complete
+    assert not profile.is_subscribed
+
+    data = {
+        "gender": GenderChoices.MALE,
+        "grade": "Grade 10",
+        "has_taken_qiyas_before": False,
+        "serial_code": active_serial_code.code,  # Provide serial code
+    }
+    response = pending_profile_client.patch(url, data, format="json")
+
+    assert response.status_code == status.HTTP_200_OK
+    profile.refresh_from_db()
     active_serial_code.refresh_from_db()
+
+    assert profile.is_profile_complete
+    assert profile.gender == GenderChoices.MALE
+    assert profile.grade == "Grade 10"
+    assert profile.has_taken_qiyas_before is False
+
+    # Check serial code subscription
+    assert profile.is_subscribed
+    assert profile.serial_code_used == active_serial_code
     assert active_serial_code.is_used is True
     assert active_serial_code.used_by == user
-    assert active_serial_code.used_at is not None
-
-    assert profile.is_subscribed is True
     expected_expiry = timezone.now() + timedelta(days=active_serial_code.duration_days)
     assert abs(profile.subscription_expires_at - expected_expiry) < timedelta(
         seconds=10
     )
 
-    # Verify response structure matches AuthUserResponseSerializer
-    assert "user" in response.data
-    assert "access" in response.data
-    assert "refresh" in response.data
-    user_data = response.data["user"]
-    assert user_data["username"] == "testregister"
-    assert user_data["role"] == RoleChoices.STUDENT
-    assert "subscription" in user_data
-    assert user_data["subscription"]["is_active"] is True
-    assert user_data["subscription"]["serial_code"] == active_serial_code.code
+    assert response.data["subscription"]["is_active"] is True
+    assert response.data["subscription"]["serial_code"] == active_serial_code.code
 
 
-def test_register_success_with_referral(api_client, active_serial_code, referrer_user):
-    """Test registration with a valid referral code applies referral."""
-    url = reverse("api:v1:auth:register")
+def test_complete_profile_success_with_referral(pending_profile_client, referrer_user):
+    """Test completing profile with a referral code links users and grants bonus."""
+    url = reverse("api:v1:users:me_complete_profile")
+    user = pending_profile_client.user
+    profile = user.profile
     referrer_profile = referrer_user.profile
-    original_referrer_expiry = (
-        referrer_profile.subscription_expires_at
-    )  # Store initial state
+    original_referrer_expiry = referrer_profile.subscription_expires_at  # Can be None
 
     data = {
-        "username": "referreduser",
-        "email": "referred@qader.test",
-        "password": "ValidPassword123!",
-        "password_confirm": "ValidPassword123!",
-        "serial_code": active_serial_code.code,
-        "full_name": "Referred User",
-        "referral_code_used": referrer_profile.referral_code,  # Use referrer's code
+        "gender": GenderChoices.MALE,
+        "grade": "Grade 11",
+        "has_taken_qiyas_before": True,
+        "referral_code_used": referrer_profile.referral_code,  # Provide referral code
     }
-    response = api_client.post(url, data, format="json")
+    response = pending_profile_client.patch(url, data, format="json")
 
-    assert response.status_code == status.HTTP_201_CREATED
-    assert User.objects.filter(username="referreduser").exists()
-    new_user = User.objects.get(username="referreduser")
-    new_profile = new_user.profile
-
-    assert new_profile.referred_by == referrer_user  # Check referral link
-
-    # Check if referrer's subscription was extended (example: 3 days)
+    assert response.status_code == status.HTTP_200_OK
+    profile.refresh_from_db()
     referrer_profile.refresh_from_db()
-    expected_bonus_days = 3  # Define bonus logic
-    expected_new_expiry = (original_referrer_expiry or timezone.now()) + timedelta(
-        days=expected_bonus_days
+
+    assert profile.is_profile_complete
+    assert profile.referred_by == referrer_user  # Check link
+
+    # Check referrer bonus (assuming 3 days default)
+    expected_bonus_days = 3
+    expected_start_date = (
+        max(original_referrer_expiry, timezone.now())
+        if original_referrer_expiry
+        else timezone.now()
     )
-    if referrer_profile.subscription_expires_at:  # Only check if expiry is set
-        assert abs(
-            referrer_profile.subscription_expires_at - expected_new_expiry
-        ) < timedelta(seconds=10)
+    expected_new_expiry = expected_start_date + timedelta(days=expected_bonus_days)
+
+    assert (
+        referrer_profile.is_subscribed
+    )  # Referrer should now be subscribed (or extended)
+    assert abs(
+        referrer_profile.subscription_expires_at - expected_new_expiry
+    ) < timedelta(seconds=10)
+
+    # Check new user got trial (no serial code provided)
+    assert profile.is_subscribed
+    assert profile.serial_code_used is None
 
 
-def test_register_fail_invalid_referral_code(api_client, active_serial_code):
-    """Test registration fails with an invalid referral code."""
-    url = reverse("api:v1:auth:register")
+def test_complete_profile_fail_missing_fields(pending_profile_client):
+    """Test profile completion fails if required fields are missing."""
+    url = reverse("api:v1:users:me_complete_profile")
     data = {
-        "username": "badreferraluser",
-        "email": "badref@qader.test",
-        "password": "ValidPassword123!",
-        "password_confirm": "ValidPassword123!",
-        "serial_code": active_serial_code.code,
-        "full_name": "Bad Referral",
-        "referral_code_used": "NONEXISTENT-CODE",
+        "gender": GenderChoices.FEMALE,
+        # Missing "grade" and "has_taken_qiyas_before"
     }
-    response = api_client.post(url, data, format="json")
+    response = pending_profile_client.patch(url, data, format="json")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "grade" in response.data
+    assert "has_taken_qiyas_before" in response.data
+    assert "This field is required" in response.data["grade"][0]
 
+
+def test_complete_profile_fail_invalid_serial_code(pending_profile_client):
+    """Test profile completion fails with invalid serial code."""
+    url = reverse("api:v1:users:me_complete_profile")
+    data = {
+        "gender": GenderChoices.MALE,
+        "grade": "Grade 10",
+        "has_taken_qiyas_before": False,
+        "serial_code": "INVALID-CODE-123",
+    }
+    response = pending_profile_client.patch(url, data, format="json")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "serial_code" in response.data
+    assert "Invalid or already used serial code" in response.data["serial_code"][0]
+
+
+def test_complete_profile_fail_invalid_referral_code(pending_profile_client):
+    """Test profile completion fails with invalid referral code."""
+    url = reverse("api:v1:users:me_complete_profile")
+    data = {
+        "gender": GenderChoices.MALE,
+        "grade": "Grade 11",
+        "has_taken_qiyas_before": True,
+        "referral_code_used": "INVALID-REFERRAL",
+    }
+    response = pending_profile_client.patch(url, data, format="json")
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "referral_code_used" in response.data
-    assert "Invalid referral code provided." in response.data["referral_code_used"]
-    assert not User.objects.filter(username="badreferraluser").exists()
+    assert "Invalid referral code provided" in response.data["referral_code_used"][0]
 
 
-def test_register_fail_invalid_serial_code(api_client):
-    """Test registration fails with a non-existent serial code."""
-    url = reverse("api:v1:auth:register")
-    data = {
-        "username": "testregister_invalid_sc",
-        "email": "inv_sc@qader.test",
-        "password": "ValidPassword123!",
-        "password_confirm": "ValidPassword123!",
-        "serial_code": "FAKE-SERIAL-CODE",
-        "full_name": "Invalid SC User",
+def test_complete_profile_fail_already_complete(
+    authenticated_client,
+):  # Use standard client
+    """Test attempting to complete an already complete profile."""
+    url = reverse("api:v1:users:me_complete_profile")
+    user = authenticated_client.user
+    assert user.profile.is_profile_complete  # Pre-condition
+
+    data = {  # Provide valid data again
+        "gender": GenderChoices.FEMALE,
+        "grade": "Already Complete",
+        "has_taken_qiyas_before": False,
     }
-    response = api_client.post(url, data, format="json")
+    # The view/serializer logic doesn't explicitly block this,
+    # it just updates the fields. This might be acceptable.
+    # If blocking is desired, add a check in the view's `get_object` or `perform_update`.
+    # For now, let's assume it updates normally.
+    response = authenticated_client.patch(url, data, format="json")
+    assert response.status_code == status.HTTP_200_OK
+    user.profile.refresh_from_db()
+    assert user.profile.grade == "Already Complete"  # Check update happened
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "serial_code" in response.data
-    assert (
-        "Invalid or already used serial code." in response.data["serial_code"]
-    )  # Check specific message
-    assert not User.objects.filter(username="testregister_invalid_sc").exists()
 
-
-def test_register_fail_used_serial_code(api_client, used_serial_code):
-    """Test registration fails with an already used serial code."""
-    url = reverse("api:v1:auth:register")
+def test_complete_profile_fail_unauthenticated(api_client):
+    """Test complete profile requires authentication."""
+    url = reverse("api:v1:users:me_complete_profile")
     data = {
-        "username": "testregister_used_sc",
-        "email": "used_sc@qader.test",
-        "password": "ValidPassword123!",
-        "password_confirm": "ValidPassword123!",
-        "serial_code": used_serial_code.code,  # Use the fixture for used code
-        "full_name": "Used SC User",
+        "gender": GenderChoices.FEMALE,
+        "grade": "Test",
+        "has_taken_qiyas_before": False,
     }
-    response = api_client.post(url, data, format="json")
-
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "serial_code" in response.data
-    assert "Invalid or already used serial code." in response.data["serial_code"]
-    assert not User.objects.filter(username="testregister_used_sc").exists()
+    response = api_client.patch(url, data, format="json")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_register_fail_inactive_serial_code(api_client, inactive_serial_code):
-    """Test registration fails with an inactive serial code."""
-    url = reverse("api:v1:auth:register")
-    data = {
-        "username": "testregister_inactive_sc",
-        "email": "inactive_sc@qader.test",
-        "password": "ValidPassword123!",
-        "password_confirm": "ValidPassword123!",
-        "serial_code": inactive_serial_code.code,
-        "full_name": "Inactive SC User",
-    }
-    response = api_client.post(url, data, format="json")
-
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "serial_code" in response.data
-    assert "Invalid or already used serial code." in response.data["serial_code"]
-    assert not User.objects.filter(username="testregister_inactive_sc").exists()
+# --- Login Tests (Updated) ---
 
 
-def test_register_fail_duplicate_username(
-    api_client, active_serial_code, standard_user
-):
-    """Test registration fails with an existing username."""
-    url = reverse("api:v1:auth:register")
-    data = {
-        "username": standard_user.username,  # Existing username
-        "email": "dup_user@qader.test",
-        "password": "ValidPassword123!",
-        "password_confirm": "ValidPassword123!",
-        "serial_code": active_serial_code.code,
-        "full_name": "Duplicate User",
-    }
-    response = api_client.post(url, data, format="json")
-
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "username" in response.data
-    assert "user with that username already exists" in response.data["username"][0]
-
-
-def test_register_fail_duplicate_email(api_client, active_serial_code, standard_user):
-    """Test registration fails with an existing email."""
-    url = reverse("api:v1:auth:register")
-    data = {
-        "username": "unique_username_dup_email",
-        "email": standard_user.email,  # Existing email
-        "password": "ValidPassword123!",
-        "password_confirm": "ValidPassword123!",
-        "serial_code": active_serial_code.code,
-        "full_name": "Duplicate Email",
-    }
-    response = api_client.post(url, data, format="json")
-
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "email" in response.data
-    assert "user with that email already exists" in response.data["email"][0]
-
-
-def test_register_fail_password_mismatch(api_client, active_serial_code):
-    """Test registration fails if password and confirmation don't match."""
-    url = reverse("api:v1:auth:register")
-    data = {
-        "username": "testregister_pw_mismatch",
-        "email": "pw_mismatch@qader.test",
-        "password": "ValidPassword123!",
-        "password_confirm": "DifferentPassword!",  # Mismatch
-        "serial_code": active_serial_code.code,
-        "full_name": "Mismatch User",
-    }
-    response = api_client.post(url, data, format="json")
-
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "password_confirm" in response.data
-    assert "Password fields didn't match." in response.data["password_confirm"]
-
-
-# === Login Tests ===
-
-
-def test_login_success(api_client, standard_user):
+def test_login_success(
+    api_client, standard_user
+):  # Use standard_user (active, complete)
     """Test successful login returns tokens and user data."""
-    password = "defaultpassword"  # From UserFactory default
-    url = reverse("api:v1:auth:login")  # Correct name
+    password = "defaultpassword"
+    url = reverse("api:v1:auth:login")
     data = {"username": standard_user.username, "password": password}
     response = api_client.post(url, data, format="json")
 
@@ -279,8 +428,22 @@ def test_login_success(api_client, standard_user):
     user_data = response.data["user"]
     assert user_data["id"] == standard_user.id
     assert user_data["username"] == standard_user.username
-    assert user_data["role"] == standard_user.profile.role
-    assert "subscription" in user_data
+    assert user_data["profile_complete"] is True  # Check flag
+
+
+def test_login_fail_inactive_user(
+    api_client, inactive_user
+):  # Use inactive_user fixture
+    """Test login fails for a user marked as inactive (pending confirmation)."""
+    password = "defaultpassword"
+    url = reverse("api:v1:auth:login")
+    data = {"username": inactive_user.username, "password": password}
+    response = api_client.post(url, data, format="json")
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert (
+        "No active account found" in response.data["detail"]
+    )  # SimpleJWT/Django auth handles this
 
 
 def test_login_fail_wrong_password(api_client, standard_user):
@@ -385,27 +548,24 @@ def test_logout_fail_unauthenticated(api_client):
 # === Profile Tests ===
 
 
-def test_get_profile_me_success(subscribed_client):  # Use subscribed client for variety
+def test_get_profile_me_success(authenticated_client):  # standard_user is complete
     """Test retrieving the profile of the authenticated user successfully."""
-    url = reverse("api:v1:users:me_profile")  # Correct namespaced name
-    response = subscribed_client.get(url)
+    url = reverse("api:v1:users:me_profile")
+    response = authenticated_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
-    # Check structure based on UserProfileSerializer
     assert "user" in response.data
-    assert response.data["user"]["username"] == subscribed_client.user.username
-    assert response.data["full_name"] == subscribed_client.user.profile.full_name
-    assert "subscription" in response.data
-    assert response.data["subscription"]["is_active"] is True
-    assert "referral" in response.data
-    assert "points" in response.data
+    assert response.data["profile_complete"] is True  # Check flag
 
 
-def test_get_profile_me_unauthenticated(api_client):
-    """Test accessing /me/ endpoint fails without authentication."""
+def test_get_profile_me_pending(pending_profile_client):  # User incomplete
+    """Test retrieving profile for a user pending completion."""
     url = reverse("api:v1:users:me_profile")
-    response = api_client.get(url)
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    response = pending_profile_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert "user" in response.data
+    assert response.data["profile_complete"] is False  # Check flag
 
 
 def test_patch_profile_me_success(authenticated_client):

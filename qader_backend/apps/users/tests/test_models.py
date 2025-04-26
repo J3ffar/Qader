@@ -7,6 +7,7 @@ from django.db import IntegrityError
 import time
 
 from ..models import (
+    GenderChoices,
     SerialCode,
     UserProfile,
     SubscriptionTypeChoices,
@@ -146,6 +147,61 @@ def test_serial_code_clean_method_standardizes_code():
 
 
 # --- UserProfile Model Tests ---
+
+
+def test_user_profile_is_profile_complete_property():
+    """Test the is_profile_complete property."""
+    user = UserFactory(is_active=True)  # Start with active user for simplicity
+    profile = user.profile
+    profile.full_name = "Test Full Name"  # Ensure full_name is set
+
+    # Case 1: Missing all required fields
+    profile.gender = None
+    profile.grade = None
+    profile.has_taken_qiyas_before = None
+    profile.save()
+    assert profile.is_profile_complete is False, "Should be incomplete: All missing"
+
+    # Case 2: Missing grade
+    profile.gender = GenderChoices.MALE
+    profile.grade = None
+    profile.has_taken_qiyas_before = True
+    profile.save()
+    assert profile.is_profile_complete is False, "Should be incomplete: Missing grade"
+
+    # Case 3: Missing gender
+    profile.gender = None
+    profile.grade = "Grade 12"
+    profile.has_taken_qiyas_before = False
+    profile.save()
+    assert profile.is_profile_complete is False, "Should be incomplete: Missing gender"
+
+    # Case 4: Missing has_taken_qiyas_before (is None)
+    profile.gender = GenderChoices.FEMALE
+    profile.grade = "University"
+    profile.has_taken_qiyas_before = None
+    profile.save()
+    assert (
+        profile.is_profile_complete is False
+    ), "Should be incomplete: Missing Qiyas bool"
+
+    # Case 5: Missing full_name (should have been set on signup)
+    profile.full_name = ""  # Simulate missing
+    profile.gender = GenderChoices.FEMALE
+    profile.grade = "University"
+    profile.has_taken_qiyas_before = True
+    profile.save()
+    assert (
+        profile.is_profile_complete is False
+    ), "Should be incomplete: Missing full_name"
+
+    # Case 6: All required fields present
+    profile.full_name = "Test Full Name"
+    profile.gender = GenderChoices.FEMALE
+    profile.grade = "University"
+    profile.has_taken_qiyas_before = True
+    profile.save()
+    assert profile.is_profile_complete is True, "Should be complete: All present"
 
 
 def test_user_profile_creation_via_signal():
@@ -403,3 +459,40 @@ def test_user_profile_picture_field():
         assert profile.profile_picture == "" or profile.profile_picture is None
     except Exception as e:
         pytest.fail(f"Saving profile with picture=None failed: {e}")
+
+
+def test_user_profile_grant_trial_subscription_success():
+    """Test granting a trial subscription to an unsubscribed user."""
+    user = UserFactory(is_active=True, profile_data={"full_name": "Trial User"})
+    profile = user.profile
+    assert not profile.is_subscribed
+
+    granted = profile.grant_trial_subscription(duration_days=1)
+    # grant_trial_subscription doesn't save automatically, save manually for test check
+    profile.save()
+    profile.refresh_from_db()
+
+    assert granted is True
+    assert profile.is_subscribed is True
+    assert profile.serial_code_used is None
+    expected_expiry = timezone.now() + timedelta(days=1)
+    assert abs(profile.subscription_expires_at - expected_expiry) < timedelta(seconds=5)
+
+
+def test_user_profile_grant_trial_subscription_fail_already_subscribed():
+    """Test granting trial fails if user is already subscribed."""
+    user = UserFactory(is_active=True, profile_data={"full_name": "Trial User"})
+    profile = user.profile
+    profile.subscription_expires_at = timezone.now() + timedelta(days=10)
+    profile.save()
+    assert profile.is_subscribed is True
+
+    original_expiry = profile.subscription_expires_at
+    granted = profile.grant_trial_subscription(duration_days=1)
+    profile.save()  # Save shouldn't change anything if trial wasn't granted
+    profile.refresh_from_db()
+
+    assert granted is False
+    assert profile.is_subscribed is True
+    # Ensure expiry date hasn't changed
+    assert profile.subscription_expires_at == original_expiry
