@@ -10,5 +10,4 @@ urlpatterns = [
     path("statistics/", include("apps.study.api.urls.statistics")),
     path("emergency-mode/", include("apps.study.api.urls.emergency")),
     path("", include("apps.study.api.urls.conversation")),
-    # --- Add includes for other study features (Conversation etc.) when created ---
 ]

@@ -1,7 +1,10 @@
-from django.db.models import QuerySet, Q, Exists, OuterRef, F
+from django.db.models import QuerySet, Q, Exists, OuterRef, F, Case, When, IntegerField
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.db import transaction
+from django.utils import timezone
+
 from apps.learning.models import (
     LearningSubSection,
     Question,
@@ -11,6 +14,8 @@ from apps.learning.models import (
 from apps.users.models import UserProfile
 from apps.study.models import (
     UserSkillProficiency,
+    UserTestAttempt,
+    UserQuestionAttempt,
 )
 import random
 import logging
@@ -19,15 +24,23 @@ from typing import Optional, List, Dict, Any
 logger = logging.getLogger(__name__)
 
 # --- Constants ---
-DEFAULT_PROFICIENCY_THRESHOLD = 0.7  # Default threshold for 'not_mastered' filter
-EMERGENCY_MODE_DEFAULT_QUESTIONS = 15
-EMERGENCY_MODE_WEAK_SKILL_COUNT = 3  # Number of weakest skills to focus on
-EMERGENCY_MODE_TIPS = [  # Example Static Tips
-    _("Take deep breaths before starting each question."),
-    _("Don't get stuck on one question for too long."),
-    _("Focus on understanding the concept, not just getting the answer."),
-    _("Remember your preparation and trust your abilities."),
-]
+DEFAULT_PROFICIENCY_THRESHOLD = getattr(settings, "DEFAULT_PROFICIENCY_THRESHOLD", 0.7)
+EMERGENCY_MODE_DEFAULT_QUESTIONS = getattr(
+    settings, "EMERGENCY_MODE_DEFAULT_QUESTIONS", 15
+)
+EMERGENCY_MODE_WEAK_SKILL_COUNT = getattr(
+    settings, "EMERGENCY_MODE_WEAK_SKILL_COUNT", 3
+)
+EMERGENCY_MODE_TIPS = getattr(
+    settings,
+    "EMERGENCY_MODE_TIPS",
+    [
+        _("Take deep breaths before starting each question."),
+        _("Don't get stuck on one question for too long."),
+        _("Focus on understanding the concept, not just getting the answer."),
+        _("Remember your preparation and trust your abilities."),
+    ],
+)
 
 # --- Question Filtering Logic ---
 
@@ -44,22 +57,13 @@ def get_filtered_questions(
 ) -> QuerySet[Question]:
     """
     Retrieves a filtered and randomized QuerySet of active Questions.
-
-    Args:
-        user: The authenticated user instance.
-        limit: Maximum number of questions to return.
-        subsections: List of subsection slugs to filter by.
-        skills: List of skill slugs to filter by.
-        starred: If True, filter for questions starred by the user.
-        not_mastered: If True, filter for skills user hasn't mastered.
-        exclude_ids: List of question IDs to exclude.
-        proficiency_threshold: The score below which a skill is considered not mastered.
-
-    Returns:
-        A QuerySet of Question objects.
+    Handles various filtering criteria including proficiency.
     """
+    if limit <= 0:
+        return Question.objects.none()
+
     queryset = Question.objects.filter(is_active=True).select_related(
-        "subsection", "skill"
+        "subsection", "subsection__section", "skill"  # Eager load essential relations
     )
     filters = Q()
 
@@ -68,38 +72,48 @@ def get_filtered_questions(
     if skills:
         filters &= Q(skill__slug__in=skills)
     if starred:
-        starred_subquery = UserStarredQuestion.objects.filter(
-            user=user, question=OuterRef("pk")
-        )
-        filters &= Q(Exists(starred_subquery))
+        # Ensure user is authenticated before using this filter
+        if not user or not user.is_authenticated:
+            logger.warning("Attempted to filter by starred for anonymous user.")
+        else:
+            starred_subquery = UserStarredQuestion.objects.filter(
+                user=user, question=OuterRef("pk")
+            )
+            filters &= Q(Exists(starred_subquery))
+
     if not_mastered:
-        try:
-            # Skills with low proficiency
-            low_prof_skill_ids = list(
-                UserSkillProficiency.objects.filter(
+        # Ensure user is authenticated
+        if not user or not user.is_authenticated:
+            logger.warning("Attempted to filter by not_mastered for anonymous user.")
+        else:
+            try:
+                # Skills with proficiency score below threshold
+                low_prof_skill_ids = UserSkillProficiency.objects.filter(
                     user=user, proficiency_score__lt=proficiency_threshold
                 ).values_list("skill_id", flat=True)
-            )
 
-            # Skills the user has *any* proficiency record for (attempted)
-            attempted_skill_ids = list(
-                UserSkillProficiency.objects.filter(user=user).values_list(
-                    "skill_id", flat=True
+                # Skills the user has *any* proficiency record for
+                attempted_skill_ids = UserSkillProficiency.objects.filter(
+                    user=user
+                ).values_list("skill_id", flat=True)
+
+                # Build filter: (Low proficiency OR (Has Skill AND Not Attempted))
+                # Use lists directly instead of QuerySets for efficiency in `__in`
+                low_prof_skill_ids_list = list(low_prof_skill_ids)
+                attempted_skill_ids_list = list(attempted_skill_ids)
+
+                not_mastered_filter = Q(skill_id__in=low_prof_skill_ids_list) | (
+                    Q(skill__isnull=False) & ~Q(skill_id__in=attempted_skill_ids_list)
                 )
-            )
+                filters &= not_mastered_filter
 
-            # Filter combines:
-            # 1. Skills with low proficiency.
-            # 2. Skills that exist but have *never* been attempted by the user.
-            not_mastered_filter = Q(skill_id__in=low_prof_skill_ids) | (
-                Q(skill__isnull=False) & ~Q(skill_id__in=attempted_skill_ids)
-            )
-            filters &= not_mastered_filter
-        except Exception as e:
-            logger.error(
-                f"Error applying 'not_mastered' filter for user {user.id}: {e}"
-            )
-            # Decide: fail silently or raise? For now, fail silently.
+            except Exception as e:
+                logger.error(
+                    f"Error applying 'not_mastered' filter for user {user.id}: {e}",
+                    exc_info=True,  # Include traceback
+                )
+                # Fail safe: Don't apply the filter if error occurs
+                # Or alternatively: return Question.objects.none() or raise error
 
     queryset = queryset.filter(filters)
 
@@ -107,144 +121,343 @@ def get_filtered_questions(
         queryset = queryset.exclude(id__in=exclude_ids)
 
     # --- Efficient Random Sampling ---
-    all_ids = list(queryset.values_list("id", flat=True))
-    count = len(all_ids)
+    all_ids = queryset.values_list("id", flat=True)
+    count = all_ids.count()  # Use count() for efficiency
 
     if count == 0:
         return Question.objects.none()
 
     num_to_fetch = min(limit, count)
-    random_ids = random.sample(all_ids, num_to_fetch)
+    # Use slicing on ordered IDs for potentially better performance than random.sample on large lists
+    # Order by '?' is generally slow, explicit random sampling is preferred
+    random_ids = random.sample(list(all_ids), num_to_fetch)
 
-    # Return the final queryset filtered by the random IDs
-    # Re-apply select_related for clarity and safety after ID filtering
-    return Question.objects.filter(id__in=random_ids).select_related(
-        "subsection", "skill"
+    # Preserve order of random_ids in final queryset
+    preserved_order = Case(
+        *[When(pk=pk, then=pos) for pos, pk in enumerate(random_ids)],
+        output_field=IntegerField(),
+    )
+    return (
+        Question.objects.filter(id__in=random_ids)
+        .select_related("subsection", "subsection__section", "skill")
+        .order_by(preserved_order)
     )
 
 
 # --- Skill Proficiency Update Logic ---
 
 
-def update_user_skill_proficiency(user, skill: Skill, is_correct: bool):
+def update_user_skill_proficiency(user, skill: Optional[Skill], is_correct: bool):
     """
     Finds or creates a UserSkillProficiency record and updates it based on an attempt.
+    Handles cases where the skill might be None.
     """
     if not skill:
-        logger.warning(
-            f"Attempted to update proficiency for user {user.id} with no skill provided."
+        logger.debug(
+            f"Proficiency update skipped for user {user.id}: No skill provided."
         )
+        return
+    if not user or not user.is_authenticated:
+        logger.warning(f"Proficiency update skipped: Invalid user provided.")
         return
 
     try:
+        # Use update_or_create for atomicity if possible, but record_attempt needs the instance
         proficiency, created = UserSkillProficiency.objects.get_or_create(
             user=user,
             skill=skill,
-            defaults={  # Set initial values if created
-                "proficiency_score": 1.0 if is_correct else 0.0,
-                "attempts_count": 1,
-                "correct_count": 1 if is_correct else 0,
+            defaults={
+                "proficiency_score": 0.0,
+                "attempts_count": 0,
+                "correct_count": 0,
             },
         )
-        if not created:
-            # Use the model method for updates (handles atomic increments and score recalc)
-            proficiency.record_attempt(is_correct)
+        # Call the model method which handles atomic updates and score recalculation
+        proficiency.record_attempt(is_correct)
 
     except Exception as e:
         logger.error(
-            f"Error updating proficiency for user {user.id}, skill {skill.id}: {e}"
+            f"Error updating proficiency for user {user.id}, skill {skill.id}: {e}",
+            exc_info=True,
         )
+
+
+# --- NEW: Test Submission Service ---
+
+
+@transaction.atomic  # Ensure all operations succeed or fail together
+def record_test_submission(
+    test_attempt: UserTestAttempt, answers_data: List[Dict]
+) -> Dict[str, Any]:
+    """
+    Processes the submission of a test or level assessment attempt.
+
+    Args:
+        test_attempt: The UserTestAttempt instance being submitted.
+        answers_data: A list of dictionaries, each containing 'question_id',
+                      'selected_answer', and optionally 'time_taken_seconds'.
+
+    Returns:
+        A dictionary containing the results and status.
+
+    Raises:
+        ValidationError: If data is invalid or processing fails.
+    """
+    user = test_attempt.user
+    if test_attempt.status != UserTestAttempt.Status.STARTED:
+        logger.warning(
+            f"Attempt {test_attempt.id} submitted with status {test_attempt.status}."
+        )
+        raise ValidationError(
+            _("This test attempt has already been submitted or abandoned.")
+        )
+
+    # --- Fetch questions efficiently ---
+    questions_in_attempt = test_attempt.get_questions_queryset().select_related(
+        "skill"
+    )  # Ensure skill is loaded
+    question_map = {q.id: q for q in questions_in_attempt}
+
+    # --- Prepare UserQuestionAttempt records ---
+    attempts_to_create = []
+    for answer_data in answers_data:
+        question_id = answer_data.get("question_id")
+        question = question_map.get(question_id)
+        if not question:
+            logger.error(
+                f"Question ID {question_id} from submit data not found for test attempt {test_attempt.id}"
+            )
+            raise ValidationError(
+                _("Internal error: Invalid question ID found during submission.")
+            )
+
+        selected_answer = answer_data.get("selected_answer")
+        if selected_answer not in UserQuestionAttempt.AnswerChoice.values:
+            raise ValidationError(
+                _("Invalid answer choice '{answer}' for question {qid}.").format(
+                    answer=selected_answer, qid=question_id
+                )
+            )
+
+        is_correct = selected_answer == question.correct_answer
+
+        # Determine mode based on attempt type
+        mode_map = {
+            UserTestAttempt.AttemptType.LEVEL_ASSESSMENT: UserQuestionAttempt.Mode.LEVEL_ASSESSMENT,
+            UserTestAttempt.AttemptType.PRACTICE: UserQuestionAttempt.Mode.TEST,
+            UserTestAttempt.AttemptType.SIMULATION: UserQuestionAttempt.Mode.TEST,
+        }
+        mode = mode_map.get(test_attempt.attempt_type, UserQuestionAttempt.Mode.TEST)
+
+        attempts_to_create.append(
+            UserQuestionAttempt(
+                user=user,
+                question=question,
+                test_attempt=test_attempt,
+                selected_answer=selected_answer,
+                is_correct=is_correct,
+                time_taken_seconds=answer_data.get("time_taken_seconds"),
+                mode=mode,
+                # attempted_at defaults to now
+            )
+        )
+
+    # --- Bulk Create Attempts ---
+    try:
+        created_attempts = UserQuestionAttempt.objects.bulk_create(attempts_to_create)
+        # Fetch the created attempts with required related fields for scoring and proficiency update
+        created_attempt_ids = [attempt.pk for attempt in created_attempts]  # Use pk
+        attempts_for_scoring = list(
+            UserQuestionAttempt.objects.filter(
+                pk__in=created_attempt_ids
+            ).select_related(
+                "question__subsection__section",  # Needed for scoring by section
+                "question__skill",  # Needed for proficiency update
+            )
+        )
+        if len(attempts_for_scoring) != len(answers_data):
+            # This indicates a potential issue with bulk_create or filtering
+            logger.error(
+                f"Mismatch in created attempts count for attempt {test_attempt.id}. Expected {len(answers_data)}, got {len(attempts_for_scoring)}"
+            )
+            raise ValidationError(_("Error saving all answers. Please try again."))
+
+    except Exception as e:
+        logger.exception(
+            f"Error bulk creating UserQuestionAttempts for test attempt {test_attempt.id}: {e}"
+        )
+        raise ValidationError(_("Failed to save test answers."))
+
+    # --- Update User Skill Proficiency for each attempt ---
+    for attempt in attempts_for_scoring:
+        update_user_skill_proficiency(
+            user=user, skill=attempt.question.skill, is_correct=attempt.is_correct
+        )
+
+    # --- Calculate and Save Scores using model method ---
+    test_attempt.calculate_and_save_scores(attempts_for_scoring)
+
+    # --- Mark Test Attempt Complete ---
+    test_attempt.status = UserTestAttempt.Status.COMPLETED
+    test_attempt.end_time = timezone.now()
+    # completion_points_awarded flag is handled by signals/tasks
+    test_attempt.save(update_fields=["status", "end_time", "updated_at"])
+    logger.info(f"Test attempt {test_attempt.id} completed for user {user.id}.")
+
+    # --- Update User Profile Level Scores (if Level Assessment) ---
+    if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
+        try:
+            profile = user.profile
+            profile.current_level_verbal = test_attempt.score_verbal
+            profile.current_level_quantitative = test_attempt.score_quantitative
+            profile.save(
+                update_fields=[
+                    "current_level_verbal",
+                    "current_level_quantitative",
+                    "updated_at",
+                ]
+            )
+            logger.info(
+                f"Profile level scores updated for user {user.id} after assessment {test_attempt.id}."
+            )
+        except UserProfile.DoesNotExist:
+            logger.error(
+                f"UserProfile missing for user {user.id} during level assessment score update."
+            )
+            # Decide how critical this is - maybe raise error, maybe just log
+        except Exception as e:
+            logger.exception(
+                f"Error updating profile levels for user {user.id} after assessment {test_attempt.id}: {e}"
+            )
+
+    # --- Generate Smart Analysis (Example) ---
+    results_summary = test_attempt.results_summary or {}
+    weak_areas = [
+        d["name"] for d in results_summary.values() if d.get("score", 100) < 60
+    ]
+    strong_areas = [
+        d["name"] for d in results_summary.values() if d.get("score", 0) >= 85
+    ]
+
+    smart_analysis = _("Test completed!")
+    if weak_areas:
+        smart_analysis += " " + _("Consider focusing more on: {}.").format(
+            ", ".join(weak_areas)
+        )
+    if strong_areas:
+        smart_analysis += " " + _(
+            "You showed strong performance in: {}. Keep it up!"
+        ).format(", ".join(strong_areas))
+
+    # --- Return Results ---
+    return {
+        "attempt_id": test_attempt.id,
+        "status": test_attempt.status,
+        "score_percentage": test_attempt.score_percentage,
+        "score_verbal": test_attempt.score_verbal,
+        "score_quantitative": test_attempt.score_quantitative,
+        "results_summary": results_summary,
+        "smart_analysis": smart_analysis,
+        "message": _("Test submitted successfully. Results calculated."),
+        "updated_profile": (
+            getattr(user, "profile", None)
+            if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT
+            else None
+        ),
+    }
+
+
+# --- Emergency Mode Plan Generation ---
 
 
 def generate_emergency_plan(
     user,
     available_time_hours: Optional[int] = None,
-    focus_areas: Optional[List[str]] = None,
+    focus_areas: Optional[List[str]] = None,  # Section slugs
     proficiency_threshold: float = DEFAULT_PROFICIENCY_THRESHOLD,
     num_weak_skills: int = EMERGENCY_MODE_WEAK_SKILL_COUNT,
     default_question_count: int = EMERGENCY_MODE_DEFAULT_QUESTIONS,
 ) -> Dict[str, Any]:
     """
     Generates a study plan for Emergency Mode based on user's weak areas.
-
-    Args:
-        user: The user instance.
-        available_time_hours: Optional user-provided time constraint.
-        focus_areas: Optional list of section slugs ('verbal', 'quantitative') to prioritize.
-        proficiency_threshold: Score below which a skill is considered weak.
-        num_weak_skills: Number of weakest skills to target.
-        default_question_count: Default number of questions if not time-constrained.
-
-    Returns:
-        A dictionary containing the plan:
-        {
-            "focus_skills": List[str], # List of skill slugs
-            "recommended_questions": int,
-            "quick_review_topics": List[str]
-        }
     """
     plan = {
-        "focus_skills": [],
+        "focus_skills": [],  # List of skill slugs
         "recommended_questions": default_question_count,
-        "quick_review_topics": [],
+        "quick_review_topics": [],  # List of strings
     }
+    if not user or not user.is_authenticated:
+        logger.warning("Cannot generate emergency plan for unauthenticated user.")
+        return plan  # Return default empty plan
 
     # --- Determine Weak Skills ---
-    proficiency_qs = UserSkillProficiency.objects.filter(
-        user=user, proficiency_score__lt=proficiency_threshold
-    ).select_related(
-        "skill", "skill__subsection"
-    )  # Eager load related data
+    try:
+        proficiency_qs = UserSkillProficiency.objects.filter(
+            user=user, proficiency_score__lt=proficiency_threshold
+        ).select_related("skill", "skill__subsection", "skill__subsection__section")
 
-    if focus_areas:
-        proficiency_qs = proficiency_qs.filter(
-            skill__subsection__section__slug__in=focus_areas
-        )
+        if focus_areas:
+            proficiency_qs = proficiency_qs.filter(
+                skill__subsection__section__slug__in=focus_areas
+            )
 
-    # Order by proficiency ascending (weakest first)
-    weak_proficiencies = list(
-        proficiency_qs.order_by("proficiency_score")[:num_weak_skills]
-    )
-
-    if not weak_proficiencies:
-        # If no weak skills found below threshold, maybe pick least proficient skills overall?
-        # Or default to general practice? For now, return empty focus.
-        logger.info(
-            f"No weak skills found below threshold {proficiency_threshold} for user {user.id} in Emergency Mode."
-        )
-        # Could potentially select skills with the lowest scores even if above threshold,
-        # or skills never attempted. Logic can be refined based on requirements.
-        # For simplicity, let's pick *any* skills if none are weak.
-        all_skills = list(
-            Skill.objects.filter().values_list("slug", flat=True)[:num_weak_skills]
-        )
-        plan["focus_skills"] = random.sample(
-            all_skills, min(len(all_skills), num_weak_skills)
+        # Weakest skills first
+        weak_proficiencies = list(
+            proficiency_qs.order_by("proficiency_score")[:num_weak_skills]
         )
 
-    else:
-        plan["focus_skills"] = [p.skill.slug for p in weak_proficiencies]
-        # --- Determine Quick Review Topics (Example logic) ---
-        # Assumes subsections might store basic formulas/concepts
-        subsection_ids = {
-            p.skill.subsection_id for p in weak_proficiencies if p.skill.subsection_id
-        }
-        review_topics = (
-            LearningSubSection.objects.filter(id__in=subsection_ids)
-            .exclude(quick_review_info__isnull=True)
-            .exclude(quick_review_info__exact="")
-        )
-        plan["quick_review_topics"] = list(
-            review_topics.values_list("quick_review_info", flat=True)
-        )
+        if not weak_proficiencies:
+            # Fallback: Find skills with lowest score even if above threshold, or least attempted
+            logger.info(
+                f"No skills below threshold {proficiency_threshold} found for user {user.id} in Emergency Mode. Selecting least proficient overall."
+            )
+            least_proficient = list(
+                UserSkillProficiency.objects.filter(user=user)
+                .select_related("skill")
+                .order_by("proficiency_score")[:num_weak_skills]
+            )
+            if least_proficient:
+                plan["focus_skills"] = [
+                    p.skill.slug for p in least_proficient if p.skill
+                ]
+            else:
+                # Ultimate fallback: random skills if user has no proficiency data at all
+                random_skill_slugs = list(
+                    Skill.objects.filter(is_active=True)
+                    .order_by("?")
+                    .values_list("slug", flat=True)[:num_weak_skills]
+                )
+                plan["focus_skills"] = random_skill_slugs
+        else:
+            plan["focus_skills"] = [p.skill.slug for p in weak_proficiencies if p.skill]
 
-    # --- Adjust Question Count (Example logic based on time) ---
+            # --- Determine Quick Review Topics (Example: Use subsection description) ---
+            subsection_ids = {
+                p.skill.subsection_id
+                for p in weak_proficiencies
+                if p.skill and p.skill.subsection_id
+            }
+            review_topics = (
+                LearningSubSection.objects.filter(id__in=subsection_ids)
+                .exclude(description__isnull=True)
+                .exclude(description__exact="")
+            )
+            plan["quick_review_topics"] = list(
+                review_topics.values_list("name", "description")
+            )  # List of tuples (name, description)
+
+    except Exception as e:
+        logger.error(
+            f"Error determining weak skills/topics for user {user.id} emergency plan: {e}",
+            exc_info=True,
+        )
+        # Return default plan or re-raise depending on desired behavior
+
+    # --- Adjust Question Count based on time ---
     if available_time_hours and available_time_hours > 0:
-        # Rough estimate: ~2-3 mins per question on average in emergency?
+        # Estimate: ~2.5 mins per question
         estimated_questions = int(available_time_hours * 60 / 2.5)
-        plan["recommended_questions"] = max(
-            5, estimated_questions
-        )  # Ensure at least a few questions
+        plan["recommended_questions"] = max(5, estimated_questions)  # Min 5 questions
 
     logger.info(f"Generated emergency plan for user {user.id}: {plan}")
     return plan

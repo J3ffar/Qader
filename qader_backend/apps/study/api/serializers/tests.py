@@ -1,8 +1,7 @@
-# qader_backend/apps/study/api/serializers/tests.py
-
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
-from django.db import transaction
+from rest_framework.exceptions import ValidationError,
+from django.db import transaction  # Keep transaction import if used in serializer save
 from django.utils import timezone
 from django.conf import settings
 import logging
@@ -13,10 +12,10 @@ from apps.learning.api.serializers import QuestionListSerializer
 from apps.users.models import UserProfile
 from apps.api.utils import get_user_from_context
 
-# Import only needed services
+# Import the specific service function needed
 from apps.study.services import (
     get_filtered_questions,
-    update_user_skill_proficiency,
+    record_test_submission,  # Import the new service function
 )
 
 logger = logging.getLogger(__name__)
@@ -29,8 +28,6 @@ logger = logging.getLogger(__name__)
 
 # TestConfigSerializer remains the same
 class TestConfigSerializer(serializers.Serializer):
-    """Validates the 'config' part of the test start request."""
-
     name = serializers.CharField(
         max_length=255,
         required=False,
@@ -48,9 +45,8 @@ class TestConfigSerializer(serializers.Serializer):
     )
     skills = serializers.ListField(
         child=serializers.SlugRelatedField(
-            slug_field="slug",
-            queryset=Skill.objects.filter(),  # Filter active skills
-        ),
+            slug_field="slug", queryset=Skill.objects.filter(is_active=True)
+        ),  # Ensure Skill has is_active field or adjust filter
         required=False,
         allow_empty=True,
         help_text=_("List of specific active skill slugs to include"),
@@ -73,7 +69,6 @@ class TestConfigSerializer(serializers.Serializer):
     )
 
     def validate(self, data):
-        # Check if at least one filter criteria is provided
         has_subsections = bool(data.get("subsections"))
         has_skills = bool(data.get("skills"))
         is_starred = data.get("starred", False)
@@ -91,7 +86,6 @@ class TestConfigSerializer(serializers.Serializer):
                 )
             )
 
-        # Check if skills selected belong to subsections selected (if both are provided)
         if has_subsections and has_skills:
             subsection_ids = {s.id for s in data["subsections"]}
             invalid_skills = [
@@ -110,10 +104,8 @@ class TestConfigSerializer(serializers.Serializer):
         return data
 
 
-# TestStartSerializer remains the same
+# TestStartSerializer remains the same (uses get_filtered_questions service)
 class TestStartSerializer(serializers.Serializer):
-    """Validates the request to start a new test (practice, custom, simulation)."""
-
     test_type = serializers.ChoiceField(
         choices=[
             (
@@ -132,22 +124,20 @@ class TestStartSerializer(serializers.Serializer):
     def validate(self, data):
         user = get_user_from_context(self.context)
         config = data["config"]
+        requested_num = config["num_questions"]
+        min_required = self.fields["config"].fields["num_questions"].min_value
+        subsection_slugs = [s.slug for s in config.get("subsections", [])]
+        skill_slugs = [s.slug for s in config.get("skills", [])]
 
-        # --- Check Question Availability using Service ---
         try:
-            # Extract slugs/ids correctly
-            subsection_slugs = [s.slug for s in config.get("subsections", [])]
-            skill_slugs = [s.slug for s in config.get("skills", [])]
-
+            # Use service to check availability
             question_pool = get_filtered_questions(
                 user=user,
-                limit=config["num_questions"]
-                + 1,  # Check if *at least* num_questions exist
+                limit=requested_num + 1,  # Check if > requested exist
                 subsections=subsection_slugs,
                 skills=skill_slugs,
                 starred=config.get("starred", False),
                 not_mastered=config.get("not_mastered", False),
-                exclude_ids=None,
             )
             pool_count = question_pool.count()
 
@@ -155,9 +145,6 @@ class TestStartSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     _("No active questions found matching the specified criteria.")
                 )
-
-            requested_num = config["num_questions"]
-            min_required = self.fields["config"].fields["num_questions"].min_value
             if pool_count < min_required:
                 raise serializers.ValidationError(
                     _(
@@ -165,16 +152,15 @@ class TestStartSerializer(serializers.Serializer):
                     ).format(count=pool_count, min_req=min_required)
                 )
 
+            actual_num_questions = min(pool_count, requested_num)
+            self.context["actual_num_questions"] = actual_num_questions
             if pool_count < requested_num:
                 logger.warning(
-                    f"User {user.id} requested {requested_num} questions but only {pool_count} available for config {config}. Proceeding with {pool_count}."
+                    f"User {user.id} requested {requested_num} questions but only {pool_count} available for config {config}. Proceeding with {actual_num_questions}."
                 )
-                self.context["actual_num_questions"] = pool_count
-            else:
-                self.context["actual_num_questions"] = requested_num
 
         except serializers.ValidationError:
-            raise  # Re-raise validation errors
+            raise
         except Exception as e:
             logger.error(
                 f"Error validating question availability for TestStartSerializer: {e}",
@@ -191,11 +177,10 @@ class TestStartSerializer(serializers.Serializer):
         config = validated_data["config"]
         test_type = validated_data["test_type"]
         actual_num_questions = self.context["actual_num_questions"]
-
-        # --- Select Questions using Service Function ---
         subsection_slugs = [s.slug for s in config.get("subsections", [])]
         skill_slugs = [s.slug for s in config.get("skills", [])]
 
+        # Select final questions using the service
         questions_queryset = get_filtered_questions(
             user=user,
             limit=actual_num_questions,
@@ -203,12 +188,10 @@ class TestStartSerializer(serializers.Serializer):
             skills=skill_slugs,
             starred=config.get("starred", False),
             not_mastered=config.get("not_mastered", False),
-            exclude_ids=None,
         )
         question_ids = list(questions_queryset.values_list("id", flat=True))
 
-        if not question_ids or len(question_ids) < actual_num_questions:
-            # Should be caught by validation, but double check
+        if len(question_ids) < actual_num_questions:
             logger.error(
                 f"Failed to select the required number of questions ({actual_num_questions}) for test start. Found {len(question_ids)}."
             )
@@ -216,23 +199,14 @@ class TestStartSerializer(serializers.Serializer):
                 _("Failed to select sufficient questions.")
             )
 
-        # --- Create Test Attempt ---
-        # Create a snapshot, converting model instances to slugs/ids
+        # Create config snapshot
         config_snapshot_data = {
-            "name": config.get("name"),
-            "subsections": subsection_slugs,
-            "skills": skill_slugs,
-            "num_questions": config["num_questions"],  # Store requested number
-            "starred": config.get("starred", False),
-            "not_mastered": config.get("not_mastered", False),
-            "full_simulation": config.get("full_simulation", False),
-            "actual_num_questions_selected": len(question_ids),  # Store actual number
-        }
-        # Include test_type in snapshot for consistency
-        full_snapshot = {
-            "test_type": test_type,
-            "config": config_snapshot_data,
-        }
+            k: v for k, v in config.items() if k != "subsections" and k != "skills"
+        }  # Copy basic config
+        config_snapshot_data["subsections"] = subsection_slugs  # Store slugs
+        config_snapshot_data["skills"] = skill_slugs  # Store slugs
+        config_snapshot_data["actual_num_questions_selected"] = len(question_ids)
+        full_snapshot = {"test_type": test_type, "config": config_snapshot_data}
 
         try:
             test_attempt = UserTestAttempt.objects.create(
@@ -250,13 +224,9 @@ class TestStartSerializer(serializers.Serializer):
                 {"non_field_errors": [_("Failed to start the test.")]}
             )
 
-        # --- Prepare Response Data ---
-        # Reload queryset based on the final selected IDs to pass to serializer
+        # Reload queryset based on final IDs for the response
         final_questions_queryset = test_attempt.get_questions_queryset()
-        return {
-            "attempt_id": test_attempt.id,
-            "questions": final_questions_queryset,
-        }
+        return {"attempt_id": test_attempt.id, "questions": final_questions_queryset}
 
 
 # TestStartResponseSerializer remains the same
@@ -288,14 +258,12 @@ class UserTestAttemptListSerializer(serializers.ModelSerializer):
 
     def get_performance(self, obj):
         perf = {}
-        if obj.score_verbal is not None:
-            perf["verbal"] = round(obj.score_verbal, 1)  # Round for display
-        if obj.score_quantitative is not None:
-            perf["quantitative"] = round(obj.score_quantitative, 1)  # Round for display
-        # Add overall score here as well for consistency?
         if obj.score_percentage is not None:
             perf["overall"] = round(obj.score_percentage, 1)
-
+        if obj.score_verbal is not None:
+            perf["verbal"] = round(obj.score_verbal, 1)
+        if obj.score_quantitative is not None:
+            perf["quantitative"] = round(obj.score_quantitative, 1)
         return perf if perf else None
 
 
@@ -306,12 +274,8 @@ class UserTestAttemptDetailSerializer(serializers.ModelSerializer):
     config_name = serializers.SerializerMethodField()
     date = serializers.DateTimeField(source="start_time", read_only=True)
     num_questions = serializers.IntegerField(read_only=True)
-    # Pass context to nested serializer if needed
     questions = QuestionListSerializer(
-        source="get_questions_queryset",
-        many=True,
-        read_only=True,
-        context={"is_detail_view": True},  # Add context if QLS needs it
+        source="get_questions_queryset", many=True, read_only=True
     )
     results_summary = serializers.JSONField(read_only=True)
     configuration = serializers.JSONField(source="test_configuration", read_only=True)
@@ -333,7 +297,6 @@ class UserTestAttemptDetailSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_config_name(self, obj):
-        # Safely access nested dictionary
         config = obj.test_configuration or {}
         return config.get("config", {}).get("name", None)
 
@@ -350,9 +313,12 @@ class TestAnswerSerializer(serializers.Serializer):
 
 
 class TestSubmitSerializer(serializers.Serializer):
+    """Handles submission for Practice and Simulation tests."""
+
     answers = TestAnswerSerializer(many=True, min_length=1)
 
     def validate(self, data):
+        """Validates the attempt and answer structure."""
         user = get_user_from_context(self.context)
         view = self.context.get("view")
         attempt_id = view.kwargs.get("attempt_id") if view else None
@@ -362,15 +328,13 @@ class TestSubmitSerializer(serializers.Serializer):
                 {"non_field_errors": [_("Test attempt ID missing.")]}
             )
 
-        # --- Fetch and Validate Test Attempt ---
         try:
-            # Added select_related user__profile
-            test_attempt = UserTestAttempt.objects.select_related("user__profile").get(
-                pk=attempt_id,
-                user=user,
-                status=UserTestAttempt.Status.STARTED,  # Can only submit 'started' tests
+            test_attempt = UserTestAttempt.objects.select_related(
+                "user"
+            ).get(  # user needed for logs/profile
+                pk=attempt_id, user=user, status=UserTestAttempt.Status.STARTED
             )
-            # Ensure it's not a Level Assessment attempt submitted via this endpoint
+            # Prevent submitting level assessments via this endpoint
             if (
                 test_attempt.attempt_type
                 == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT
@@ -378,32 +342,29 @@ class TestSubmitSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {
                         "non_field_errors": [
-                            _(
-                                "Use the specific level assessment submission endpoint for this type of attempt."
-                            )
+                            _("Use the level assessment submission endpoint.")
                         ]
                     }
                 )
         except UserTestAttempt.DoesNotExist:
-            # Provide more context if attempt exists but has wrong status/owner
+            # Check if attempt exists but wrong status/owner/type
             if UserTestAttempt.objects.filter(pk=attempt_id, user=user).exists():
-                existing_attempt = UserTestAttempt.objects.get(pk=attempt_id, user=user)
-                if existing_attempt.status != UserTestAttempt.Status.STARTED:
+                existing = UserTestAttempt.objects.get(pk=attempt_id, user=user)
+                if existing.status != UserTestAttempt.Status.STARTED:
                     error_msg = _(
                         "This test attempt has already been submitted or abandoned."
                     )
                 elif (
-                    existing_attempt.attempt_type
+                    existing.attempt_type
                     == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT
                 ):
+                    error_msg = _("Use the level assessment submission endpoint.")
+                else:
                     error_msg = _(
-                        "Use the level assessment submission endpoint for this attempt."
-                    )
-                else:  # Should not happen
-                    error_msg = _("Cannot submit this test attempt.")
+                        "Cannot submit this test attempt."
+                    )  # Should not happen
                 raise serializers.ValidationError({"non_field_errors": [error_msg]})
             else:
-                # Attempt ID is invalid or doesn't belong to user
                 raise serializers.ValidationError(
                     {
                         "non_field_errors": [
@@ -411,166 +372,65 @@ class TestSubmitSerializer(serializers.Serializer):
                         ]
                     }
                 )
-        except UserProfile.DoesNotExist:
-            logger.error(
-                f"UserProfile missing for user {user.id} during test submission."
-            )
-            raise serializers.ValidationError(
-                {"non_field_errors": [_("User profile error during submission.")]}
-            )
 
-        # --- Validate Answers ---
+        # Validate Answers count and IDs
         submitted_answers_data = data["answers"]
-        submitted_question_ids = {
-            answer["question_id"] for answer in submitted_answers_data
-        }
-        expected_question_ids = set(test_attempt.question_ids)
+        submitted_qids = {a["question_id"] for a in submitted_answers_data}
+        expected_qids = set(test_attempt.question_ids)
 
-        if len(submitted_answers_data) != len(expected_question_ids):
+        if len(submitted_answers_data) != len(expected_qids):
             raise serializers.ValidationError(
                 {
                     "answers": [
                         _(
-                            "Incorrect number of answers submitted. Expected {expected}, got {actual}."
-                        ).format(
-                            expected=len(expected_question_ids),
-                            actual=len(submitted_answers_data),
-                        )
+                            "Incorrect number of answers submitted. Expected {e}, got {a}."
+                        ).format(e=len(expected_qids), a=len(submitted_answers_data))
                     ]
                 }
             )
-
-        if submitted_question_ids != expected_question_ids:
-            missing = sorted(list(expected_question_ids - submitted_question_ids))
-            extra = sorted(list(submitted_question_ids - expected_question_ids))
-            error_detail = {}
+        if submitted_qids != expected_qids:
+            missing = sorted(list(expected_qids - submitted_qids))
+            extra = sorted(list(submitted_qids - expected_qids))
+            errors = {"detail": _("Mismatch between submitted answers and questions.")}
             if missing:
-                error_detail["missing_answers_for_question_ids"] = missing
+                errors["missing_answers_for_qids"] = missing
             if extra:
-                error_detail["unexpected_answers_for_question_ids"] = extra
-            raise serializers.ValidationError(
-                {
-                    "answers": [
-                        _(
-                            "Mismatch between submitted answers and questions in the test attempt."
-                        ),
-                        error_detail,
-                    ]
-                }
-            )
+                errors["unexpected_answers_for_qids"] = extra
+            raise serializers.ValidationError({"answers": errors})
 
         self.context["test_attempt"] = test_attempt
         return data
 
-    @transaction.atomic
+    # save() now delegates to the service function
     def save(self, **kwargs):
+        """Calls the service function to process the test submission."""
         test_attempt = self.context["test_attempt"]
         answers_data = self.validated_data["answers"]
-        user = test_attempt.user
-        profile = user.profile  # Assumed exists
-
-        # --- Fetch questions ---
-        questions_in_attempt = test_attempt.get_questions_queryset()
-        question_map = {q.id: q for q in questions_in_attempt}
-
-        # --- Create UserQuestionAttempt records and update proficiency ---
-        attempts_to_create = []
-        for answer_data in answers_data:
-            question_id = answer_data["question_id"]
-            question = question_map.get(question_id)
-            if not question:
-                logger.error(
-                    f"Question ID {question_id} from submit data not found for test attempt {test_attempt.id}"
-                )
-                raise serializers.ValidationError(
-                    _("Internal error: Invalid question ID found during submission.")
-                )
-
-            is_correct = answer_data["selected_answer"] == question.correct_answer
-
-            # Determine mode based on attempt type
-            mode = UserQuestionAttempt.Mode.TEST  # Default for Practice/Simulation
-
-            attempts_to_create.append(
-                UserQuestionAttempt(
-                    user=user,
-                    question=question,
-                    test_attempt=test_attempt,
-                    selected_answer=answer_data["selected_answer"],
-                    is_correct=is_correct,
-                    time_taken_seconds=answer_data.get("time_taken_seconds"),
-                    mode=mode,
-                )
-            )
-            # Update proficiency immediately (remains synchronous)
-            update_user_skill_proficiency(
-                user=user, skill=question.skill, is_correct=is_correct
-            )
 
         try:
-            created_attempts = UserQuestionAttempt.objects.bulk_create(
-                attempts_to_create
+            # Call the service function (transaction handled within the service)
+            result_data = record_test_submission(
+                test_attempt=test_attempt, answers_data=answers_data
             )
-            # Fetch attempts with related data needed for scoring
-            created_attempt_ids = [attempt.id for attempt in created_attempts]
-            attempts_for_scoring = list(
-                UserQuestionAttempt.objects.filter(
-                    id__in=created_attempt_ids
-                ).select_related(
-                    "question__subsection__section"  # Needed for score calculation
-                )
-            )
+            return result_data
+        except ValidationError as e:
+            # Re-raise validation errors from the service
+            raise e
         except Exception as e:
+            # Catch unexpected errors from the service
             logger.exception(
-                f"Error bulk creating UserQuestionAttempts for test attempt {test_attempt.id}: {e}"
+                f"Unexpected error during test submission service call for attempt {test_attempt.id}: {e}"
             )
             raise serializers.ValidationError(
-                {"non_field_errors": [_("Failed to save test answers.")]}
+                {
+                    "non_field_errors": [
+                        _("An internal error occurred during submission.")
+                    ]
+                }
             )
 
-        # --- Calculate and Save Scores using Model Method ---
-        test_attempt.calculate_and_save_scores(attempts_for_scoring)
 
-        # --- Mark Test Complete ---
-        test_attempt.status = UserTestAttempt.Status.COMPLETED
-        test_attempt.end_time = timezone.now()
-        # Note: completion_points_awarded flag will be set by the signal receiver
-        test_attempt.save(update_fields=["status", "end_time", "updated_at"])
-
-        # --- Generate Smart Analysis (Example) ---
-        results_summary = test_attempt.results_summary or {}
-        weak_areas = [
-            d["name"] for d in results_summary.values() if d.get("score", 100) < 60
-        ]
-        strong_areas = [
-            d["name"] for d in results_summary.values() if d.get("score", 0) >= 85
-        ]
-
-        smart_analysis = _("Test completed!")
-        if weak_areas:
-            smart_analysis += " " + _("Consider focusing more on: {}.").format(
-                ", ".join(weak_areas)
-            )
-        if strong_areas:
-            smart_analysis += " " + _(
-                "You showed strong performance in: {}. Keep it up!"
-            ).format(", ".join(strong_areas))
-        # Add more sophisticated analysis based on time, difficulty, specific skills etc. if needed
-
-        # --- Return Results ---
-        # Return calculated results, but not point/streak info from this sync path
-        return {
-            "attempt_id": test_attempt.id,
-            "status": test_attempt.status,
-            "score_percentage": test_attempt.score_percentage,
-            "score_verbal": test_attempt.score_verbal,
-            "score_quantitative": test_attempt.score_quantitative,
-            "results_summary": results_summary,
-            "smart_analysis": smart_analysis,
-            "message": _("Test submitted successfully. Results calculated."),
-        }
-
-
+# TestSubmitResponseSerializer remains the same
 class TestSubmitResponseSerializer(serializers.Serializer):
     attempt_id = serializers.IntegerField()
     status = serializers.CharField()
@@ -580,4 +440,3 @@ class TestSubmitResponseSerializer(serializers.Serializer):
     results_summary = serializers.JSONField()
     smart_analysis = serializers.CharField()
     message = serializers.CharField()
-    # Removed point/streak fields

@@ -1,5 +1,6 @@
 from django.urls import path
 from apps.study.api.views.emergency import (
+    EmergencyModeQuestionsView,
     EmergencyModeStartView,
     EmergencyModeSessionUpdateView,
     EmergencyModeAnswerView,
@@ -11,6 +12,11 @@ urlpatterns = [
         "<int:session_id>/",
         EmergencyModeSessionUpdateView.as_view(),
         name="emergency-update",
+    ),
+    path(
+        "<int:session_id>/questions/",
+        EmergencyModeQuestionsView.as_view(),
+        name="emergency-questions",
     ),
     path("answer/", EmergencyModeAnswerView.as_view(), name="emergency-answer"),
 ]
