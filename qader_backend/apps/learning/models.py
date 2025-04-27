@@ -172,22 +172,30 @@ class Skill(TimeStampedModel):
         help_text=_("Optional description of the skill."),
     )
 
+    is_active: bool = models.BooleanField(
+        _("Active Status"),
+        default=True,
+        db_index=True,
+        help_text=_(
+            "Designates whether this skill is active and should be used in question selections, filters, etc."
+        ),
+    )
+
     class Meta:
         verbose_name = _("Skill")
         verbose_name_plural = _("Skills")
         ordering = ["subsection__section__order", "subsection__order", "name"]
-        unique_together = (
-            "subsection",
-            "name",
-        )  # Name must be unique within a subsection
+        unique_together = (("subsection", "name"),)
 
     def __str__(self) -> str:
-        return f"{self.subsection} - {self.name}"
+        status = "" if self.is_active else " (Inactive)"
+        return f"{self.subsection} - {self.name}{status}"
 
     def save(self, *args, **kwargs) -> None:
         """Overrides save method to auto-generate slug if blank."""
         if not self.slug:
-            base_slug = slugify(f"{self.subsection.slug}-{self.name}")
+            subsection_slug = getattr(self.subsection, "slug", "default-sub")
+            base_slug = slugify(f"{subsection_slug}-{self.name}")
             self.slug = base_slug
             num = 1
             while Skill.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
