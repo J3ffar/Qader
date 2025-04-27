@@ -1,4 +1,3 @@
-# apps/study/api/views/conversation.py
 from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -29,7 +28,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@extend_schema(tags=["Study & Progress - Conversation"])
+@extend_schema(tags=["Study & Progress - Conversational Learning"])
 class ConversationViewSet(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,

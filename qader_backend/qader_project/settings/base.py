@@ -227,8 +227,28 @@ SPECTACULAR_SETTINGS = {
             "description": "Access learning structure (Sections, Subsections, Skills, Questions).",
         },
         {
-            "name": "Study & Progress",
-            "description": "Endpoints for user study activities, tests, and progress tracking.",
+            "name": "Study & Progress - Level Assessment",
+            "description": "Endpoints for starting and submitting the initial level assessment test.",
+        },
+        {
+            "name": "Study & Progress - Traditional Learning",
+            "description": "Endpoints for fetching questions and submitting answers in traditional practice mode.",
+        },
+        {
+            "name": "Study & Progress - Tests & Practice",
+            "description": "Endpoints for managing practice/simulation test attempts (start, list, details, submit, review, retake).",
+        },
+        {
+            "name": "Study & Progress - Conversational Learning",
+            "description": "Endpoints for interacting with the AI learning assistant (start, messages, confirmation, test answers).",
+        },
+        {
+            "name": "Study & Progress - Emergency Mode",
+            "description": "Endpoints for initiating, managing, and practicing within emergency study sessions.",
+        },
+        {
+            "name": "Study & Progress - Statistics",
+            "description": "Endpoints for retrieving user performance statistics and progress.",
         },
         {
             "name": "Gamification",

@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests"],
+    tags=["Study & Progress - Tests & Practice"],
     summary="List User Test Attempts",
     description="Retrieves a paginated list of the authenticated user's previous test attempts (practice, simulations, level assessments).",
     responses={
@@ -58,7 +58,7 @@ class UserTestAttemptListView(generics.ListAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests"],
+    tags=["Study & Progress - Tests & Practice"],
     summary="Start New Test (Practice/Simulation)",
     description="Initiates a new practice or simulation test based on the provided configuration. Selects questions according to criteria.",
     request=TestStartSerializer,
@@ -92,7 +92,7 @@ class StartTestAttemptView(generics.GenericAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests"],
+    tags=["Study & Progress - Tests & Practice"],
     summary="Retrieve Test Attempt Details",
     description="Gets details of a specific test attempt (any type), including status, configuration, and associated questions (no answers if ongoing). Requires ownership.",
     responses={
@@ -125,7 +125,7 @@ class UserTestAttemptDetailView(generics.RetrieveAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests"],
+    tags=["Study & Progress - Tests & Practice"],
     summary="Submit Test Answers (Practice/Simulation)",
     description="Submits answers for an ongoing practice or simulation test. Calculates score, updates status, points, proficiency.",
     request=TestSubmitSerializer,
@@ -160,7 +160,7 @@ class SubmitTestAttemptView(generics.GenericAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests"],
+    tags=["Study & Progress - Tests & Practice"],
     summary="Review Completed Test",
     description="Retrieves a detailed question-by-question review for a *completed* test attempt (any type), including user/correct answers and explanations.",
     parameters=[
@@ -292,7 +292,7 @@ class ReviewTestAttemptView(generics.GenericAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests"],
+    tags=["Study & Progress - Tests & Practice"],
     summary="Retake Similar Test",
     description="Starts a *new* test attempt using the same configuration as a previous attempt (any type). Generates a fresh set of questions, excluding those in the original attempt if possible.",
     request=None,  # No request body
