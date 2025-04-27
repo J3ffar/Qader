@@ -1222,7 +1222,7 @@ class ApplySerialCodeView(generics.GenericAPIView):
     description="Provides a list of available standard subscription plans (1, 3, 12 months) based on system configuration.",
     responses={
         status.HTTP_200_OK: OpenApiResponse(
-            response=SubscriptionPlanSerializer(many=True),
+            response=SubscriptionPlanSerializer(),
             description="List of available subscription plans.",
             examples=[
                 OpenApiExample(

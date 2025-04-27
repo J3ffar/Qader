@@ -2,6 +2,8 @@ import factory
 from factory.django import DjangoModelFactory
 from django.contrib.auth.models import User
 from django.utils import timezone
+
+from apps.users.constants import SUBSCRIPTION_PLANS_CONFIG
 from ..models import (
     SubscriptionTypeChoices,
     UserProfile,
@@ -98,7 +100,7 @@ class SerialCodeFactory(DjangoModelFactory):
 
     code = factory.Sequence(lambda n: f"QADER-FACT-{n:06d}")  # Increased padding
     subscription_type = None
-    duration_days = 30
+    duration_days = 1
     is_active = True
     is_used = False
     used_by = None
@@ -108,16 +110,23 @@ class SerialCodeFactory(DjangoModelFactory):
 
     # Traits for common subscription types
     class Params:
-        type_1_month = factory.Trait(
-            subscription_type=SubscriptionTypeChoices.MONTH_1, duration_days=30
-        )
-        type_6_months = factory.Trait(
-            subscription_type=SubscriptionTypeChoices.MONTH_6, duration_days=183
-        )
-        type_12_months = factory.Trait(
-            subscription_type=SubscriptionTypeChoices.MONTH_12, duration_days=365
-        )
+        # --- Dynamically create traits for standard plans ---
+        # This automatically adapts if you add/remove plans in constants.py
+        for plan_enum, config in SUBSCRIPTION_PLANS_CONFIG.items():
+            # Use the enum member name (e.g., 'MONTH_1') as the basis for the trait name
+            # Create a valid Python identifier (e.g., type_1_month)
+            trait_name = f"type_{plan_enum.name.lower()}"
+            # Assign the Trait using the config details
+            locals()[trait_name] = factory.Trait(
+                subscription_type=plan_enum,  # Use the enum member itself
+                duration_days=config.get("duration_days"),  # Get duration from config
+                # Add prefix to notes for easier identification if needed:
+                # notes=f"Factory ({plan_enum.label}): {factory.Faker('sentence')}"
+            )
+
+        # --- Trait for Custom Type (remains explicit) ---
         type_custom = factory.Trait(
             subscription_type=SubscriptionTypeChoices.CUSTOM,
             # duration_days must be set explicitly when using this trait
+            # e.g., SerialCodeFactory(type_custom=True, duration_days=45)
         )
