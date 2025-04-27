@@ -7,6 +7,7 @@ from .views import (
     ApplySerialCodeView,  # Keep this if users can apply more codes later
     CancelSubscriptionView,
     SubscriptionPlanListView,
+    UserRedeemedCodesListView,
 )
 
 app_name = "users"
@@ -34,6 +35,11 @@ urlpatterns = [
         "me/subscription/cancel/",
         CancelSubscriptionView.as_view(),
         name="me_cancel_subscription",
+    ),
+    path(
+        "me/redeemed-codes/",
+        UserRedeemedCodesListView.as_view(),
+        name="user-redeemed-codes",
     ),
     path(
         "subscription-plans/",

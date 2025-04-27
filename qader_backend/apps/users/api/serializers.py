@@ -728,6 +728,32 @@ class ApplySerialCodeSerializer(serializers.Serializer):
     # to ensure atomicity and access to the request.user.
 
 
+class UserRedeemedSerialCodeSerializer(serializers.ModelSerializer):
+    """
+    Serializer for displaying serial codes redeemed by the current user.
+    Exposes only user-relevant, read-only information.
+    """
+
+    subscription_type_display = serializers.CharField(
+        source="get_subscription_type_display", read_only=True, label=_("Plan Type")
+    )
+    used_at = serializers.DateTimeField(read_only=True, label=_("Redeemed On"))
+    code = serializers.CharField(read_only=True, label=_("Serial Code"))  # Added label
+    duration_days = serializers.IntegerField(
+        read_only=True, label=_("Duration (Days)")
+    )  # Added label
+
+    class Meta:
+        model = SerialCode
+        fields = [
+            "code",
+            "subscription_type_display",
+            "duration_days",
+            "used_at",
+        ]
+        read_only_fields = fields
+
+
 # --- Subscription Plans ---
 
 

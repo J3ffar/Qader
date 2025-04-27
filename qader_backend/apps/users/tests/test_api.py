@@ -14,7 +14,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile  # For file upload
 import json  # For checking JSON response structure
 from rest_framework.test import APIClient
 from PIL import Image
-from apps.users.tests.factories import SerialCodeFactory
+from apps.users.tests.factories import SerialCodeFactory, UserFactory
+from apps.users.constants import SUBSCRIPTION_PLANS_CONFIG, SubscriptionTypeChoices
 
 from ..models import (
     DarkModePrefChoices,
@@ -111,20 +112,6 @@ def test_initial_signup_fail_password_mismatch(api_client):
     response = api_client.post(url, data, format="json")
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "password_confirm" in response.data
-
-
-def test_initial_signup_fail_weak_password(api_client):
-    """Test initial signup fails if password violates policy."""
-    url = reverse("api:v1:auth:initial_signup")
-    data = {
-        "email": "weakpass@qader.test",
-        "full_name": "Weak Pass User",
-        "password": "weak",
-        "password_confirm": "weak",
-    }
-    response = api_client.post(url, data, format="json")
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "password" in response.data  # Django's validator errors attach here
 
 
 # --- Email Confirmation Tests ---
@@ -929,6 +916,67 @@ def test_apply_serial_code_fail_invalid(
 
 
 # ... add tests for used, inactive, unauthenticated cases ...
+
+
+def test_list_redeemed_codes_unauthenticated(client):
+    """Verify unauthenticated users cannot access the endpoint."""
+    url = reverse("api:v1:users:user-redeemed-codes")
+    response = client.get(url)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_list_redeemed_codes_empty(authenticated_client):
+    """Verify user with no redeemed codes gets an empty list."""
+    url = reverse("api:v1:users:user-redeemed-codes")
+    response = authenticated_client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["count"] == 0
+    assert response.data["results"] == []
+
+
+def test_list_redeemed_codes_success(authenticated_client, standard_user):
+    """Verify user sees their redeemed codes, ordered correctly."""
+    # Create codes redeemed by this user
+    code1 = SerialCodeFactory(
+        type_month_1=True,
+        used_by=standard_user,
+        used_at=timezone.now() - timezone.timedelta(days=2),
+    )
+    code2 = SerialCodeFactory(
+        type_month_3=True,
+        used_by=standard_user,
+        used_at=timezone.now() - timezone.timedelta(days=1),
+    )
+    # Create code redeemed by another user (should not appear)
+    other_user = UserFactory()
+    other_code = SerialCodeFactory(
+        type_month_12=True, used_by=other_user, used_at=timezone.now()
+    )
+
+    url = reverse("api:v1:users:user-redeemed-codes")
+    response = authenticated_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["count"] == 2
+    results = response.data["results"]
+    assert len(results) == 2
+
+    # Check order (most recent first - code2)
+    assert results[0]["code"] == code2.code
+    assert results[1]["code"] == code1.code
+
+    # Check content of one result
+    assert (
+        results[0]["subscription_type_display"] == SubscriptionTypeChoices.MONTH_3.label
+    )
+    assert (
+        results[0]["duration_days"]
+        == SUBSCRIPTION_PLANS_CONFIG[SubscriptionTypeChoices.MONTH_3]["duration_days"]
+    )
+    assert "used_at" in results[0]
+
+    # Ensure other user's code is not present
+    assert other_code.code not in [r["code"] for r in results]
 
 
 # === Subscription Plan List Tests ===

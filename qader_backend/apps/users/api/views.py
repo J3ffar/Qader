@@ -58,6 +58,7 @@ from .serializers import (
     PasswordChangeSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
+    UserRedeemedSerialCodeSerializer,
     # Removed unused imports: SimpleUserSerializer, SubscriptionDetailSerializer
 )
 from ..constants import (
@@ -1214,6 +1215,39 @@ class ApplySerialCodeView(generics.GenericAPIView):
                 {"detail": _("An error occurred while applying the serial code.")},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+@extend_schema(
+    tags=["User Profile"],  # Keep under User Profile for now
+    summary="List Redeemed Serial Codes",
+    description="Retrieves a list of serial codes that the currently authenticated user has redeemed.",
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=UserRedeemedSerialCodeSerializer(many=True),
+            description="List of redeemed serial codes retrieved successfully.",
+        ),
+        status.HTTP_401_UNAUTHORIZED: OpenApiResponse(
+            description="Authentication credentials were not provided."
+        ),
+    },
+)
+class UserRedeemedCodesListView(generics.ListAPIView):
+    """
+    Provides a list of Serial Codes redeemed by the currently authenticated user.
+    """
+
+    serializer_class = UserRedeemedSerialCodeSerializer
+    permission_classes = [IsAuthenticated]
+    # Apply pagination from settings by default
+
+    def get_queryset(self):
+        """
+        This view should return a list of all the serial codes
+        for the currently authenticated user.
+        """
+        user = self.request.user
+        # Filter codes where used_by is the current user and order by most recent
+        return SerialCode.objects.filter(used_by=user).order_by("-used_at")
 
 
 @extend_schema(
