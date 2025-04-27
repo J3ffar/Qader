@@ -8,7 +8,7 @@ from django.conf import settings
 import logging
 
 from apps.study.models import UserTestAttempt, UserQuestionAttempt
-from apps.learning.models import Question, LearningSection
+from apps.learning.models import LearningSubSection, Question, LearningSection
 from apps.users.models import UserProfile
 from apps.users.api.serializers import UserProfileSerializer  # Used in response
 from apps.learning.api.serializers import QuestionListSerializer
@@ -120,13 +120,27 @@ class LevelAssessmentStartSerializer(serializers.Serializer):
         actual_num_questions = self.context["actual_num_questions"]
 
         # Select final questions using get_filtered_questions with section filter
+        selected_section_ids = [sec.id for sec in sections]
+        subsection_slugs = list(
+            LearningSubSection.objects.filter(
+                section_id__in=selected_section_ids
+            ).values_list("slug", flat=True)
+        )
+
+        # Check if any subsection slugs were found
+        if not subsection_slugs:
+            logger.warning(
+                f"No subsection slugs found for the selected sections: {[s.slug for s in sections]}"
+            )
+            # Decide how to handle this: maybe raise validation error earlier?
+            # Or proceed with an empty list, which get_filtered_questions should handle.
+
+        # Select final questions using get_filtered_questions with the collected subsection slugs
         questions_queryset = get_filtered_questions(
             user=user,
             limit=actual_num_questions,
-            subsections=[
-                s.slug for sec in sections for s in sec.learningsubsection_set.all()
-            ],  # Get all subsection slugs in selected sections
-            skills=None,
+            subsections=subsection_slugs,  # Pass the list of slugs
+            skills=None,  # Assuming no skill filter here
             starred=False,
             not_mastered=False,
         )
@@ -277,7 +291,7 @@ class LevelAssessmentSubmitSerializer(serializers.Serializer):
             )
             # The service returns 'updated_profile' only for level assessments
             return result_data
-        except ValidationError as e:
+        except serializers.ValidationError as e:
             # Re-raise validation errors from the service
             raise e
         except Exception as e:
