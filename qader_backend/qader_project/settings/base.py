@@ -29,6 +29,7 @@ SITE_NAME = config("SITE_NAME", default=_("Qader Platform"))
 
 # Referral Settings
 REFERRAL_BONUS_DAYS = config("REFERRAL_BONUS_DAYS", default=3, cast=int)
+MAX_PROFILE_PIC_SIZE_MB = config("MAX_PROFILE_PIC_SIZE_MB", default=5, cast=int)
 
 # Application definition
 INSTALLED_APPS = [
@@ -212,6 +213,10 @@ SPECTACULAR_SETTINGS = {
         {
             "name": "User Profile",
             "description": "Manage current user profile and settings.",
+        },
+        {
+            "name": "Subscription Plans",
+            "description": "Endpoints related to viewing available subscription plans.",
         },
         {
             "name": "Public Content",

@@ -20,6 +20,10 @@ from drf_spectacular.utils import (
 from drf_spectacular.types import OpenApiTypes
 
 
+from apps.users.constants import (
+    SUBSCRIPTION_PLANS_CONFIG,
+)
+
 # Import the new SerialCodeCreateSerializer we will define below
 from ..serializers.serial_code_management import (
     SerialCodeListSerializer,
@@ -34,26 +38,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 # --- Define Plan Configuration ---
-# Similar to the management command
-PLAN_CONFIG = {
-    SubscriptionTypeChoices.MONTH_1: {
-        "prefix": "QDR1M",
-        "duration_days": 30,
-    },
-    SubscriptionTypeChoices.MONTH_6: {
-        "prefix": "QDR6M",
-        "duration_days": 183,
-    },
-    SubscriptionTypeChoices.MONTH_12: {
-        "prefix": "QDR12M",
-        "duration_days": 365,
-    },
-    # Define behavior for custom if needed, maybe a default prefix/duration
-    SubscriptionTypeChoices.CUSTOM: {
-        "prefix": "QDRCST",  # Example prefix for custom
-        "duration_days": None,  # Duration must be specified separately for custom
-    },
-}
 
 
 @extend_schema_view(
@@ -195,7 +179,7 @@ PLAN_CONFIG = {
     generate_codes=extend_schema(  # Custom action
         tags=["Admin Panel - Serial Code Management"],
         summary="Generate Batch of Serial Codes",
-        description="Generate multiple serial codes based on a selected plan type (1 Month, 6 Months, 12 Months).",
+        description="Generate multiple serial codes based on a selected standard plan type (e.g., 1 Month, 3 Months, 12 Months). Uses centralized configuration.",
         request=SerialCodeGenerateSerializer,
         responses={
             status.HTTP_201_CREATED: OpenApiResponse(
@@ -287,90 +271,98 @@ class SerialCodeAdminViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["post"], url_path="generate-batch")
     def generate_codes(self, request, *args, **kwargs):
         """
-        Generates a batch of unique serial codes based on the specified plan type.
+        Generates a batch of unique serial codes using SUBSCRIPTION_PLANS_CONFIG.
         """
-        serializer = SerialCodeGenerateSerializer(
-            data=request.data,
-            context=self.get_serializer_context(),  # Important to pass context
-        )
+        serializer = self.get_serializer(
+            data=request.data
+        )  # Uses SerialCodeGenerateSerializer
         try:
             serializer.is_valid(raise_exception=True)
             validated_data = serializer.validated_data
-            plan_type = validated_data["plan_type"]
+            # Note: The serializer field is 'subscription_type' in SerialCodeGenerateSerializer
+            # Let's assume it uses the correct enum choices based on SubscriptionTypeChoices
+            # If the serializer field was 'plan_type', we'd use that here.
+            # Double-check SerialCodeGenerateSerializer definition if needed.
+            plan_enum_value = validated_data[
+                "subscription_type"
+            ]  # Get the selected enum value (e.g., "1_month")
             count = validated_data["count"]
             notes = validated_data.get("notes")
             creator = request.user
 
-            # Get config for the selected plan
-            config = PLAN_CONFIG.get(plan_type)
-            if not config:
-                # Should be caught by serializer choices, but defensive check
-                raise serializers.ValidationError(
-                    {"plan_type": _("Invalid plan type specified.")}
-                )
+            # Get config using the enum value
+            config = SUBSCRIPTION_PLANS_CONFIG.get(plan_enum_value)
 
-            prefix = config["prefix"]
-            # Duration comes from config, unless it's CUSTOM (then it must be specified *if needed*)
-            # In this simplified API version, we assume CUSTOM codes also get a default duration
-            # or that the generator logic handles it. Let's assume CUSTOM isn't generated this way for simplicity
-            # or requires a specific duration in the request (modify serializer if needed).
-            # We'll stick to the defined durations for 1m, 6m, 12m.
-            if plan_type == SubscriptionTypeChoices.CUSTOM:
-                # Decide how to handle custom duration generation via API.
-                # Option 1: Disallow generating CUSTOM via this batch endpoint.
+            # --- Validation specific to this endpoint ---
+            if not config:
                 raise serializers.ValidationError(
                     {
-                        "plan_type": _(
-                            "Generating 'Custom' type codes via batch is not supported. Use standard POST to create custom codes individually."
+                        "subscription_type": _(
+                            "Invalid plan type selected or configuration missing."
                         )
                     }
                 )
-                # Option 2: Require 'duration_days' in SerialCodeGenerateSerializer if plan_type is CUSTOM.
-                # duration_days = validated_data.get('duration_days') # Add to serializer if needed
-                # if duration_days is None: raise serializers.ValidationError(...)
-            else:
-                duration_days = config["duration_days"]
+
+            # Disallow generating 'custom' type via batch here
+            if plan_enum_value == SubscriptionTypeChoices.CUSTOM:
+                raise serializers.ValidationError(
+                    {
+                        "subscription_type": _(
+                            "Generating 'Custom' type codes via batch is not supported."
+                        )
+                    }
+                )
+
+            # Check if duration exists in config (essential for standard plans)
+            duration_days = config.get("duration_days")
+            if duration_days is None:
+                raise serializers.ValidationError(
+                    {
+                        "subscription_type": _(
+                            "Selected plan type configuration is missing 'duration_days'."
+                        )
+                    }
+                )
+
+            # Get prefix from config, provide a fallback just in case
+            prefix = config.get("prefix", "QDRAPI")
+            # --- End Validation ---
 
             new_codes = []
-            generated_code_strings = (
-                set()
-            )  # Keep track of codes generated in this batch
+            generated_code_strings = set()
 
-            # Use a transaction to ensure all codes are created or none are
             with transaction.atomic():
                 for i in range(count):
-                    # Loop to ensure uniqueness even with potential collisions during generation
                     while True:
-                        # Pass the determined prefix to the utility function
+                        # Generate code using the prefix from config
                         code_str = generate_unique_serial_code(prefix=prefix)
-                        # Check against DB (via util) and current batch
-                        if code_str.upper() not in generated_code_strings:
-                            generated_code_strings.add(code_str.upper())
+                        code_upper = code_str.upper()
+                        # Check uniqueness in DB (via util) and current batch
+                        if code_upper not in generated_code_strings:
+                            generated_code_strings.add(code_upper)
                             break
 
                     new_codes.append(
                         SerialCode(
-                            code=code_str,
+                            code=code_str,  # Store the generated case, or force upper: code_upper
                             duration_days=duration_days,
-                            subscription_type=plan_type,  # Use the enum value directly
+                            subscription_type=plan_enum_value,  # Store the enum value
                             notes=notes,
                             created_by=creator,
-                            is_active=True,  # New codes are active by default
+                            is_active=True,
                             is_used=False,
                         )
                     )
 
-                # Use bulk_create for efficiency
                 created_instances = SerialCode.objects.bulk_create(new_codes)
                 logger.info(
-                    f"Admin '{creator.username}' generated {len(created_instances)} serial codes (Plan: {plan_type}, Notes: {notes or 'N/A'})."
+                    f"Admin '{creator.username}' generated {len(created_instances)} serial codes via API (Plan: {plan_enum_value}, Notes: {notes or 'N/A'})."
                 )
 
-                # Simpler response indicating success
                 return Response(
                     {
                         "detail": _(
-                            f"{len(created_instances)} serial codes generated successfully for plan '{plan_type}'."
+                            f"{len(created_instances)} serial codes generated successfully for plan '{plan_enum_value}'."
                         )
                     },
                     status=status.HTTP_201_CREATED,
@@ -378,12 +370,12 @@ class SerialCodeAdminViewSet(viewsets.ModelViewSet):
 
         except serializers.ValidationError as e:
             logger.warning(
-                f"Serial code batch generation validation failed for admin '{request.user.username}': {e.detail}"
+                f"Serial code batch generation validation failed (API) for admin '{request.user.username}': {e.detail}"
             )
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except IntegrityError as e:
             logger.error(
-                f"Database integrity error during serial code batch generation by '{request.user.username}': {e}"
+                f"Database integrity error during serial code batch generation (API) by '{request.user.username}': {e}"
             )
             return Response(
                 {
@@ -395,7 +387,7 @@ class SerialCodeAdminViewSet(viewsets.ModelViewSet):
             )
         except Exception as e:
             logger.exception(
-                f"Unexpected error generating serial codes for admin '{request.user.username}': {e}"
+                f"Unexpected error generating serial codes (API) for admin '{request.user.username}': {e}"
             )
             return Response(
                 {"detail": _("An unexpected error occurred during code generation.")},

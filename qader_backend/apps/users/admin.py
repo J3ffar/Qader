@@ -223,7 +223,7 @@ class SerialCodeAdmin(admin.ModelAdmin):
     #     # Example: Only set duration if type is chosen and duration wasn't manually set
     #     if obj.subscription_type and not form.cleaned_data.get('duration_days_manually_changed', False): # Needs extra logic in form
     #         if obj.subscription_type == SubscriptionTypeChoices.MONTH_1: obj.duration_days = 30
-    #         elif obj.subscription_type == SubscriptionTypeChoices.MONTH_6: obj.duration_days = 183
+    #         elif obj.subscription_type == SubscriptionTypeChoices.MONTH_3: obj.duration_days = 183
     #         elif obj.subscription_type == SubscriptionTypeChoices.MONTH_12: obj.duration_days = 365
     #         # else: let manual duration stand for 'custom' or if type is cleared
     #     super().save_model(request, obj, form, change)

@@ -3,6 +3,13 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
+from .constants import (
+    GenderChoices,
+    RoleChoices,
+    DarkModePrefChoices,
+    SubscriptionTypeChoices,
+    SUBSCRIPTION_PLANS_CONFIG,  # Import config if needed directly in model logic
+)
 
 from apps.admin_panel.models import AdminPermission
 
@@ -12,34 +19,6 @@ from .utils import generate_unique_referral_code
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-# --- Choices (No changes needed, seem fine) ---
-
-
-class GenderChoices(models.TextChoices):
-    MALE = "male", _("Male")
-    FEMALE = "female", _("Female")
-
-
-class RoleChoices(models.TextChoices):
-    STUDENT = "student", _("Student")
-    ADMIN = "admin", _("Admin")  # Superuser
-    SUB_ADMIN = "sub_admin", _("Sub-Admin")  # Staff with specific permissions
-    # Add other roles if required (e.g., Trainer, School Representative)
-
-
-class DarkModePrefChoices(models.TextChoices):
-    LIGHT = "light", _("Light")
-    DARK = "dark", _("Dark")
-    SYSTEM = "system", _("System")
-
-
-class SubscriptionTypeChoices(models.TextChoices):
-    MONTH_1 = "1_month", _("1 Month")
-    MONTH_6 = "6_months", _("6 Months")
-    MONTH_12 = "12_months", _("12 Months")
-    CUSTOM = "custom", _("Custom Duration")  # Clarified label
 
 
 # --- Models ---
@@ -128,42 +107,19 @@ class SerialCode(models.Model):
 
     def clean(self):
         """Optional: Validation logic before saving."""
-        # Standardize code format if desired (e.g., uppercase)
         if self.code:
             self.code = self.code.upper()
 
-        # Validation for duration based on type (flexible approach)
-        if (
-            self.subscription_type
-            and self.subscription_type != SubscriptionTypeChoices.CUSTOM
-        ):
-            expected_duration = None
-            if self.subscription_type == SubscriptionTypeChoices.MONTH_1:
-                expected_duration = 30
-            elif self.subscription_type == SubscriptionTypeChoices.MONTH_6:
-                expected_duration = 183  # ~6 months
-            elif self.subscription_type == SubscriptionTypeChoices.MONTH_12:
-                expected_duration = 365  # ~12 months
-
-            if (
-                expected_duration is not None
-                and self.duration_days != expected_duration
-            ):
-                # Option 1: Automatically align duration (if type is primary)
-                # self.duration_days = expected_duration
-                # logger.info(f"Adjusted duration_days for code {self.code} to {expected_duration} based on type {self.subscription_type}")
-
-                # Option 2: Raise validation error to enforce manual alignment
-                # raise ValidationError(
-                #     _("Duration ({days}) doesn't match the type '{type}' ({expected} days). Adjust days or set type to 'Custom'.").format(
-                #         days=self.duration_days, type=self.get_subscription_type_display(), expected=expected_duration
-                #     )
-                # )
-                # Option 3: Log a warning (current implicit behavior is flexible)
-                logger.warning(
-                    f"Serial code {self.code} type '{self.get_subscription_type_display()}' has duration {self.duration_days} days, expected {expected_duration}."
-                )
-                pass  # Allow flexibility by default
+        # Simplified clean: Rely on creation logic (serializers/commands)
+        # to set appropriate duration based on type.
+        # Remove the previous check that logged warnings.
+        # You *could* add a stricter check here if needed:
+        # plan_config = SUBSCRIPTION_PLANS_CONFIG.get(self.subscription_type)
+        # if plan_config and plan_config.get('duration_days') is not None:
+        #     if self.duration_days != plan_config['duration_days']:
+        #         raise ValidationError(
+        #              _("Duration ({days}) doesn't match the specified plan type '{type}' ({expected} days).").format(...)
+        #          )
 
         super().clean()
 

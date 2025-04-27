@@ -13,14 +13,16 @@ from rest_framework import serializers
 from rest_framework.request import Request  # For type hinting context
 
 from typing import Dict, Any, Optional, Union
-
+from ..constants import (
+    GenderChoices,
+    RoleChoices,
+    DarkModePrefChoices,
+    SubscriptionTypeChoices,
+    SUBSCRIPTION_PLANS_CONFIG,
+)
 from ..models import (
     UserProfile,
     SerialCode,
-    RoleChoices,
-    GenderChoices,
-    DarkModePrefChoices,
-    SubscriptionTypeChoices,  # Added just in case needed later
 )
 
 # Removed unused import: from ..utils import generate_unique_referral_code
@@ -86,7 +88,7 @@ class ReferralDetailSerializer(serializers.Serializer):
         """Calculate free days earned from referrals. (Logic needs defining)."""
         # Example: 3 free days per referral
         referral_count = self.get_referrals_count(profile)
-        days_per_referral = 3  # Define this logic (e.g., in settings)
+        days_per_referral = getattr(settings, "REFERRAL_BONUS_DAYS", 3)
         return referral_count * days_per_referral
 
 
@@ -363,8 +365,17 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("Error validating referral code."))
 
     def validate_profile_picture(self, image):
-        # Re-use validation logic from UserProfileUpdateSerializer if needed
-        # ... (add size/dimension/type checks here) ...
+        # Basic size validation example
+        if image:
+            max_upload_size = (
+                getattr(settings, "MAX_PROFILE_PIC_SIZE_MB", 5) * 1024 * 1024
+            )
+            if image.size > max_upload_size:
+                raise serializers.ValidationError(
+                    _("Image size cannot exceed {size}MB.").format(
+                        size=max_upload_size // (1024 * 1024)
+                    )
+                )
         return image
 
     # No create method needed, this is for updating via PATCH
@@ -531,39 +542,16 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         )
 
     def validate_profile_picture(self, image):
-        """Validate uploaded profile picture (size, dimensions, type)."""
-        if image:  # Only validate if an image is provided
+        if image:
             max_upload_size = (
-                settings.MAX_PROFILE_PIC_SIZE_MB * 1024 * 1024
-                if hasattr(settings, "MAX_PROFILE_PIC_SIZE_MB")
-                else 5 * 1024 * 1024
-            )  # Default 5MB
+                getattr(settings, "MAX_PROFILE_PIC_SIZE_MB", 5) * 1024 * 1024
+            )
             if image.size > max_upload_size:
                 raise serializers.ValidationError(
                     _("Image size cannot exceed {size}MB.").format(
                         size=max_upload_size // (1024 * 1024)
                     )
                 )
-
-            # Optional: Validate image dimensions
-            # min_width, min_height = 100, 100
-            # max_width, max_height = 2000, 2000
-            # try:
-            #     width, height = get_image_dimensions(image)
-            #     if not (min_width <= width <= max_width and min_height <= height <= max_height):
-            #          raise serializers.ValidationError(
-            #              _("Image dimensions must be between {min_w}x{min_h} and {max_w}x{max_h} pixels.").format(
-            #                   min_w=min_width, min_h=min_height, max_w=max_width, max_h=max_height
-            #               )
-            #          )
-            # except Exception:
-            #      raise serializers.ValidationError(_("Could not read image dimensions. Invalid image file?"))
-
-            # Optional: Validate content type (more reliable than extension)
-            # allowed_types = ['image/jpeg', 'image/png', 'image/webp']
-            # if image.content_type not in allowed_types:
-            #      raise serializers.ValidationError(_("Invalid image file type. Allowed types: JPG, PNG, WEBP."))
-
         return image
 
     def validate_dark_mode_auto_times(self, attrs: Dict[str, Any]) -> Dict[str, Any]:

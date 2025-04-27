@@ -60,8 +60,11 @@ from .serializers import (
     PasswordResetConfirmSerializer,
     # Removed unused imports: SimpleUserSerializer, SubscriptionDetailSerializer
 )
-from ..models import (
+from ..constants import (
+    SUBSCRIPTION_PLANS_CONFIG,
     SubscriptionTypeChoices,
+)
+from ..models import (
     UserProfile,
     SerialCode,
 )  # Added SerialCode import
@@ -558,16 +561,7 @@ class CompleteProfileView(generics.UpdateAPIView):
                     pk=serial_code_obj.pk, is_active=True, is_used=False
                 )
                 if code_to_use.mark_used(user):  # Mark used *before* applying
-                    instance.apply_subscription(
-                        code_to_use
-                    )  # Prepare expiry date changes
-                    instance.save(
-                        update_fields=[
-                            "subscription_expires_at",
-                            "serial_code_used",
-                            "updated_at",
-                        ]
-                    )
+                    instance.apply_subscription(code_to_use)
                     subscription_updated = True
                     logger.info(
                         f"User {user.username} completed profile and applied serial code {code_to_use.code}"
@@ -1223,9 +1217,9 @@ class ApplySerialCodeView(generics.GenericAPIView):
 
 
 @extend_schema(
-    tags=["Subscription Plans"],  # Maybe a new tag?
+    tags=["Subscription Plans"],  # Apply the new tag
     summary="List Available Subscription Plans",
-    description="Provides a list of available subscription plans, their details, and associated serial code types.",
+    description="Provides a list of available standard subscription plans (1, 3, 12 months) based on system configuration.",
     responses={
         status.HTTP_200_OK: OpenApiResponse(
             response=SubscriptionPlanSerializer(many=True),
@@ -1234,24 +1228,25 @@ class ApplySerialCodeView(generics.GenericAPIView):
                 OpenApiExample(
                     "Plans List",
                     value=[
+                        # Example based on new config
                         {
                             "id": "1_month",
                             "name": "1 Month Access",
-                            "description": "Full access for 30 days.",
+                            "description": "Full access to all platform features for 30 days.",
                             "duration_days": 30,
                             "requires_code_type": "1_month",
                         },
                         {
-                            "id": "6_months",
-                            "name": "6 Months Access",
-                            "description": "Full access for 183 days.",
-                            "duration_days": 183,
-                            "requires_code_type": "6_months",
+                            "id": "3_months",
+                            "name": "3 Months Access",
+                            "description": "Full access to all platform features for 91 days (approx. 3 months).",
+                            "duration_days": 91,
+                            "requires_code_type": "3_months",
                         },
                         {
                             "id": "12_months",
                             "name": "12 Months Access",
-                            "description": "Full access for 365 days.",
+                            "description": "Full access to all platform features for 365 days (1 year).",
                             "duration_days": 365,
                             "requires_code_type": "12_months",
                         },
@@ -1259,7 +1254,6 @@ class ApplySerialCodeView(generics.GenericAPIView):
                 )
             ],
         ),
-        # No specific errors expected for simple GET list if data is hardcoded
     },
 )
 class SubscriptionPlanListView(views.APIView):
@@ -1268,42 +1262,15 @@ class SubscriptionPlanListView(views.APIView):
     permission_classes = [AllowAny]  # Allow anyone to see the plans
 
     def get(self, request: Request, *args, **kwargs) -> Response:
-        # TODO: Replace hardcoded data with fetching from a `SubscriptionPlan` model if created later.
+        # Get plan data from the imported configuration
+        # Exclude 'CUSTOM' type if it exists in config and shouldn't be listed as a plan
         plans_data = [
-            {
-                "id": "1_month",
-                "name": _("1 Month Access"),
-                "description": _("Full access to all platform features for 30 days."),
-                "duration_days": 30,
-                "requires_code_type": SubscriptionTypeChoices.MONTH_1.value,  # Use value from choices
-            },
-            {
-                "id": "6_months",
-                "name": _("6 Months Access"),
-                "description": _(
-                    "Full access to all platform features for 183 days (approx. 6 months)."
-                ),
-                "duration_days": 183,
-                "requires_code_type": SubscriptionTypeChoices.MONTH_6.value,
-            },
-            {
-                "id": "12_months",
-                "name": _("12 Months Access"),
-                "description": _(
-                    "Full access to all platform features for 365 days (1 year)."
-                ),
-                "duration_days": 365,
-                "requires_code_type": SubscriptionTypeChoices.MONTH_12.value,
-            },
-            # Add a representation for custom codes if needed, though they aren't a 'plan'
-            # {
-            #     "id": "custom",
-            #     "name": _("Custom Duration"),
-            #     "description": _("Subscription duration determined by the specific serial code."),
-            #     "duration_days": None, # Duration varies
-            #     "requires_code_type": SubscriptionTypeChoices.CUSTOM.value
-            # },
+            plan_details
+            for plan_enum, plan_details in SUBSCRIPTION_PLANS_CONFIG.items()
+            if plan_enum
+            != SubscriptionTypeChoices.CUSTOM  # Exclude CUSTOM from listed plans
         ]
+
         serializer = SubscriptionPlanSerializer(plans_data, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
