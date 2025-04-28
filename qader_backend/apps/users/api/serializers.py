@@ -51,10 +51,13 @@ class SubscriptionDetailSerializer(serializers.Serializer):
     expires_at = serializers.DateTimeField(
         read_only=True, source="subscription_expires_at", allow_null=True
     )
+    serial_code = serializers.SerializerMethodField(read_only=True)
+    account_type = serializers.CharField(
+        read_only=True, source="get_account_type_display"
+    )
     # serial_code = serializers.CharField(read_only=True, source="serial_code_used.code", allow_null=True) # Alternative direct source
 
     # Using SerializerMethodField gives more control if needed
-    serial_code = serializers.SerializerMethodField(read_only=True)
 
     def get_serial_code(self, profile: UserProfile) -> Optional[str]:
         """Safely return the code of the last used serial."""
@@ -220,6 +223,7 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
         allow_blank=True,
         allow_null=True,
         write_only=True,
+        help_text=_("Optional: Enter a serial code to activate a paid subscription."),
     )
     referral_code_used = serializers.CharField(
         max_length=50,
@@ -273,8 +277,6 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
             "current_streak_days",
             "longest_streak_days",
             "level_determined",
-            # Do NOT list subscription, referral, profile_picture_url here as they are not model fields
-            # and their read-only status is defined above.
         )
 
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
@@ -415,7 +417,6 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_profile_picture_url(self, profile: UserProfile) -> Optional[str]:
-        # ... (implementation remains the same) ...
         request: Optional[Request] = self.context.get("request")
         if profile.profile_picture and hasattr(profile.profile_picture, "url"):
             url = profile.profile_picture.url
@@ -433,7 +434,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     level_determined = serializers.BooleanField(read_only=True)
     profile_complete = serializers.BooleanField(
         source="is_profile_complete", read_only=True
-    )  # <-- ADDED
+    )
     subscription = SubscriptionDetailSerializer(read_only=True, source="*")
     referral = ReferralDetailSerializer(read_only=True, source="*")
     profile_picture_url = serializers.SerializerMethodField()
@@ -459,7 +460,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "current_level_verbal",
             "current_level_quantitative",
             "level_determined",
-            "profile_complete",  # <-- ADDED
+            "profile_complete",
             # Settings
             "last_visited_study_option",
             "dark_mode_preference",

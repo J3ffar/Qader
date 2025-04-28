@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
 from .constants import (
+    AccountTypeChoices,
     GenderChoices,
     RoleChoices,
     DarkModePrefChoices,
@@ -192,8 +193,17 @@ class UserProfile(models.Model):
         default=RoleChoices.STUDENT,
         db_index=True,
     )
-
     # Subscription Details
+    account_type = models.CharField(
+        _("Account Type"),
+        max_length=20,
+        choices=AccountTypeChoices.choices,
+        default=AccountTypeChoices.FREE_TRIAL,  # Default to Free Trial upon profile creation
+        db_index=True,
+        help_text=_(
+            "Indicates the user's current subscription level (e.g., Free Trial, Subscribed)."
+        ),
+    )
     subscription_expires_at = models.DateTimeField(
         _("Subscription Expires At"), null=True, blank=True, db_index=True
     )
@@ -326,6 +336,19 @@ class UserProfile(models.Model):
         return timezone.now() < self.subscription_expires_at
 
     @property
+    def is_free_trial_user(self) -> bool:
+        """Check if the user's account type is currently Free Trial."""
+        return self.account_type == AccountTypeChoices.FREE_TRIAL
+
+    @property
+    def is_paid_subscriber(self) -> bool:
+        """Check if the user has a paid subscription type (not Free Trial)."""
+        return self.account_type in [
+            AccountTypeChoices.SUBSCRIBED,
+            # Add other paid types here if they exist (PREMIUM, etc.)
+        ]
+
+    @property
     def level_determined(self) -> bool:
         """Check if both verbal and quantitative levels have been assessed."""
         # Check for non-null values
@@ -370,10 +393,12 @@ class UserProfile(models.Model):
             new_expiry_date = start_date + timedelta(days=serial_code.duration_days)
             self.subscription_expires_at = new_expiry_date
             self.serial_code_used = serial_code
+            self.account_type = AccountTypeChoices.SUBSCRIBED
             self.save(
                 update_fields=[
                     "subscription_expires_at",
                     "serial_code_used",
+                    "account_type",
                     "updated_at",
                 ]
             )

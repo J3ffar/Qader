@@ -4,6 +4,17 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
+class AccountTypeChoices(models.TextChoices):
+    """Defines the types of user accounts regarding subscription status."""
+
+    FREE_TRIAL = "FREE_TRIAL", _("Free Trial")  # Limited access, short duration
+    SUBSCRIBED = "SUBSCRIBED", _("Subscribed")  # Standard paid subscription
+    # Add other potential types later, e.g.:
+    # PREMIUM = 'PREMIUM', _('Premium')
+    # ENTERPRISE = 'ENTERPRISE', _('Enterprise')
+    # PERMANENT = 'PERMANENT', _('Permanent Access') # If needed
+
+
 # --- Subscription Plan Choices ---
 class SubscriptionTypeChoices(models.TextChoices):
     """Defines the distinct types of subscription plans or codes."""

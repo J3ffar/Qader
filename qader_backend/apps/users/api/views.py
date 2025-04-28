@@ -18,11 +18,10 @@ from apps.users.utils import (
     send_confirmation_email,
     send_password_reset_email,
 )
-
-from rest_framework import generics, status, views
+from rest_framework import generics, status, views, serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request  # For type hinting
-from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -516,8 +515,8 @@ class CompleteProfileView(generics.UpdateAPIView):
         try:
             profile = self.request.user.profile
             # Optional: Add check if profile is already complete?
-            # if profile.is_profile_complete:
-            #     raise PermissionDenied(_("Profile is already complete."))
+            if profile.is_profile_complete:
+                raise PermissionDenied(_("Profile is already complete."))
             return profile
         except UserProfile.DoesNotExist:
             logger.error(
