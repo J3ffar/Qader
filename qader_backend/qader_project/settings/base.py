@@ -4,6 +4,8 @@ from decouple import config, Csv
 import dj_database_url
 from django.utils.translation import gettext_lazy as _
 
+from apps.users.constants import AccountTypeChoices
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -344,6 +346,54 @@ SIMPLE_JWT = {
 
 # CORS Settings
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
+
+
+LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE = "MAX_TEST_ATTEMPTS_PER_TYPE"
+LIMIT_MAX_QUESTIONS_PER_ATTEMPT = "MAX_QUESTIONS_PER_TEST_ATTEMPT"
+LIMIT_MAX_CONVERSATION_MESSAGES = "MAX_CONVERSATION_USER_MESSAGES"
+
+ACCOUNT_USAGE_LIMITS = {
+    AccountTypeChoices.FREE_TRIAL: {
+        # Key: A unique identifier for the limited action
+        # Value: The limit (integer) or None for unlimited
+        LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE: 2,
+        LIMIT_MAX_QUESTIONS_PER_ATTEMPT: 20,
+        LIMIT_MAX_CONVERSATION_MESSAGES: 10,
+        # Add other limits here as needed (e.g., 'MAX_STARRED_QUESTIONS': 50)
+    },
+    AccountTypeChoices.SUBSCRIBED: {
+        # Paid users generally have unlimited usage for these core features
+        LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE: None,
+        LIMIT_MAX_QUESTIONS_PER_ATTEMPT: None,
+        LIMIT_MAX_CONVERSATION_MESSAGES: None,
+    },
+    # --- Add other account types later ---
+    # AccountTypeChoices.PREMIUM: {
+    #     'MAX_TEST_ATTEMPTS_PER_TYPE': None,
+    #     'MAX_QUESTIONS_PER_TEST_ATTEMPT': None,
+    #     'MAX_CONVERSATION_USER_MESSAGES': None,
+    #     'ACCESS_TO_ADVANCED_ANALYTICS': True, # Example boolean flag
+    # },
+}
+
+# Default limits if an account type isn't explicitly defined (optional, safer to be explicit)
+DEFAULT_ACCOUNT_LIMITS = {
+    LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE: 0,
+    LIMIT_MAX_QUESTIONS_PER_ATTEMPT: 0,
+    LIMIT_MAX_CONVERSATION_MESSAGES: 0,
+}
+
+
+# --- Helper Function to Get Limits ---
+def get_limits_for_user(user):
+    """Safely retrieves the limits dictionary for a given user's account type."""
+    if not user or not user.is_authenticated or not hasattr(user, "profile"):
+        # Return restrictive defaults for anonymous or incomplete users
+        return DEFAULT_ACCOUNT_LIMITS
+
+    account_type = user.profile.account_type
+    return ACCOUNT_USAGE_LIMITS.get(account_type, DEFAULT_ACCOUNT_LIMITS)
+
 
 # --- Gamification Point Constants ---
 POINTS_QUESTION_SOLVED_CORRECT = config(
