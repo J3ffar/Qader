@@ -1,45 +1,51 @@
-from .level_assessment import LevelAssessmentStartView
-from .tests import (
+# --- Core Attempts ---
+from .attempts import (
     UserTestAttemptListView,
-    StartTestAttemptView,
     UserTestAttemptDetailView,
-    ReviewTestAttemptView,
-    RetakeSimilarTestAttemptView,
+    UserTestAttemptAnswerView,
+    UserTestAttemptCompleteView,
+    UserTestAttemptCancelView,
+    UserTestAttemptReviewView,
+    UserTestAttemptRetakeView,
 )
+
+# --- Specific Start Views ---
+from .level_assessment import LevelAssessmentStartView
+from .practice_simulation import PracticeSimulationStartView
+from .traditional import TraditionalPracticeStartView
+
+# --- Traditional Specific Actions ---
+from .traditional import (
+    TraditionalPracticeEndView,
+    TraditionalQuestionListView,
+    TraditionalRevealAnswerView,
+)
+from .level_assessment import LevelAssessmentStartView
+
 from .statistics import UserStatisticsView
 from .emergency import (
     EmergencyModeStartView,
     EmergencyModeSessionUpdateView,
     EmergencyModeAnswerView,
 )
-from .attempts import (
-    TestAttemptAnswerView,
-    CompleteTestAttemptView,
-    CancelTestAttemptView,
-    StartTraditionalAttemptView,  # <-- ADD
-    RevealAnswerView,  # <-- ADD
-    EndTraditionalAttemptView,
-)
 
 __all__ = [
-    # Level Assessment
+    # --- Core Attempts ---
+    "UserTestAttemptListView",
+    "UserTestAttemptDetailView",
+    "UserTestAttemptAnswerView",  # Unified Answer
+    "UserTestAttemptCompleteView",  # Unified Complete
+    "UserTestAttemptCancelView",  # Unified Cancel
+    "UserTestAttemptReviewView",  # Unified Review
+    "UserTestAttemptRetakeView",  # Unified Retake
+    # --- Start Views ---
     "LevelAssessmentStartView",
-    # Traditional Learning
-    "StartTraditionalAttemptView",
-    "EndTraditionalAttemptView",
-    "ReviewTestAttemptView",
-    "RetakeSimilarTestAttemptView",
-    # --- In-Progress Helpers ---
-    "RevealAnswerView",
-    # Tests
-    "StartTestAttemptView",  # Start Practice/Simulation
-    "UserTestAttemptListView",  # List all attempt types
-    "UserTestAttemptDetailView",  # Detail for any attempt type
-    "TestAttemptAnswerView",  # NEW: Submit single answer (any type)
-    "CompleteTestAttemptView",  # NEW: Complete attempt (any type)
-    "CancelTestAttemptView",  # NEW: Cancel attempt (any type)
-    "ReviewTestAttemptView",  # Review completed attempt (any type)
-    "RetakeSimilarTestAttemptView",
+    "PracticeSimulationStartView",
+    "TraditionalPracticeStartView",
+    # --- Traditional Practice ---
+    "TraditionalPracticeEndView",
+    "TraditionalQuestionListView",  # Standalone question fetch
+    "TraditionalRevealAnswerView",
     # Statistics
     "UserStatisticsView",
     # Emergency Mode

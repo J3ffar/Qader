@@ -1,68 +1,200 @@
+from typing import Dict, Optional
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ObjectDoesNotExist
 import logging
 
-from apps.study.models import UserQuestionAttempt, UserTestAttempt, Question
-from apps.users.api.serializers import UserProfileSerializer
-from apps.api.utils import get_user_from_context
-from apps.learning.models import (
-    LearningSubSection,
-    Skill,
-)
-from apps.learning.api.serializers import (
-    QuestionListSerializer,
-)
-from apps.study.services import get_filtered_questions
+from apps.study.models import UserTestAttempt, UserQuestionAttempt, Question
+from apps.learning.api.serializers import QuestionListSerializer
+from apps.users.api.serializers import (
+    UserProfileSerializer,
+)  # Needed for level assessment completion
+
 
 logger = logging.getLogger(__name__)
 
+# --- Unified Attempt Serializers ---
 
-# --- Serializers for Incremental Test Attempt Flow ---
+
+class UserTestAttemptListSerializer(serializers.ModelSerializer):
+    """Serializer for listing user test attempts (all types)."""
+
+    attempt_id = serializers.IntegerField(source="id", read_only=True)
+    test_type = serializers.CharField(source="get_attempt_type_display", read_only=True)
+    date = serializers.DateTimeField(source="start_time", read_only=True)
+    num_questions = serializers.IntegerField(read_only=True)
+    # Uses the annotated/calculated property from the model/view
+    answered_question_count = serializers.IntegerField(read_only=True)
+    performance = serializers.SerializerMethodField(read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = UserTestAttempt
+        fields = [
+            "attempt_id",
+            "test_type",
+            "date",
+            "status",  # Raw status
+            "status_display",  # User-friendly status
+            "num_questions",
+            "answered_question_count",
+            "score_percentage",  # Populated only if completed
+            "performance",
+        ]
+        read_only_fields = fields
+
+    def get_performance(self, obj: UserTestAttempt) -> Optional[Dict[str, float]]:
+        """Returns a dictionary of scores if the attempt is completed."""
+        if obj.status != UserTestAttempt.Status.COMPLETED:
+            return None
+
+        perf = {}
+        if obj.score_percentage is not None:
+            perf["overall"] = round(obj.score_percentage, 1)
+        if obj.score_verbal is not None:
+            perf["verbal"] = round(obj.score_verbal, 1)
+        if obj.score_quantitative is not None:
+            perf["quantitative"] = round(obj.score_quantitative, 1)
+        return perf if perf else None
 
 
-class TestAttemptAnswerSerializer(serializers.Serializer):
-    """Serializer for submitting a single answer during an ongoing test attempt."""
+class UserQuestionAttemptBriefSerializer(serializers.ModelSerializer):
+    """Brief serializer for representing an answered question within attempt details."""
+
+    question_id = serializers.IntegerField(source="question.id", read_only=True)
+    question_text = serializers.CharField(
+        source="question.question_text", read_only=True
+    )
+
+    class Meta:
+        model = UserQuestionAttempt
+        fields = [
+            "question_id",
+            "question_text",
+            "selected_answer",
+            "is_correct",
+            "attempted_at",
+        ]
+        read_only_fields = fields
+
+
+class UserTestAttemptDetailSerializer(serializers.ModelSerializer):
+    """Serializer for retrieving detailed information about a specific test attempt."""
+
+    attempt_id = serializers.IntegerField(source="id", read_only=True)
+    test_type = serializers.CharField(source="get_attempt_type_display", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    config_name = serializers.SerializerMethodField(read_only=True)
+    date = serializers.DateTimeField(source="start_time", read_only=True)
+    num_questions = serializers.IntegerField(read_only=True)
+    # Uses the annotated/calculated property from the model/view
+    answered_question_count = serializers.IntegerField(read_only=True)
+    # Shows all questions included in the attempt (useful for FE rendering)
+    included_questions = QuestionListSerializer(
+        source="get_questions_queryset", many=True, read_only=True
+    )
+    # Shows questions already answered by the user (for ongoing tests or review)
+    # Uses prefetch_related('question_attempts', 'question_attempts__question') in view
+    attempted_questions = UserQuestionAttemptBriefSerializer(
+        source="question_attempts", many=True, read_only=True
+    )
+    # Populated only if COMPLETED
+    results_summary = serializers.JSONField(read_only=True)
+    configuration_snapshot = serializers.JSONField(
+        source="test_configuration", read_only=True
+    )
+
+    class Meta:
+        model = UserTestAttempt
+        fields = [
+            "attempt_id",
+            "test_type",
+            "status",  # Raw status
+            "status_display",  # User-friendly status
+            "config_name",  # Extracted from configuration snapshot
+            "date",  # Alias for start_time
+            "start_time",
+            "end_time",
+            "num_questions",
+            "answered_question_count",
+            "score_percentage",  # Populated if completed
+            "score_verbal",  # Populated if completed
+            "score_quantitative",  # Populated if completed
+            "included_questions",
+            "attempted_questions",
+            "results_summary",  # Populated if completed
+            "configuration_snapshot",  # The raw config JSON used
+        ]
+        read_only_fields = fields
+
+    def get_config_name(self, obj: UserTestAttempt) -> str:
+        """Extracts a display name from the configuration snapshot."""
+        config = obj.test_configuration or {}
+        # Handle nested structure from Practice/Simulation tests
+        if isinstance(config.get("config"), dict):
+            name = config["config"].get("name")
+        else:
+            # Handle potentially flat structure (e.g., older Level Assessment?)
+            name = config.get("name")
+
+        return name or _("Unnamed Test")
+
+
+class UserTestAttemptStartResponseSerializer(serializers.Serializer):
+    """Standard response after starting any type of test attempt."""
+
+    attempt_id = serializers.IntegerField(read_only=True)
+    questions = QuestionListSerializer(many=True, read_only=True)
+
+
+class UserQuestionAttemptSerializer(serializers.Serializer):
+    """Serializer for submitting a single answer during ANY ongoing test attempt."""
 
     question_id = serializers.PrimaryKeyRelatedField(
         queryset=Question.objects.filter(is_active=True),  # Basic validation
         required=True,
+        help_text=_("Primary key of the question being answered."),
     )
     selected_answer = serializers.ChoiceField(
-        choices=UserQuestionAttempt.AnswerChoice.choices, required=True
+        choices=UserQuestionAttempt.AnswerChoice.choices,
+        required=True,
+        help_text=_("The answer choice selected by the user (A, B, C, or D)."),
     )
     time_taken_seconds = serializers.IntegerField(
-        required=False, min_value=0, allow_null=True
+        required=False,
+        min_value=0,
+        allow_null=True,
+        help_text=_("Optional: Time spent on this specific question in seconds."),
     )
-    # Add other flags if needed (used_hint, etc.)
+    # Add other flags if needed (e.g., hints used)
     # used_hint = serializers.BooleanField(default=False, required=False)
     # used_elimination = serializers.BooleanField(default=False, required=False)
 
-    def validate_question_id(self, value):
-        """Ensure the question belongs to the specific test attempt (validated in view/service)."""
-        # Basic validation happens via PrimaryKeyRelatedField.
-        # Specific check against test_attempt.question_ids happens in the service.
+    def validate_question_id(self, value: Question):
+        """View/Service layer handles validation against the specific test attempt."""
+        # PrimaryKeyRelatedField already validates existence and active status.
         return value
 
-    def validate_selected_answer(self, value):
-        """Ensure the selected answer is valid."""
+    def validate_selected_answer(self, value: str):
+        """Ensures the selected answer is a valid choice."""
+        # ChoiceField handles validation against choices. This is redundant but safe.
         if value not in UserQuestionAttempt.AnswerChoice.values:
             raise serializers.ValidationError(_("Invalid answer choice."))
         return value
 
 
-class TestAttemptAnswerResponseSerializer(serializers.Serializer):
-    """Response after submitting a single answer."""
+class UserQuestionAttemptResponseSerializer(serializers.Serializer):
+    """Standard response after submitting a single answer."""
 
     question_id = serializers.IntegerField(read_only=True)
     is_correct = serializers.BooleanField(read_only=True)
-    correct_answer = serializers.CharField(read_only=True)
+    # Correct answer/explanation only revealed based on mode (handled by service)
+    correct_answer = serializers.CharField(read_only=True, allow_null=True)
     explanation = serializers.CharField(read_only=True, allow_null=True)
     feedback_message = serializers.CharField(read_only=True)
 
 
-class TestAttemptCompletionResponseSerializer(serializers.Serializer):
-    """Response after successfully completing a test attempt."""
+class UserTestAttemptCompletionResponseSerializer(serializers.Serializer):
+    """Standard response after successfully completing a test attempt (Practice, Sim, Level Assessment)."""
 
     attempt_id = serializers.IntegerField()
     status = serializers.CharField()
@@ -72,169 +204,82 @@ class TestAttemptCompletionResponseSerializer(serializers.Serializer):
     results_summary = serializers.JSONField()
     answered_question_count = serializers.IntegerField()
     total_questions = serializers.IntegerField()
-    smart_analysis = serializers.CharField(allow_blank=True)
+    smart_analysis = serializers.CharField(allow_blank=True, allow_null=True)
     message = serializers.CharField()
-    # Include profile only if it was updated (level assessment)
+    # Include profile only if it was updated (level assessment - populated by service)
     updated_profile = UserProfileSerializer(
         read_only=True, allow_null=True, required=False
     )
 
 
-class TraditionalAttemptStartSerializer(serializers.Serializer):
-    """Serializer for starting a traditional practice session."""
+# --- Review Serializers ---
 
-    subsections = serializers.ListField(
-        child=serializers.SlugRelatedField(
-            slug_field="slug", queryset=LearningSubSection.objects.all()
-        ),
-        required=False,
-        allow_empty=True,
-        help_text=_(
-            "Optional: Filter questions by these subsection slugs during the session."
-        ),
+
+class UserTestAttemptReviewQuestionSerializer(serializers.ModelSerializer):
+    """Serializer for a single question within the review context."""
+
+    user_answer = serializers.SerializerMethodField()
+    user_is_correct = serializers.SerializerMethodField()
+    # Basic question details from QuestionListSerializer can be inherited or duplicated
+    question_id = serializers.IntegerField(source="id", read_only=True)
+    question_text = serializers.CharField(read_only=True)
+    choices = serializers.JSONField(read_only=True)
+    correct_answer = serializers.CharField(read_only=True)
+    explanation = serializers.CharField(read_only=True, allow_null=True)
+    subsection_name = serializers.CharField(
+        source="subsection.name", read_only=True, allow_null=True
     )
-    skills = serializers.ListField(
-        child=serializers.SlugRelatedField(
-            slug_field="slug", queryset=Skill.objects.filter(is_active=True)
-        ),
-        required=False,
-        allow_empty=True,
-        help_text=_(
-            "Optional: Filter questions by these skill slugs during the session."
-        ),
+    skill_name = serializers.CharField(
+        source="skill.name", read_only=True, allow_null=True
     )
-    num_questions = serializers.IntegerField(  # <-- ADDED
-        min_value=1,
-        max_value=50,  # Sensible max for an initial batch
-        default=10,  # Default number of questions
-        required=False,
-        help_text=_("Number of questions to fetch initially for the session."),
-    )
-    # Add other filters if needed (e.g., starred, not_mastered)
-    # starred = serializers.BooleanField(default=False, required=False)
-    # not_mastered = serializers.BooleanField(default=False, required=False)
 
-    def validate(self, data):
-        user = get_user_from_context(self.context)
-        if UserTestAttempt.objects.filter(
-            user=user,
-            status=UserTestAttempt.Status.STARTED,
-        ).exists():
-            raise serializers.ValidationError(
-                {
-                    "non_field_errors": [
-                        _("You already have an ongoing test or practice session.")
-                    ]
-                }
-            )
+    class Meta:
+        model = Question
+        fields = [
+            "question_id",
+            "question_text",
+            "choices",
+            "user_answer",  # Added
+            "correct_answer",
+            "user_is_correct",  # Added
+            "explanation",
+            "subsection_name",
+            "skill_name",
+        ]
+        read_only_fields = fields
 
-        # Optional: Validate that *some* criteria is provided if needed, or allow empty filters
-        # if not data.get('subsections') and not data.get('skills'):
-        #     logger.info("Starting traditional session with no initial filters.")
+    def get_user_answer(self, obj: Question) -> Optional[str]:
+        """Gets the user's selected answer for this question from context."""
+        user_attempts_map = self.context.get("user_attempts_map", {})
+        user_attempt = user_attempts_map.get(obj.id)
+        return user_attempt.selected_answer if user_attempt else None
 
-        return data
-
-    def create(self, validated_data):
-        user = get_user_from_context(self.context)
-        num_questions_requested = validated_data.get("num_questions", 10)
-        subsection_slugs = [s.slug for s in validated_data.get("subsections", [])]
-        skill_slugs = [s.slug for s in validated_data.get("skills", [])]
-        # Extract other filters if added (starred, not_mastered)
-        # starred = validated_data.get('starred', False)
-        # not_mastered = validated_data.get('not_mastered', False)
-
-        # --- Fetch Initial Questions ---
-        try:
-            questions_queryset = get_filtered_questions(
-                user=user,
-                limit=num_questions_requested,
-                subsections=subsection_slugs,
-                skills=skill_slugs,
-                # Pass other filters here if added
-                # starred=starred,
-                # not_mastered=not_mastered,
-                exclude_ids=None,  # No exclusions when starting
-            )
-            selected_question_ids = list(
-                questions_queryset.values_list("id", flat=True)
-            )
-
-            if not selected_question_ids:
-                # Don't fail, just start session with empty questions. User can fetch later.
-                logger.warning(
-                    f"No questions found matching initial filters for traditional session start for user {user.id}. Starting empty session."
-                )
-                # Or raise ValidationError if initial questions are mandatory:
-                # raise serializers.ValidationError(_("No questions found matching the specified criteria."))
-
-            actual_num_selected = len(selected_question_ids)
-            if actual_num_selected < num_questions_requested:
-                logger.warning(
-                    f"Requested {num_questions_requested} traditional questions, but only found {actual_num_selected} matching filters for user {user.id}."
-                )
-
-        except Exception as e:
-            logger.exception(
-                f"Error fetching initial questions for traditional session for user {user.id}: {e}"
-            )
-            raise serializers.ValidationError(
-                _("Failed to retrieve initial questions for the session.")
-            )
-
-        # --- Create the Attempt ---
-        config_snapshot = {
-            "subsections_requested": subsection_slugs,
-            "skills_requested": skill_slugs,
-            "num_questions_requested_initial": num_questions_requested,
-            "num_questions_selected_initial": actual_num_selected,
-            "test_type": UserTestAttempt.AttemptType.TRADITIONAL,
-        }
-
-        try:
-            test_attempt = UserTestAttempt.objects.create(
-                user=user,
-                attempt_type=UserTestAttempt.AttemptType.TRADITIONAL,
-                test_configuration=config_snapshot,
-                question_ids=selected_question_ids,  # Store the initially selected IDs
-                status=UserTestAttempt.Status.STARTED,
-            )
-            logger.info(
-                f"Started Traditional Practice Session (Attempt ID: {test_attempt.id}) for user {user.id} with {actual_num_selected} initial questions."
-            )
-        except Exception as e:
-            logger.exception(
-                f"Error creating Traditional UserTestAttempt for user {user.id}: {e}"
-            )
-            raise serializers.ValidationError(
-                {
-                    "non_field_errors": [
-                        _("Failed to start the traditional practice session.")
-                    ]
-                }
-            )
-
-        # Fetch the actual Question objects for the response using the reliable model method
-        final_questions_queryset = test_attempt.get_questions_queryset()
-
-        return {
-            "attempt_id": test_attempt.id,
-            "status": test_attempt.status,
-            "questions": final_questions_queryset,  # Return the questions
-        }
+    def get_user_is_correct(self, obj: Question) -> Optional[bool]:
+        """Gets whether the user's answer was correct from context."""
+        user_attempts_map = self.context.get("user_attempts_map", {})
+        user_attempt = user_attempts_map.get(obj.id)
+        # Return None if the user didn't answer this question in the attempt
+        return (
+            user_attempt.is_correct
+            if user_attempt and user_attempt.selected_answer is not None
+            else None
+        )
 
 
-class TraditionalAttemptStartResponseSerializer(serializers.Serializer):
-    """Response after starting a traditional practice session."""
+class UserTestAttemptReviewSerializer(serializers.Serializer):
+    """Serializer for the overall test review response."""
 
     attempt_id = serializers.IntegerField(read_only=True)
-    status = serializers.CharField(read_only=True)  # e.g., "started"
-    questions = QuestionListSerializer(many=True, read_only=True)
+    # Field name changed from 'review_questions' to match context data key
+    questions = UserTestAttemptReviewQuestionSerializer(many=True, read_only=True)
+    # Optionally include overall summary data again if needed
+    # score_percentage = serializers.FloatField(source="attempt.score_percentage", read_only=True, allow_null=True)
+    # ... other summary fields ...
 
+    def create(self, validated_data):
+        # This serializer is read-only, used for response structuring.
+        raise NotImplementedError("This serializer cannot be used to create data.")
 
-# --- NEW Serializer for revealing answer ---
-class RevealAnswerResponseSerializer(serializers.Serializer):
-    """Response for revealing answer/explanation in traditional mode."""
-
-    question_id = serializers.IntegerField()
-    correct_answer = serializers.CharField()
-    explanation = serializers.CharField(allow_null=True)
+    def update(self, instance, validated_data):
+        # This serializer is read-only, used for response structuring.
+        raise NotImplementedError("This serializer cannot be used to update data.")

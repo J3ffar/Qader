@@ -1,77 +1,36 @@
-# apps/study/api/urls/attempts.py
 from django.urls import path
-from apps.study.api.views import (
-    LevelAssessmentStartView,
-    StartTestAttemptView,
-    UserTestAttemptListView,
-    UserTestAttemptDetailView,
-    TestAttemptAnswerView,
-    CompleteTestAttemptView,
-    CancelTestAttemptView,
-    RevealAnswerView,
-    RetakeSimilarTestAttemptView,
-    ReviewTestAttemptView,
-    StartTraditionalAttemptView,
-    EndTraditionalAttemptView,
-)
+from apps.study.api.views import attempts as attempt_views  # Alias for clarity
 
 urlpatterns = [
-    # --- Starting Attempts ---
+    path("", attempt_views.UserTestAttemptListView.as_view(), name="attempt-list"),
     path(
-        "start/level-assessment/",
-        LevelAssessmentStartView.as_view(),
-        name="attempt-start-level-assessment",
-    ),
-    path(
-        "start/practice-simulation/",
-        StartTestAttemptView.as_view(),
-        name="attempt-start-practice-simulation",
-    ),
-    path(
-        "start/traditional/",
-        StartTraditionalAttemptView.as_view(),
-        name="attempt-start-traditional",
-    ),  # <-- ADD
-    # --- Managing & Viewing Attempts ---
-    path("", UserTestAttemptListView.as_view(), name="attempt-list"),
-    path(
-        "<int:attempt_id>/", UserTestAttemptDetailView.as_view(), name="attempt-detail"
+        "<int:attempt_id>/",
+        attempt_views.UserTestAttemptDetailView.as_view(),
+        name="attempt-detail",
     ),
     path(
         "<int:attempt_id>/answer/",
-        TestAttemptAnswerView.as_view(),
-        name="attempt-answer",
+        attempt_views.UserTestAttemptAnswerView.as_view(),
+        name="attempt-answer",  # Unified answer endpoint
     ),
     path(
         "<int:attempt_id>/complete/",
-        CompleteTestAttemptView.as_view(),
-        name="attempt-complete",
-    ),  # (Rejects traditional)
+        attempt_views.UserTestAttemptCompleteView.as_view(),
+        name="attempt-complete",  # Unified complete endpoint (excludes traditional)
+    ),
     path(
         "<int:attempt_id>/cancel/",
-        CancelTestAttemptView.as_view(),
-        name="attempt-cancel",
-    ),  # (Works for traditional)
-    path(
-        "<int:attempt_id>/end-traditional/",
-        EndTraditionalAttemptView.as_view(),
-        name="attempt-end-traditional",
+        attempt_views.UserTestAttemptCancelView.as_view(),
+        name="attempt-cancel",  # Unified cancel endpoint
     ),
-    # --- Review & Retake ---
     path(
         "<int:attempt_id>/review/",
-        ReviewTestAttemptView.as_view(),
-        name="attempt-review",
+        attempt_views.UserTestAttemptReviewView.as_view(),
+        name="attempt-review",  # Unified review endpoint
     ),
     path(
-        "<int:attempt_id>/retake-similar/",
-        RetakeSimilarTestAttemptView.as_view(),
-        name="attempt-retake-similar",
+        "<int:attempt_id>/retake/",  # Renamed from retake-similar
+        attempt_views.UserTestAttemptRetakeView.as_view(),
+        name="attempt-retake",  # Unified retake endpoint
     ),
-    # --- In-Progress Helpers (Traditional Only) ---
-    path(
-        "<int:attempt_id>/question/<int:question_id>/reveal/",
-        RevealAnswerView.as_view(),
-        name="attempt-reveal-answer",
-    ),  # <-- ADD
 ]

@@ -66,10 +66,8 @@ def get_filtered_questions(
     exclude_ids: Optional[List[int]] = None,
     proficiency_threshold: float = DEFAULT_PROFICIENCY_THRESHOLD,
 ) -> QuerySet[Question]:
-    """
-    Retrieves a filtered and randomized QuerySet of active Questions.
-    Handles various filtering criteria including proficiency.
-    """
+    # ... (Keep existing implementation - it seems robust) ...
+    # Ensure logging is adequate
     if limit <= 0:
         return Question.objects.none()
 
@@ -84,8 +82,11 @@ def get_filtered_questions(
         filters &= Q(skill__slug__in=skills)
     if starred:
         if not user or not user.is_authenticated:
-            logger.warning("Attempted to filter by starred for anonymous user.")
+            logger.warning(
+                "get_filtered_questions: Attempted to filter by starred for anonymous user."
+            )
         else:
+            # Use Exists for efficiency
             starred_subquery = UserStarredQuestion.objects.filter(
                 user=user, question=OuterRef("pk")
             )
@@ -93,50 +94,85 @@ def get_filtered_questions(
 
     if not_mastered:
         if not user or not user.is_authenticated:
-            logger.warning("Attempted to filter by not_mastered for anonymous user.")
+            logger.warning(
+                "get_filtered_questions: Attempted to filter by not_mastered for anonymous user."
+            )
         else:
             try:
+                # Get IDs of skills user has proficiency records for AND are below threshold
                 low_prof_skill_ids = UserSkillProficiency.objects.filter(
                     user=user, proficiency_score__lt=proficiency_threshold
                 ).values_list("skill_id", flat=True)
+
+                # Get IDs of all skills user has ANY proficiency record for
                 attempted_skill_ids = UserSkillProficiency.objects.filter(
                     user=user
                 ).values_list("skill_id", flat=True)
 
+                # Convert to lists for the query
                 low_prof_skill_ids_list = list(low_prof_skill_ids)
                 attempted_skill_ids_list = list(attempted_skill_ids)
 
+                # Filter logic:
+                # Include questions where:
+                # 1. The skill IS in the low proficiency list.
+                # OR
+                # 2. The question HAS a skill AND that skill ID is NOT in the list of attempted skills (meaning user never attempted it)
                 not_mastered_filter = Q(skill_id__in=low_prof_skill_ids_list) | (
                     Q(skill__isnull=False) & ~Q(skill_id__in=attempted_skill_ids_list)
                 )
                 filters &= not_mastered_filter
             except Exception as e:
                 logger.error(
-                    f"Error applying 'not_mastered' filter for user {user.id}: {e}",
+                    f"get_filtered_questions: Error applying 'not_mastered' filter for user {user.id}: {e}",
                     exc_info=True,
                 )
+                # Depending on desired behavior, either return empty or continue without this filter
 
+    # Apply collected filters
     queryset = queryset.filter(filters)
 
+    # Apply exclusions
     if exclude_ids:
-        queryset = queryset.exclude(id__in=exclude_ids)
+        # Ensure exclude_ids are integers
+        valid_exclude_ids = [id for id in exclude_ids if isinstance(id, int)]
+        if valid_exclude_ids:
+            queryset = queryset.exclude(id__in=valid_exclude_ids)
 
-    all_ids = queryset.values_list("id", flat=True)
-    count = all_ids.count()
+    # --- Random Sampling ---
+    # Get all matching IDs first
+    all_ids = list(
+        queryset.values_list("id", flat=True)
+    )  # Convert to list for sampling
+    count = len(all_ids)
 
     if count == 0:
         return Question.objects.none()
 
+    # Determine how many to fetch and sample randomly
     num_to_fetch = min(limit, count)
-    random_ids = random.sample(list(all_ids), num_to_fetch)
+    try:
+        random_ids = random.sample(all_ids, num_to_fetch)
+    except ValueError as e:
+        # Should not happen if count > 0 and num_to_fetch <= count
+        logger.error(
+            f"Error during random sampling in get_filtered_questions: {e}. IDs: {all_ids}, Num: {num_to_fetch}"
+        )
+        return Question.objects.none()
 
+    # --- Preserve Random Order ---
+    # Use Case/When to order by the random_ids list
     preserved_order = Case(
         *[When(pk=pk, then=pos) for pos, pk in enumerate(random_ids)],
         output_field=IntegerField(),
     )
+
+    # Final query retrieving the selected questions in the random order
     return (
         Question.objects.filter(id__in=random_ids)
-        .select_related("subsection", "subsection__section", "skill")
+        .select_related(
+            "subsection", "subsection__section", "skill"
+        )  # Re-apply select_related
         .order_by(preserved_order)
     )
 
@@ -180,8 +216,8 @@ def record_single_answer(
     test_attempt: UserTestAttempt, question: Question, answer_data: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
-    Records a single answer within an ongoing test attempt.
-    Creates/Updates UserQuestionAttempt, updates proficiency.
+    Records a single answer for ANY ongoing UserTestAttempt.
+    Creates/Updates UserQuestionAttempt, updates proficiency, returns feedback.
 
     Args:
         test_attempt: The UserTestAttempt instance.
@@ -189,63 +225,88 @@ def record_single_answer(
         answer_data: Dict containing 'selected_answer', 'time_taken_seconds' etc.
 
     Returns:
-        Dict with result: {'is_correct', 'correct_answer', 'explanation', 'feedback_message'}
+        Dict with result: {'question_id', 'is_correct', 'correct_answer', 'explanation', 'feedback_message'}
 
     Raises:
-        serializers.ValidationError: If input is invalid or attempt is not active.
+        serializers.ValidationError: If input is invalid or attempt not active/valid.
     """
     user = test_attempt.user
+    if not user or not user.is_authenticated:
+        # Should be caught by view permissions, but double-check
+        raise serializers.ValidationError(_("Authentication required."))
+
     if test_attempt.status != UserTestAttempt.Status.STARTED:
         raise serializers.ValidationError(
-            _("This test attempt is not currently active.")
+            {"non_field_errors": [_("This test attempt is not currently active.")]}
         )
 
+    # Ensure question is part of the attempt's defined list
     if question.id not in test_attempt.question_ids:
+        logger.warning(
+            f"User {user.id} attempted to answer Q:{question.id} which is not in Attempt:{test_attempt.id} question list."
+        )
         raise serializers.ValidationError(
-            _("This question is not part of the current test attempt.")
+            {
+                "question_id": [
+                    _("This question is not part of the current test attempt.")
+                ]
+            }
         )
 
     selected_answer = answer_data.get("selected_answer")
     if selected_answer not in UserQuestionAttempt.AnswerChoice.values:
-        raise serializers.ValidationError(_("Invalid answer choice provided."))
+        raise serializers.ValidationError(
+            {"selected_answer": [_("Invalid answer choice provided.")]}
+        )
 
     is_correct = selected_answer == question.correct_answer
 
-    # Determine mode based on attempt type
+    # Determine UserQuestionAttempt.Mode based on UserTestAttempt.AttemptType
     mode_map = {
         UserTestAttempt.AttemptType.LEVEL_ASSESSMENT: UserQuestionAttempt.Mode.LEVEL_ASSESSMENT,
         UserTestAttempt.AttemptType.PRACTICE: UserQuestionAttempt.Mode.TEST,
         UserTestAttempt.AttemptType.SIMULATION: UserQuestionAttempt.Mode.TEST,
+        UserTestAttempt.AttemptType.TRADITIONAL: UserQuestionAttempt.Mode.TRADITIONAL,
     }
-    mode = mode_map.get(test_attempt.attempt_type, UserQuestionAttempt.Mode.TEST)
+    mode = mode_map.get(test_attempt.attempt_type)
+    if not mode:
+        logger.error(
+            f"Could not map UserTestAttempt type '{test_attempt.attempt_type}' to UserQuestionAttempt mode for attempt {test_attempt.id}"
+        )
+        # Fallback or raise internal error? Let's fallback for now.
+        mode = UserQuestionAttempt.Mode.TEST
 
-    # Use update_or_create to handle potential duplicate submissions gracefully
-    # or allow users to change their answer before completing the test.
+    # Use update_or_create: allows changing answer in ongoing tests, creates if first time
     attempt_record, created = UserQuestionAttempt.objects.update_or_create(
         user=user,
         test_attempt=test_attempt,
         question=question,
+        # Defaults are applied only if 'created' is True
         defaults={
             "selected_answer": selected_answer,
-            "is_correct": is_correct,
+            "is_correct": is_correct,  # This will be calculated/set by model's save() if None
             "time_taken_seconds": answer_data.get("time_taken_seconds"),
-            "used_hint": answer_data.get("used_hint", False),  # Add these if needed
+            "used_hint": answer_data.get("used_hint", False),
             "used_elimination": answer_data.get("used_elimination", False),
-            "used_solution_method": answer_data.get("used_solution_method", False),
-            "mode": mode,
-            "attempted_at": timezone.now(),  # Ensure timestamp is updated
+            "used_solution_method": False,  # Revealing answer sets this flag separately
+            "mode": mode,  # Set the determined mode
+            "attempted_at": timezone.now(),  # Record interaction time
         },
     )
+    # Re-fetch is_correct in case model's save calculated it
+    is_correct = attempt_record.is_correct
+
     logger.info(
-        f"{'Created' if created else 'Updated'} UserQuestionAttempt for Q:{question.id}, TestAttempt:{test_attempt.id}, User:{user.id}"
+        f"{'Recorded' if created else 'Updated'} answer for Q:{question.id}, TestAttempt:{test_attempt.id}, User:{user.id}. Correct: {is_correct}"
     )
 
-    # Update Skill Proficiency
+    # --- Update Skill Proficiency ---
     update_user_skill_proficiency(
         user=user, skill=question.skill, is_correct=is_correct
     )
 
-    # --- Prepare Immediate Feedback based on Attempt Type ---
+    # --- Prepare Immediate Feedback ---
+    # By default, don't reveal answer/explanation during tests
     feedback = {
         "question_id": question.id,
         "is_correct": is_correct,
@@ -254,11 +315,13 @@ def record_single_answer(
         "feedback_message": _("Answer recorded."),
     }
 
-    # Provide full feedback ONLY for Traditional mode during the attempt
+    # Reveal answer/explanation ONLY for Traditional mode via this flow
     if test_attempt.attempt_type == UserTestAttempt.AttemptType.TRADITIONAL:
         feedback["correct_answer"] = question.correct_answer
         feedback["explanation"] = question.explanation
-        feedback["feedback_message"] = _("Answer recorded. See feedback below.")
+        feedback["feedback_message"] = _("Answer recorded. Feedback provided.")
+        # Mark solution method used implicitly? Or require separate reveal endpoint?
+        # Let's keep reveal separate for clarity.
 
     return feedback
 
@@ -267,24 +330,32 @@ def record_single_answer(
 @transaction.atomic
 def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
     """
-    Finalizes a test attempt, calculates scores, updates status.
+    Finalizes a test attempt (Level Assessment, Practice, Simulation).
+    Calculates scores, updates status, updates profile (if applicable).
 
     Args:
         test_attempt: The UserTestAttempt instance to complete.
 
     Returns:
-        A dictionary containing the final results and status.
+        A dictionary containing the final results and status for the response serializer.
 
     Raises:
         serializers.ValidationError: If the attempt cannot be completed.
     """
     user = test_attempt.user
+    if not user or not user.is_authenticated:
+        raise serializers.ValidationError(_("Authentication required."))
+
     if test_attempt.status != UserTestAttempt.Status.STARTED:
         raise serializers.ValidationError(
-            _("This test attempt is not active or already completed/abandoned.")
+            {
+                "non_field_errors": [
+                    _("This test attempt is not active or already completed/abandoned.")
+                ]
+            }
         )
 
-    # --- Prevent completing Traditional attempts via this flow ---
+    # Explicitly prevent completing Traditional attempts via this endpoint
     if test_attempt.attempt_type == UserTestAttempt.AttemptType.TRADITIONAL:
         logger.warning(
             f"User {user.id} attempted to use 'complete' endpoint for traditional attempt {test_attempt.id}."
@@ -293,59 +364,51 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             {
                 "non_field_errors": [
                     _(
-                        "Traditional practice sessions should be ended using the specific 'end' endpoint, not completed like a test."
+                        "Traditional practice sessions must be ended using the 'end' endpoint."
                     )
                 ]
             }
         )
 
-    # Fetch all related UserQuestionAttempts efficiently
-    question_attempts_qs = UserQuestionAttempt.objects.filter(
-        test_attempt=test_attempt
-    ).select_related(
-        "question__subsection__section",  # Needed for scoring
-        "question__skill",  # Potentially useful if further analysis added
-    )
+    # --- Calculate Scores ---
+    # Fetch all related UserQuestionAttempts efficiently for scoring
+    question_attempts_qs = test_attempt.question_attempts.select_related(
+        "question__subsection__section",  # Needed for score breakdown
+        "question__skill",
+    ).all()
 
     answered_count = question_attempts_qs.count()
     total_questions = test_attempt.num_questions
 
-    # Optional: Check if all questions were answered. Decide policy: allow incomplete or raise error.
-    # For now, we allow completing with unanswered questions.
     if answered_count < total_questions:
         logger.warning(
             f"Test attempt {test_attempt.id} completed by user {user.id} with {answered_count}/{total_questions} questions answered."
         )
-        # You could potentially add logic here to automatically mark unanswered questions as incorrect,
-        # or just calculate score based on total questions as implemented in calculate_and_save_scores.
+        # Score calculation should handle this based on total_questions
 
-    # Calculate and Save Scores using the model method
+    # Call the model method to calculate and save scores
     test_attempt.calculate_and_save_scores(question_attempts_qs)  # Pass the queryset
+    # Reload attempt from DB to get updated scores (calculate_and_save_scores saves them)
+    test_attempt.refresh_from_db()
 
-    # Mark Test Attempt Complete
+    # --- Mark Test Attempt Complete ---
     test_attempt.status = UserTestAttempt.Status.COMPLETED
     test_attempt.end_time = timezone.now()
-    test_attempt.save(
-        update_fields=[
-            "status",
-            "end_time",
-            "updated_at",
-            "score_percentage",
-            "score_verbal",
-            "score_quantitative",
-            "results_summary",
-        ]
-    )  # Save all updated fields
-    logger.info(f"Test attempt {test_attempt.id} completed for user {user.id}.")
+    # Scores are already saved by calculate_and_save_scores, just save status/time
+    test_attempt.save(update_fields=["status", "end_time", "updated_at"])
+    logger.info(
+        f"Test attempt {test_attempt.id} completed for user {user.id}. Final Score: {test_attempt.score_percentage}%"
+    )
 
-    # --- Update User Profile Level Scores (if Level Assessment) ---
-    updated_profile = None
+    # --- Update User Profile (If Level Assessment) ---
+    updated_profile_data = None
     if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
         try:
-            profile = user.profile
+            # Use select_for_update to lock the profile row during update
+            profile = UserProfile.objects.select_for_update().get(user=user)
             profile.current_level_verbal = test_attempt.score_verbal
             profile.current_level_quantitative = test_attempt.score_quantitative
-            profile.is_level_determined = True  # Mark level as determined
+            profile.is_level_determined = True
             profile.save(
                 update_fields=[
                     "current_level_verbal",
@@ -354,51 +417,68 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                     "updated_at",
                 ]
             )
-            updated_profile = profile  # Pass updated profile in response
+            # Use UserProfileSerializer to structure profile data for response
+            from apps.users.api.serializers import UserProfileSerializer  # Local import
+
+            updated_profile_data = UserProfileSerializer(profile).data
             logger.info(
                 f"Profile level scores updated for user {user.id} after assessment {test_attempt.id}."
             )
         except UserProfile.DoesNotExist:
             logger.error(
-                f"UserProfile missing for user {user.id} during level assessment score update."
+                f"UserProfile missing for user {user.id} during level assessment score update for attempt {test_attempt.id}."
             )
+            # Decide policy: fail completion or just log? Log for now.
         except Exception as e:
             logger.exception(
                 f"Error updating profile levels for user {user.id} after assessment {test_attempt.id}: {e}"
             )
+            # Log error, but completion likely succeeded otherwise
 
-    # --- Generate Smart Analysis (Example - kept same as before) ---
+    # --- Trigger Gamification (Points/Badges) ---
+    # This should be handled by signals listening to UserTestAttempt save where status becomes COMPLETED
+    # from apps.gamification.services import award_test_completion_rewards # Example direct call (signals preferred)
+    # award_test_completion_rewards(test_attempt)
+
+    # --- Generate Smart Analysis ---
     results_summary = test_attempt.results_summary or {}
-    weak_areas = [
-        d["name"] for d in results_summary.values() if d.get("score", 100) < 60
-    ]
-    strong_areas = [
-        d["name"] for d in results_summary.values() if d.get("score", 0) >= 85
-    ]
+    smart_analysis = ""
+    try:
+        # Example: Identify weakest subsection based on score
+        weakest_subsection = None
+        min_score = 101  # Initialize higher than max possible score
+        for slug, data in results_summary.items():
+            if isinstance(data, dict) and "score" in data and data["score"] is not None:
+                if data["score"] < min_score:
+                    min_score = data["score"]
+                    weakest_subsection = data.get("name")
 
-    smart_analysis = _("Test completed!")
-    if weak_areas:
-        smart_analysis += " " + _("Consider focusing more on: {}.").format(
-            ", ".join(weak_areas)
+        if weakest_subsection and min_score < 60:  # Define threshold for 'weak'
+            smart_analysis = _(
+                "Test completed! Good effort. Consider focusing more practice on {subsection} where your score was {score}%."
+            ).format(subsection=weakest_subsection, score=round(min_score, 1))
+        else:
+            smart_analysis = _("Test completed successfully! Keep up the great work.")
+
+    except Exception as e:
+        logger.error(
+            f"Error generating smart analysis for attempt {test_attempt.id}: {e}"
         )
-    if strong_areas:
-        smart_analysis += " " + _(
-            "You showed strong performance in: {}. Keep it up!"
-        ).format(", ".join(strong_areas))
+        smart_analysis = _("Test completed successfully.")  # Fallback message
 
-    # --- Return Results ---
+    # --- Prepare Response Data ---
     return {
         "attempt_id": test_attempt.id,
-        "status": test_attempt.status,
+        "status": test_attempt.get_status_display(),  # Use display value for response
         "score_percentage": test_attempt.score_percentage,
         "score_verbal": test_attempt.score_verbal,
         "score_quantitative": test_attempt.score_quantitative,
         "results_summary": results_summary,
-        "answered_question_count": answered_count,  # Add count here
-        "total_questions": total_questions,  # Add total here
+        "answered_question_count": answered_count,
+        "total_questions": total_questions,
         "smart_analysis": smart_analysis,
         "message": _("Test completed successfully. Results calculated."),
-        "updated_profile": updated_profile,  # Include if level assessment
+        "updated_profile": updated_profile_data,  # Include serialized profile data if updated
     }
 
 
