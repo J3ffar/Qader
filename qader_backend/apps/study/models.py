@@ -190,12 +190,6 @@ class UserTestAttempt(models.Model):
         """Returns the number of questions included in this attempt."""
         return len(self.question_ids) if isinstance(self.question_ids, list) else 0
 
-    @property
-    def answered_question_count(self) -> int:
-        """Returns the count of questions answered within this attempt."""
-        # Ensure efficient query, even though it's accessed via property
-        return self.question_attempts.count()
-
     def get_questions_queryset(self) -> QuerySet[Question]:
         """Returns an ordered queryset for the questions associated with this attempt."""
         if not self.question_ids or not isinstance(self.question_ids, list):

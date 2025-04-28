@@ -28,10 +28,6 @@ from apps.study.models import (
     UserTestAttempt,
     UserQuestionAttempt,
 )
-from apps.gamification.services import (
-    award_points,
-    update_streak,
-)  # Import gamification services
 import random
 import logging
 from typing import Optional, List, Dict, Any
@@ -185,7 +181,7 @@ def record_single_answer(
 ) -> Dict[str, Any]:
     """
     Records a single answer within an ongoing test attempt.
-    Creates/Updates UserQuestionAttempt, updates proficiency, awards points.
+    Creates/Updates UserQuestionAttempt, updates proficiency.
 
     Args:
         test_attempt: The UserTestAttempt instance.
@@ -249,14 +245,6 @@ def record_single_answer(
         user=user, skill=question.skill, is_correct=is_correct
     )
 
-    # Award points for correct answer immediately (handled by gamification service)
-    if is_correct:
-        award_points(
-            user,
-            getattr(settings, "POINTS_QUESTION_SOLVED_CORRECT", 1),
-            f"Correct answer in {test_attempt.get_attempt_type_display()} #{test_attempt.id}",
-        )
-
     # Return immediate feedback
     return {
         "question_id": question.id,
@@ -271,7 +259,7 @@ def record_single_answer(
 @transaction.atomic
 def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
     """
-    Finalizes a test attempt, calculates scores, updates status, and awards completion points.
+    Finalizes a test attempt, calculates scores, updates status.
 
     Args:
         test_attempt: The UserTestAttempt instance to complete.
@@ -314,7 +302,6 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
     # Mark Test Attempt Complete
     test_attempt.status = UserTestAttempt.Status.COMPLETED
     test_attempt.end_time = timezone.now()
-    # completion_points_awarded flag is handled by signals/tasks, but we can trigger points here
     test_attempt.save(
         update_fields=[
             "status",
@@ -327,22 +314,6 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
         ]
     )  # Save all updated fields
     logger.info(f"Test attempt {test_attempt.id} completed for user {user.id}.")
-
-    # --- Award Completion Points & Update Streak ---
-    points_reason = (
-        f"{test_attempt.get_attempt_type_display()} #{test_attempt.id} completed"
-    )
-    if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
-        award_points(
-            user,
-            getattr(settings, "POINTS_LEVEL_ASSESSMENT_COMPLETED", 10),
-            points_reason,
-        )
-    else:  # Practice or Simulation
-        award_points(
-            user, getattr(settings, "POINTS_TEST_COMPLETED", 25), points_reason
-        )
-    update_streak(user)  # Update streak upon test completion
 
     # --- Update User Profile Level Scores (if Level Assessment) ---
     updated_profile = None
