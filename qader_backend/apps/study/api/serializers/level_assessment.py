@@ -12,6 +12,8 @@ from apps.study.services import get_filtered_questions
 from apps.study.api.serializers.attempts import (
     UserTestAttemptCompletionResponseSerializer,
 )
+from apps.api.exceptions import UsageLimitExceeded
+from apps.users.services import UsageLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +47,10 @@ class LevelAssessmentStartSerializer(serializers.Serializer):
     )
 
     def validate(self, data):
-        """Validates input and checks question availability."""
+        """Validates input, checks limits, and checks question availability."""
         user = get_user_from_context(self.context)
 
-        # Check for ANY active 'started' attempt
+        # Check for ANY active 'started' attempt (moved from view)
         if UserTestAttempt.objects.filter(
             user=user,
             status=UserTestAttempt.Status.STARTED,
@@ -57,8 +59,45 @@ class LevelAssessmentStartSerializer(serializers.Serializer):
                 {"non_field_errors": [_("You already have an ongoing test attempt.")]}
             )
 
+        # --- Usage Limit Checks ---
+        try:
+            limiter = UsageLimiter(user)
+            attempt_type = UserTestAttempt.AttemptType.LEVEL_ASSESSMENT
+            # 1. Check if allowed to start this type of attempt
+            limiter.check_can_start_test_attempt(attempt_type)
+
+            # 2. Check and cap number of questions
+            requested_questions = data.get(
+                "num_questions", DEFAULT_QUESTIONS_LEVEL_ASSESSMENT
+            )
+            max_allowed_questions = limiter.get_max_questions_per_attempt()
+
+            if (
+                max_allowed_questions is not None
+                and requested_questions > max_allowed_questions
+            ):
+                logger.info(
+                    f"User {user.id} requested {requested_questions} level assessment questions, capped at {max_allowed_questions} due to plan limits."
+                )
+                # Override the requested number with the capped value
+                data["num_questions"] = max_allowed_questions
+                self.context["capped_num_questions"] = (
+                    True  # Flag for logging in create
+                )
+
+        except UsageLimitExceeded as e:
+            # Convert to ValidationError for serializer context
+            raise serializers.ValidationError({"non_field_errors": [str(e)]})
+        except ValueError as e:  # Catch UsageLimiter init error
+            logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
+            raise serializers.ValidationError(
+                {"non_field_errors": ["Could not verify account limits."]}
+            )
+        # --- End Usage Limit Checks ---
+
         sections = data["sections"]
-        num_questions_requested = data["num_questions"]
+        # Use the potentially capped number of questions for availability check
+        num_questions_to_check = data["num_questions"]
         min_required = self.fields["num_questions"].min_value
 
         # Determine subsection slugs based on selected sections
@@ -77,14 +116,14 @@ class LevelAssessmentStartSerializer(serializers.Serializer):
         # Check if *more* than requested exist to ensure randomness potential
         question_pool_qs = get_filtered_questions(
             user=user,
-            limit=num_questions_requested + 1,
-            subsections=relevant_subsection_slugs,  # Filter by relevant subsections
-            skills=None,  # No specific skills for initial assessment
+            limit=num_questions_to_check + 1,  # Check if slightly more exist
+            subsections=relevant_subsection_slugs,
+            skills=None,
             starred=False,
             not_mastered=False,
             exclude_ids=None,
         )
-        pool_count = question_pool_qs.count()  # Count after filtering
+        pool_count = question_pool_qs.count()
 
         if pool_count < min_required:
             raise serializers.ValidationError(
@@ -97,32 +136,40 @@ class LevelAssessmentStartSerializer(serializers.Serializer):
                 }
             )
 
-        actual_num_questions = min(pool_count, num_questions_requested)
+        # Determine the final actual number based on availability and the (potentially capped) request
+        actual_num_questions = min(pool_count, num_questions_to_check)
         self.context["actual_num_questions"] = actual_num_questions
-        if pool_count < num_questions_requested:
+        if pool_count < num_questions_to_check:
             logger.warning(
-                f"User {user.id} requested {num_questions_requested} level assessment qs, only {pool_count} available in selected sections. Using {actual_num_questions}."
+                f"User {user.id} requested {num_questions_to_check} level assessment qs, only {pool_count} available in selected sections. Using {actual_num_questions}."
             )
 
         self.context["sections_validated"] = sections
-        self.context["relevant_subsection_slugs"] = (
-            relevant_subsection_slugs  # Pass for create
-        )
+        self.context["relevant_subsection_slugs"] = relevant_subsection_slugs
         return data
 
     def create(self, validated_data):
         """Creates the UserTestAttempt record for the Level Assessment."""
         user = get_user_from_context(self.context)
         sections = self.context["sections_validated"]
-        num_questions_requested = validated_data["num_questions"]
+        # Use the final validated/capped number of questions
         actual_num_questions = self.context["actual_num_questions"]
         subsection_slugs = self.context["relevant_subsection_slugs"]
+        num_questions_originally_requested = (
+            validated_data.get(
+                "num_questions"  # This reflects the *original* request before potential capping in validate
+            )
+            if not self.context.get("capped_num_questions")
+            else self.initial_data.get(
+                "num_questions", DEFAULT_QUESTIONS_LEVEL_ASSESSMENT
+            )
+        )
 
         # Select final questions using get_filtered_questions
         questions_queryset = get_filtered_questions(
             user=user,
             limit=actual_num_questions,
-            subsections=subsection_slugs,  # Use pre-filtered slugs
+            subsections=subsection_slugs,
             skills=None,
             starred=False,
             not_mastered=False,
@@ -142,9 +189,9 @@ class LevelAssessmentStartSerializer(serializers.Serializer):
         # Create configuration snapshot for the attempt record
         config_snapshot = {
             "sections_requested": [s.slug for s in sections],
-            "num_questions_requested": num_questions_requested,
-            "actual_num_questions_selected": len(selected_question_ids),
-            "test_type": UserTestAttempt.AttemptType.LEVEL_ASSESSMENT,  # Explicitly set type in snapshot
+            "num_questions_requested": num_questions_originally_requested,  # Store original request
+            "num_questions_used": actual_num_questions,  # Store actual used number
+            "test_type": UserTestAttempt.AttemptType.LEVEL_ASSESSMENT,
         }
 
         try:
@@ -166,10 +213,8 @@ class LevelAssessmentStartSerializer(serializers.Serializer):
                 {"non_field_errors": [_("Failed to start the assessment.")]}
             )
 
-        # Fetch the actual Question objects for the response using the reliable model method
         final_questions_queryset = test_attempt.get_questions_queryset()
 
-        # Return data structured for UserTestAttemptStartResponseSerializer
         return {
             "attempt_id": test_attempt.id,
             "questions": final_questions_queryset,

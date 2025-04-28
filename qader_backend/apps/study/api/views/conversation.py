@@ -22,6 +22,8 @@ from apps.study.api.serializers.conversation import (
 from apps.study import conversation_service
 from apps.api.permissions import IsSubscribed  # Import the permission class
 from apps.learning.models import Question  # Ensure Question model is available
+from apps.api.exceptions import UsageLimitExceeded
+from apps.users.services import UsageLimiter
 
 import logging
 
@@ -108,7 +110,8 @@ class ConversationViewSet(
         summary="Send Message to AI",
         request=ConversationUserMessageInputSerializer,
         responses={
-            201: ConversationMessageSerializer
+            201: ConversationMessageSerializer,
+            403: {"description": "Usage limit exceeded or permission denied."},
         },  # Returns the AI's response message
         parameters=[
             OpenApiParameter(
@@ -135,6 +138,21 @@ class ConversationViewSet(
         user_message_text = input_serializer.validated_data["message_text"]
         related_question_id = input_serializer.validated_data.get("related_question_id")
         related_question = input_serializer.validated_data.get("related_question_id")
+
+        user = request.user
+
+        # *** Usage Limit Check ***
+        try:
+            limiter = UsageLimiter(user)
+            limiter.check_can_send_conversation_message()
+        except UsageLimitExceeded as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except ValueError as e:
+            logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
+            return Response(
+                {"detail": "Could not verify account limits."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         try:
             with transaction.atomic():

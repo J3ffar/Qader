@@ -7,6 +7,8 @@ from apps.learning.models import LearningSubSection, Skill
 from apps.learning.api.serializers import QuestionListSerializer
 from apps.api.utils import get_user_from_context
 from apps.study.services import get_filtered_questions
+from apps.api.exceptions import UsageLimitExceeded
+from apps.users.services import UsageLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +49,9 @@ class TraditionalPracticeStartSerializer(serializers.Serializer):
     )
 
     def validate(self, data):
-        """Validates input and checks for existing active sessions."""
+        """Validates input, checks limits, and checks for existing active sessions."""
         user = get_user_from_context(self.context)
+
         if UserTestAttempt.objects.filter(
             user=user,
             status=UserTestAttempt.Status.STARTED,
@@ -61,8 +64,21 @@ class TraditionalPracticeStartSerializer(serializers.Serializer):
                 }
             )
 
-        # No need to check question availability here, as traditional mode can start empty
-        # The 'create' method will handle fetching initial questions.
+        # --- Usage Limit Check (Attempt Limit Only) ---
+        try:
+            limiter = UsageLimiter(user)
+            attempt_type = UserTestAttempt.AttemptType.TRADITIONAL
+            limiter.check_can_start_test_attempt(attempt_type)
+            # No question limit check here, as it's handled by fetching batches
+
+        except UsageLimitExceeded as e:
+            raise serializers.ValidationError({"non_field_errors": [str(e)]})
+        except ValueError as e:  # Catch UsageLimiter init error
+            logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
+            raise serializers.ValidationError(
+                {"non_field_errors": ["Could not verify account limits."]}
+            )
+        # --- End Usage Limit Check ---
 
         # Store filters for use in create method
         self.context["subsection_slugs"] = [s.slug for s in data.get("subsections", [])]
@@ -75,6 +91,7 @@ class TraditionalPracticeStartSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         """Creates the Traditional UserTestAttempt and fetches initial questions."""
+        # ... (logic for fetching initial questions remains the same) ...
         user = get_user_from_context(self.context)
         num_questions_requested = self.context["num_questions_requested"]
         subsection_slugs = self.context["subsection_slugs"]
@@ -82,11 +99,10 @@ class TraditionalPracticeStartSerializer(serializers.Serializer):
         starred = self.context["starred"]
         not_mastered = self.context["not_mastered"]
 
-        # --- Fetch Initial Questions (Optional) ---
         selected_question_ids = []
         actual_num_selected = 0
-        try:
-            if num_questions_requested > 0:  # Only fetch if requested
+        if num_questions_requested > 0:
+            try:
                 questions_queryset = get_filtered_questions(
                     user=user,
                     limit=num_questions_requested,
@@ -94,7 +110,7 @@ class TraditionalPracticeStartSerializer(serializers.Serializer):
                     skills=skill_slugs,
                     starred=starred,
                     not_mastered=not_mastered,
-                    exclude_ids=None,  # No exclusions when starting
+                    exclude_ids=None,
                 )
                 selected_question_ids = list(
                     questions_queryset.values_list("id", flat=True)
@@ -105,19 +121,12 @@ class TraditionalPracticeStartSerializer(serializers.Serializer):
                     logger.warning(
                         f"Requested {num_questions_requested} traditional questions, but only found {actual_num_selected} matching filters for user {user.id}."
                     )
-            else:
-                logger.info(
-                    f"Starting traditional session with 0 initial questions requested for user {user.id}."
+            except Exception as e:
+                logger.exception(
+                    f"Error fetching initial questions for traditional session for user {user.id}: {e}"
                 )
+                # Proceed without initial questions if fetching fails
 
-        except Exception as e:
-            logger.exception(
-                f"Error fetching initial questions for traditional session for user {user.id}: {e}"
-            )
-            # Don't raise validation error here, allow session to start empty
-            # raise serializers.ValidationError(_("Failed to retrieve initial questions for the session."))
-
-        # --- Create the Attempt ---
         config_snapshot = {
             "subsections_requested": subsection_slugs,
             "skills_requested": skill_slugs,
@@ -133,7 +142,7 @@ class TraditionalPracticeStartSerializer(serializers.Serializer):
                 user=user,
                 attempt_type=UserTestAttempt.AttemptType.TRADITIONAL,
                 test_configuration=config_snapshot,
-                question_ids=selected_question_ids,  # Store initially selected IDs (can be empty)
+                question_ids=selected_question_ids,
                 status=UserTestAttempt.Status.STARTED,
             )
             logger.info(
@@ -151,13 +160,12 @@ class TraditionalPracticeStartSerializer(serializers.Serializer):
                 }
             )
 
-        # Fetch the actual Question objects (if any) for the response
         final_questions_queryset = test_attempt.get_questions_queryset()
 
         return {
             "attempt_id": test_attempt.id,
             "status": test_attempt.status,
-            "questions": final_questions_queryset,  # Return the questions (can be empty list)
+            "questions": final_questions_queryset,
         }
 
 

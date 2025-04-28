@@ -31,6 +31,8 @@ from apps.study.api.serializers import (  # Import consolidated serializers
     UserTestAttemptReviewQuestionSerializer,
     UserTestAttemptStartResponseSerializer,  # For Retake response
 )
+from apps.users.services import UsageLimiter
+from apps.api.exceptions import UsageLimitExceeded
 
 
 logger = logging.getLogger(__name__)
@@ -704,6 +706,33 @@ class UserTestAttemptRetakeView(generics.GenericAPIView):
             sub_slugs = []
         if not isinstance(skill_slugs, list):
             skill_slugs = []
+
+        try:
+            limiter = UsageLimiter(user)
+            # 1. Check if allowed to start this type of attempt
+            limiter.check_can_start_test_attempt(original_attempt_type)
+
+            # 2. Check and cap number of questions for the *new* attempt
+            max_allowed_questions = limiter.get_max_questions_per_attempt()
+            if (
+                max_allowed_questions is not None
+                and num_questions > max_allowed_questions
+            ):
+                logger.info(
+                    f"User {user.id} retake attempt for {original_attempt.id} capped from {num_questions} to {max_allowed_questions} questions due to plan limits."
+                )
+                capped_num_questions = (
+                    max_allowed_questions  # Update the number to fetch
+                )
+
+        except UsageLimitExceeded as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except ValueError as e:
+            logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
+            return Response(
+                {"detail": "Could not verify account limits."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         # --- Select New Questions ---
         try:

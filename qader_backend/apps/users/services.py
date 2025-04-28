@@ -1,5 +1,3 @@
-# qader_backend/apps/users/services.py (or create a dedicated apps/limits/services.py)
-
 import logging
 from typing import Optional
 from django.conf import settings
@@ -8,6 +6,11 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.study.models import UserTestAttempt, ConversationMessage, ConversationSession
 from apps.api.exceptions import UsageLimitExceeded
+from qader_project.settings.base import (
+    LIMIT_MAX_CONVERSATION_MESSAGES,
+    LIMIT_MAX_QUESTIONS_PER_ATTEMPT,
+    LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE,
+)
 
 # If using constants for limit keys: from .constants import LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE, ...
 # Otherwise use the string keys directly.
@@ -47,7 +50,7 @@ class UsageLimiter:
         Raises:
             UsageLimitExceeded: If the limit for this attempt type is reached.
         """
-        limit_key = "MAX_TEST_ATTEMPTS_PER_TYPE"  # Or use LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE constant
+        limit_key = LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE
         limit = self._get_limit(limit_key)
 
         if limit is not None:  # None means unlimited
@@ -75,7 +78,7 @@ class UsageLimiter:
         Returns the maximum number of questions allowed per test attempt for the user.
         Returns None if unlimited.
         """
-        limit_key = "MAX_QUESTIONS_PER_TEST_ATTEMPT"  # Or use LIMIT_MAX_QUESTIONS_PER_ATTEMPT constant
+        limit_key = LIMIT_MAX_QUESTIONS_PER_ATTEMPT
         return self._get_limit(limit_key)
 
     def check_can_send_conversation_message(self):
@@ -86,7 +89,7 @@ class UsageLimiter:
         Raises:
             UsageLimitExceeded: If the message limit is reached.
         """
-        limit_key = "MAX_CONVERSATION_USER_MESSAGES"  # Or use LIMIT_MAX_CONVERSATION_MESSAGES constant
+        limit_key = LIMIT_MAX_CONVERSATION_MESSAGES
         limit = self._get_limit(limit_key)
 
         if limit is not None:
