@@ -4,10 +4,6 @@ from .level_assessment import (
     LevelAssessmentResponseSerializer,
     LevelAssessmentResultSerializer,
 )
-from .traditional import (
-    TraditionalLearningAnswerSerializer,
-    TraditionalLearningResponseSerializer,
-)
 from .tests import (
     TestConfigSerializer,
     TestStartSerializer,
@@ -42,21 +38,25 @@ from .attempts import (
     TestAttemptAnswerSerializer,
     TestAttemptAnswerResponseSerializer,
     TestAttemptCompletionResponseSerializer,
+    TraditionalAttemptStartSerializer,
+    TraditionalAttemptStartResponseSerializer,
+    RevealAnswerResponseSerializer,
 )
 
 __all__ = [
-    "TestAttemptAnswerSerializer",
-    "TestAttemptAnswerResponseSerializer",
-    "TestAttemptCompletionResponseSerializer",
     # Level Assessment
     "LevelAssessmentStartSerializer",
     "LevelAssessmentAnswerSerializer",
     "LevelAssessmentResponseSerializer",
     "LevelAssessmentResultSerializer",
-    # Traditional Learning
-    "TraditionalLearningAnswerSerializer",
-    "TraditionalLearningResponseSerializer",
+    # Traditional
+    "TraditionalAttemptStartSerializer",
+    "TraditionalAttemptStartResponseSerializer",
+    "RevealAnswerResponseSerializer",
     # Tests
+    "TestAttemptAnswerSerializer",
+    "TestAttemptAnswerResponseSerializer",
+    "TestAttemptCompletionResponseSerializer",
     "TestConfigSerializer",
     "TestStartSerializer",
     "TestStartResponseSerializer",

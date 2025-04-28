@@ -245,14 +245,22 @@ def record_single_answer(
         user=user, skill=question.skill, is_correct=is_correct
     )
 
-    # Return immediate feedback
-    return {
+    # --- Prepare Immediate Feedback based on Attempt Type ---
+    feedback = {
         "question_id": question.id,
         "is_correct": is_correct,
-        "correct_answer": question.correct_answer,
-        "explanation": question.explanation,
+        "correct_answer": None,
+        "explanation": None,
         "feedback_message": _("Answer recorded."),
     }
+
+    # Provide full feedback ONLY for Traditional mode during the attempt
+    if test_attempt.attempt_type == UserTestAttempt.AttemptType.TRADITIONAL:
+        feedback["correct_answer"] = question.correct_answer
+        feedback["explanation"] = question.explanation
+        feedback["feedback_message"] = _("Answer recorded. See feedback below.")
+
+    return feedback
 
 
 # --- NEW: Service for completing a test attempt ---
@@ -274,6 +282,21 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
     if test_attempt.status != UserTestAttempt.Status.STARTED:
         raise serializers.ValidationError(
             _("This test attempt is not active or already completed/abandoned.")
+        )
+
+    # --- Prevent completing Traditional attempts via this flow ---
+    if test_attempt.attempt_type == UserTestAttempt.AttemptType.TRADITIONAL:
+        logger.warning(
+            f"User {user.id} attempted to use 'complete' endpoint for traditional attempt {test_attempt.id}."
+        )
+        raise serializers.ValidationError(
+            {
+                "non_field_errors": [
+                    _(
+                        "Traditional practice sessions should be ended using the specific 'end' endpoint, not completed like a test."
+                    )
+                ]
+            }
         )
 
     # Fetch all related UserQuestionAttempts efficiently

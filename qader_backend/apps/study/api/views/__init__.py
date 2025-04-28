@@ -1,8 +1,4 @@
 from .level_assessment import LevelAssessmentStartView
-from .traditional import (
-    TraditionalLearningQuestionListView,
-    TraditionalLearningAnswerView,
-)
 from .tests import (
     UserTestAttemptListView,
     StartTestAttemptView,
@@ -20,14 +16,21 @@ from .attempts import (
     TestAttemptAnswerView,
     CompleteTestAttemptView,
     CancelTestAttemptView,
+    StartTraditionalAttemptView,  # <-- ADD
+    RevealAnswerView,  # <-- ADD
+    EndTraditionalAttemptView,
 )
 
 __all__ = [
     # Level Assessment
     "LevelAssessmentStartView",
     # Traditional Learning
-    "TraditionalLearningQuestionListView",
-    "TraditionalLearningAnswerView",
+    "StartTraditionalAttemptView",
+    "EndTraditionalAttemptView",
+    "ReviewTestAttemptView",
+    "RetakeSimilarTestAttemptView",
+    # --- In-Progress Helpers ---
+    "RevealAnswerView",
     # Tests
     "StartTestAttemptView",  # Start Practice/Simulation
     "UserTestAttemptListView",  # List all attempt types

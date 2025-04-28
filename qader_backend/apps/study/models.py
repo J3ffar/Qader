@@ -78,6 +78,7 @@ class UserTestAttempt(models.Model):
         LEVEL_ASSESSMENT = "level_assessment", _("Level Assessment")
         PRACTICE = "practice", _("Practice Test")
         SIMULATION = "simulation", _("Full Simulation")
+        TRADITIONAL = "traditional", _("Traditional Practice Session")
         # Add other types if needed (e.g., CHALLENGE_TEST, EMERGENCY_TEST)
 
     user = models.ForeignKey(
@@ -502,6 +503,7 @@ class UserQuestionAttempt(models.Model):
                     UserTestAttempt.AttemptType.LEVEL_ASSESSMENT: self.Mode.LEVEL_ASSESSMENT,
                     UserTestAttempt.AttemptType.PRACTICE: self.Mode.TEST,
                     UserTestAttempt.AttemptType.SIMULATION: self.Mode.TEST,
+                    UserTestAttempt.AttemptType.TRADITIONAL: self.Mode.TRADITIONAL,
                 }
                 self.mode = mode_map.get(self.test_attempt.attempt_type, self.Mode.TEST)
             elif self.challenge_attempt:
