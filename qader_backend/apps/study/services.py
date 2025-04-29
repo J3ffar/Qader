@@ -286,9 +286,6 @@ def record_single_answer(
             "selected_answer": selected_answer,
             "is_correct": is_correct,  # This will be calculated/set by model's save() if None
             "time_taken_seconds": answer_data.get("time_taken_seconds"),
-            "used_hint": answer_data.get("used_hint", False),
-            "used_elimination": answer_data.get("used_elimination", False),
-            "used_solution_method": False,  # Revealing answer sets this flag separately
             "mode": mode,  # Set the determined mode
             "attempted_at": timezone.now(),  # Record interaction time
         },

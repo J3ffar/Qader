@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParamet
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.db.models import Case, When, IntegerField
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Count
 from django.http import Http404

@@ -13,8 +13,23 @@ urlpatterns = [
         name="traditional-question-list",
     ),
     path(
-        "attempts/<int:attempt_id>/questions/<int:question_id>/reveal/",
+        "attempts/<int:attempt_id>/questions/<int:question_id>/hint/",
+        views.TraditionalUseHintView.as_view(),
+        name="traditional-use-hint",
+    ),
+    path(
+        "attempts/<int:attempt_id>/questions/<int:question_id>/eliminate/",
+        views.TraditionalUseEliminationView.as_view(),
+        name="traditional-use-eliminate",
+    ),
+    path(
+        "attempts/<int:attempt_id>/questions/<int:question_id>/reveal-answer/",
         views.TraditionalRevealAnswerView.as_view(),
         name="traditional-reveal-answer",
+    ),
+    path(
+        "attempts/<int:attempt_id>/questions/<int:question_id>/reveal-explanation/",
+        views.TraditionalRevealExplanationView.as_view(),
+        name="traditional-reveal-explanation",
     ),
 ]

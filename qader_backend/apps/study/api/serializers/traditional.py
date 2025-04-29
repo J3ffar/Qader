@@ -185,11 +185,23 @@ class TraditionalPracticeStartResponseSerializer(serializers.Serializer):
     )  # List of initial questions
 
 
-class RevealAnswerResponseSerializer(serializers.Serializer):
-    """Response for revealing answer/explanation in traditional mode."""
+class HintResponseSerializer(serializers.Serializer):
+    """Response containing the hint for a question."""
 
-    question_id = serializers.IntegerField()
-    correct_answer = serializers.CharField()
-    explanation = serializers.CharField(allow_null=True)
-    # Add hints here if applicable
-    # hint1 = serializers.CharField(allow_null=True)
+    question_id = serializers.IntegerField(read_only=True)
+    hint = serializers.CharField(read_only=True, allow_null=True)
+
+
+# --- NEW: Specific Reveal Serializers ---
+class RevealCorrectAnswerResponseSerializer(serializers.Serializer):
+    """Response containing only the correct answer choice."""
+
+    question_id = serializers.IntegerField(read_only=True)
+    correct_answer = serializers.CharField(read_only=True)
+
+
+class RevealExplanationResponseSerializer(serializers.Serializer):
+    """Response containing only the explanation."""
+
+    question_id = serializers.IntegerField(read_only=True)
+    explanation = serializers.CharField(read_only=True, allow_null=True)

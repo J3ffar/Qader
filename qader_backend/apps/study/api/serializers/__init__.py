@@ -19,7 +19,6 @@ from .practice_simulation import (
 from .traditional import (
     TraditionalPracticeStartSerializer,
     TraditionalPracticeStartResponseSerializer,
-    RevealAnswerResponseSerializer,
 )
 from .statistics import (
     OverallMasterySerializer,
@@ -60,7 +59,6 @@ __all__ = [
     # --- Traditional Practice ---
     "TraditionalPracticeStartSerializer",
     "TraditionalPracticeStartResponseSerializer",
-    "RevealAnswerResponseSerializer",
     # Statistics
     "OverallMasterySerializer",
     "StudyStreaksSerializer",

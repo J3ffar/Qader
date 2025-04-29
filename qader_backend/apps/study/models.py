@@ -475,11 +475,19 @@ class UserQuestionAttempt(models.Model):
         blank=True,
         help_text=_("Time spent specifically on this question."),
     )
+
     used_hint = models.BooleanField(_("used hint"), default=False)
     used_elimination = models.BooleanField(_("used elimination"), default=False)
-    used_solution_method = models.BooleanField(
-        _("used solution method"), default=False
-    )  # e.g., clicked "Reveal Answer"
+    revealed_answer = models.BooleanField(
+        _("revealed correct answer"),
+        default=False,
+        help_text=_("Track if the user explicitly revealed the correct answer choice."),
+    )
+    revealed_explanation = models.BooleanField(
+        _("revealed explanation"),
+        default=False,
+        help_text=_("Track if the user explicitly revealed the explanation."),
+    )
 
     mode = models.CharField(
         _("mode"),
