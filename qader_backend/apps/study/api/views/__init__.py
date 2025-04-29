@@ -16,7 +16,6 @@ from .traditional import TraditionalPracticeStartView
 
 # --- Traditional Specific Actions ---
 from .traditional import (
-    TraditionalPracticeEndView,
     TraditionalQuestionListView,
     TraditionalRevealAnswerView,
 )
@@ -43,7 +42,6 @@ __all__ = [
     "PracticeSimulationStartView",
     "TraditionalPracticeStartView",
     # --- Traditional Practice ---
-    "TraditionalPracticeEndView",
     "TraditionalQuestionListView",  # Standalone question fetch
     "TraditionalRevealAnswerView",
     # Statistics

@@ -8,11 +8,6 @@ urlpatterns = [
         name="start-traditional",
     ),
     path(
-        "end/<int:attempt_id>/",  # Moved attempt_id here from base path
-        views.TraditionalPracticeEndView.as_view(),
-        name="end-traditional",
-    ),
-    path(
         "questions/",  # Fetch questions on demand (no attempt context)
         views.TraditionalQuestionListView.as_view(),
         name="traditional-question-list",

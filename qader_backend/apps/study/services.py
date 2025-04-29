@@ -326,24 +326,26 @@ def record_single_answer(
     return feedback
 
 
-# --- NEW: Service for completing a test attempt ---
 @transaction.atomic
 def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
     """
-    Finalizes a test attempt (Level Assessment, Practice, Simulation).
-    Calculates scores, updates status, updates profile (if applicable).
+    Finalizes a test attempt (Level Assessment, Practice, Simulation, Traditional).
+    Calculates scores and updates profile (if applicable for non-traditional types).
+    Updates status to 'Completed' and sets end_time for all types.
 
     Args:
         test_attempt: The UserTestAttempt instance to complete.
 
     Returns:
         A dictionary containing the final results and status for the response serializer.
+        For Traditional attempts, returns a simple success message: {'detail': '...'}.
 
     Raises:
-        serializers.ValidationError: If the attempt cannot be completed.
+        serializers.ValidationError: If the attempt cannot be completed (e.g., not started).
     """
     user = test_attempt.user
     if not user or not user.is_authenticated:
+        # This should ideally be caught by view permissions, but double-check
         raise serializers.ValidationError(_("Authentication required."))
 
     if test_attempt.status != UserTestAttempt.Status.STARTED:
@@ -355,131 +357,127 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             }
         )
 
-    # Explicitly prevent completing Traditional attempts via this endpoint
+    # --- Handle Traditional Attempt Completion (Simple) ---
     if test_attempt.attempt_type == UserTestAttempt.AttemptType.TRADITIONAL:
-        logger.warning(
-            f"User {user.id} attempted to use 'complete' endpoint for traditional attempt {test_attempt.id}."
+        test_attempt.status = UserTestAttempt.Status.COMPLETED
+        test_attempt.end_time = timezone.now()
+        # No score calculation for traditional mode via this method
+        test_attempt.save(update_fields=["status", "end_time", "updated_at"])
+        logger.info(
+            f"Ended traditional practice session {test_attempt.id} for user {user.id} via complete_test_attempt service."
         )
-        raise serializers.ValidationError(
-            {
-                "non_field_errors": [
-                    _(
-                        "Traditional practice sessions must be ended using the 'end' endpoint."
-                    )
-                ]
-            }
+        return {"detail": _("Traditional practice session ended.")}
+
+    # --- Handle Non-Traditional Attempt Completion (Detailed) ---
+    else:
+        # Fetch all related UserQuestionAttempts efficiently for scoring
+        question_attempts_qs = test_attempt.question_attempts.select_related(
+            "question__subsection__section",  # Needed for score breakdown
+            "question__skill",
+        ).all()
+
+        answered_count = question_attempts_qs.count()
+        total_questions = test_attempt.num_questions
+
+        if answered_count < total_questions:
+            logger.warning(
+                f"Test attempt {test_attempt.id} completed by user {user.id} with {answered_count}/{total_questions} questions answered."
+            )
+
+        # Call the model method to calculate and save scores
+        test_attempt.calculate_and_save_scores(question_attempts_qs)
+        test_attempt.refresh_from_db()  # Reload to get saved scores
+
+        # Mark Test Attempt Complete (Status/Time)
+        test_attempt.status = UserTestAttempt.Status.COMPLETED
+        test_attempt.end_time = timezone.now()
+        test_attempt.save(update_fields=["status", "end_time", "updated_at"])
+        logger.info(
+            f"Test attempt {test_attempt.id} completed for user {user.id}. Final Score: {test_attempt.score_percentage}%"
         )
 
-    # --- Calculate Scores ---
-    # Fetch all related UserQuestionAttempts efficiently for scoring
-    question_attempts_qs = test_attempt.question_attempts.select_related(
-        "question__subsection__section",  # Needed for score breakdown
-        "question__skill",
-    ).all()
+        # --- Update User Profile (If Level Assessment) ---
+        updated_profile_data = None
+        if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
+            try:
+                # Use select_for_update to lock the profile row during update
+                profile = UserProfile.objects.select_for_update().get(user=user)
+                profile.current_level_verbal = test_attempt.score_verbal
+                profile.current_level_quantitative = test_attempt.score_quantitative
+                profile.is_level_determined = True
+                profile.save(
+                    update_fields=[
+                        "current_level_verbal",
+                        "current_level_quantitative",
+                        "is_level_determined",
+                        "updated_at",
+                    ]
+                )
+                from apps.users.api.serializers import (
+                    UserProfileSerializer,
+                )  # Local import
 
-    answered_count = question_attempts_qs.count()
-    total_questions = test_attempt.num_questions
+                updated_profile_data = UserProfileSerializer(profile).data
+                logger.info(
+                    f"Profile level scores updated for user {user.id} after assessment {test_attempt.id}."
+                )
+            except UserProfile.DoesNotExist:
+                logger.error(
+                    f"UserProfile missing for user {user.id} during level assessment score update for attempt {test_attempt.id}."
+                )
+            except Exception as e:
+                logger.exception(
+                    f"Error updating profile levels for user {user.id} after assessment {test_attempt.id}: {e}"
+                )
 
-    if answered_count < total_questions:
-        logger.warning(
-            f"Test attempt {test_attempt.id} completed by user {user.id} with {answered_count}/{total_questions} questions answered."
-        )
-        # Score calculation should handle this based on total_questions
+        # --- Trigger Gamification (Points/Badges) ---
+        # Assumed handled by signals on UserTestAttempt save
 
-    # Call the model method to calculate and save scores
-    test_attempt.calculate_and_save_scores(question_attempts_qs)  # Pass the queryset
-    # Reload attempt from DB to get updated scores (calculate_and_save_scores saves them)
-    test_attempt.refresh_from_db()
-
-    # --- Mark Test Attempt Complete ---
-    test_attempt.status = UserTestAttempt.Status.COMPLETED
-    test_attempt.end_time = timezone.now()
-    # Scores are already saved by calculate_and_save_scores, just save status/time
-    test_attempt.save(update_fields=["status", "end_time", "updated_at"])
-    logger.info(
-        f"Test attempt {test_attempt.id} completed for user {user.id}. Final Score: {test_attempt.score_percentage}%"
-    )
-
-    # --- Update User Profile (If Level Assessment) ---
-    updated_profile_data = None
-    if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
+        # --- Generate Smart Analysis ---
+        results_summary = test_attempt.results_summary or {}
+        smart_analysis = ""
         try:
-            # Use select_for_update to lock the profile row during update
-            profile = UserProfile.objects.select_for_update().get(user=user)
-            profile.current_level_verbal = test_attempt.score_verbal
-            profile.current_level_quantitative = test_attempt.score_quantitative
-            profile.is_level_determined = True
-            profile.save(
-                update_fields=[
-                    "current_level_verbal",
-                    "current_level_quantitative",
-                    "is_level_determined",
-                    "updated_at",
-                ]
-            )
-            # Use UserProfileSerializer to structure profile data for response
-            from apps.users.api.serializers import UserProfileSerializer  # Local import
+            weakest_subsection = None
+            min_score = 101
+            for slug, data in results_summary.items():
+                if (
+                    isinstance(data, dict)
+                    and "score" in data
+                    and data["score"] is not None
+                ):
+                    if data["score"] < min_score:
+                        min_score = data["score"]
+                        weakest_subsection = data.get("name")
 
-            updated_profile_data = UserProfileSerializer(profile).data
-            logger.info(
-                f"Profile level scores updated for user {user.id} after assessment {test_attempt.id}."
-            )
-        except UserProfile.DoesNotExist:
-            logger.error(
-                f"UserProfile missing for user {user.id} during level assessment score update for attempt {test_attempt.id}."
-            )
-            # Decide policy: fail completion or just log? Log for now.
+            if weakest_subsection and min_score < 60:
+                smart_analysis = _(
+                    "Test completed! Good effort. Consider focusing more practice on {subsection} where your score was {score}%."
+                ).format(subsection=weakest_subsection, score=round(min_score, 1))
+            else:
+                smart_analysis = _(
+                    "Test completed successfully! Keep up the great work."
+                )
+
         except Exception as e:
-            logger.exception(
-                f"Error updating profile levels for user {user.id} after assessment {test_attempt.id}: {e}"
+            logger.error(
+                f"Error generating smart analysis for attempt {test_attempt.id}: {e}"
             )
-            # Log error, but completion likely succeeded otherwise
+            smart_analysis = _("Test completed successfully.")  # Fallback message
 
-    # --- Trigger Gamification (Points/Badges) ---
-    # This should be handled by signals listening to UserTestAttempt save where status becomes COMPLETED
-    # from apps.gamification.services import award_test_completion_rewards # Example direct call (signals preferred)
-    # award_test_completion_rewards(test_attempt)
-
-    # --- Generate Smart Analysis ---
-    results_summary = test_attempt.results_summary or {}
-    smart_analysis = ""
-    try:
-        # Example: Identify weakest subsection based on score
-        weakest_subsection = None
-        min_score = 101  # Initialize higher than max possible score
-        for slug, data in results_summary.items():
-            if isinstance(data, dict) and "score" in data and data["score"] is not None:
-                if data["score"] < min_score:
-                    min_score = data["score"]
-                    weakest_subsection = data.get("name")
-
-        if weakest_subsection and min_score < 60:  # Define threshold for 'weak'
-            smart_analysis = _(
-                "Test completed! Good effort. Consider focusing more practice on {subsection} where your score was {score}%."
-            ).format(subsection=weakest_subsection, score=round(min_score, 1))
-        else:
-            smart_analysis = _("Test completed successfully! Keep up the great work.")
-
-    except Exception as e:
-        logger.error(
-            f"Error generating smart analysis for attempt {test_attempt.id}: {e}"
-        )
-        smart_analysis = _("Test completed successfully.")  # Fallback message
-
-    # --- Prepare Response Data ---
-    return {
-        "attempt_id": test_attempt.id,
-        "status": test_attempt.get_status_display(),  # Use display value for response
-        "score_percentage": test_attempt.score_percentage,
-        "score_verbal": test_attempt.score_verbal,
-        "score_quantitative": test_attempt.score_quantitative,
-        "results_summary": results_summary,
-        "answered_question_count": answered_count,
-        "total_questions": total_questions,
-        "smart_analysis": smart_analysis,
-        "message": _("Test completed successfully. Results calculated."),
-        "updated_profile": updated_profile_data,  # Include serialized profile data if updated
-    }
+        # --- Prepare Response Data ---
+        return {
+            "attempt_id": test_attempt.id,
+            "status": test_attempt.get_status_display(),
+            "score_percentage": test_attempt.score_percentage,
+            "score_verbal": test_attempt.score_verbal,
+            "score_quantitative": test_attempt.score_quantitative,
+            "results_summary": results_summary,
+            "answered_question_count": answered_count,
+            "total_questions": total_questions,
+            "smart_analysis": smart_analysis,
+            "message": _("Test completed successfully. Results calculated."),
+            "updated_profile": updated_profile_data,
+        }
 
 
 # --- Emergency Mode Plan Generation ---

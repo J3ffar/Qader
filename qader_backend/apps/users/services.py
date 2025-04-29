@@ -10,6 +10,7 @@ from qader_project.settings.base import (
     LIMIT_MAX_CONVERSATION_MESSAGES,
     LIMIT_MAX_QUESTIONS_PER_ATTEMPT,
     LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE,
+    get_limits_for_user,
 )
 
 # If using constants for limit keys: from .constants import LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE, ...
@@ -34,7 +35,7 @@ class UsageLimiter:
         self.user = user
         self.profile = user.profile
         # Use the helper function from settings
-        self.limits = settings.get_limits_for_user(self.user)
+        self.limits = get_limits_for_user(self.user)
         logger.debug(
             f"UsageLimiter initialized for user {user.id} ({self.profile.account_type}). Limits: {self.limits}"
         )

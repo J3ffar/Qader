@@ -249,21 +249,25 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
 
 @extend_schema(
     tags=["Study - Test Attempts (Core Actions)"],
-    summary="Complete Test Attempt (Non-Traditional)",
+    summary="Complete Test Attempt (All Types)",  # Updated summary
     description=(
         "Finalizes an *ongoing* (`status=started`) test attempt (`{attempt_id}`). "
-        "Calculates final scores, updates status to 'Completed', updates profile levels (for Level Assessment), and triggers gamification rewards. "
-        "**Important:** This endpoint is **NOT** for Traditional practice sessions (use the specific 'End Traditional Session' endpoint instead)."  # Added crucial distinction
-        " Applicable to Level Assessment, Practice, and Simulation types."
+        "Applicable to Level Assessment, Practice, Simulation, and Traditional types. "  # Updated description
+        "For non-Traditional types, calculates final scores, updates status, updates profile levels (for Level Assessment), and triggers rewards."
+        "For Traditional types, simply marks the session as completed and sets the end time (returns a simple success message)."
     ),
     request=None,
     responses={
         200: OpenApiResponse(
-            response=UserTestAttemptCompletionResponseSerializer,  # Base type
-            description="Test completed. Response structure may vary slightly for Level Assessment (see `LevelAssessmentCompletionResponseSerializer` schema).",
+            response=UserTestAttemptCompletionResponseSerializer,  # Base type for non-traditional
+            description=(
+                "Test completed. Response structure contains detailed results for non-Traditional types "
+                "(see `LevelAssessmentCompletionResponseSerializer` schema for specifics on Level Assessment). "
+                "For Traditional type, returns a simple JSON object like `{'detail': 'Traditional practice session ended.'}`."
+            ),
         ),
         400: OpenApiResponse(
-            description="Validation Error (e.g., attempt not 'started', already completed, or is 'traditional' type)."
+            description="Validation Error (e.g., attempt not 'started', already completed)."
         ),
         401: OpenApiResponse(
             description="Authentication credentials were not provided."
@@ -277,44 +281,31 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
     },
 )
 class UserTestAttemptCompleteView(generics.GenericAPIView):
-    """Handles the completion and final scoring of non-Traditional test attempts."""
+    """Handles the completion and finalization of ALL types of test attempts."""
 
     permission_classes = [IsAuthenticated, IsSubscribed]
-    # Output serializer defined dynamically based on type
+    # Output serializer is determined dynamically in post()
 
     def get_object(self) -> UserTestAttempt:
         """Get the ongoing test attempt, ensuring ownership and STARTED status."""
         attempt_id = self.kwargs.get("attempt_id")
         user = self.request.user
         try:
-            # Eager load profile for potential level assessment update
+            # Eager load profile for potential level assessment update (for non-traditional)
+            # No longer need to filter out traditional type here.
             attempt = get_object_or_404(
                 UserTestAttempt.objects.select_related("user", "user__profile"),
                 pk=attempt_id,
                 user=user,
                 status=UserTestAttempt.Status.STARTED,  # Must be ongoing
             )
-            # Prevent completing traditional attempts here
-            if attempt.attempt_type == UserTestAttempt.AttemptType.TRADITIONAL:
-                raise drf_serializers.ValidationError(
-                    {
-                        "non_field_errors": [
-                            _(
-                                "Traditional practice sessions must be ended using the 'end' endpoint."
-                            )
-                        ]
-                    }
-                )
+            # Removed the check preventing traditional attempts here
             return attempt
         except Http404:
             logger.warning(
-                f"Attempt {attempt_id} not found or not active/non-traditional for user {user.id} in CompleteView."
+                f"Attempt {attempt_id} not found or not active for user {user.id} in CompleteView."
             )
-            raise NotFound(
-                _("Active, non-traditional test attempt not found or not accessible.")
-            )
-        except drf_serializers.ValidationError:
-            raise  # Re-raise validation error for traditional type
+            raise NotFound(_("Active test attempt not found or not accessible."))
         except Exception as e:
             logger.exception(
                 f"Error fetching attempt {attempt_id} in CompleteView: {e}"
@@ -327,27 +318,33 @@ class UserTestAttemptCompleteView(generics.GenericAPIView):
         test_attempt = self.get_object()  # Handles validation/404
 
         try:
-            # Call the service function to handle completion logic
+            # Call the service function to handle completion logic for ALL types
             result_data = complete_test_attempt(test_attempt=test_attempt)
 
-            # Choose the appropriate response serializer based on context/data returned
-            if (
-                test_attempt.attempt_type
-                == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT
-                and result_data.get("updated_profile")
-            ):
-                response_serializer = LevelAssessmentCompletionResponseSerializer(
-                    result_data, context={"request": request}
-                )
+            # --- Handle Response based on service output ---
+            if "detail" in result_data:
+                # This indicates a simple response, likely from Traditional completion
+                return Response(result_data, status=status.HTTP_200_OK)
             else:
-                response_serializer = UserTestAttemptCompletionResponseSerializer(
-                    result_data, context={"request": request}
-                )
+                # This is a detailed response for non-Traditional types
+                response_serializer = None
+                if (
+                    test_attempt.attempt_type
+                    == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT
+                    and result_data.get("updated_profile")
+                ):
+                    response_serializer = LevelAssessmentCompletionResponseSerializer(
+                        result_data, context={"request": request}
+                    )
+                else:
+                    response_serializer = UserTestAttemptCompletionResponseSerializer(
+                        result_data, context={"request": request}
+                    )
 
-            return Response(response_serializer.data, status=status.HTTP_200_OK)
+                return Response(response_serializer.data, status=status.HTTP_200_OK)
 
         except drf_serializers.ValidationError as e:
-            # Propagate validation errors from the service
+            # Propagate validation errors from the service (e.g., attempt not started)
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.exception(
