@@ -229,28 +229,32 @@ SPECTACULAR_SETTINGS = {
             "description": "Access learning structure (Sections, Subsections, Skills, Questions).",
         },
         {
-            "name": "Study & Progress - Level Assessment",
-            "description": "Endpoints for starting and submitting the initial level assessment test.",
+            "name": "Study - Test Attempts (Core Actions)",
+            "description": "Manage the lifecycle of any test attempt (Level Assessment, Practice, Simulation, Traditional): List, Details, Submit Answer, Complete (non-traditional), Cancel, Review, Retake.",
         },
         {
-            "name": "Study & Progress - Traditional Learning",
-            "description": "Endpoints for fetching questions and submitting answers in traditional practice mode.",
+            "name": "Study - Level Assessment",
+            "description": "Start and manage the initial level assessment test. Uses the shared 'Test Attempt' endpoints for answering and completion.",
         },
         {
-            "name": "Study & Progress - Tests & Practice",
-            "description": "Endpoints for managing practice/simulation test attempts (start, list, details, submit, review, retake).",
+            "name": "Study - Traditional Learning",
+            "description": "Start traditional sessions, fetch questions ad-hoc, reveal answers. Answering uses the shared 'Test Attempt - Answer' endpoint.",
         },
         {
-            "name": "Study & Progress - Conversational Learning",
-            "description": "Endpoints for interacting with the AI learning assistant (start, messages, confirmation, test answers).",
+            "name": "Study - Tests (Practice & Simulation)",
+            "description": "Start specific Practice or Simulation tests based on configuration. Uses 'Test Attempt (Core Actions)' for subsequent management.",
         },
         {
-            "name": "Study & Progress - Emergency Mode",
-            "description": "Endpoints for initiating, managing, and practicing within emergency study sessions.",
+            "name": "Study - Conversational Learning",
+            "description": "Interact with the AI learning assistant (start session, send/receive messages, handle confirmations/tests).",
         },
         {
-            "name": "Study & Progress - Statistics",
-            "description": "Endpoints for retrieving user performance statistics and progress.",
+            "name": "Study - Emergency Mode",
+            "description": "Initiate, manage, and practice within emergency study sessions.",
+        },
+        {
+            "name": "Study - Statistics & Progress",
+            "description": "Retrieve user performance statistics, progress tracking, and proficiency.",
         },
         {
             "name": "Gamification",

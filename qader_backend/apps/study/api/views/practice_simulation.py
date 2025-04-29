@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests & Practice"],  # Use tag from settings
+    tags=["Study - Tests (Practice & Simulation)"],
     summary="Start Practice or Simulation Test",
     description="Initiates a new Practice or Simulation test based on the provided configuration (filters, number of questions). Returns the attempt ID and the list of questions.",
     request=PracticeSimulationStartSerializer,

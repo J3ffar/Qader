@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema(
-    tags=["Study & Progress - Traditional Learning"],  # Use tag from settings
+    tags=["Study - Traditional Learning"],
     summary="Start Traditional Practice Session",
     description="Starts a new traditional practice session, creating a trackable UserTestAttempt record. Can optionally return an initial set of questions based on filters.",
     request=TraditionalPracticeStartSerializer,
@@ -82,7 +82,7 @@ class TraditionalPracticeStartView(generics.GenericAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Traditional Learning"],
+    tags=["Study - Traditional Learning"],
     summary="Fetch Questions for Traditional Practice",
     description=(
         "Retrieves a list of questions for traditional practice based on filters, outside the context of a specific ongoing attempt. "
@@ -222,7 +222,7 @@ class TraditionalQuestionListView(generics.ListAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Traditional Learning"],
+    tags=["Study - Traditional Learning"],
     summary="Reveal Answer/Explanation (Traditional Mode)",
     description="Retrieves the correct answer and explanation for a specific question within an *active traditional practice session*. Marks the question as having the solution viewed.",
     responses={
@@ -332,7 +332,7 @@ class TraditionalRevealAnswerView(APIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Traditional Learning"],
+    tags=["Study - Traditional Learning"],
     summary="End Traditional Practice Session",
     description="Marks an active traditional practice session as completed and sets the end time. No final scores are calculated like regular tests.",
     request=None,  # No request body

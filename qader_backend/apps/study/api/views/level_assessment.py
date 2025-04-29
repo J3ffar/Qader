@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema(
-    tags=["Study & Progress - Level Assessment"],  # Use tag from settings
+    tags=["Study - Level Assessment"],
     summary="Start Level Assessment Test",
     description="Initiates a new level assessment test for the user based on selected sections and number of questions. Returns the attempt ID and the list of questions.",
     request=LevelAssessmentStartSerializer,

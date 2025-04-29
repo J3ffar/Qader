@@ -42,7 +42,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 logger = logging.getLogger(__name__)
 
 
-@extend_schema(tags=["Study & Progress - Emergency Mode"])
+@extend_schema(tags=["Study - Emergency Mode"])
 class EmergencyModeStartView(generics.GenericAPIView):
     """
     POST /api/v1/study/emergency-mode/start/
@@ -91,7 +91,7 @@ class EmergencyModeStartView(generics.GenericAPIView):
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
-@extend_schema(tags=["Study & Progress - Emergency Mode"])
+@extend_schema(tags=["Study - Emergency Mode"])
 class EmergencyModeSessionUpdateView(generics.UpdateAPIView):
     """
     PATCH /api/v1/study/emergency-mode/{session_id}/
@@ -130,7 +130,7 @@ class EmergencyModeSessionUpdateView(generics.UpdateAPIView):
 
 # --- NEW VIEW ---
 @extend_schema(
-    tags=["Study & Progress - Emergency Mode"],
+    tags=["Study - Emergency Mode"],
     summary="Fetch Questions for Emergency Mode Session",
     description="Retrieves questions based on the suggested plan for an active emergency mode session.",
     responses={
@@ -221,7 +221,7 @@ class EmergencyModeQuestionsView(generics.ListAPIView):
             )
 
 
-@extend_schema(tags=["Study & Progress - Emergency Mode"])
+@extend_schema(tags=["Study - Emergency Mode"])
 class EmergencyModeAnswerView(generics.GenericAPIView):
     """
     POST /api/v1/study/emergency-mode/answer/

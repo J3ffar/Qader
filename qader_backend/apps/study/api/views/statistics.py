@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema(
-    tags=["Study & Progress - Statistics"],
+    tags=["Study - Statistics & Progress"],
     summary="Retrieve User Statistics",
     description=(
         "Fetches aggregated statistics for the authenticated user, including overall progress, "

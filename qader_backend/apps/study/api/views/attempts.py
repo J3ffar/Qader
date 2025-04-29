@@ -41,41 +41,41 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests & Practice"],  # Use tag from settings
-    summary="List User Test Attempts",
-    description="Retrieves a paginated list of the authenticated user's test attempts (all types). Supports filtering by status and type.",
+    tags=["Study - Test Attempts (Core Actions)"],
+    summary="List Test Attempts",  # More concise
+    description=(
+        "Retrieves a paginated list of the authenticated user's test attempts (all types: Level Assessment, Practice, Simulation, Traditional). "
+        "Supports filtering by `status` (started, completed, abandoned) and `attempt_type` (level_assessment, practice, simulation, traditional). "
+        "Use query parameters like `status=completed` or `attempt_type__in=practice,simulation`."
+    ),
     parameters=[
-        OpenApiParameter(
-            name="status",
-            description="Filter by status (started, completed, abandoned)",
-            type=str,
-            required=False,
-        ),
-        OpenApiParameter(
-            name="attempt_type",
-            description="Filter by type (level_assessment, practice, simulation, traditional)",
-            type=str,
-            required=False,
-        ),
+        OpenApiParameter(name="status", description="Filter by status.", type=str),
+        OpenApiParameter(name="attempt_type", description="Filter by type.", type=str),
         OpenApiParameter(
             name="attempt_type__in",
-            description="Filter by multiple types (comma-separated: practice,simulation)",
+            description="Filter by multiple types (comma-separated).",
             type=str,
-            required=False,
         ),
         OpenApiParameter(
             name="ordering",
-            description="Order by fields (e.g., -start_time, score_percentage)",
+            description="Order results (e.g., `-start_time`).",
             type=str,
-            required=False,
+        ),
+        OpenApiParameter(
+            name="page", description="Page number for pagination.", type=int
+        ),
+        OpenApiParameter(
+            name="page_size", description="Number of results per page.", type=int
         ),
     ],
     responses={
-        200: OpenApiResponse(
-            response=UserTestAttemptListSerializer(many=True),
-            description="Paginated list of test attempts.",
+        200: UserTestAttemptListSerializer(many=True),  # Simplified response definition
+        401: OpenApiResponse(
+            description="Authentication credentials were not provided."
         ),
-        403: OpenApiResponse(description="Permission Denied."),
+        403: OpenApiResponse(
+            description="Permission Denied (e.g., user not subscribed)."
+        ),
     },
 )
 class UserTestAttemptListView(generics.ListAPIView):
@@ -113,7 +113,7 @@ class UserTestAttemptListView(generics.ListAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests & Practice"],
+    tags=["Study - Test Attempts (Core Actions)"],
     summary="Retrieve Test Attempt Details",
     description="Gets details of a specific test attempt (any type), including status, configuration, included questions, and answers submitted so far. Requires ownership.",
     responses={
@@ -158,25 +158,29 @@ class UserTestAttemptDetailView(generics.RetrieveAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests & Practice"],
+    tags=["Study - Test Attempts (Core Actions)"],
     summary="Submit Single Answer for Test Attempt",
     description=(
-        "Submits an answer for a *single question* within an *ongoing* test attempt "
-        "(Level Assessment, Practice, Simulation, or Traditional). Records the answer, updates proficiency (if applicable), "
-        "and provides immediate feedback (answer/explanation revealed only for Traditional mode here)."
+        "Submits an answer for a *single question* within an *ongoing* (`status=started`) test attempt (`{attempt_id}`). "
+        "This endpoint is used for Level Assessment, Practice, Simulation, **and** Traditional modes. "
+        "Records the answer, updates proficiency (if applicable). "
+        "Immediate feedback (correctness, explanation) is only fully revealed in the response for Traditional mode."
+        # Clarified mode usage
     ),
     request=UserQuestionAttemptSerializer,
     responses={
-        200: OpenApiResponse(
-            response=UserQuestionAttemptResponseSerializer,
-            description="Answer recorded successfully. Feedback provided.",
-        ),
+        200: UserQuestionAttemptResponseSerializer,
         400: OpenApiResponse(
-            description="Validation Error (e.g., invalid input, question not in attempt, attempt not active)."
+            description="Validation Error (e.g., invalid input, question not part of attempt, attempt not 'started', answer already submitted for this question in this attempt)."
         ),
-        403: OpenApiResponse(description="Permission Denied."),
+        401: OpenApiResponse(
+            description="Authentication credentials were not provided."
+        ),
+        403: OpenApiResponse(
+            description="Permission Denied (Not owner or not subscribed)."
+        ),
         404: OpenApiResponse(
-            description="Not Found (Attempt ID or Question ID invalid)."
+            description="Attempt ID or Question ID invalid, or attempt is not 'started'."
         ),
     },
 )
@@ -244,24 +248,32 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests & Practice"],
+    tags=["Study - Test Attempts (Core Actions)"],
     summary="Complete Test Attempt (Non-Traditional)",
     description=(
-        "Finalizes an *ongoing* test attempt (Level Assessment, Practice, or Simulation). "
-        "Calculates final scores, updates status to 'Completed', updates profile levels (for Level Assessment), "
-        "and triggers gamification rewards."
+        "Finalizes an *ongoing* (`status=started`) test attempt (`{attempt_id}`). "
+        "Calculates final scores, updates status to 'Completed', updates profile levels (for Level Assessment), and triggers gamification rewards. "
+        "**Important:** This endpoint is **NOT** for Traditional practice sessions (use the specific 'End Traditional Session' endpoint instead)."  # Added crucial distinction
+        " Applicable to Level Assessment, Practice, and Simulation types."
     ),
-    request=None,  # No request body needed
+    request=None,
     responses={
         200: OpenApiResponse(
-            response=UserTestAttemptCompletionResponseSerializer,  # Generic response type, actual data varies slightly
-            description="Test attempt completed successfully. Final results returned.",
+            response=UserTestAttemptCompletionResponseSerializer,  # Base type
+            description="Test completed. Response structure may vary slightly for Level Assessment (see `LevelAssessmentCompletionResponseSerializer` schema).",
         ),
         400: OpenApiResponse(
-            description="Validation Error (e.g., attempt not active, already completed, or is Traditional)."
+            description="Validation Error (e.g., attempt not 'started', already completed, or is 'traditional' type)."
         ),
-        403: OpenApiResponse(description="Permission Denied."),
-        404: OpenApiResponse(description="Not Found (Attempt ID invalid)."),
+        401: OpenApiResponse(
+            description="Authentication credentials were not provided."
+        ),
+        403: OpenApiResponse(
+            description="Permission Denied (Not owner or not subscribed)."
+        ),
+        404: OpenApiResponse(
+            description="Attempt ID invalid or attempt not 'started'."
+        ),
     },
 )
 class UserTestAttemptCompleteView(generics.GenericAPIView):
@@ -348,15 +360,22 @@ class UserTestAttemptCompleteView(generics.GenericAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests & Practice"],
+    tags=["Study - Test Attempts (Core Actions)"],
     summary="Cancel Test Attempt",
-    description="Cancels (abandons) an *ongoing* test attempt (any type). Sets status to 'Abandoned' and records end time. No scores are calculated.",
-    request=None,  # No request body needed
+    description="Cancels (abandons) an *ongoing* (`status=started`) test attempt (`{attempt_id}`). Sets status to 'Abandoned'. No scores are calculated. Applicable to all attempt types.",
+    request=None,
     responses={
         200: OpenApiResponse(description="Test attempt cancelled successfully."),
-        400: OpenApiResponse(description="Bad Request (e.g., attempt not active)."),
-        403: OpenApiResponse(description="Permission Denied."),
-        404: OpenApiResponse(description="Not Found (Attempt ID invalid)."),
+        400: OpenApiResponse(description="Bad Request (e.g., attempt not 'started')."),
+        401: OpenApiResponse(
+            description="Authentication credentials were not provided."
+        ),
+        403: OpenApiResponse(
+            description="Permission Denied (Not owner or not subscribed)."
+        ),
+        404: OpenApiResponse(
+            description="Attempt ID invalid or attempt not 'started'."
+        ),
     },
 )
 class UserTestAttemptCancelView(generics.GenericAPIView):
@@ -412,25 +431,35 @@ class UserTestAttemptCancelView(generics.GenericAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests & Practice"],
+    tags=["Study - Test Attempts (Core Actions)"],
     summary="Review Completed Test",
-    description="Retrieves a detailed question-by-question review for a *completed* test attempt (any type), including user/correct answers and explanations. Requires ownership.",
+    description=(
+        "Retrieves a detailed question-by-question review for a *completed* (`status=completed`) test attempt (`{attempt_id}`). "
+        "Includes user's answer, correct answer, and explanation for each question. "
+        "Use the `incorrect_only=true` query parameter to fetch only questions the user answered incorrectly. Applicable to all attempt types."
+    ),
     parameters=[
         OpenApiParameter(
             name="incorrect_only",
-            description="If 'true' or '1', return only incorrectly answered questions.",
+            description="If 'true', return only incorrectly answered questions.",
             type=str,
             required=False,
         ),
     ],
     responses={
-        200: OpenApiResponse(
-            response=UserTestAttemptReviewSerializer,
-            description="Detailed review questions.",
+        200: UserTestAttemptReviewSerializer,
+        400: OpenApiResponse(
+            description="Bad Request (e.g., Attempt not 'completed')."
         ),
-        400: OpenApiResponse(description="Bad Request (e.g., Attempt not completed)."),
-        403: OpenApiResponse(description="Permission Denied."),
-        404: OpenApiResponse(description="Not Found (Attempt ID invalid)."),
+        401: OpenApiResponse(
+            description="Authentication credentials were not provided."
+        ),
+        403: OpenApiResponse(
+            description="Permission Denied (Not owner or not subscribed)."
+        ),
+        404: OpenApiResponse(
+            description="Completed test attempt with the given ID not found."
+        ),
     },
 )
 class UserTestAttemptReviewView(generics.GenericAPIView):
@@ -569,20 +598,29 @@ class UserTestAttemptReviewView(generics.GenericAPIView):
 
 
 @extend_schema(
-    tags=["Study & Progress - Tests & Practice"],
+    tags=["Study - Test Attempts (Core Actions)"],
     summary="Retake Similar Test",
-    description="Starts a *new* test attempt using the same configuration as a previous attempt (any type). Generates a fresh set of questions based on the original criteria, ideally excluding questions from the original attempt.",
-    request=None,  # No request body needed
+    description=(
+        "Starts a *new* test attempt using the same configuration (filters, type, number of questions) as a *previous* attempt (`{attempt_id}`). "
+        "Generates a fresh set of questions based on the original criteria, ideally excluding questions from the original attempt (but may include them if necessary). "
+        "Checks for usage limits before starting. Cannot start if another test is already ongoing."
+        " Applicable to all attempt types."
+    ),
+    request=None,
     responses={
-        201: OpenApiResponse(
-            response=UserTestAttemptStartResponseSerializer,
-            description="New similar test started successfully.",
-        ),
+        201: UserTestAttemptStartResponseSerializer,  # Uses the standard start response
         400: OpenApiResponse(
-            description="Bad Request (Ongoing test exists, original config invalid, no questions found)."
+            description="Bad Request (e.g., Ongoing test exists, original config invalid, no suitable questions found)."
         ),
-        403: OpenApiResponse(description="Permission Denied."),
-        404: OpenApiResponse(description="Not Found (Original attempt ID invalid)."),
+        401: OpenApiResponse(
+            description="Authentication credentials were not provided."
+        ),
+        403: OpenApiResponse(
+            description="Permission Denied (Not owner, not subscribed, or usage limit reached)."
+        ),  # Added usage limit note
+        404: OpenApiResponse(
+            description="Original attempt with the given ID not found."
+        ),
     },
 )
 class UserTestAttemptRetakeView(generics.GenericAPIView):

@@ -30,7 +30,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@extend_schema(tags=["Study & Progress - Conversational Learning"])
+@extend_schema(tags=["Study - Conversational Learning"])
 class ConversationViewSet(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
