@@ -13,7 +13,7 @@ const StatisticsSection = () => {
       {" "}
       {/* Added background, margin, rounding */}
       {/* Section Header */}
-      <h2 className="text-3xl font-medium mb-2 text-center">
+      <h2 className="text-4xl font-bold mb-2 text-center">
         تعرف على إحصائياتنا
       </h2>{" "}
       {/* Use إ not أ */}
@@ -27,7 +27,7 @@ const StatisticsSection = () => {
         {statsData.map((stat) => (
           <div
             key={stat.id}
-            className="p-8 sm:p-10 bg-card rounded-lg text-2xl font-bold flex justify-center items-center flex-col border-2 border-primary shadow-md" // Use theme colors
+            className="p-8 sm:p-10 bg-card rounded-lg text-2xl font-bold flex justify-center items-center flex-col border-2 border-[#cfe4fc] shadow-md" // Use theme colors
           >
             <h3 className="text-primary text-3xl mb-1">{stat.value}</h3>{" "}
             {/* Use theme primary color */}

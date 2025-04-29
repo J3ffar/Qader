@@ -18,12 +18,12 @@ const AboutSection = () => {
       </div>
       {/* Text Content Section */}
       <div>
-        <h2 className="text-3xl font-medium font">من نحن؟</h2>
-        <p className="text-xl mt-4 text-gray-600">
+        <h2 className="text-4xl font-bold">من نحن؟</h2>
+        <p className="text-xl mt-4 text-gray-600 max-w-xl">
           هنا يمكنك تقديم نفسك و من انت و ما القصة التى تريد ان ترويها عن علامتك
           التجارية او عملك
         </p>
-        <Button variant="outline" className="mt-4">
+        <Button variant="outline" className="mt-4 py-5">
           <span>تعرف علينا اكثر</span>
           <ArrowUpLeft className="w-5 h-5 mr-2" />{" "}
           {/* Added margin for spacing */}

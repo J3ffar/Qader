@@ -29,7 +29,7 @@ const ContactUs = () => {
       <div className='flex flex-col gap-5 flex-1/2 p-9'>
         <Image src={"/images/group.png"} width={500} height={500} alt='' />
         <h2 className='text-4xl font-bold max-md:text-center'>لنبق على اتصال, <span className='text-[#074182]'>نحن هنا لمساعتك!</span></h2>
-        <p>إذا كنت تودالإتصال من أجل مشكلة أوإستفسار حول متجرك, ينصح استعمال منطقه الدعم الموجوده داخل لوحة التحكم بحسابك من أجل دعم سريع وسرية اكبر. أو يمكنط الإستفسار حول أمور عامة عن طريق ارسال رسالة من هنا</p>
+        <p className='max-w-xl'>إذا كنت تودالإتصال من أجل مشكلة أوإستفسار حول متجرك, ينصح استعمال منطقه الدعم الموجوده داخل لوحة التحكم بحسابك من أجل دعم سريع وسرية اكبر. أو يمكنط الإستفسار حول أمور عامة عن طريق ارسال رسالة من هنا</p>
         <h3 className='font-bold text-2xl'>او تواصل معنا</h3>
         <div className='flex gap-3'>
           <Image src={"/images/gmail.png"} width={10} height={10} className='w-10 h-10 p-2 rounded-full bg-gray-200 transition delay-150 duration-300 ease-in-out hover:bg-gray-300' alt='' />

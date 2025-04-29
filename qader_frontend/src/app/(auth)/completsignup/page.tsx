@@ -137,7 +137,7 @@ const Completsignup = () => {
 
         {/* الشرف */}
         <div>
-          <label className="block mb-1">المعرف</label>
+          <label className="block mb-1 font-bold">المعرف</label>
           <input
             type="text"
             className="w-full border rounded-md p-2"
@@ -147,7 +147,7 @@ const Completsignup = () => {
 
         {/* الرمز التسلسلي */}
         <div>
-          <label className="block mb-1">الرمز التسلسلي</label>
+          <label className="block mb-1 font-bold">الرمز التسلسلي</label>
           <input
             type="text"
             className="w-full border rounded-md p-2"
@@ -171,11 +171,11 @@ const Completsignup = () => {
         </div>
 
         {/* زر الاشتراك */}
-        <Button variant={"outline"} className="w-full" type="submit">
+        <Button variant={"outline"} className="w-full font-semibold" type="submit">
           تسجيل الاشتراك
               </Button>
               <Link href={"/"}>
-                <Button variant={"default"} className="w-full">
+                <Button variant={"default"} className="w-full font-semibold">
                   السابق
                 </Button>
                 </Link>

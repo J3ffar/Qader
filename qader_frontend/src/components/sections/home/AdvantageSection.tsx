@@ -36,7 +36,7 @@ const AdvantageSection = () => {
       <div className="w-full flex-1/2">
         {" "}
         {/* Consider using flex-grow or specific widths */}
-        <h3 className="text-3xl font-medium">
+        <h3 className="text-4xl font-bold">
           لماذا يجب على العملاء أن يختارونا؟
         </h3>
         <p className="text-xl text-gray-600">

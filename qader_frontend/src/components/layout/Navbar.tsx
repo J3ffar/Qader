@@ -51,7 +51,7 @@ const Navbar = () => {
       <div className="relative z-50">
         <nav className="flex justify-between items-center shadow-lg px-4 sm:px-8 md:px-16 py-4 w-full bg-background max-md:bg-[#074182] max-md:flex-row-reverse max-md:gap-6">
           {/* Hamburger Icon */}
-          <div className="hidden max-md:flex">
+          <div className="hidden max-lg:flex max-lg:text-[#074182]">
             <button onClick={handleNav} aria-label={showNav ? "Close menu" : "Open menu"}>
               {showNav ? (
                 <XMarkIcon className="w-8 h-8 max-md:text-white" />

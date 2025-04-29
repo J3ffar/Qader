@@ -64,7 +64,7 @@ const ReviewSection = () => {
       <div className="mb-8 text-center sm:text-right">
         {" "}
         {/* Adjusted margin and alignment */}
-        <h2 className="text-3xl font-medium mb-2">
+        <h2 className="text-4xl font-bold mb-2">
           {" "}
           {/* Added margin */}
           ماذا قالوا <span className="text-[#074182]">عنا؟</span>

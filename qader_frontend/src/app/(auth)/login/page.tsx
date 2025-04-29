@@ -1,6 +1,6 @@
 "use client";
-import React from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import React, { useState } from "react";
+import { XMarkIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -10,6 +10,9 @@ interface LoginModalProps {
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ show, onClose }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState("");
+
   if (!show) return null;
 
   return (
@@ -44,29 +47,49 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onClose }) => {
               </div>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium">
+                  <label htmlFor="email" className="block text-sm font-bold">
                     البريد الإلكتروني
                   </label>
                   <div className="relative">
                     <input
                       type="email"
                       id="email"
-                      className="w-full mt-1 pl-10 p-2 border rounded-md bg-background border-border focus:outline-none focus:ring focus:ring-primary"
+                      className="w-full mt-1 pl-10 p-2 rounded-md bg-gray-100 focus:border focus:outline-none"
                       placeholder="you@example.com"
                     />
                   </div>
                 </div>
+
+                {/* Password */}
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium">
+                  <label htmlFor="password" className="block text-sm font-bold">
                     كلمة المرور
                   </label>
-                  <input
-                    type="password"
-                    id="password"
-                    className="w-full mt-1 p-2 border rounded-md bg-background border-border focus:outline-none focus:ring focus:ring-primary"
-                    placeholder="********"
-                  />
-                  <p className="text-sm text-red-500 mt-1">* كلمة المرور خاطئة</p>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      className="w-full mt-1 pl-10 pr-10 p-2 rounded-md bg-gray-100 focus:border focus:outline-none"
+                      placeholder="********"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 left-2 flex items-center text-gray-500"
+                      aria-label="Toggle password visibility"
+                    >
+                      {showPassword ? (
+                        <EyeSlashIcon className="w-5 h-5" />
+                      ) : (
+                        <EyeIcon className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  {password && (
+                    <p className="text-sm text-red-500 mt-1">* كلمة المرور خاطئة</p>
+                  )}
                 </div>
 
                 {/* Checkbox and forgot password */}
@@ -82,6 +105,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ show, onClose }) => {
 
                 <Button variant={"outline"} className="w-full">دخول</Button>
               </div>
+
               <p className="text-center text-sm text-muted-foreground">
                 ليس لديك حساب؟{" "}
                 <Link href="/signup" className="text-primary hover:underline">
