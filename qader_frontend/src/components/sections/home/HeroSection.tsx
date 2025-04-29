@@ -6,7 +6,7 @@ const HeroSection = () => {
   return (
     <div className="flex justify-center items-center flex-col gap-8 mt-11 w-full p-6">
       {/* Title */}
-      <div className="flex justify-center items-center gap-4 p-6 text-center">
+      <div className="flex justify-center items-center gap-4 text-center">
         {" "}
         {/* Added text-center for better mobile */}
         <Image
@@ -23,13 +23,9 @@ const HeroSection = () => {
       </div>
 
       {/* Subtitle */}
-      <p className="text-xl text-center font-[IBM_Plex_sans]">
-        {" "}
-        {/* Ensure this font variable is applied correctly in layout */}
-        انت فى الطريق الصحيح. منصتنا مخصصة لك لمساعدتك على الاستعداد بفعالية.
-        {/* Improved text example */}
-      </p>
-
+      <p className="text-xl text-center max-w-xl mx-auto">
+                       منصتنا مخصصة لك, انت فى الطريق الصحيح.منصتنا مخصصة لك, انت فى الطريق الصحيح منصتنا مخصصة لك, انت فى الطريق الصحيح.
+</p>
       {/* Action Buttons */}
       <div className="gap-3 flex items-center">
         <Button variant="outline">

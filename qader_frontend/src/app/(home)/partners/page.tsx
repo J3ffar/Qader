@@ -10,9 +10,9 @@ const Partners: React.FC = () => {
 
   return (
     <div className='p-8'>
-      <div className='text-center'>
+      <div className='flex justify-center items-center flex-col'>
         <h2 className='text-4xl font-bold'>شركاء النجاح</h2>
-        <p className='text-gray-800 text-lg mt-4'>لديك سؤال؟ لديناالاجابة, ابحث عن سؤالك هنا...</p>
+        <p className='text-gray-800 text-lg max-w-xl mt-4'>لديك سؤال؟ لديناالاجابة, ابحث عن سؤالك هنا...</p>
       </div>
 
       <div className='flex justify-center items-center gap-4 mt-10 max-md:flex-wrap max-sm:flex-col'>
@@ -54,16 +54,16 @@ const Partners: React.FC = () => {
               key={i}
               className='bg-[#e7f1fe] rounded-2xl border border-[#cfe4fc] p-8 max-w-xs'
             >
-              <span className='flex justify-between'>
+              <span className='flex justify-between items-center'>
                 <input
                   type='checkbox'
-                  className='appearance-none w-5 h-5 rounded-full border border-gray-400 checked:bg-[#2f80ed] checked:border-gray-400 transition-colors'
+                  className='appearance-none w-5 h-5  bg-white rounded-full border border-gray-400 checked:bg-[#2f80ed] checked:border-gray-400 transition-colors'
                 />
-                <Image src={img} width={50} height={50} alt='' />
+                <Image src={img} width={40} height={40} alt='' />
               </span>
-              <div className='text-center'>
+              <div className='text-center mt-7'>
                 <p className='text-2xl font-bold'>{label}</p>
-                <p>
+                <p className='mt-3'>
                   النص هنا النص هنا النص هنا النص هنا النص هنا النص هنا النص هنا النص هنا النص هنا
                 </p>
               </div>
