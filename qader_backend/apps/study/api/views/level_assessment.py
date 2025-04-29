@@ -1,15 +1,13 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers as drf_serializers
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 import logging
 
 from apps.api.permissions import IsSubscribed
-from apps.study.api.serializers.level_assessment import (  # Import specific serializers
+from apps.study.api.serializers import (
     LevelAssessmentStartSerializer,
-    LevelAssessmentSubmitSerializer,
-    LevelAssessmentResponseSerializer,
-    LevelAssessmentResultSerializer,
+    UserTestAttemptStartResponseSerializer,  # Use standard response
 )
 
 logger = logging.getLogger(__name__)
@@ -18,28 +16,26 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema(
-    tags=["Study & Progress - Level Assessment"],
+    tags=["Study & Progress - Level Assessment"],  # Use tag from settings
     summary="Start Level Assessment Test",
-    description=(
-        "Initiates a level assessment test for the authenticated, subscribed user. "
-        "Checks for ongoing assessments. Requires first-time user or explicit retake mechanism (TBD). "
-        "Selects random, active questions based on chosen sections and number."
-    ),
+    description="Initiates a new level assessment test for the user based on selected sections and number of questions. Returns the attempt ID and the list of questions.",
     request=LevelAssessmentStartSerializer,
     responses={
         201: OpenApiResponse(
-            response=LevelAssessmentResponseSerializer,
-            description="Assessment started.",
+            response=UserTestAttemptStartResponseSerializer,  # Standard start response
+            description="Level assessment started successfully. Returns attempt ID and questions.",
         ),
         400: OpenApiResponse(
-            description="Validation Error (e.g., level determined, ongoing assessment, no questions)."
+            description="Validation Error (e.g., ongoing test exists, not enough questions found, invalid sections)."
         ),
         403: OpenApiResponse(
-            description="Permission Denied (Authentication/Subscription)."
+            description="Permission Denied (Authentication or Subscription required)."
         ),
     },
 )
 class LevelAssessmentStartView(generics.GenericAPIView):
+    """Handles starting a new Level Assessment test."""
+
     serializer_class = LevelAssessmentStartSerializer
     permission_classes = [IsAuthenticated, IsSubscribed]
 
@@ -47,53 +43,31 @@ class LevelAssessmentStartView(generics.GenericAPIView):
         serializer = self.get_serializer(
             data=request.data, context={"request": request}
         )
-        serializer.is_valid(raise_exception=True)
-        result_data = (
-            serializer.save()
-        )  # Contains {'attempt_id': id, 'questions': queryset}
-        response_serializer = LevelAssessmentResponseSerializer(
+        try:
+            serializer.is_valid(raise_exception=True)
+            # The serializer's create method now handles question fetching and attempt creation
+            result_data = serializer.save()  # Returns dict: {'attempt_id', 'questions'}
+        except drf_serializers.ValidationError as e:
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.exception(
+                f"Unexpected error during LevelAssessmentStartView post for user {request.user.id}: {e}"
+            )
+            return Response(
+                {
+                    "detail": _(
+                        "An internal error occurred while starting the assessment."
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # Use the standard response serializer for starting attempts
+        response_serializer = UserTestAttemptStartResponseSerializer(
             result_data, context={"request": request}
         )
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
-@extend_schema(
-    tags=["Study & Progress - Level Assessment"],
-    summary="Submit Level Assessment Answers",
-    description=(
-        "Submits answers for a specific, ongoing level assessment. Calculates scores, "
-        "updates user profile levels, marks level as determined, and marks the assessment complete."
-    ),
-    request=LevelAssessmentSubmitSerializer,
-    responses={
-        200: OpenApiResponse(
-            response=LevelAssessmentResultSerializer,
-            description="Submission successful.",
-        ),
-        400: OpenApiResponse(
-            description="Validation Error (e.g., attempt not active, wrong answers, profile missing)."
-        ),
-        403: OpenApiResponse(description="Permission Denied."),
-        404: OpenApiResponse(
-            description="Not Found (Attempt ID invalid or doesn't belong to user)."
-        ),  # Raised by serializer validation
-    },
-)
-class LevelAssessmentSubmitView(generics.GenericAPIView):
-    serializer_class = LevelAssessmentSubmitSerializer
-    permission_classes = [IsAuthenticated, IsSubscribed]
-    # No queryset needed, validation happens in serializer
-
-    def post(self, request, attempt_id, *args, **kwargs):
-        # Pass view context (includes URL kwargs like attempt_id) to serializer for validation
-        serializer = self.get_serializer(
-            data=request.data, context={"request": request, "view": self}
-        )
-        serializer.is_valid(raise_exception=True)
-        result_data = (
-            serializer.save()
-        )  # Contains {'attempt_id', 'results', 'updated_profile'}
-        response_serializer = LevelAssessmentResultSerializer(
-            result_data, context={"request": request}
-        )
-        return Response(response_serializer.data, status=status.HTTP_200_OK)
+# Note: Completion of Level Assessment is handled by the unified UserTestAttemptCompleteView
+# Note: Answering questions during Level Assessment is handled by the unified UserTestAttemptAnswerView

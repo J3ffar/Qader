@@ -1177,7 +1177,7 @@
             "name": "First Full Test",
             "slug": "first-full-test",
             "description": "Completed your first full simulation test.",
-            "icon_class_or_image": "badge-icon-test",
+            "icon": "badges/icons/icon.png",
             "criteria_description": "Complete one test marked as 'Full Simulation'.",
             "is_earned": true,
             "earned_at": "2024-07-19T11:00:00Z" // Included if earned
@@ -1187,8 +1187,8 @@
             "name": "10-Day Streak",
             "slug": "10-day-streak",
             "description": "Studied for 10 consecutive days.",
-            "icon_class_or_image": "badge-icon-streak-10",
-             "criteria_description": "Log in and complete at least one question or test for 10 days in a row.",
+            "icon": "badges/icons/icon.png",
+            "criteria_description": "Log in and complete at least one question or test for 10 days in a row.",
             "is_earned": false,
             "earned_at": null
           }
@@ -1208,7 +1208,8 @@
             "description": "Show off your dedication with this cool frame.",
             "item_type": "avatar", // "avatar", "theme", "material", "competition_entry"
             "cost_points": 500,
-            "asset_url_or_data": "/media/rewards/avatar_frame_1.png" // Path or identifier
+            "image": "/media/preview/avatar_frame_1.png", // Path or identifier
+            "asset_file": "/media/rewards/avatar_frame_1.png"
           },
           {
             "id": 11,
@@ -1216,7 +1217,8 @@
             "description": "A special dark theme for focus.",
             "item_type": "theme",
             "cost_points": 300,
-             "asset_url_or_data": "theme-dark-variant-1" // Identifier for client-side theme
+            "image": "/media/preview/theme-dark-variant-1.png",
+            "asset_file": null
           },
            {
             "id": 12,
@@ -1224,7 +1226,8 @@
             "description": "Enter the monthly grand competition.",
             "item_type": "competition_entry",
             "cost_points": 1000,
-            "asset_url_or_data": null
+            "image": "/media/preview/competition.png",
+            "asset_file": null
           }
           // ... other items
         ]

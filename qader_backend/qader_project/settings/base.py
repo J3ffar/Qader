@@ -4,6 +4,8 @@ from decouple import config, Csv
 import dj_database_url
 from django.utils.translation import gettext_lazy as _
 
+from apps.users.constants import AccountTypeChoices
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -15,6 +17,21 @@ OPENAI_API_KEY = config("OPENAI_API_KEY", default=None)
 DEBUG = config("DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="127.0.0.1,localhost", cast=Csv())
 
+# Constants
+
+FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:3000")
+FRONTEND_EMAIL_CONFIRMATION_PATH = config(
+    "FRONTEND_EMAIL_CONFIRMATION_PATH", default="/confirm-email"
+)  # Path before uid/token
+FRONTEND_PASSWORD_RESET_PATH = config(
+    "FRONTEND_PASSWORD_RESET_PATH", default="/reset-password-confirm"
+)  # Path before uid/token
+
+SITE_NAME = config("SITE_NAME", default=_("Qader Platform"))
+
+# Referral Settings
+REFERRAL_BONUS_DAYS = config("REFERRAL_BONUS_DAYS", default=3, cast=int)
+MAX_PROFILE_PIC_SIZE_MB = config("MAX_PROFILE_PIC_SIZE_MB", default=5, cast=int)
 
 # Application definition
 INSTALLED_APPS = [
@@ -41,6 +58,7 @@ INSTALLED_APPS = [
     "apps.challenges",
     "apps.content",
     "apps.community",
+    "apps.blog",
     "apps.support",
     "apps.admin_panel",
 ]
@@ -199,6 +217,10 @@ SPECTACULAR_SETTINGS = {
             "description": "Manage current user profile and settings.",
         },
         {
+            "name": "Subscription Plans",
+            "description": "Endpoints related to viewing available subscription plans.",
+        },
+        {
             "name": "Public Content",
             "description": "Endpoints for publicly accessible content (Pages, FAQ, Partners, Contact).",
         },
@@ -207,8 +229,28 @@ SPECTACULAR_SETTINGS = {
             "description": "Access learning structure (Sections, Subsections, Skills, Questions).",
         },
         {
-            "name": "Study & Progress",
-            "description": "Endpoints for user study activities, tests, and progress tracking.",
+            "name": "Study & Progress - Level Assessment",
+            "description": "Endpoints for starting and submitting the initial level assessment test.",
+        },
+        {
+            "name": "Study & Progress - Traditional Learning",
+            "description": "Endpoints for fetching questions and submitting answers in traditional practice mode.",
+        },
+        {
+            "name": "Study & Progress - Tests & Practice",
+            "description": "Endpoints for managing practice/simulation test attempts (start, list, details, submit, review, retake).",
+        },
+        {
+            "name": "Study & Progress - Conversational Learning",
+            "description": "Endpoints for interacting with the AI learning assistant (start, messages, confirmation, test answers).",
+        },
+        {
+            "name": "Study & Progress - Emergency Mode",
+            "description": "Endpoints for initiating, managing, and practicing within emergency study sessions.",
+        },
+        {
+            "name": "Study & Progress - Statistics",
+            "description": "Endpoints for retrieving user performance statistics and progress.",
         },
         {
             "name": "Gamification",
@@ -220,20 +262,37 @@ SPECTACULAR_SETTINGS = {
             "description": "Endpoints for the community forum.",
         },
         {
+            "name": "Blog",
+            "description": "Endpoints for blog posts and advice requests.",
+        },
+        {
             "name": "Support (User)",
             "description": "Endpoints for users to manage their support tickets.",
         },
-        {
-            "name": "Support (Admin)",
-            "description": "Endpoints for administrators to manage support tickets.",
-        },
+        # --- Admin Panel Tags ---
         {
             "name": "Admin Panel - User Management",
             "description": "Endpoints for administrators to manage users, sub-admins, points, and passwords.",
         },
         {
+            "name": "Admin Panel - Learning Management",
+            "description": "Endpoints for administrators to manage learning content (Sections, Subsections, Skills, Questions).",
+        },
+        {
+            "name": "Admin Panel - Gamification Management",
+            "description": "Endpoints for administrators to manage Badge and Reward Store Item definitions.",
+        },
+        {
             "name": "Admin Panel - Content Management",
             "description": "Endpoints for administrators to manage public content (Pages, FAQ, Partners, Contact Messages).",
+        },
+        {
+            "name": "Admin Panel - Support Management",
+            "description": "Endpoints for administrators to manage all support tickets.",
+        },
+        {
+            "name": "Admin Panel - Serial Code Management",
+            "description": "Endpoints for administrators to manage subscription serial codes.",
         },
     ],
     "SWAGGER_UI_SETTINGS": {  # Fine-tune Swagger UI appearance/behavior
@@ -241,6 +300,7 @@ SPECTACULAR_SETTINGS = {
         "persistAuthorization": True,
         "displayRequestDuration": True,
         "filter": True,
+        "docExpansion": "list",
     },
     "PREPROCESSING_HOOKS": [],
     "POSTPROCESSING_HOOKS": [],
@@ -286,3 +346,83 @@ SIMPLE_JWT = {
 
 # CORS Settings
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
+
+
+LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE = "MAX_TEST_ATTEMPTS_PER_TYPE"
+LIMIT_MAX_QUESTIONS_PER_ATTEMPT = "MAX_QUESTIONS_PER_TEST_ATTEMPT"
+LIMIT_MAX_CONVERSATION_MESSAGES = "MAX_CONVERSATION_USER_MESSAGES"
+
+ACCOUNT_USAGE_LIMITS = {
+    AccountTypeChoices.FREE_TRIAL: {
+        # Key: A unique identifier for the limited action
+        # Value: The limit (integer) or None for unlimited
+        LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE: 2,
+        LIMIT_MAX_QUESTIONS_PER_ATTEMPT: 20,
+        LIMIT_MAX_CONVERSATION_MESSAGES: 10,
+        # Add other limits here as needed (e.g., 'MAX_STARRED_QUESTIONS': 50)
+    },
+    AccountTypeChoices.SUBSCRIBED: {
+        # Paid users generally have unlimited usage for these core features
+        LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE: None,
+        LIMIT_MAX_QUESTIONS_PER_ATTEMPT: None,
+        LIMIT_MAX_CONVERSATION_MESSAGES: None,
+    },
+    # --- Add other account types later ---
+    # AccountTypeChoices.PREMIUM: {
+    #     'MAX_TEST_ATTEMPTS_PER_TYPE': None,
+    #     'MAX_QUESTIONS_PER_TEST_ATTEMPT': None,
+    #     'MAX_CONVERSATION_USER_MESSAGES': None,
+    #     'ACCESS_TO_ADVANCED_ANALYTICS': True, # Example boolean flag
+    # },
+}
+
+# Default limits if an account type isn't explicitly defined (optional, safer to be explicit)
+DEFAULT_ACCOUNT_LIMITS = {
+    LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE: 0,
+    LIMIT_MAX_QUESTIONS_PER_ATTEMPT: 0,
+    LIMIT_MAX_CONVERSATION_MESSAGES: 0,
+}
+
+
+# --- Helper Function to Get Limits ---
+def get_limits_for_user(user):
+    """Safely retrieves the limits dictionary for a given user's account type."""
+    if not user or not user.is_authenticated or not hasattr(user, "profile"):
+        # Return restrictive defaults for anonymous or incomplete users
+        return DEFAULT_ACCOUNT_LIMITS
+
+    account_type = user.profile.account_type
+    return ACCOUNT_USAGE_LIMITS.get(account_type, DEFAULT_ACCOUNT_LIMITS)
+
+
+# --- Gamification Point Constants ---
+POINTS_QUESTION_SOLVED_CORRECT = config(
+    "POINTS_QUESTION_SOLVED_CORRECT", default=1, cast=int
+)
+POINTS_TEST_COMPLETED = config("POINTS_TEST_COMPLETED", default=10, cast=int)
+POINTS_LEVEL_ASSESSMENT_COMPLETED = config(
+    "POINTS_LEVEL_ASSESSMENT_COMPLETED", default=25, cast=int
+)
+POINTS_STREAK_BONUS_MAP = {  # More flexible than individual settings
+    2: config("POINTS_STREAK_BONUS_2_DAYS", default=5, cast=int),
+    10: config("POINTS_STREAK_BONUS_10_DAYS", default=20, cast=int),
+    # Add more milestones here: 30: config(...)
+}
+POINTS_BADGE_EARNED = config("POINTS_BADGE_EARNED", default=15, cast=int)
+POINTS_CHALLENGE_PARTICIPATION = config(
+    "POINTS_CHALLENGE_PARTICIPATION", default=5, cast=int
+)
+POINTS_CHALLENGE_WIN = config("POINTS_CHALLENGE_WIN", default=10, cast=int)
+POINTS_REFERRAL_BONUS = config("POINTS_REFERRAL_BONUS", default=25, cast=int)  # Example
+
+# Define Badge Slugs constants (optional but good practice)
+BADGE_SLUG_5_DAY_STREAK = config("BADGE_SLUG_5_DAY_STREAK", default="5-day-streak")
+BADGE_SLUG_10_DAY_STREAK = config(
+    "BADGE_SLUG_10_DAY_STREAK", default="10-days-studying"
+)  # Matches description
+BADGE_SLUG_FIRST_FULL_TEST = config(
+    "BADGE_SLUG_FIRST_FULL_TEST", default="first-full-test"
+)
+BADGE_SLUG_50_QUESTIONS = config(
+    "BADGE_SLUG_50_QUESTIONS", default="50-questions-solved"
+)

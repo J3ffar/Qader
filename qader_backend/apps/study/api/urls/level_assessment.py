@@ -1,17 +1,10 @@
 from django.urls import path
-from apps.study.api.views import LevelAssessmentStartView, LevelAssessmentSubmitView
+from apps.study.api.views import level_assessment as views
 
-
-# Define urlpatterns for this specific feature
 urlpatterns = [
     path(
-        "start/",
-        LevelAssessmentStartView.as_view(),
-        name="level-assessment-start",
-    ),
-    path(
-        "<int:attempt_id>/submit/",
-        LevelAssessmentSubmitView.as_view(),
-        name="level-assessment-submit",
+        "",  # Path relative to /api/v1/study/start/level-assessment/
+        views.LevelAssessmentStartView.as_view(),
+        name="start-level-assessment",
     ),
 ]

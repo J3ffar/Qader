@@ -5,8 +5,8 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import LoginModal from "@/app/(auth)/login/page";
-import SignupModal from "@/app/(auth)/signup/page"; // هتعملي ملف فيه SignupModal بنفس فكرة LoginModal
+import LoginModal from "@/components/auth/LoginModal";
+import SignupModal from "@/components/auth/SignupModal";
 import {
   Bars3Icon,
   XMarkIcon,
@@ -37,13 +37,29 @@ const Navbar = () => {
 
   const handleNav = () => setShowNav(!showNav);
   const closeNav = () => setShowNav(false);
+
+  // Functions to open modals and close the other one
   const openLogin = () => {
     setShowLogin(true);
-    setShowSignup(false);
+    setShowSignup(false); // Close signup if open
+    closeNav(); // Close mobile nav if open
   };
   const openSignup = () => {
     setShowSignup(true);
+    setShowLogin(false); // Close login if open
+    closeNav(); // Close mobile nav if open
+  };
+
+  // Function to switch from signup to login
+  const switchToLogin = () => {
+    setShowSignup(false);
+    setShowLogin(true);
+  };
+
+  // Function to switch from login to signup
+  const switchToSignup = () => {
     setShowLogin(false);
+    setShowSignup(true);
   };
 
   return (
@@ -51,8 +67,11 @@ const Navbar = () => {
       <div className="relative z-50">
         <nav className="flex justify-between items-center shadow-lg px-4 sm:px-8 md:px-16 py-4 w-full bg-background max-md:bg-[#074182] max-md:flex-row-reverse max-md:gap-6">
           {/* Hamburger Icon */}
-          <div className="hidden max-lg:flex max-lg:text-[#074182]">
-            <button onClick={handleNav} aria-label={showNav ? "Close menu" : "Open menu"}>
+          <div className="hidden max-md:flex">
+            <button
+              onClick={handleNav}
+              aria-label={showNav ? "Close menu" : "Open menu"}
+            >
               {showNav ? (
                 <XMarkIcon className="w-8 h-8 max-md:text-white" />
               ) : (
@@ -64,8 +83,20 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex-shrink-0 max-md:flex-1 max-md:flex max-md:justify-center max-md:items-center">
             <Link href="/">
-              <Image alt="Qader Logo" src="/images/logo.svg" width={100} height={40} className="max-md:hidden" />
-              <Image alt="Qader Logo" src="/images/logo.png" width={100} height={40} className="max-md:flex hidden" />
+              <Image
+                alt="Qader Logo"
+                src="/images/logo.svg"
+                width={100}
+                height={40}
+                className="max-md:hidden"
+              />
+              <Image
+                alt="Qader Logo"
+                src="/images/logo.png"
+                width={100}
+                height={40}
+                className="max-md:flex hidden"
+              />
             </Link>
           </div>
 
@@ -76,7 +107,9 @@ const Navbar = () => {
                 <Link
                   href={item.ref}
                   className={`font-bold transition-colors hover:text-[#074182] ${
-                    pathname === item.ref ? "text-[#074182]" : "text-muted-foreground"
+                    pathname === item.ref
+                      ? "text-[#074182]"
+                      : "text-muted-foreground"
                   }`}
                 >
                   {item.name}
@@ -129,11 +162,25 @@ const Navbar = () => {
 
             {/* Mobile Buttons */}
             <div className="flex flex-col items-start gap-4 p-5 border-t border-border max-lg:hidden max-md:flex">
-              <Button variant="outline" className="w-full  gap-2" onClick={() => { openSignup(); closeNav(); }}>
+              <Button
+                variant="outline"
+                className="w-full  gap-2"
+                onClick={() => {
+                  openSignup();
+                  closeNav();
+                }}
+              >
                 <UserPlusIcon className="w-5 h-5" />
                 <span> اشتراك</span>
               </Button>
-              <Button variant="default" className="w-full gap-2" onClick={() => { openLogin(); closeNav(); }}>
+              <Button
+                variant="default"
+                className="w-full gap-2"
+                onClick={() => {
+                  openLogin();
+                  closeNav();
+                }}
+              >
                 <UserIcon className="w-5 h-5" />
                 <span>تسجيل الدخول</span>
               </Button>
@@ -146,8 +193,16 @@ const Navbar = () => {
       </div>
 
       {/* Modals */}
-      <LoginModal show={showLogin} onClose={() => setShowLogin(false)} />
-      <SignupModal show={showSignup} onClose={() => setShowSignup(false)} />
+      <LoginModal
+        show={showLogin}
+        onClose={() => setShowLogin(false)}
+        onSwitchToSignup={switchToSignup} // Pass switch handler
+      />
+      <SignupModal
+        show={showSignup}
+        onClose={() => setShowSignup(false)}
+        onSwitchToLogin={switchToLogin} // Pass switch handler
+      />
     </>
   );
 };

@@ -1,34 +1,63 @@
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth import get_user_model
 
-from ..models import Badge, UserBadge, RewardStoreItem, PointLog
-from apps.users.models import UserProfile  # Assuming UserProfile is here
+# from django.contrib.auth import get_user_model # Not needed directly
+from django.conf import settings  # If using settings.AUTH_USER_MODEL
 
-User = get_user_model()
+from ..models import Badge, UserBadge, RewardStoreItem, PointLog, PointReason
+
+# from apps.users.models import UserProfile # Not needed directly if getting from request.user.profile
+
+# User = settings.AUTH_USER_MODEL # If needed
 
 
 class GamificationSummarySerializer(serializers.Serializer):
     """Serializer for the gamification summary endpoint."""
 
-    points = serializers.IntegerField(read_only=True)
+    points = serializers.IntegerField(
+        read_only=True, help_text=_("User's current point balance.")
+    )
     current_streak = serializers.IntegerField(
-        source="current_streak_days", read_only=True
+        source="current_streak_days",
+        read_only=True,
+        help_text=_("Number of consecutive study days."),
     )
     longest_streak = serializers.IntegerField(
-        source="longest_streak_days", read_only=True
+        source="longest_streak_days",
+        read_only=True,
+        help_text=_("User's longest ever study streak."),
     )
 
     class Meta:
-        # Although not a ModelSerializer, defining Meta helps clarity
+        # Define fields for clarity, even though not a ModelSerializer
         fields = ("points", "current_streak", "longest_streak")
+        # Source object is expected to be UserProfile instance
 
 
 class BadgeSerializer(serializers.ModelSerializer):
-    """Serializer for Badge definitions, including user-specific earned status."""
+    """
+    Serializer for Badge definitions.
+    Includes user-specific 'is_earned' and 'earned_at' fields, which rely on
+    annotations provided by the BadgeListView queryset for efficiency.
+    """
 
-    is_earned = serializers.SerializerMethodField()
-    earned_at = serializers.SerializerMethodField()
+    is_earned = serializers.SerializerMethodField(
+        help_text=_("Whether the current authenticated user has earned this badge.")
+    )
+    earned_at = serializers.DateTimeField(
+        read_only=True,
+        source="user_earned_at",  # Rely on annotation name from view
+        allow_null=True,
+        help_text=_(
+            "Timestamp when the current user earned this badge (null if not earned)."
+        ),
+    )
+    icon_url = serializers.ImageField(
+        source="icon",  # Get data from the 'icon' model field
+        read_only=True,
+        use_url=True,  # Ensure it outputs the URL
+        help_text=_("URL of the badge icon image."),
+    )
 
     class Meta:
         model = Badge
@@ -37,7 +66,7 @@ class BadgeSerializer(serializers.ModelSerializer):
             "name",
             "slug",
             "description",
-            "icon_class_or_image",
+            "icon_url",
             "criteria_description",
             "is_earned",
             "earned_at",
@@ -45,34 +74,28 @@ class BadgeSerializer(serializers.ModelSerializer):
         read_only_fields = fields  # Badges are defined by admin
 
     def get_is_earned(self, obj):
-        """Check if the current user has earned this badge."""
-        user = self.context.get("request").user
-        if not user or not user.is_authenticated:
-            return False
-        # Check if the pre-fetched/annotated data exists
-        if hasattr(obj, "user_earned_badge"):
-            return obj.user_earned_badge is not None
-        # Fallback query (less efficient if not optimized in view)
-        return UserBadge.objects.filter(user=user, badge=obj).exists()
-
-    def get_earned_at(self, obj):
-        """Get the timestamp when the current user earned this badge."""
-        user = self.context.get("request").user
-        if not user or not user.is_authenticated:
-            return None
-        # Check if the pre-fetched/annotated data exists
-        if hasattr(obj, "user_earned_badge") and obj.user_earned_badge:
-            return obj.user_earned_badge.earned_at
-        # Fallback query (less efficient)
-        try:
-            user_badge = UserBadge.objects.get(user=user, badge=obj)
-            return user_badge.earned_at
-        except UserBadge.DoesNotExist:
-            return None
+        """
+        Check if the badge is earned based on the annotation from the view's queryset.
+        """
+        # 'user_earned_at' annotation will be the timestamp if earned, None otherwise.
+        # Accessing it directly via source='user_earned_at' in the field definition is cleaner.
+        # This method relies on the view providing an annotation like 'user_earned_at'
+        # (which could be the UserBadge.earned_at timestamp or null).
+        return getattr(obj, "user_earned_at", None) is not None
 
 
 class RewardStoreItemSerializer(serializers.ModelSerializer):
     """Serializer for items available in the reward store."""
+
+    item_type_display = serializers.CharField(
+        source="get_item_type_display", read_only=True
+    )
+    image_url = serializers.ImageField(
+        source="image", read_only=True, use_url=True, allow_null=True
+    )
+    asset_file_url = serializers.FileField(
+        source="asset_file", read_only=True, use_url=True, allow_null=True
+    )
 
     class Meta:
         model = RewardStoreItem
@@ -81,9 +104,10 @@ class RewardStoreItemSerializer(serializers.ModelSerializer):
             "name",
             "description",
             "item_type",
+            "item_type_display",  # Add human-readable type
             "cost_points",
-            "asset_url_or_data",
-            # 'is_active' might not be needed for user view if filtered in queryset
+            "image_url",
+            "asset_file_url",
         )
         read_only_fields = fields  # Store items defined by admin
 
@@ -101,7 +125,10 @@ class RewardPurchaseResponseSerializer(serializers.Serializer):
 class PointLogSerializer(serializers.ModelSerializer):
     """Serializer for the user's point transaction history."""
 
-    # Optionally add related object representation if needed
+    reason_code_display = serializers.CharField(
+        source="get_reason_code_display", read_only=True
+    )
+    # Optionally represent the related object if needed
     # related_object_str = serializers.StringRelatedField(source='related_object', read_only=True)
 
     class Meta:
@@ -110,6 +137,7 @@ class PointLogSerializer(serializers.ModelSerializer):
             "id",
             "points_change",
             "reason_code",
+            "reason_code_display",  # Add human-readable reason
             "description",
             "timestamp",
             # 'related_object_str' # Uncomment if representation needed

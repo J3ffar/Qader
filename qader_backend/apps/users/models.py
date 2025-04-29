@@ -3,6 +3,16 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
+from .constants import (
+    AccountTypeChoices,
+    GenderChoices,
+    RoleChoices,
+    DarkModePrefChoices,
+    SubscriptionTypeChoices,
+    SUBSCRIPTION_PLANS_CONFIG,  # Import config if needed directly in model logic
+)
+
+from apps.admin_panel.models import AdminPermission
 
 # Import the utility function
 from .utils import generate_unique_referral_code
@@ -10,34 +20,6 @@ from .utils import generate_unique_referral_code
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-# --- Choices (No changes needed, seem fine) ---
-
-
-class GenderChoices(models.TextChoices):
-    MALE = "male", _("Male")
-    FEMALE = "female", _("Female")
-
-
-class RoleChoices(models.TextChoices):
-    STUDENT = "student", _("Student")
-    ADMIN = "admin", _("Admin")  # Superuser
-    SUB_ADMIN = "sub_admin", _("Sub-Admin")  # Staff with specific permissions
-    # Add other roles if required (e.g., Trainer, School Representative)
-
-
-class DarkModePrefChoices(models.TextChoices):
-    LIGHT = "light", _("Light")
-    DARK = "dark", _("Dark")
-    SYSTEM = "system", _("System")
-
-
-class SubscriptionTypeChoices(models.TextChoices):
-    MONTH_1 = "1_month", _("1 Month")
-    MONTH_6 = "6_months", _("6 Months")
-    MONTH_12 = "12_months", _("12 Months")
-    CUSTOM = "custom", _("Custom Duration")  # Clarified label
 
 
 # --- Models ---
@@ -126,42 +108,19 @@ class SerialCode(models.Model):
 
     def clean(self):
         """Optional: Validation logic before saving."""
-        # Standardize code format if desired (e.g., uppercase)
         if self.code:
             self.code = self.code.upper()
 
-        # Validation for duration based on type (flexible approach)
-        if (
-            self.subscription_type
-            and self.subscription_type != SubscriptionTypeChoices.CUSTOM
-        ):
-            expected_duration = None
-            if self.subscription_type == SubscriptionTypeChoices.MONTH_1:
-                expected_duration = 30
-            elif self.subscription_type == SubscriptionTypeChoices.MONTH_6:
-                expected_duration = 183  # ~6 months
-            elif self.subscription_type == SubscriptionTypeChoices.MONTH_12:
-                expected_duration = 365  # ~12 months
-
-            if (
-                expected_duration is not None
-                and self.duration_days != expected_duration
-            ):
-                # Option 1: Automatically align duration (if type is primary)
-                # self.duration_days = expected_duration
-                # logger.info(f"Adjusted duration_days for code {self.code} to {expected_duration} based on type {self.subscription_type}")
-
-                # Option 2: Raise validation error to enforce manual alignment
-                # raise ValidationError(
-                #     _("Duration ({days}) doesn't match the type '{type}' ({expected} days). Adjust days or set type to 'Custom'.").format(
-                #         days=self.duration_days, type=self.get_subscription_type_display(), expected=expected_duration
-                #     )
-                # )
-                # Option 3: Log a warning (current implicit behavior is flexible)
-                logger.warning(
-                    f"Serial code {self.code} type '{self.get_subscription_type_display()}' has duration {self.duration_days} days, expected {expected_duration}."
-                )
-                pass  # Allow flexibility by default
+        # Simplified clean: Rely on creation logic (serializers/commands)
+        # to set appropriate duration based on type.
+        # Remove the previous check that logged warnings.
+        # You *could* add a stricter check here if needed:
+        # plan_config = SUBSCRIPTION_PLANS_CONFIG.get(self.subscription_type)
+        # if plan_config and plan_config.get('duration_days') is not None:
+        #     if self.duration_days != plan_config['duration_days']:
+        #         raise ValidationError(
+        #              _("Duration ({days}) doesn't match the specified plan type '{type}' ({expected} days).").format(...)
+        #          )
 
         super().clean()
 
@@ -234,8 +193,17 @@ class UserProfile(models.Model):
         default=RoleChoices.STUDENT,
         db_index=True,
     )
-
     # Subscription Details
+    account_type = models.CharField(
+        _("Account Type"),
+        max_length=20,
+        choices=AccountTypeChoices.choices,
+        default=AccountTypeChoices.FREE_TRIAL,  # Default to Free Trial upon profile creation
+        db_index=True,
+        help_text=_(
+            "Indicates the user's current subscription level (e.g., Free Trial, Subscribed)."
+        ),
+    )
     subscription_expires_at = models.DateTimeField(
         _("Subscription Expires At"), null=True, blank=True, db_index=True
     )
@@ -340,6 +308,13 @@ class UserProfile(models.Model):
         related_name="referrals_made",
         help_text=_("The user whose referral code this user signed up with."),
     )
+    admin_permissions = models.ManyToManyField(
+        AdminPermission,
+        verbose_name=_("Admin Permissions"),
+        blank=True,
+        related_name="sub_admins",
+        help_text=_("Specific permissions granted to this sub-admin user."),
+    )
 
     # Timestamps
     created_at = models.DateTimeField(_("Profile Created At"), auto_now_add=True)
@@ -361,6 +336,19 @@ class UserProfile(models.Model):
         return timezone.now() < self.subscription_expires_at
 
     @property
+    def is_free_trial_user(self) -> bool:
+        """Check if the user's account type is currently Free Trial."""
+        return self.account_type == AccountTypeChoices.FREE_TRIAL
+
+    @property
+    def is_paid_subscriber(self) -> bool:
+        """Check if the user has a paid subscription type (not Free Trial)."""
+        return self.account_type in [
+            AccountTypeChoices.SUBSCRIBED,
+            # Add other paid types here if they exist (PREMIUM, etc.)
+        ]
+
+    @property
     def level_determined(self) -> bool:
         """Check if both verbal and quantitative levels have been assessed."""
         # Check for non-null values
@@ -368,6 +356,24 @@ class UserProfile(models.Model):
             self.current_level_verbal is not None
             and self.current_level_quantitative is not None
         )
+
+    @property
+    def is_profile_complete(self) -> bool:
+        """
+        Checks if the essential profile information required after activation is filled.
+        Adjust required fields as necessary.
+        """
+        # Check if fields considered essential for using the platform are filled
+        required_fields_filled = all(
+            [
+                self.gender,
+                self.grade,
+                self.has_taken_qiyas_before is not None,  # Check boolean specifically
+                # Add other fields deemed essential for platform usage if any
+            ]
+        )
+        # Also check if full_name exists (should be set during initial signup)
+        return bool(self.full_name and required_fields_filled)
 
     def apply_subscription(self, serial_code: SerialCode):  # Added type hint
         """Applies or extends subscription duration based on a valid SerialCode."""
@@ -387,10 +393,12 @@ class UserProfile(models.Model):
             new_expiry_date = start_date + timedelta(days=serial_code.duration_days)
             self.subscription_expires_at = new_expiry_date
             self.serial_code_used = serial_code
+            self.account_type = AccountTypeChoices.SUBSCRIBED
             self.save(
                 update_fields=[
                     "subscription_expires_at",
                     "serial_code_used",
+                    "account_type",
                     "updated_at",
                 ]
             )
@@ -402,17 +410,70 @@ class UserProfile(models.Model):
                 f"Error applying subscription timedelta for user {self.user.username} using code {serial_code.code}: {e}"
             )
 
+    def grant_trial_subscription(self, duration_days: int = 1):
+        """Grants a trial subscription if the user doesn't have an active one."""
+        now = timezone.now()
+        if not self.is_subscribed:  # Only grant if not already subscribed
+            try:
+                self.subscription_expires_at = now + timedelta(days=duration_days)
+                self.serial_code_used = None  # Ensure no serial code is linked to trial
+                # No save here, intended to be saved within a transaction in the calling view
+                logger.info(
+                    f"Granted {duration_days}-day trial subscription to user {self.user.username}. Expires: {self.subscription_expires_at}"
+                )
+                return True
+            except Exception as e:
+                logger.exception(
+                    f"Error granting trial subscription to user {self.user.username}: {e}"
+                )
+                raise
+        else:
+            logger.info(
+                f"User {self.user.username} already has an active subscription. Trial not granted."
+            )
+            return False
+
+    def has_permission(self, perm_slug: str) -> bool:
+        """
+        Checks if the user (if a sub-admin) has the specified granular permission.
+        Superusers/main admins implicitly have all permissions.
+        """
+        if (
+            self.user.is_superuser
+            or self.user.is_staff
+            and self.role == RoleChoices.ADMIN
+        ):
+            return True
+        if self.role == RoleChoices.SUB_ADMIN and self.user.is_staff:
+            # Optimized check using exists()
+            return self.admin_permissions.filter(slug=perm_slug).exists()
+        return False
+
     def save(self, *args, **kwargs):
         # Generate referral code on first save if it doesn't exist, using the utility function
         if not self.referral_code:
-            # Ensure user object is available (should be, but defensive check)
-            if hasattr(self, "user") and self.user:
+            if hasattr(self, "user") and self.user and self.user.username:
                 self.referral_code = generate_unique_referral_code(self.user.username)
                 logger.info(
                     f"Generated referral code '{self.referral_code}' for user {self.user.username}"
                 )
             else:
                 logger.warning(
-                    "Could not generate referral code during profile save: User object not available."
+                    "Could not generate referral code during profile save: User or username not available."
                 )
+
+        # Ensure is_staff is True for ADMIN and SUB_ADMIN roles
+        if (
+            self.role in [RoleChoices.ADMIN, RoleChoices.SUB_ADMIN]
+            and not self.user.is_staff
+        ):
+            self.user.is_staff = True
+            # Save the related user if is_staff was changed
+            if self.user.pk:  # Ensure user exists before trying to save it
+                self.user.save(
+                    update_fields=["is_staff", "last_login"]
+                )  # Added last_login to update_fields to avoid potential issues
+            # Note: This save *might* need to be done within a transaction if User and Profile saves are separate.
+            # However, given OneToOneField and signals, it's often handled. Be mindful in `create`.
+
         super().save(*args, **kwargs)

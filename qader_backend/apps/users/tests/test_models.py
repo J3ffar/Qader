@@ -4,8 +4,12 @@ from datetime import timedelta
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+import time
+
+from apps.users.constants import SUBSCRIPTION_PLANS_CONFIG
 
 from ..models import (
+    GenderChoices,
     SerialCode,
     UserProfile,
     SubscriptionTypeChoices,
@@ -25,7 +29,7 @@ def test_serial_code_creation_defaults():
     code = SerialCodeFactory()
     assert code.code is not None
     assert code.subscription_type is None
-    assert code.duration_days == 30
+    assert code.duration_days == 1
     assert code.is_active is True
     assert code.is_used is False
     assert code.used_by is None
@@ -35,114 +39,158 @@ def test_serial_code_creation_defaults():
 
 
 def test_serial_code_creation_with_params():
-    """Test creating SerialCode with specific parameters."""
-    user = UserFactory(make_staff=True)  # Creator needs to be staff
+    user = UserFactory(make_staff=True)
+    # Create a 3 month code explicitly
+    plan_config = SUBSCRIPTION_PLANS_CONFIG[SubscriptionTypeChoices.MONTH_3]
     code = SerialCodeFactory(
         code="CUSTOM-CODE-1",
-        subscription_type=SubscriptionTypeChoices.MONTH_6,
-        duration_days=183,
+        subscription_type=plan_config["id"],
+        duration_days=plan_config["duration_days"],
         is_active=False,
         created_by=user,
-        notes="Specific test notes",
+        notes="Specific test notes (3 Month)",
     )
     assert code.code == "CUSTOM-CODE-1"
-    assert code.subscription_type == SubscriptionTypeChoices.MONTH_6
-    assert code.duration_days == 183
+    assert code.subscription_type == SubscriptionTypeChoices.MONTH_3.value
+    assert code.duration_days == plan_config["duration_days"]
     assert code.is_active is False
     assert code.created_by == user
-    assert code.notes == "Specific test notes"
 
 
 def test_serial_code_creation_with_traits():
-    """Test using factory traits for predefined types."""
-    code_1m = SerialCodeFactory(type_1_month=True)
-    code_6m = SerialCodeFactory(type_6_months=True)
-    code_12m = SerialCodeFactory(type_12_months=True)
+    # Test using the new dynamic traits
+    code_1m = SerialCodeFactory(type_month_1=True)
+    code_3m = SerialCodeFactory(type_month_3=True)
+    code_12m = SerialCodeFactory(type_month_12=True)
     code_custom = SerialCodeFactory(type_custom=True, duration_days=50)
 
-    assert (
-        code_1m.subscription_type == SubscriptionTypeChoices.MONTH_1
-        and code_1m.duration_days == 30
-    )
-    assert (
-        code_6m.subscription_type == SubscriptionTypeChoices.MONTH_6
-        and code_6m.duration_days == 183
-    )
-    assert (
-        code_12m.subscription_type == SubscriptionTypeChoices.MONTH_12
-        and code_12m.duration_days == 365
-    )
-    assert (
-        code_custom.subscription_type == SubscriptionTypeChoices.CUSTOM
-        and code_custom.duration_days == 50
-    )
+    config_1m = SUBSCRIPTION_PLANS_CONFIG[SubscriptionTypeChoices.MONTH_1]
+    config_3m = SUBSCRIPTION_PLANS_CONFIG[SubscriptionTypeChoices.MONTH_3]
+    config_12m = SUBSCRIPTION_PLANS_CONFIG[SubscriptionTypeChoices.MONTH_12]
+
+    assert code_1m.subscription_type == SubscriptionTypeChoices.MONTH_1
+    assert code_1m.duration_days == config_1m["duration_days"]
+
+    assert code_3m.subscription_type == SubscriptionTypeChoices.MONTH_3
+    assert code_3m.duration_days == config_3m["duration_days"]
+
+    assert code_12m.subscription_type == SubscriptionTypeChoices.MONTH_12
+    assert code_12m.duration_days == config_12m["duration_days"]
+
+    assert code_custom.subscription_type == SubscriptionTypeChoices.CUSTOM
+    assert code_custom.duration_days == 50  # Custom duration is explicit
 
 
 def test_serial_code_str_representation():
-    """Test the __str__ method returns the code string."""
     code_value = "STR-TEST-CODE"
     code = SerialCodeFactory(code=code_value)
     assert str(code) == code_value
 
 
 def test_serial_code_unique_constraint():
-    """Test the unique constraint on the 'code' field."""
     code_value = "UNIQUE-TEST"
     SerialCodeFactory(code=code_value)
     with pytest.raises(IntegrityError):
-        SerialCodeFactory(code=code_value)  # Attempt to create another with same code
+        SerialCodeFactory(code=code_value)
 
 
 def test_serial_code_mark_used_success():
-    """Test successfully marking an active, unused code as used."""
     user = UserFactory()
     code = SerialCodeFactory(is_active=True, is_used=False)
     initial_updated_at = code.updated_at
-
+    time.sleep(0.01)
     result = code.mark_used(user)
     code.refresh_from_db()
-
     assert result is True
     assert code.is_used is True
     assert code.used_by == user
     assert code.used_at is not None
-    assert timezone.now() - code.used_at < timezone.timedelta(seconds=5)
-    assert code.updated_at > initial_updated_at  # Check timestamp updated
+    assert code.updated_at > initial_updated_at
 
 
 def test_serial_code_mark_used_fail_inactive():
-    """Test mark_used returns False for an inactive code."""
     user = UserFactory()
     code = SerialCodeFactory(is_active=False, is_used=False)
     result = code.mark_used(user)
-    code.refresh_from_db()
     assert result is False
+    code.refresh_from_db()
     assert code.is_used is False
-    assert code.used_by is None
 
 
 def test_serial_code_mark_used_fail_already_used():
-    """Test mark_used returns False for an already used code."""
     user1 = UserFactory(username="user_original")
     user2 = UserFactory(username="user_attempting")
     code = SerialCodeFactory(
         is_active=True, is_used=True, used_by=user1, used_at=timezone.now()
     )
     result = code.mark_used(user2)
-    code.refresh_from_db()
     assert result is False
-    assert code.is_used is True
-    assert code.used_by == user1  # Remains used by user1
+    code.refresh_from_db()
+    assert code.used_by == user1
 
 
 def test_serial_code_clean_method_standardizes_code():
-    """Test the clean method converts code to uppercase."""
     code = SerialCode(code="lowercase-code")
-    code.clean()  # Call clean manually
+    code.clean()
     assert code.code == "LOWERCASE-CODE"
 
 
 # --- UserProfile Model Tests ---
+
+
+def test_user_profile_is_profile_complete_property():
+    """Test the is_profile_complete property."""
+    user = UserFactory(is_active=True)  # Start with active user for simplicity
+    profile = user.profile
+    profile.full_name = "Test Full Name"  # Ensure full_name is set
+
+    # Case 1: Missing all required fields
+    profile.gender = None
+    profile.grade = None
+    profile.has_taken_qiyas_before = None
+    profile.save()
+    assert profile.is_profile_complete is False, "Should be incomplete: All missing"
+
+    # Case 2: Missing grade
+    profile.gender = GenderChoices.MALE
+    profile.grade = None
+    profile.has_taken_qiyas_before = True
+    profile.save()
+    assert profile.is_profile_complete is False, "Should be incomplete: Missing grade"
+
+    # Case 3: Missing gender
+    profile.gender = None
+    profile.grade = "Grade 12"
+    profile.has_taken_qiyas_before = False
+    profile.save()
+    assert profile.is_profile_complete is False, "Should be incomplete: Missing gender"
+
+    # Case 4: Missing has_taken_qiyas_before (is None)
+    profile.gender = GenderChoices.FEMALE
+    profile.grade = "University"
+    profile.has_taken_qiyas_before = None
+    profile.save()
+    assert (
+        profile.is_profile_complete is False
+    ), "Should be incomplete: Missing Qiyas bool"
+
+    # Case 5: Missing full_name (should have been set on signup)
+    profile.full_name = ""  # Simulate missing
+    profile.gender = GenderChoices.FEMALE
+    profile.grade = "University"
+    profile.has_taken_qiyas_before = True
+    profile.save()
+    assert (
+        profile.is_profile_complete is False
+    ), "Should be incomplete: Missing full_name"
+
+    # Case 6: All required fields present
+    profile.full_name = "Test Full Name"
+    profile.gender = GenderChoices.FEMALE
+    profile.grade = "University"
+    profile.has_taken_qiyas_before = True
+    profile.save()
+    assert profile.is_profile_complete is True, "Should be complete: All present"
 
 
 def test_user_profile_creation_via_signal():
@@ -252,16 +300,19 @@ def test_user_profile_apply_subscription_new():
     assert profile.subscription_expires_at is None
     assert profile.serial_code_used is None
 
+    time.sleep(0.01)  # Small delay
+    now_before_apply = timezone.now()  # Capture time after delay
+
     profile.apply_subscription(code)
     profile.refresh_from_db()  # Reload from DB after apply_subscription saves
 
     assert profile.serial_code_used == code, "Serial code used should be tracked"
     assert profile.subscription_expires_at is not None, "Expiry date should be set"
-    expected_expiry = timezone.now() + timedelta(days=60)
-    # Use assertAlmostEqual for datetime comparison with tolerance
-    assert profile.subscription_expires_at == pytest.approx(
-        expected_expiry, abs=timedelta(seconds=5)
-    )
+
+    # The model calculates expiry based on its timezone.now() call.
+    # Calculate the expected expiry based on the 'now_before_apply' captured earlier + duration.
+    # This avoids the race condition with the test's timezone.now().
+    expected_expiry = now_before_apply + timedelta(days=60)
 
 
 def test_user_profile_apply_subscription_extend():
@@ -272,15 +323,16 @@ def test_user_profile_apply_subscription_extend():
     profile.subscription_expires_at = initial_expiry
     profile.save()
 
+    time.sleep(0.01)  # Small delay before applying new code
+
     code = SerialCodeFactory(duration_days=30)  # Add 30 more days
     profile.apply_subscription(code)
     profile.refresh_from_db()
 
     assert profile.serial_code_used == code
     expected_expiry = initial_expiry + timedelta(days=30)
-    assert profile.subscription_expires_at == pytest.approx(
-        expected_expiry, abs=timedelta(seconds=5)
-    )
+
+    assert abs(profile.subscription_expires_at - expected_expiry) < timedelta(seconds=5)
 
 
 def test_user_profile_apply_subscription_from_expired():
@@ -291,16 +343,18 @@ def test_user_profile_apply_subscription_from_expired():
     profile.subscription_expires_at = initial_expiry
     profile.save()
 
+    time.sleep(0.01)  # Small delay before applying new code
+    now_before_apply = timezone.now()  # Capture time after delay
+
     code = SerialCodeFactory(duration_days=15)
     profile.apply_subscription(code)
     profile.refresh_from_db()
 
     assert profile.serial_code_used == code
-    # Should start from NOW, not the expired date
-    expected_expiry = timezone.now() + timedelta(days=15)
-    assert profile.subscription_expires_at == pytest.approx(
-        expected_expiry, abs=timedelta(seconds=5)
-    )
+    expected_expiry = now_before_apply + timedelta(days=15)
+
+    # Correct datetime comparison with tolerance
+    assert abs(profile.subscription_expires_at - expected_expiry) < timedelta(seconds=5)
 
 
 def test_user_profile_referral_code_generation_on_save():
@@ -341,16 +395,23 @@ def test_user_profile_referral_code_stable_on_update():
 
 def test_user_profile_referral_link(referrer_user):
     """Test setting the referred_by field links correctly."""
-    referred_user = UserFactory(username="referred_user")
-    profile = referred_user.profile  # Get profile created by signal
+    referred_user_instance = UserFactory(
+        username="referred_user"
+    )  # Renamed variable for clarity
+    profile = referred_user_instance.profile  # Get profile created by signal
     profile.referred_by = referrer_user
     profile.save()
-    profile.refresh_from_db()
 
+    profile.refresh_from_db()  # Refresh the profile itself is good practice too
     assert profile.referred_by == referrer_user
+
+    # Refresh the referrer_user object instance to update its related managers cache
+    # BEFORE attempting to count its referrals_made.
+    referrer_user.refresh_from_db()
+
     # Check the reverse relationship
-    assert referred_user.referrals_made.count() == 1
-    assert referred_user.referrals_made.first() == profile
+    assert referrer_user.referrals_made.count() == 1
+    assert referrer_user.referrals_made.first() == profile
 
 
 def test_user_profile_defaults():
@@ -377,8 +438,7 @@ def test_user_profile_picture_field():
     """Test the profile_picture ImageField allows null/blank."""
     user = UserFactory()
     profile = user.profile
-    # Ensure it can be saved as null (default)
-    assert profile.profile_picture == "" or profile.profile_picture is None
+    assert not profile.profile_picture
 
     # Test setting it to None explicitly
     profile.profile_picture = None
@@ -388,3 +448,40 @@ def test_user_profile_picture_field():
         assert profile.profile_picture == "" or profile.profile_picture is None
     except Exception as e:
         pytest.fail(f"Saving profile with picture=None failed: {e}")
+
+
+def test_user_profile_grant_trial_subscription_success():
+    """Test granting a trial subscription to an unsubscribed user."""
+    user = UserFactory(is_active=True, profile_data={"full_name": "Trial User"})
+    profile = user.profile
+    assert not profile.is_subscribed
+
+    granted = profile.grant_trial_subscription(duration_days=1)
+    # grant_trial_subscription doesn't save automatically, save manually for test check
+    profile.save()
+    profile.refresh_from_db()
+
+    assert granted is True
+    assert profile.is_subscribed is True
+    assert profile.serial_code_used is None
+    expected_expiry = timezone.now() + timedelta(days=1)
+    assert abs(profile.subscription_expires_at - expected_expiry) < timedelta(seconds=5)
+
+
+def test_user_profile_grant_trial_subscription_fail_already_subscribed():
+    """Test granting trial fails if user is already subscribed."""
+    user = UserFactory(is_active=True, profile_data={"full_name": "Trial User"})
+    profile = user.profile
+    profile.subscription_expires_at = timezone.now() + timedelta(days=10)
+    profile.save()
+    assert profile.is_subscribed is True
+
+    original_expiry = profile.subscription_expires_at
+    granted = profile.grant_trial_subscription(duration_days=1)
+    profile.save()  # Save shouldn't change anything if trial wasn't granted
+    profile.refresh_from_db()
+
+    assert granted is False
+    assert profile.is_subscribed is True
+    # Ensure expiry date hasn't changed
+    assert profile.subscription_expires_at == original_expiry

@@ -156,30 +156,32 @@ class UserSupportTicketViewSet(
 # Apply schema tag for the entire Admin ViewSet
 @extend_schema_view(
     list=extend_schema(
-        summary="List all support tickets (Admin)", tags=["Admin Panel - Support"]
+        summary="List all support tickets (Admin)",
+        tags=["Admin Panel - Support Management"],
     ),
     create=extend_schema(
         summary="Create a support ticket (Admin - Less Common)",
-        tags=["Admin Panel - Support"],
+        tags=["Admin Panel - Support Management"],
     ),
     retrieve=extend_schema(
         summary="Retrieve details of any support ticket (Admin)",
-        tags=["Admin Panel - Support"],
+        tags=["Admin Panel - Support Management"],
     ),
     update=extend_schema(
         summary="Update ticket status/assignment/priority (Admin)",
-        tags=["Admin Panel - Support"],
+        tags=["Admin Panel - Support Management"],
     ),
     partial_update=extend_schema(
         summary="Partially update ticket status/assignment/priority (Admin)",
-        tags=["Admin Panel - Support"],
+        tags=["Admin Panel - Support Management"],
     ),
     destroy=extend_schema(
-        summary="Delete a support ticket (Admin)", tags=["Admin Panel - Support"]
+        summary="Delete a support ticket (Admin)",
+        tags=["Admin Panel - Support Management"],
     ),
     replies=extend_schema(  # Tag the custom action specifically
         summary="List or add admin replies/internal notes to a ticket",
-        tags=["Admin Panel - Support"],
+        tags=["Admin Panel - Support Management"],
         request=SupportTicketReplyCreateSerializer,  # Explicitly define request for POST
         responses={  # Define responses for GET and POST
             200: SupportTicketReplySerializer(many=True),  # GET success

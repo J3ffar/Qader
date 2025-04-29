@@ -1,93 +1,189 @@
-# qader_backend/apps/study/api/serializers/traditional.py
-
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
-from django.db import transaction
-from django.conf import settings
 import logging
 
-from apps.study.models import UserQuestionAttempt
-from apps.learning.models import Question
+from apps.study.models import UserTestAttempt, Question
+from apps.learning.models import LearningSubSection, Skill
+from apps.learning.api.serializers import QuestionListSerializer
 from apps.api.utils import get_user_from_context
-
-# Import proficiency service only
-from apps.study.services import update_user_skill_proficiency
+from apps.study.services import get_filtered_questions
+from apps.api.exceptions import UsageLimitExceeded
+from apps.users.services import UsageLimiter
 
 logger = logging.getLogger(__name__)
 
-# --- Constants ---
-# Point constants are now handled in gamification signals/services
 
-# --- Traditional Learning Serializers ---
+class TraditionalPracticeStartSerializer(serializers.Serializer):
+    """Serializer for starting a traditional practice session."""
 
-
-class TraditionalLearningAnswerSerializer(serializers.Serializer):
-    """Serializer for submitting an answer in Traditional Learning mode."""
-
-    question_id = serializers.PrimaryKeyRelatedField(
-        queryset=Question.objects.filter(is_active=True), required=True
+    subsections = serializers.ListField(
+        child=serializers.SlugRelatedField(
+            slug_field="slug", queryset=LearningSubSection.objects.all()
+        ),
+        required=False,
+        allow_empty=True,
+        help_text=_("Optional: Filter questions by these subsection slugs."),
     )
-    selected_answer = serializers.ChoiceField(
-        choices=UserQuestionAttempt.AnswerChoice.choices, required=True
+    skills = serializers.ListField(
+        child=serializers.SlugRelatedField(
+            slug_field="slug", queryset=Skill.objects.filter(is_active=True)
+        ),
+        required=False,
+        allow_empty=True,
+        help_text=_("Optional: Filter questions by these active skill slugs."),
     )
-    time_taken_seconds = serializers.IntegerField(
-        required=False, min_value=0, allow_null=True
+    num_questions = serializers.IntegerField(
+        min_value=1,
+        max_value=50,  # Sensible max for an initial batch in traditional mode
+        default=10,  # Default number of questions
+        required=False,
+        help_text=_("Number of questions to fetch initially for the session."),
     )
-    used_hint = serializers.BooleanField(default=False, required=False)
-    used_elimination = serializers.BooleanField(default=False, required=False)
-    used_solution_method = serializers.BooleanField(default=False, required=False)
+    starred = serializers.BooleanField(
+        default=False, required=False, help_text=_("Include only starred questions?")
+    )
+    not_mastered = serializers.BooleanField(
+        default=False,
+        required=False,
+        help_text=_("Include questions from skills not yet mastered?"),
+    )
 
-    @transaction.atomic  # Keep transaction for attempt creation and proficiency update
-    def save(self, **kwargs):
+    def validate(self, data):
+        """Validates input, checks limits, and checks for existing active sessions."""
         user = get_user_from_context(self.context)
-        question = self.validated_data["question_id"]
-        selected_answer = self.validated_data["selected_answer"]
 
-        # --- Determine correctness ---
-        is_correct = selected_answer == question.correct_answer
+        if UserTestAttempt.objects.filter(
+            user=user,
+            status=UserTestAttempt.Status.STARTED,
+        ).exists():
+            raise serializers.ValidationError(
+                {
+                    "non_field_errors": [
+                        _("You already have an ongoing test or practice session.")
+                    ]
+                }
+            )
 
-        # --- Create UserQuestionAttempt record ---
+        # --- Usage Limit Check (Attempt Limit Only) ---
         try:
-            attempt = UserQuestionAttempt.objects.create(
+            limiter = UsageLimiter(user)
+            attempt_type = UserTestAttempt.AttemptType.TRADITIONAL
+            limiter.check_can_start_test_attempt(attempt_type)
+            # No question limit check here, as it's handled by fetching batches
+
+        except UsageLimitExceeded as e:
+            raise serializers.ValidationError({"non_field_errors": [str(e)]})
+        except ValueError as e:  # Catch UsageLimiter init error
+            logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
+            raise serializers.ValidationError(
+                {"non_field_errors": ["Could not verify account limits."]}
+            )
+        # --- End Usage Limit Check ---
+
+        # Store filters for use in create method
+        self.context["subsection_slugs"] = [s.slug for s in data.get("subsections", [])]
+        self.context["skill_slugs"] = [s.slug for s in data.get("skills", [])]
+        self.context["starred"] = data.get("starred", False)
+        self.context["not_mastered"] = data.get("not_mastered", False)
+        self.context["num_questions_requested"] = data.get("num_questions", 10)
+
+        return data
+
+    def create(self, validated_data):
+        """Creates the Traditional UserTestAttempt and fetches initial questions."""
+        # ... (logic for fetching initial questions remains the same) ...
+        user = get_user_from_context(self.context)
+        num_questions_requested = self.context["num_questions_requested"]
+        subsection_slugs = self.context["subsection_slugs"]
+        skill_slugs = self.context["skill_slugs"]
+        starred = self.context["starred"]
+        not_mastered = self.context["not_mastered"]
+
+        selected_question_ids = []
+        actual_num_selected = 0
+        if num_questions_requested > 0:
+            try:
+                questions_queryset = get_filtered_questions(
+                    user=user,
+                    limit=num_questions_requested,
+                    subsections=subsection_slugs,
+                    skills=skill_slugs,
+                    starred=starred,
+                    not_mastered=not_mastered,
+                    exclude_ids=None,
+                )
+                selected_question_ids = list(
+                    questions_queryset.values_list("id", flat=True)
+                )
+                actual_num_selected = len(selected_question_ids)
+
+                if actual_num_selected < num_questions_requested:
+                    logger.warning(
+                        f"Requested {num_questions_requested} traditional questions, but only found {actual_num_selected} matching filters for user {user.id}."
+                    )
+            except Exception as e:
+                logger.exception(
+                    f"Error fetching initial questions for traditional session for user {user.id}: {e}"
+                )
+                # Proceed without initial questions if fetching fails
+
+        config_snapshot = {
+            "subsections_requested": subsection_slugs,
+            "skills_requested": skill_slugs,
+            "starred_requested": starred,
+            "not_mastered_requested": not_mastered,
+            "num_questions_requested_initial": num_questions_requested,
+            "num_questions_selected_initial": actual_num_selected,
+            "test_type": UserTestAttempt.AttemptType.TRADITIONAL,
+        }
+
+        try:
+            test_attempt = UserTestAttempt.objects.create(
                 user=user,
-                question=question,
-                selected_answer=selected_answer,
-                is_correct=is_correct,
-                time_taken_seconds=self.validated_data.get("time_taken_seconds"),
-                used_hint=self.validated_data.get("used_hint", False),
-                used_elimination=self.validated_data.get("used_elimination", False),
-                used_solution_method=self.validated_data.get(
-                    "used_solution_method", False
-                ),
-                mode=UserQuestionAttempt.Mode.TRADITIONAL,
+                attempt_type=UserTestAttempt.AttemptType.TRADITIONAL,
+                test_configuration=config_snapshot,
+                question_ids=selected_question_ids,
+                status=UserTestAttempt.Status.STARTED,
+            )
+            logger.info(
+                f"Started Traditional Practice Session (Attempt ID: {test_attempt.id}) for user {user.id} with {actual_num_selected} initial questions."
             )
         except Exception as e:
-            logger.error(
-                f"Error creating Traditional UQA for user {user.id}, q {question.id}: {e}"
+            logger.exception(
+                f"Error creating Traditional UserTestAttempt for user {user.id}: {e}"
             )
-            raise serializers.ValidationError(_("Failed to record the attempt."))
+            raise serializers.ValidationError(
+                {
+                    "non_field_errors": [
+                        _("Failed to start the traditional practice session.")
+                    ]
+                }
+            )
 
-        # --- Update User Skill Proficiency using Service ---
-        # This remains synchronous within the request
-        update_user_skill_proficiency(
-            user=user, skill=question.skill, is_correct=is_correct
-        )
+        final_questions_queryset = test_attempt.get_questions_queryset()
 
-        # --- Prepare and Return Response Data ---
-        # Return feedback, but not the exact points/streak which are updated by async signals.
         return {
-            "question_id": question.id,
-            "is_correct": is_correct,
-            "correct_answer": question.correct_answer,
-            "explanation": question.explanation,
-            "feedback_message": _("Answer processed."),  # Generic feedback
+            "attempt_id": test_attempt.id,
+            "status": test_attempt.status,
+            "questions": final_questions_queryset,
         }
 
 
-class TraditionalLearningResponseSerializer(serializers.Serializer):
-    question_id = serializers.IntegerField(read_only=True)
-    is_correct = serializers.BooleanField(read_only=True)
-    correct_answer = serializers.CharField(read_only=True)
-    explanation = serializers.CharField(read_only=True, allow_null=True)
-    feedback_message = serializers.CharField(read_only=True)
-    # Removed point/streak fields as they are handled by signals
+class TraditionalPracticeStartResponseSerializer(serializers.Serializer):
+    """Response after starting a traditional practice session."""
+
+    attempt_id = serializers.IntegerField(read_only=True)
+    status = serializers.CharField(read_only=True)  # e.g., "started"
+    questions = QuestionListSerializer(
+        many=True, read_only=True
+    )  # List of initial questions
+
+
+class RevealAnswerResponseSerializer(serializers.Serializer):
+    """Response for revealing answer/explanation in traditional mode."""
+
+    question_id = serializers.IntegerField()
+    correct_answer = serializers.CharField()
+    explanation = serializers.CharField(allow_null=True)
+    # Add hints here if applicable
+    # hint1 = serializers.CharField(allow_null=True)

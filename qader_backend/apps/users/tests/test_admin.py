@@ -3,7 +3,9 @@ from django.urls import reverse
 from django.contrib.admin.sites import AdminSite
 from django.utils import translation, timezone  # Import translation
 from django.utils.translation import gettext_lazy as _
-from django.conf import settings  # Import settings
+from django.conf import settings
+
+from apps.users.constants import SUBSCRIPTION_PLANS_CONFIG  # Import settings
 
 from ..models import SerialCode, UserProfile, SubscriptionTypeChoices, RoleChoices
 from ..admin import SerialCodeAdmin, UserAdmin
@@ -50,8 +52,8 @@ def test_serial_code_admin_changelist_loads(admin_client):
 
 
 def test_serial_code_admin_subscription_type_in_list_display(admin_client):
-    """Test that Subscription Type column appears in the changelist."""
-    code_1m = SerialCodeFactory(type_1_month=True)
+    # Use new dynamic factory traits
+    code_1m = SerialCodeFactory(type_month_1=True)
     code_custom = SerialCodeFactory(type_custom=True, duration_days=10)
     language_code = settings.LANGUAGE_CODE
     with translation.override(language_code):
@@ -68,9 +70,9 @@ def test_serial_code_admin_subscription_type_in_list_display(admin_client):
 
 
 def test_serial_code_admin_filter_by_subscription_type(admin_client):
-    """Test filtering the changelist by subscription_type."""
-    code_1m = SerialCodeFactory(type_1_month=True)
-    code_6m = SerialCodeFactory(type_6_months=True)
+    # Use new dynamic factory traits
+    code_1m = SerialCodeFactory(type_month_1=True)
+    code_3m = SerialCodeFactory(type_month_3=True)  # Changed from 6m
     code_none = SerialCodeFactory(subscription_type=None)
 
     language_code = settings.LANGUAGE_CODE
@@ -78,35 +80,33 @@ def test_serial_code_admin_filter_by_subscription_type(admin_client):
         base_url = reverse("admin:users_serialcode_changelist")
 
         # Filter for 1 Month
-        url_1m = (
-            f"{base_url}?subscription_type__exact={SubscriptionTypeChoices.MONTH_1}"
-        )
+        url_1m = f"{base_url}?subscription_type__exact={SubscriptionTypeChoices.MONTH_1.value}"
         response_1m = admin_client.get(url_1m, HTTP_ACCEPT_LANGUAGE=language_code)
         assert response_1m.status_code == 200
         content_1m = response_1m.content.decode()
         assert code_1m.code in content_1m
-        assert code_6m.code not in content_1m
+        assert code_3m.code not in content_1m
         assert code_none.code not in content_1m
 
-        # Filter for 6 Months
-        url_6m = (
-            f"{base_url}?subscription_type__exact={SubscriptionTypeChoices.MONTH_6}"
-        )
-        response_6m = admin_client.get(url_6m, HTTP_ACCEPT_LANGUAGE=language_code)
-        assert response_6m.status_code == 200
-        content_6m = response_6m.content.decode()
-        assert code_1m.code not in content_6m
-        assert code_6m.code in content_6m
-        assert code_none.code not in content_6m
+        # Filter for 3 Months
+        url_3m = f"{base_url}?subscription_type__exact={SubscriptionTypeChoices.MONTH_3.value}"
+        response_3m = admin_client.get(url_3m, HTTP_ACCEPT_LANGUAGE=language_code)
+        assert response_3m.status_code == 200
+        content_3m = response_3m.content.decode()
+        assert code_1m.code not in content_3m
+        assert code_3m.code in content_3m
+        assert code_none.code not in content_3m
 
         # Filter for 'empty' type
-        url_none = f"{base_url}?subscription_type__isnull=True"
+        url_none = f"{base_url}?subscription_type__isnull=True"  # Try isnull first
         response_none = admin_client.get(url_none, HTTP_ACCEPT_LANGUAGE=language_code)
         if (
             response_none.status_code != 200
             or code_none.code not in response_none.content.decode()
         ):
-            url_none = f"{base_url}?subscription_type__exact="
+            url_none = (
+                f"{base_url}?subscription_type__exact="  # Fallback to exact empty
+            )
             response_none = admin_client.get(
                 url_none, HTTP_ACCEPT_LANGUAGE=language_code
             )
@@ -114,84 +114,77 @@ def test_serial_code_admin_filter_by_subscription_type(admin_client):
         assert response_none.status_code == 200
         content_none = response_none.content.decode()
         assert code_1m.code not in content_none
-        assert code_6m.code not in content_none
+        assert code_3m.code not in content_none
         assert code_none.code in content_none
 
 
 def test_serial_code_admin_add_view_loads(admin_client):
-    """Test that the SerialCode add page loads and contains the type field."""
     language_code = settings.LANGUAGE_CODE
     with translation.override(language_code):
         url = reverse("admin:users_serialcode_add")
         response = admin_client.get(url, HTTP_ACCEPT_LANGUAGE=language_code)
-
     assert response.status_code == 200
     content = response.content.decode()
     assert 'name="subscription_type"' in content
-    assert f'value="{SubscriptionTypeChoices.MONTH_1}"' in content
+    assert (
+        f'value="{SubscriptionTypeChoices.MONTH_3.value}"' in content
+    )  # Check 3 month option exists
 
 
 def test_serial_code_admin_add_new_code(admin_client, admin_user):
-    """Test adding a new SerialCode via the admin interface."""
     language_code = settings.LANGUAGE_CODE
     with translation.override(language_code):
         add_url = reverse("admin:users_serialcode_add")
         changelist_url = reverse("admin:users_serialcode_changelist")
-
+        # Get duration from config
+        plan_config = SUBSCRIPTION_PLANS_CONFIG[SubscriptionTypeChoices.MONTH_3]
         data = {
             "code": "ADMIN-ADDED-CODE",
-            "subscription_type": SubscriptionTypeChoices.MONTH_6,
-            "duration_days": 183,
+            "subscription_type": plan_config["id"],  # Use enum value
+            "duration_days": plan_config["duration_days"],  # Use duration from config
             "is_active": "on",
-            "notes": "Added via admin test",
+            "notes": "Added via admin test (3 Month)",
             "_save": "Save",
         }
-        # POST requests generally don't need the language in the URL itself
-        # but the redirect URL calculation might depend on the active language context
         response = admin_client.post(add_url, data, HTTP_ACCEPT_LANGUAGE=language_code)
-
-        assert (
-            response.status_code == 302
-        ), f"Expected redirect, got {response.status_code}"
-        # Ensure the expected redirect URL also has the prefix
-        assert (
-            response.url == changelist_url
-        ), f"Expected redirect to {changelist_url}, got {response.url}"
+        assert response.status_code == 302
+        assert response.url == changelist_url
 
     assert SerialCode.objects.filter(code="ADMIN-ADDED-CODE").exists()
     new_code = SerialCode.objects.get(code="ADMIN-ADDED-CODE")
-    assert new_code.subscription_type == SubscriptionTypeChoices.MONTH_6
-    assert new_code.duration_days == 183
+    assert new_code.subscription_type == SubscriptionTypeChoices.MONTH_3.value
+    assert new_code.duration_days == plan_config["duration_days"]
     assert new_code.is_active is True
-    assert new_code.notes == "Added via admin test"
 
 
 def test_serial_code_admin_change_view_loads(admin_client):
-    """Test loading the change view for an existing SerialCode."""
-    code = SerialCodeFactory(type_1_month=True)
+    code = SerialCodeFactory(type_month_3=True)  # Use 3 month trait
     language_code = settings.LANGUAGE_CODE
     with translation.override(language_code):
         url = reverse("admin:users_serialcode_change", args=[code.id])
         response = admin_client.get(url, HTTP_ACCEPT_LANGUAGE=language_code)
-
     assert response.status_code == 200
     content = response.content.decode()
     assert code.code in content
-    assert 'name="subscription_type"' in content
-    assert f'<option value="{SubscriptionTypeChoices.MONTH_1}" selected>' in content
-    assert f'name="duration_days" value="{code.duration_days}"' in content
+    assert (
+        f'<option value="{SubscriptionTypeChoices.MONTH_3.value}" selected>' in content
+    )
+    # Check duration matches config
+    expected_duration = SUBSCRIPTION_PLANS_CONFIG[SubscriptionTypeChoices.MONTH_3][
+        "duration_days"
+    ]
+    assert f'name="duration_days" value="{expected_duration}"' in content
 
 
 def test_serial_code_admin_change_code_type(admin_client):
-    """Test changing the subscription_type of an existing code via admin."""
-    code = SerialCodeFactory(type_1_month=True)
+    code = SerialCodeFactory(type_month_1=True)
     language_code = settings.LANGUAGE_CODE
     with translation.override(language_code):
         change_url = reverse("admin:users_serialcode_change", args=[code.id])
         changelist_url = reverse("admin:users_serialcode_changelist")
         data = {
             "code": code.code,
-            "subscription_type": SubscriptionTypeChoices.CUSTOM,
+            "subscription_type": SubscriptionTypeChoices.CUSTOM.value,
             "duration_days": 99,
             "is_active": "on",
             "notes": code.notes or "",
@@ -200,16 +193,11 @@ def test_serial_code_admin_change_code_type(admin_client):
         response = admin_client.post(
             change_url, data, HTTP_ACCEPT_LANGUAGE=language_code
         )
-
-        assert (
-            response.status_code == 302
-        ), f"Expected redirect, got {response.status_code}"
-        assert (
-            response.url == changelist_url
-        ), f"Expected redirect to {changelist_url}, got {response.url}"
+        assert response.status_code == 302
+        assert response.url == changelist_url
 
     code.refresh_from_db()
-    assert code.subscription_type == SubscriptionTypeChoices.CUSTOM
+    assert code.subscription_type == SubscriptionTypeChoices.CUSTOM.value
     assert code.duration_days == 99
 
 

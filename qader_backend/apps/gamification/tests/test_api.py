@@ -60,34 +60,50 @@ def test_list_badges_unauthenticated(api_client):
 
 def test_list_badges_authenticated(authenticated_client):
     user = authenticated_client.user
-    badge1 = BadgeFactory(is_active=True)
-    badge2 = BadgeFactory(is_active=True)
-    badge3 = BadgeFactory(is_active=True)
-    BadgeFactory(is_active=False)  # Inactive badge
+    # Use specific names/slugs for easier assertion
+    badge_earned_1 = BadgeFactory(name="Earned Badge 1", is_active=True)
+    badge_not_earned = BadgeFactory(name="Not Earned Badge", is_active=True)
+    badge_earned_2 = BadgeFactory(name="Earned Badge 2", is_active=True)
+    BadgeFactory(name="Inactive Badge", is_active=False)  # Inactive badge
 
     # User has earned badge1 and badge3
-    UserBadgeFactory(user=user, badge=badge1)
-    UserBadgeFactory(user=user, badge=badge3)
+    UserBadgeFactory(user=user, badge=badge_earned_1)
+    UserBadgeFactory(user=user, badge=badge_earned_2)
 
     url = reverse("api:v1:gamification:badge-list")
     response = authenticated_client.get(url)
 
     assert response.status_code == 200
-    # Adjust assertion if number of active badges changes
-    # This depends on how many BadgeFactory creates by default if not specified
-    # Let's assume 3 active for this test run based on creation above.
-    assert len(response.data) == 3  # Only active badges listed
+    # Should return only the 3 *active* badges
+    assert isinstance(response.data, list), "Response data should be a list"
+    assert len(response.data) == 3, "Should only list active badges"
 
+    # Create a map for easier lookup by slug
     results_map = {item["slug"]: item for item in response.data}
 
-    assert results_map[badge1.slug]["is_earned"] is True
-    assert results_map[badge1.slug]["earned_at"] is not None
+    # Verify badge 1 (earned)
+    assert badge_earned_1.slug in results_map
+    assert results_map[badge_earned_1.slug]["is_earned"] is True
+    assert results_map[badge_earned_1.slug]["earned_at"] is not None
+    assert "icon_url" in results_map[badge_earned_1.slug]
+    assert results_map[badge_earned_1.slug]["icon_url"].endswith(
+        ".png"
+    )  # Or appropriate extension
 
-    assert results_map[badge2.slug]["is_earned"] is False
-    assert results_map[badge2.slug]["earned_at"] is None
+    # Verify badge 2 (not earned)
+    assert badge_not_earned.slug in results_map
+    assert results_map[badge_not_earned.slug]["is_earned"] is False
+    assert results_map[badge_not_earned.slug]["earned_at"] is None
+    assert "icon_url" in results_map[badge_not_earned.slug]
 
-    assert results_map[badge3.slug]["is_earned"] is True
-    assert results_map[badge3.slug]["earned_at"] is not None
+    # Verify badge 3 (earned)
+    assert badge_earned_2.slug in results_map
+    assert results_map[badge_earned_2.slug]["is_earned"] is True
+    assert results_map[badge_earned_2.slug]["earned_at"] is not None
+    assert "icon_url" in results_map[badge_earned_2.slug]
+
+    # Verify inactive badge is NOT present
+    assert "inactive-badge" not in results_map
 
 
 # --- Test RewardStoreItemViewSet (No change needed) ---
@@ -106,11 +122,23 @@ def test_list_rewards_authenticated(authenticated_client):
     response = authenticated_client.get(url)
 
     assert response.status_code == 200
-    # Adjust count based on actual active items created
-    assert len(response.data) >= 2  # Check at least the two we created are there
-    slugs = [item["name"] for item in response.data]
-    assert item1.name in slugs
-    assert item2.name in slugs
+
+    # --- FIXED: Handle potential pagination ---
+    if isinstance(response.data, dict) and "results" in response.data:
+        results = response.data["results"]
+        # Check count if pagination is active
+        assert response.data["count"] == 2, "Count should reflect only active items"
+    elif isinstance(response.data, list):
+        results = response.data
+        assert len(results) == 2, "Should list only active items"
+    else:
+        pytest.fail(f"Unexpected response data format: {type(response.data)}")
+    # --- END FIXED ---
+
+    assert len(results) == 2  # Double check length of results list
+    names = [item["name"] for item in results]  # Access items from results list
+    assert item1.name in names
+    assert item2.name in names
 
 
 # --- Test RewardPurchaseView (Adjusted for service behavior) ---

@@ -1,6 +1,7 @@
 from rest_framework.views import exception_handler
-from rest_framework.exceptions import ValidationError, APIException
+from rest_framework.exceptions import ValidationError, APIException, PermissionDenied
 from rest_framework.response import Response
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 import logging
 
@@ -93,3 +94,31 @@ def custom_exception_handler(exc, context):
         )
 
     return response
+
+
+class UsageLimitExceeded(PermissionDenied):
+    """
+    Custom exception raised when a user exceeds their account's usage limits.
+    Inherits from PermissionDenied to return a 403 status code by default.
+    """
+
+    default_detail = _(
+        "You have exceeded the usage limit for this feature under your current plan."
+    )
+    default_code = "usage_limit_exceeded"
+
+    def __init__(self, detail=None, code=None, limit_type=None, limit_value=None):
+        if detail is None:
+            if limit_type and limit_value is not None:
+                # Provide more specific default message if details are available
+                detail = _(
+                    "Usage limit reached for '{limit_type}'. "
+                    "Your plan allows a maximum of {limit_value}."
+                ).format(limit_type=limit_type, limit_value=limit_value)
+            else:
+                detail = self.default_detail
+        self.detail = detail
+        self.code = code or self.default_code
+        # Store extra context if needed
+        self.limit_type = limit_type
+        self.limit_value = limit_value
