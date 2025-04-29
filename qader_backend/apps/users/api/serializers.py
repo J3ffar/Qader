@@ -47,13 +47,25 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 class SubscriptionDetailSerializer(serializers.Serializer):
     """Serializer for the nested subscription details (Used in Auth and /me)."""
 
-    is_active = serializers.BooleanField(read_only=True, source="is_subscribed")
-    expires_at = serializers.DateTimeField(
-        read_only=True, source="subscription_expires_at", allow_null=True
+    is_active = serializers.BooleanField(
+        read_only=True,
+        source="is_subscribed",
+        help_text="Indicates if the user's subscription is currently active.",
     )
-    serial_code = serializers.SerializerMethodField(read_only=True)
+    expires_at = serializers.DateTimeField(
+        read_only=True,
+        source="subscription_expires_at",
+        allow_null=True,
+        help_text="The date and time when the current subscription expires (UTC).",
+    )
+    serial_code = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="The serial code used for the current active subscription, if applicable.",
+    )
     account_type = serializers.CharField(
-        read_only=True, source="get_account_type_display"
+        read_only=True,
+        source="get_account_type_display",  # Assumes model method returns display string
+        help_text="Display name of the user's current account type (e.g., 'Free Trial', 'Subscribed').",
     )
     # serial_code = serializers.CharField(read_only=True, source="serial_code_used.code", allow_null=True) # Alternative direct source
 
@@ -71,11 +83,19 @@ class ReferralDetailSerializer(serializers.Serializer):
     """Serializer for the nested referral details as per API docs."""
 
     code = serializers.CharField(
-        read_only=True, source="referral_code", allow_null=True
+        read_only=True,
+        source="referral_code",
+        allow_null=True,
+        help_text="The user's unique referral code to share.",
     )
-    # These fields require calculation, likely using annotations or methods on the model/manager
-    referrals_count = serializers.SerializerMethodField(read_only=True)
-    earned_free_days = serializers.SerializerMethodField(read_only=True)
+    referrals_count = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="The number of users who have successfully signed up using this user's referral code.",
+    )
+    earned_free_days = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="The total number of free subscription days earned through successful referrals.",
+    )
 
     def get_referrals_count(self, profile: UserProfile) -> int:
         """Calculate the number of users referred by this profile's user."""
@@ -208,15 +228,30 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
     """Serializer for completing the user profile after email confirmation."""
 
     # Fields required for completion
-    gender = serializers.ChoiceField(choices=GenderChoices.choices, required=True)
-    grade = serializers.CharField(max_length=100, required=True)
-    has_taken_qiyas_before = serializers.BooleanField(required=True)
-
-    # Optional fields during completion
-    preferred_name = serializers.CharField(
-        max_length=100, required=False, allow_blank=True, allow_null=True
+    gender = serializers.ChoiceField(
+        choices=GenderChoices.choices, required=True, help_text="User's gender."
     )
-    profile_picture = serializers.ImageField(required=False, allow_null=True)
+    grade = serializers.CharField(
+        max_length=100,
+        required=True,
+        help_text="User's current educational grade or level (e.g., 'Grade 11', 'University Freshman').",
+    )
+    has_taken_qiyas_before = serializers.BooleanField(
+        required=True,
+        help_text="Indicates whether the user has taken the official Qiyas test before.",
+    )
+    preferred_name = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Optional: How the user prefers to be called.",
+    )
+    profile_picture = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        help_text=f"Optional: Upload a profile picture (max {settings.MAX_PROFILE_PIC_SIZE_MB}MB).",
+    )
     serial_code = serializers.CharField(
         max_length=100,
         required=False,
@@ -235,7 +270,9 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
 
     # Explicitly defined fields for response (nested/method)
     # These are automatically included, DO NOT list in Meta.fields
-    profile_picture_url = serializers.SerializerMethodField(read_only=True)
+    profile_picture_url = serializers.SerializerMethodField(
+        read_only=True, help_text="URL of the user's profile picture, if uploaded."
+    )
     subscription = SubscriptionDetailSerializer(read_only=True, source="*")
     referral = ReferralDetailSerializer(read_only=True, source="*")
 
@@ -243,7 +280,6 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
     # Define them here if needed, or rely on them being in read_only_fields
     full_name = serializers.CharField(read_only=True)  # Read-only model field
     points = serializers.IntegerField(read_only=True)  # Read-only model field
-    # ... add other read-only model fields if needed for the response ...
     level_determined = serializers.BooleanField(read_only=True)  # Read-only property
 
     class Meta:

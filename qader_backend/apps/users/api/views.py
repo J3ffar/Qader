@@ -30,14 +30,14 @@ from rest_framework.exceptions import (
     ValidationError as DRFValidationError,
 )  # Distinguish from Django's
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-
 from drf_spectacular.utils import (
     extend_schema,
     OpenApiResponse,
     OpenApiExample,
     inline_serializer,
+    OpenApiParameter,
 )
-from drf_spectacular.types import OpenApiTypes  # For response schema types
+from drf_spectacular.types import OpenApiTypes
 
 from typing import Optional
 
@@ -73,6 +73,52 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ---> Define reusable error responses (Optional but DRY) <---
+COMMON_ERRORS = {
+    status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+        description="Bad Request: Invalid input data or parameters. Check response body for details.",
+        response=inline_serializer(  # Generic error structure
+            name="ValidationErrorResponse",
+            fields={
+                "detail": serializers.CharField(required=False),
+                "field_name": serializers.ListField(
+                    child=serializers.CharField(), required=False
+                ),
+            },
+        ),
+        examples=[
+            OpenApiExample(
+                "Field Error", value={"field_name": ["This field is required."]}
+            ),
+            OpenApiExample("Non-Field Error", value={"detail": "Invalid token."}),
+        ],
+    ),
+    status.HTTP_401_UNAUTHORIZED: OpenApiResponse(
+        description="Unauthorized: Authentication credentials were not provided or are invalid.",
+        examples=[
+            OpenApiExample(
+                "Auth Required",
+                value={"detail": "Authentication credentials were not provided."},
+            )
+        ],
+        # No response body needed typically, or a simple detail like DRF default
+    ),
+    status.HTTP_403_FORBIDDEN: OpenApiResponse(
+        description="Forbidden: You do not have permission to perform this action.",
+        examples=[
+            OpenApiExample(
+                "Permission Denied",
+                value={"detail": "You do not have permission to perform this action."},
+            )
+        ],
+        # No response body needed typically, or a simple detail like DRF default
+    ),
+    status.HTTP_404_NOT_FOUND: OpenApiResponse(
+        description="Not Found: The requested resource could not be found.",
+        examples=[OpenApiExample("Not Found", value={"detail": "Not found."})],
+        # No response body needed typically, or a simple detail like DRF default
+    ),
+}
 
 # --- Authentication Views ---
 
@@ -81,44 +127,29 @@ logger = logging.getLogger(__name__)
     tags=["Authentication"],
     summary="Obtain JWT Tokens",
     description="Authenticate with username and password to receive JWT access and refresh tokens, along with basic user profile information.",
-    # request=TokenObtainPairSerializer, # Implicitly handled by the view
     responses={
         status.HTTP_200_OK: OpenApiResponse(
-            response=serializers.Serializer,  # Generic Serializer as structure is defined in example
+            response=inline_serializer(
+                name="LoginSuccessResponse",
+                fields={
+                    "access": serializers.CharField(),
+                    "refresh": serializers.CharField(),
+                    "user": AuthUserResponseSerializer(),  # <-- Reference the actual serializer
+                },
+            ),  # Generic Serializer as structure is defined in example
             description="Authentication successful.",
+        ),
+        status.HTTP_401_UNAUTHORIZED: COMMON_ERRORS[status.HTTP_401_UNAUTHORIZED],
+        status.HTTP_400_BAD_REQUEST: OpenApiResponse(  # Specific 400 for login
+            description="Authentication failed (e.g., wrong password, user inactive/not found).",
             examples=[
                 OpenApiExample(
-                    "Login Success",
-                    summary="Successful login response",
-                    description="Returns access/refresh tokens and nested user object.",
+                    "Auth Failed",
                     value={
-                        "access": "eyJhbGciOiJIUzI1NiIsIn...",
-                        "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
-                        "user": {
-                            "id": 15,
-                            "username": "ali_student99",
-                            "email": "ali.ahmed@example.com",
-                            "full_name": "Ali Ahmed Mohamed",
-                            "preferred_name": "Ali",
-                            "role": "student",
-                            "subscription": {
-                                "is_active": True,
-                                "expires_at": "2024-10-21T10:00:00Z",
-                                "serial_code": "QADER-XYZ123-ABC",  # Example code
-                            },
-                            "profile_picture_url": None,  # Example
-                            "level_determined": True,  # Example
-                        },
+                        "detail": "No active account found with the given credentials."
                     },
-                    response_only=True,
                 )
             ],
-        ),
-        status.HTTP_401_UNAUTHORIZED: OpenApiResponse(
-            description="Authentication failed: No active account found with the given credentials."
-        ),
-        status.HTTP_400_BAD_REQUEST: OpenApiResponse(
-            description="Bad Request: Invalid input format (e.g., missing fields)."
         ),
     },
 )
@@ -244,11 +275,14 @@ class LogoutView(views.APIView):
 @extend_schema(
     tags=["Authentication"],
     summary="Initial User Signup (Stage 1)",
-    description="Registers a new user with email, full name, and password. Creates an inactive user account and sends a confirmation email.",
+    description="Registers a new user with email, full name, and password. Creates an *inactive* user account and sends a confirmation email. The user must click the link in the email to activate their account and log in.",  # Clarify inactive state
     request=InitialSignupSerializer,
     responses={
         status.HTTP_201_CREATED: OpenApiResponse(
-            description="Registration initiated. Confirmation email sent.",
+            description="Registration initiated successfully. Confirmation email sent.",
+            response=inline_serializer(
+                name="SignupSuccess", fields={"detail": serializers.CharField()}
+            ),
             examples=[
                 OpenApiExample(
                     "Success",
@@ -259,10 +293,32 @@ class LogoutView(views.APIView):
             ],
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
-            description="Bad Request: Validation errors (e.g., duplicate email, password mismatch/policy violation)."
+            description="Bad Request: Validation errors (e.g., duplicate email, password mismatch, password policy violation). See response body for details.",
+            response=InitialSignupSerializer,  # Errors often mirror the request structure
+            examples=[
+                OpenApiExample(
+                    "Duplicate Email",
+                    value={"email": ["A user with this email already exists."]},
+                ),
+                OpenApiExample(
+                    "Password Mismatch",
+                    value={"password_confirm": ["Password fields didn't match."]},
+                ),
+            ],
         ),
         status.HTTP_500_INTERNAL_SERVER_ERROR: OpenApiResponse(
-            description="Internal Server Error: Failed to send confirmation email or other unexpected issue."
+            description="Internal Server Error: Failed to send confirmation email or other unexpected issue.",
+            response=inline_serializer(
+                name="SignupError", fields={"detail": serializers.CharField()}
+            ),
+            examples=[
+                OpenApiExample(
+                    "Email Send Fail",
+                    value={
+                        "detail": "Account created but failed to send confirmation email. Please contact support."
+                    },
+                )
+            ],
         ),
     },
 )
@@ -344,62 +400,32 @@ class InitialSignupView(generics.CreateAPIView):
     summary="Confirm Email Address (Stage 2)",
     description="Confirms the user's email address using the link sent. Activates the account, generates JWT tokens, and indicates if profile completion is needed.",
     parameters=[
-        # These are part of the URL path, not query params
-        # OpenApiParameter("uidb64", OpenApiTypes.STR, OpenApiParameter.PATH, required=True, description="User ID encoded in base64."),
-        # OpenApiParameter("token", OpenApiTypes.STR, OpenApiParameter.PATH, required=True, description="Password reset/confirmation token."),
+        OpenApiParameter(
+            "uidb64",
+            OpenApiTypes.STR,
+            OpenApiParameter.PATH,
+            required=True,
+            description="User ID encoded in base64.",
+        ),
+        OpenApiParameter(
+            "token",
+            OpenApiTypes.STR,
+            OpenApiParameter.PATH,
+            required=True,
+            description="Confirmation token.",
+        ),
     ],
     responses={
         status.HTTP_200_OK: OpenApiResponse(
-            response=AuthUserResponseSerializer,  # Reuse the login response structure
+            response=inline_serializer(  # Same structure as login
+                name="ConfirmEmailSuccessResponse",
+                fields={
+                    "access": serializers.CharField(),
+                    "refresh": serializers.CharField(),
+                    "user": AuthUserResponseSerializer(),
+                },
+            ),
             description="Email confirmed successfully. Returns JWT tokens and user profile status.",
-            examples=[
-                OpenApiExample(
-                    "Confirmation Success (Profile Complete)",
-                    value={
-                        "access": "eyJhbGciOiJIUzI1NiIsIn...",
-                        "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
-                        "user": {
-                            "id": 1,
-                            "username": "test@example.com",
-                            "email": "test@example.com",
-                            "full_name": "Test User",
-                            "preferred_name": None,
-                            "role": "student",
-                            "subscription": {
-                                "is_active": True,
-                                "expires_at": "2024-12-31T23:59:59Z",
-                                "serial_code": "TRIAL",
-                            },
-                            "profile_picture_url": None,
-                            "level_determined": False,
-                            "profile_complete": True,
-                        },
-                    },
-                ),
-                OpenApiExample(
-                    "Confirmation Success (Profile Incomplete)",
-                    value={
-                        "access": "eyJhbGciOiJIUzI1NiIsIn...",
-                        "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
-                        "user": {
-                            "id": 2,
-                            "username": "new@example.com",
-                            "email": "new@example.com",
-                            "full_name": "New User",
-                            "preferred_name": None,
-                            "role": "student",
-                            "subscription": {
-                                "is_active": False,
-                                "expires_at": None,
-                                "serial_code": None,
-                            },
-                            "profile_picture_url": None,
-                            "level_determined": False,
-                            "profile_complete": False,  # Key flag
-                        },
-                    },
-                ),
-            ],
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
             description="Bad Request: Invalid or expired confirmation link/token."
@@ -475,31 +501,71 @@ class ConfirmEmailView(views.APIView):
     tags=["User Profile"],
     summary="Complete User Profile (Post-Confirmation)",
     description=(
-        "Allows an authenticated user (whose profile is marked incomplete) to submit missing details "
-        "(`gender`, `grade`, `has_taken_qiyas_before`, and optionally `preferred_name`, `profile_picture`, `serial_code`, `referral_code_used`). "
-        "Activates subscription via `serial_code` or grants a 1-day trial if no code is provided and no active subscription exists. "
-        "Applies referral bonus if `referral_code_used` is valid. Uses `multipart/form-data` if `profile_picture` is included."
+        "**Requires Authentication.** Allows a user whose profile is incomplete (`profile_complete=false`) to submit required details "
+        "(`gender`, `grade`, `has_taken_qiyas_before`) and optional details (`preferred_name`, `profile_picture`, `serial_code`, `referral_code_used`).\n\n"
+        "*   **Subscription:** Activates subscription via `serial_code` if provided and valid. If no code is provided and user has no active subscription, a **1-day trial** is automatically granted.\n"
+        "*   **Referral:** Applies referral bonus (e.g., extra subscription days for the referrer) if `referral_code_used` is valid and belongs to another user.\n"
+        "*   **Encoding:** Use `application/json` by default. Use `multipart/form-data` if including the `profile_picture` field."  # Explicit encoding mention
     ),
-    request=CompleteProfileSerializer,
+    request={  # Define potential request content types
+        "multipart/form-data": CompleteProfileSerializer,
+        "application/json": CompleteProfileSerializer,
+    },
     responses={
+        # ---> Use the specific response serializer <---
         status.HTTP_200_OK: OpenApiResponse(
-            response=UserProfileSerializer,  # Return full profile on success
-            description="Profile completed and subscription activated/trial granted successfully.",
+            response=UserProfileSerializer,  # Returns the *full* profile on success
+            description="Profile completed successfully. Subscription activated or trial granted if applicable. Referral processed if provided.",
         ),
-        status.HTTP_400_BAD_REQUEST: OpenApiResponse(
-            description="Bad Request: Validation errors (missing required fields, invalid serial/referral code, invalid image)."
+        # ---> Use common errors <---
+        status.HTTP_400_BAD_REQUEST: OpenApiResponse(  # More specific examples for this endpoint
+            description="Bad Request: Validation errors (e.g., missing required fields, invalid serial/referral code, invalid image format/size).",
+            response=CompleteProfileSerializer,  # Errors often mirror request structure
+            examples=[
+                OpenApiExample(
+                    "Missing Field",
+                    value={
+                        "gender": ["This field is required to complete your profile."]
+                    },
+                ),
+                OpenApiExample(
+                    "Invalid Serial",
+                    value={"serial_code": ["Invalid or already used serial code."]},
+                ),
+                OpenApiExample(
+                    "Invalid Referral",
+                    value={"referral_code_used": ["Invalid referral code provided."]},
+                ),
+                OpenApiExample(
+                    "Image Too Large",
+                    value={"profile_picture": ["Image size cannot exceed 5MB."]},
+                ),
+            ],
         ),
-        status.HTTP_401_UNAUTHORIZED: OpenApiResponse(
-            description="Authentication required."
+        status.HTTP_401_UNAUTHORIZED: COMMON_ERRORS[status.HTTP_401_UNAUTHORIZED],
+        status.HTTP_403_FORBIDDEN: OpenApiResponse(  # Specific forbidden message
+            description="Forbidden: Profile is already complete or other permission issue.",
+            examples=[
+                OpenApiExample(
+                    "Profile Complete", value={"detail": "Profile is already complete."}
+                )
+            ],
         ),
-        status.HTTP_403_FORBIDDEN: OpenApiResponse(
-            description="Forbidden: Profile might already be complete or other permission issue."
-        ),
-        status.HTTP_404_NOT_FOUND: OpenApiResponse(
-            description="User profile not found (data integrity issue)."
-        ),
+        status.HTTP_404_NOT_FOUND: COMMON_ERRORS[
+            status.HTTP_404_NOT_FOUND
+        ],  # Profile not found for logged-in user
         status.HTTP_500_INTERNAL_SERVER_ERROR: OpenApiResponse(
-            description="Internal Server Error: Issue during subscription/referral processing."
+            description="Internal Server Error: Issue during database update, subscription, or referral processing.",
+            response=inline_serializer(
+                name="CompleteProfileServerError",
+                fields={"detail": serializers.CharField()},
+            ),
+            examples=[
+                OpenApiExample(
+                    "Server Error",
+                    value={"detail": "An error occurred while completing the profile."},
+                )
+            ],
         ),
     },
 )
@@ -750,28 +816,47 @@ class CustomTokenRefreshView(TokenRefreshView):
     tags=["User Profile"],
     summary="Retrieve or Update Current User Profile",
     description=(
+        "**Requires Authentication.**\n\n"
         "**GET:** Returns the full profile details of the currently authenticated user.\n\n"
         "**PATCH:** Partially updates the authenticated user's profile. Allows updating fields like name, grade, preferences, and profile picture. "
-        "Uses `multipart/form-data` encoding if `profile_picture` is included."
+        "Use `application/json` for non-file updates, use `multipart/form-data` if including `profile_picture`."  # Explicit encoding
     ),
-    request=UserProfileUpdateSerializer,  # Schema for PATCH request body
+    # Request schema only needed for PATCH
+    request={  # Separate for PATCH encoding
+        "multipart/form-data": UserProfileUpdateSerializer,
+        "application/json": UserProfileUpdateSerializer,
+    },
     responses={
         status.HTTP_200_OK: OpenApiResponse(
-            response=UserProfileSerializer,
-            description="Profile retrieved or updated successfully.",
+            response=UserProfileSerializer,  # GET and successful PATCH return full profile
+            description="Profile retrieved (GET) or updated (PATCH) successfully.",
         ),
+        # PATCH specific errors
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
-            description="Bad Request: Validation errors on update (e.g., invalid image file, incorrect data format)."
+            description="(PATCH only) Bad Request: Validation errors on update (e.g., invalid image file, incorrect data format).",
+            response=UserProfileUpdateSerializer,  # Errors map to update fields
+            examples=[
+                OpenApiExample(
+                    "Invalid Time",
+                    value={
+                        "dark_mode_auto_time_start": [
+                            "Auto dark mode start time must be before end time."
+                        ]
+                    },
+                ),
+                OpenApiExample(
+                    "Image Too Large",
+                    value={"profile_picture": ["Image size cannot exceed 5MB."]},
+                ),
+            ],
         ),
-        status.HTTP_401_UNAUTHORIZED: OpenApiResponse(
-            description="Authentication required."
-        ),
-        status.HTTP_403_FORBIDDEN: OpenApiResponse(
-            description="Permission denied (should not happen with IsAuthenticated)."
-        ),
-        status.HTTP_404_NOT_FOUND: OpenApiResponse(
-            description="User profile not found (data integrity issue)."
-        ),
+        # Common errors apply to both GET and PATCH
+        status.HTTP_401_UNAUTHORIZED: COMMON_ERRORS[status.HTTP_401_UNAUTHORIZED],
+        # 403 unlikely here with IsAuthenticated, but include for completeness
+        status.HTTP_403_FORBIDDEN: COMMON_ERRORS[status.HTTP_403_FORBIDDEN],
+        status.HTTP_404_NOT_FOUND: COMMON_ERRORS[
+            status.HTTP_404_NOT_FOUND
+        ],  # If profile somehow missing
     },
 )
 class UserProfileView(generics.RetrieveUpdateAPIView):
@@ -1109,18 +1194,6 @@ class PasswordResetConfirmView(generics.GenericAPIView):
         status.HTTP_200_OK: OpenApiResponse(
             response=SubscriptionDetailSerializer,  # Shows updated subscription
             description="Serial code applied successfully. Returns updated subscription details.",
-            examples=[
-                OpenApiExample(
-                    "Success",
-                    value={
-                        "subscription": {
-                            "is_active": True,
-                            "expires_at": "2025-02-15T10:00:00Z",
-                            "serial_code": "QADER-NEWCODE-789",
-                        }
-                    },
-                )
-            ],
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
             description="Bad Request: Serial code is missing, invalid, inactive, or already used."
@@ -1323,19 +1396,6 @@ class SubscriptionPlanListView(views.APIView):
                 },
             ),
             description="Subscription cancelled successfully.",
-            examples=[
-                OpenApiExample(
-                    "Success",
-                    value={
-                        "detail": "Subscription cancelled successfully.",
-                        "subscription": {
-                            "is_active": False,
-                            "expires_at": None,
-                            "serial_code": None,
-                        },
-                    },
-                )
-            ],
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
             description="Bad Request: No active subscription found to cancel."
