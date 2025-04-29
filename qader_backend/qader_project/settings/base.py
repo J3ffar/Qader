@@ -279,6 +279,10 @@ SPECTACULAR_SETTINGS = {
             "description": "Endpoints for administrators to manage users, sub-admins, points, and passwords.",
         },
         {
+            "name": "Admin Panel - User Details",
+            "description": "Endpoints for administrators to view specific details like statistics, test history, and point logs for a single user.",
+        },
+        {
             "name": "Admin Panel - Learning Management",
             "description": "Endpoints for administrators to manage learning content (Sections, Subsections, Skills, Questions).",
         },

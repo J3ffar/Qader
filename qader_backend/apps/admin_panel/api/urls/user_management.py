@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from ..views import user_management as views
+from ..views import user_detail_views
 
 # Create a router instance specific to user management
 router = DefaultRouter()
@@ -28,5 +29,20 @@ urlpatterns = [
     # Endpoint to list available permissions
     path(
         "permissions/", views.PermissionListView.as_view(), name="admin-permission-list"
+    ),
+    path(
+        "users/<int:user_id>/statistics/",
+        user_detail_views.AdminUserStatisticsView.as_view(),
+        name="admin-user-statistics",
+    ),
+    path(
+        "users/<int:user_id>/test-history/",
+        user_detail_views.AdminUserTestHistoryView.as_view(),
+        name="admin-user-test-history",
+    ),
+    path(
+        "users/<int:user_id>/point-log/",
+        user_detail_views.AdminUserPointLogView.as_view(),
+        name="admin-user-point-log",
     ),
 ]
