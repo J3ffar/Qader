@@ -143,6 +143,12 @@ class UserTestAttemptStartResponseSerializer(serializers.Serializer):
     """Standard response after starting any type of test attempt."""
 
     attempt_id = serializers.IntegerField(read_only=True)
+    attempt_number_for_type = serializers.IntegerField(
+        read_only=True,
+        help_text=_(
+            "The sequence number of this attempt for this specific test type (e.g., 1st Level Assessment, 3rd Practice Test)."
+        ),
+    )
     questions = QuestionListSerializer(many=True, read_only=True)
 
 

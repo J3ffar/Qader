@@ -230,6 +230,11 @@ class PracticeSimulationStartSerializer(serializers.Serializer):
             else self.initial_data.get("num_questions", 20)
         )
 
+        previous_attempts_count = UserTestAttempt.objects.filter(
+            user=user, attempt_type=attempt_type
+        ).count()
+        attempt_number_for_type = previous_attempts_count + 1
+
         # Fetch final questions
         questions_queryset = get_filtered_questions(
             user=user,
@@ -290,5 +295,6 @@ class PracticeSimulationStartSerializer(serializers.Serializer):
 
         return {
             "attempt_id": test_attempt.id,
+            "attempt_number_for_type": attempt_number_for_type,
             "questions": final_questions_queryset,
         }

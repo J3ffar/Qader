@@ -174,6 +174,12 @@ class TraditionalPracticeStartResponseSerializer(serializers.Serializer):
 
     attempt_id = serializers.IntegerField(read_only=True)
     status = serializers.CharField(read_only=True)  # e.g., "started"
+    attempt_number_for_type = serializers.IntegerField(
+        read_only=True,
+        help_text=_(
+            "The sequence number of this attempt for traditional practice (e.g., 3rd traditional session)."
+        ),
+    )
     questions = QuestionListSerializer(
         many=True, read_only=True
     )  # List of initial questions
