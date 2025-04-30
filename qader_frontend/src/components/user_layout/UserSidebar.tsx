@@ -30,27 +30,77 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const pathname = usePathname();
 
   const menuItems = [
-    { label: "تحديد المستوى", icon: <NewspaperIcon className="w-6 h-6" />, link: "/level" },
-    { label: "التعلم بالطرق التقليدية", icon: <BookOpenIcon className="w-6 h-6" />, link: "/user/traditional-learning" },
-    { label: "التعلم عبر المحادثة", icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, link: "/user/conversation-learning" },
-    { label: "اختبارات المحاكاة", icon: <PencilSquareIcon className="w-6 h-6" />, link: "/user/simulation-tests" },
-    { label: "المكافأت والمسابقات", icon: <GiftIcon className="w-6 h-6" />, link: "/user/rewards-and-competitions" },
-    { label: "الاحصائيات", icon: <ChartPieIcon className="w-6 h-6" />, link: "/user/statistics" },
+    {
+      label: "تحديد المستوى",
+      icon: <NewspaperIcon className="w-6 h-6" />,
+      link: "/student/level",
+    },
+    {
+      label: "التعلم بالطرق التقليدية",
+      icon: <BookOpenIcon className="w-6 h-6" />,
+      link: "/user/traditional-learning",
+    },
+    {
+      label: "التعلم عبر المحادثة",
+      icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />,
+      link: "/user/conversation-learning",
+    },
+    {
+      label: "اختبارات المحاكاة",
+      icon: <PencilSquareIcon className="w-6 h-6" />,
+      link: "/user/simulation-tests",
+    },
+    {
+      label: "المكافأت والمسابقات",
+      icon: <GiftIcon className="w-6 h-6" />,
+      link: "/user/rewards-and-competitions",
+    },
+    {
+      label: "الاحصائيات",
+      icon: <ChartPieIcon className="w-6 h-6" />,
+      link: "/user/statistics",
+    },
   ];
 
   const communityItems = [
-    { label: "تحدى الزملاء", icon: <ClockIcon className="w-6 h-6" />, link: "/user/challenge-peers" },
-    { label: "مجتمع الطلاب", icon: <UsersIcon className="w-6 h-6" />, link: "/user/student-community" },
-    { label: "المدونة", icon: <BookmarkIcon className="w-6 h-6" />, link: "/user/blog" },
-    { label: "الدعم الإدارى", icon: <QuestionMarkCircleIcon className="w-6 h-6" />, link: "/user/admin-support" },
+    {
+      label: "تحدى الزملاء",
+      icon: <ClockIcon className="w-6 h-6" />,
+      link: "/user/challenge-peers",
+    },
+    {
+      label: "مجتمع الطلاب",
+      icon: <UsersIcon className="w-6 h-6" />,
+      link: "/user/student-community",
+    },
+    {
+      label: "المدونة",
+      icon: <BookmarkIcon className="w-6 h-6" />,
+      link: "/user/blog",
+    },
+    {
+      label: "الدعم الإدارى",
+      icon: <QuestionMarkCircleIcon className="w-6 h-6" />,
+      link: "/user/admin-support",
+    },
   ];
 
   const settingsItems = [
-    { label: "وضع الطوارئ", icon: <ExclamationCircleIcon className="w-6 h-6" />, link: "/user/emergency-mode" },
-    { label: "الإعدادات", icon: <Cog6ToothIcon className="w-6 h-6" />, link: "/user/settings" },
+    {
+      label: "وضع الطوارئ",
+      icon: <ExclamationCircleIcon className="w-6 h-6" />,
+      link: "/user/emergency-mode",
+    },
+    {
+      label: "الإعدادات",
+      icon: <Cog6ToothIcon className="w-6 h-6" />,
+      link: "/user/settings",
+    },
   ];
 
-  const renderMenu = (items: { label: string; icon: JSX.Element; link: string }[]) => {
+  const renderMenu = (
+    items: { label: string; icon: JSX.Element; link: string }[]
+  ) => {
     return items.map((item, index) => {
       const isActive = pathname === item.link;
 
@@ -86,8 +136,10 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   };
 
   return (
-    <div className="flex relative flex-col bg-[#074182] min-h-screen text-white transition-all duration-300 ease-in-out z-50" style={{ width: isOpen ? 220 : 70 }}>
-
+    <div
+      className="flex relative flex-col bg-[#074182] min-h-screen text-white transition-all duration-300 ease-in-out z-50"
+      style={{ width: isOpen ? 220 : 70 }}
+    >
       {/* زرار الفتح والغلق */}
       <button
         onClick={() => setIsOpen(!isOpen)}
