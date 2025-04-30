@@ -144,3 +144,32 @@ class BlogTagListView(generics.ListAPIView):
         # Filter Tag objects by these IDs
         queryset = Tag.objects.filter(pk__in=published_post_tag_ids).order_by("name")
         return queryset
+
+
+@extend_schema(
+    summary="List My Advice Requests",
+    description="Retrieve a list of advice requests submitted by the currently authenticated and subscribed user.",
+    responses={
+        status.HTTP_200_OK: BlogAdviceRequestSerializer(many=True),
+        status.HTTP_401_UNAUTHORIZED: None,
+        status.HTTP_403_FORBIDDEN: None,
+    },
+    tags=["Blog"],  # Assign to the Blog tag group
+)
+class MyBlogAdviceRequestListView(generics.ListAPIView):
+    """
+    API view to list advice requests submitted by the currently authenticated user.
+    Requires authentication and subscription.
+    """
+
+    serializer_class = BlogAdviceRequestSerializer
+    permission_classes = [IsAuthenticated, IsSubscribed]
+
+    def get_queryset(self):
+        """
+        Return a queryset filtered to only include requests from the
+        currently authenticated user.
+        """
+        user = self.request.user
+        queryset = BlogAdviceRequest.objects.filter(user=user).order_by("-created_at")
+        return queryset
