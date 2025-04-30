@@ -69,7 +69,7 @@ const SignupModal: React.FC<SignupModalProps> = ({
                       placeholder="الاسم الكامل"
                     />{" "}
                     {/* Added placeholder */}
-                    <UserIcon className="w-5 h-5 absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />{" "}
+                    <UserIcon className="w-5 h-5 absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400" />{" "}
                     {/* Changed side */}
                   </div>
                 </div>
@@ -90,7 +90,7 @@ const SignupModal: React.FC<SignupModalProps> = ({
                       placeholder="you@example.com"
                     />{" "}
                     {/* Added placeholder */}
-                    <EnvelopeIcon className="w-5 h-5 absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />{" "}
+                    <EnvelopeIcon className="w-5 h-5 absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400" />{" "}
                     {/* Changed side */}
                   </div>
                 </div>
@@ -111,7 +111,7 @@ const SignupModal: React.FC<SignupModalProps> = ({
                       placeholder="********"
                     />{" "}
                     {/* Added placeholder */}
-                    <LockClosedIcon className="w-5 h-5 absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />{" "}
+                    <LockClosedIcon className="w-5 h-5 absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400" />{" "}
                     {/* Changed side */}
                   </div>
                   {/* Removed error message example */}

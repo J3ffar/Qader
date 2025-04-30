@@ -71,7 +71,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
                       className="w-full mt-1 pr-10 p-2 border rounded-md bg-input border-border focus:outline-none focus:ring focus:ring-primary" // Adjusted padding
                       placeholder="you@example.com"
                     />
-                    <EnvelopeIcon className="w-5 h-5 absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />{" "}
+                    <EnvelopeIcon className="w-5 h-5 absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400" />{" "}
                     {/* Added Icon */}
                   </div>
                 </div>
@@ -94,7 +94,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
                       className="w-full mt-1 pr-10 p-2 border rounded-md bg-input border-border focus:outline-none focus:ring focus:ring-primary" // Adjusted padding
                       placeholder="********"
                     />
-                    <LockClosedIcon className="w-5 h-5 absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400" />{" "}
+                    <LockClosedIcon className="w-5 h-5 absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400" />{" "}
                     {/* Added Icon */}
                   </div>
                   {/* Removed error message example */}

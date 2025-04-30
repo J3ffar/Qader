@@ -9,11 +9,11 @@ import {
   BellIcon,
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
-import Shapcontain from "../shapcontain/page";
-import StarContain from "../starcontain/page";
-import GiftContain from "../giftcontain/page";
-import BellShap from "../bellcontain/page";
-import UserContain from "../usercontain/page";
+import Shapcontain from "@/components/sections/contains-of-user-nav/ShapContain";
+import StarContain from "@/components/sections/contains-of-user-nav/StarContain";
+import GiftContain from "@/components/sections/contains-of-user-nav/GiftContain";
+import BellShap from "@/components/sections/contains-of-user-nav/BellContain";
+import UserContain from "@/components/sections/contains-of-user-nav/UserContain";
 
 interface UserNavbarProps {
   isOpen: boolean;

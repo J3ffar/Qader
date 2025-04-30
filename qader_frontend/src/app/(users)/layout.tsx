@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "./sidbar/page";
-import UserNavbar from "./nav/page";
+import Sidebar from "@/components/user_layout/UserSidebar";
+import UserNavbar from "@/components/user_layout/UserNav";
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(true);
