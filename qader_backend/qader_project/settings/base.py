@@ -295,12 +295,20 @@ SPECTACULAR_SETTINGS = {
             "description": "Endpoints for administrators to manage public content (Pages, FAQ, Partners, Contact Messages).",
         },
         {
+            "name": "Admin Panel - Blog",
+            "description": "Endpoints for managing blog posts and advice requests.",
+        },
+        {
             "name": "Admin Panel - Support Management",
             "description": "Endpoints for administrators to manage all support tickets.",
         },
         {
             "name": "Admin Panel - Serial Code Management",
             "description": "Endpoints for administrators to manage subscription serial codes.",
+        },
+        {
+            "name": "Admin Panel - Statistics",
+            "description": "Endpoints for viewing aggregated platform statistics.",
         },
     ],
     "SWAGGER_UI_SETTINGS": {  # Fine-tune Swagger UI appearance/behavior

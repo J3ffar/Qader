@@ -2,11 +2,20 @@ import factory
 from factory.django import DjangoModelFactory
 from django.utils.text import slugify
 from django.core.files.base import ContentFile
+from faker import Faker
 
 from apps.content import models
 from apps.users.tests.factories import (
     UserFactory,
+)
+from apps.blog.models import (
+    AdviceRequestStatusChoices,
+    BlogAdviceRequest,
+    BlogPost,
+    PostStatusChoices,
 )  # Assuming UserFactory is here or adjust path
+
+fake = Faker()
 
 
 class PageFactory(DjangoModelFactory):
@@ -91,3 +100,59 @@ class ContactMessageFactory(DjangoModelFactory):
     # attachment = factory.LazyFunction(
     #     lambda: ContentFile(factory.Faker('binary', length=1024).generate(), name='test_attachment.pdf')
     # )
+
+
+class BlogPostFactory(DjangoModelFactory):
+    class Meta:
+        model = BlogPost
+
+    # Use UserFactory, ensuring the author is staff if specified, or allow null
+    author = factory.SubFactory(UserFactory, is_staff=True)
+    title = factory.LazyAttribute(lambda o: fake.sentence(nb_words=6))
+    # Auto-generate slug from title, ensuring basic uniqueness for factory runs
+    slug = factory.LazyAttribute(
+        lambda o: slugify(o.title + fake.pystr(min_chars=3, max_chars=5))
+    )
+    content = factory.LazyAttribute(lambda o: "\n\n".join(fake.paragraphs(nb=3)))
+    status = factory.Iterator(PostStatusChoices.values)
+    # published_at is handled by model's save method based on status
+
+    # Add tags after creation
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            # Simple build, do nothing.
+            return
+
+        if extracted:
+            # A list of tags were passed in, use them
+            for tag in extracted:
+                self.tags.add(tag)
+        else:
+            # Add some default tags
+            num_tags = fake.random_int(min=1, max=4)
+            for _ in range(num_tags):
+                self.tags.add(fake.word())
+
+
+class BlogAdviceRequestFactory(DjangoModelFactory):
+    class Meta:
+        model = BlogAdviceRequest
+
+    user = factory.SubFactory(UserFactory)  # Any user can create one
+    problem_type = factory.LazyAttribute(lambda o: fake.sentence(nb_words=4))
+    description = factory.LazyAttribute(lambda o: fake.paragraph(nb_sentences=5))
+    status = factory.Iterator(AdviceRequestStatusChoices.values)
+    # response_via, related_* fields are typically set by admin later
+
+    # Example: Factory to create a request linked to a ticket
+    # class BlogAdviceRequestWithTicketFactory(BlogAdviceRequestFactory):
+    #     status = AdviceRequestStatusChoices.ANSWERED_SUPPORT
+    #     response_via = AdviceResponseViaChoices.SUPPORT
+    #     related_support_ticket = factory.SubFactory(SupportTicketFactory) # Assumes SupportTicketFactory exists
+
+    # Example: Factory to create a request linked to a post
+    # class BlogAdviceRequestWithPostFactory(BlogAdviceRequestFactory):
+    #     status = AdviceRequestStatusChoices.PUBLISHED_AS_POST
+    #     response_via = AdviceResponseViaChoices.BLOG_POST
+    #     related_blog_post = factory.SubFactory(BlogPostFactory, status=PostStatusChoices.PUBLISHED)
