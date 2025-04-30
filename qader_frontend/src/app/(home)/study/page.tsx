@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import Link from "next/link"; // Import Link component
+import Link from "next/link";
 import {
   UserPlusIcon,
   BookOpenIcon,
@@ -25,7 +25,7 @@ const StudyPage = () => {
   const [isOpen, setIsOpen] = useState(true);
 
   const menuItems = [
-    { label: "تحديد المستوى", icon: <NewspaperIcon className="w-6 h-6" />, link: "/level" },
+    { label: "تحديد المستوى", icon: <NewspaperIcon className="w-6 h-6" />, link: "/student/level" },
     { label: "التعلم بالطرق التقليدية", icon: <BookOpenIcon className="w-6 h-6" />, link: "/traditional-learning" },
     { label: "التعلم عبر المحادثة", icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, link: "/conversation-learning" },
     { label: "اختبارات المحاكاة", icon: <PencilSquareIcon className="w-6 h-6" />, link: "/simulation-tests" },
@@ -50,7 +50,7 @@ const StudyPage = () => {
       {/* Sidebar */}
       <div
         className="flex flex-col bg-[#074182] relative transition-all duration-300 ease-in-out"
-        style={{ width: isOpen ? 220 : 70 }}
+        style={{ width: isOpen ? 220 : 100 }}
       >
         {/* زر الفتح/الإغلاق */}
         <button
@@ -86,14 +86,16 @@ const StudyPage = () => {
         </div>
 
         {/* Menu Sections */}
-        <nav className="flex-1 mt-6 space-y-3">
+        <nav className="flex-1 mt-6 space-y-3 justify-center items-center">
           {/* تعلم Section */}
           <div>
-            <p className="text-white font-semibold mb-3 px-4">التعلم</p>
+            <p className={`text-white font-semibold mb-3 px-4 text-sm ${isOpen ? "text-start" : "text-center"} `}>التعلم</p>
             {menuItems.map((item, index) => (
               <Link key={index} href={item.link}>
                 <motion.div
-                  className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 cursor-pointer"
+                  className={`flex items-center px-4 py-2 hover:bg-white/10 cursor-pointer transition-all duration-200 ${
+                    isOpen ? "justify-start gap-3" : "justify-center"
+                  }`}
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.2 }}
                 >
@@ -117,11 +119,13 @@ const StudyPage = () => {
 
           {/* مجتمع قادر Section */}
           <div>
-            <p className="text-white font-semibold mb-3 px-4">مجتمع قادر</p>
+            <p className="text-white font-semibold mb-3 px-4 text-sm">مجتمع قادر</p>
             {communityItems.map((item, index) => (
               <Link key={index} href={item.link}>
                 <motion.div
-                  className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 cursor-pointer"
+                  className={`flex items-center px-4 py-2 hover:bg-white/10 cursor-pointer transition-all duration-200 ${
+                    isOpen ? "justify-start gap-3" : "justify-center"
+                  }`}
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.2 }}
                 >
@@ -145,11 +149,13 @@ const StudyPage = () => {
 
           {/* الإعدادات Section */}
           <div>
-            <p className="text-white font-semibold mb-3 px-4">الإعدادات</p>
+            <p className={`text-white font-semibold mb-3 px-4 text-sm ${isOpen ? "text-start" : "text-center"} `}>الإعدادات</p>
             {settingsItems.map((item, index) => (
               <Link key={index} href={item.link}>
                 <motion.div
-                  className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 cursor-pointer"
+                  className={`flex items-center px-4 py-2 hover:bg-white/10 cursor-pointer transition-all duration-200 ${
+                    isOpen ? "justify-start gap-3" : "justify-center"
+                  }`}
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.2 }}
                 >
@@ -174,14 +180,14 @@ const StudyPage = () => {
       </div>
 
       {/* Main content */}
-        <div className="flex-1 flex items-center justify-center flex-col">
-              <Image src={"/images/open-folder.png"} width={100} height={100} alt="" />
-              <p className="font-semibold text-xl text-black">لا توجد ملفات لعرضها</p>
-              <p className="text-gray-500 w-[180px] text-center">قم بإنشاء حساب لتستفيد من ميزات قادر</p>
-              <Button variant="outline" className="w-48 gap-2 mt-4">
-                <UserPlusIcon className="w-5 h-5" />
-                <span> اشتراك</span>
-              </Button>
+      <div className="flex-1 flex items-center justify-center flex-col">
+        <Image src={"/images/open-folder.png"} width={100} height={100} alt="" />
+        <p className="font-semibold text-xl text-black">لا توجد ملفات لعرضها</p>
+        <p className="text-gray-500 w-[180px] text-center">قم بإنشاء حساب لتستفيد من ميزات قادر</p>
+        <Button variant="outline" className="w-48 gap-2 mt-4">
+          <UserPlusIcon className="w-5 h-5" />
+          <span> اشتراك</span>
+        </Button>
       </div>
     </div>
   );

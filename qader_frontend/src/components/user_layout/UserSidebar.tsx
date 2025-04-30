@@ -107,8 +107,8 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       return (
         <Link key={index} href={item.link}>
           <motion.div
-            className={`flex items-center gap-3 px-4 py-2 cursor-pointer 
-              transition-all duration-200
+            className={`flex items-center px-4 py-2 cursor-pointer transition-all duration-200 
+              ${isOpen ? "justify-start gap-3" : "justify-center"}
               ${isActive ? "bg-white/20" : "hover:bg-white/10"}
             `}
             whileHover={{ scale: 1.05 }}
@@ -135,12 +135,24 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     });
   };
 
+  const renderTitle = (title: string) => {
+    return (
+      <div
+        className={`text-white font-semibold mb-3 text-sm ${
+          isOpen ? "px-4 text-right" : "text-center"
+        }`}
+      >
+        {title}
+      </div>
+    );
+  };
+
   return (
     <div
       className="flex relative flex-col bg-[#074182] min-h-screen text-white transition-all duration-300 ease-in-out z-50"
-      style={{ width: isOpen ? 220 : 70 }}
+      style={{ width: isOpen ? 220 : 100 }}
     >
-      {/* زرار الفتح والغلق */}
+      {/* زر الفتح/الإغلاق */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="absolute cursor-pointer top-32 -left-3 bg-white text-[#074182] shadow-md rounded-md w-6 h-6 text-sm flex items-center justify-center"
@@ -150,13 +162,12 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
       {/* صورة المستخدم */}
       <div className="flex flex-col items-center py-6 border-b border-white/20">
-        <div className="w-16 h-16 rounded-full overflow-hidden mb-2">
+        <div className="  mb-2">
           <Image
-            src="/images/signup.png"
-            width={64}
-            height={64}
+            src="/images/logo.svg"
+            width={120}
+            height={120}
             alt=""
-            className="object-cover w-full h-full"
           />
         </div>
         <AnimatePresence>
@@ -176,17 +187,17 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       {/* القوائم */}
       <nav className="flex-1 mt-6 space-y-3">
         <div>
-          <p className="text-white font-semibold mb-3 px-4">التعلم</p>
+          {renderTitle("التعلم")}
           {renderMenu(menuItems)}
         </div>
 
         <div>
-          <p className="text-white font-semibold mb-3 px-4">مجتمع قادر</p>
+          {renderTitle("مجتمع قادر")}
           {renderMenu(communityItems)}
         </div>
 
         <div>
-          <p className="text-white font-semibold mb-3 px-4">الإعدادات</p>
+          {renderTitle("الإعدادات")}
           {renderMenu(settingsItems)}
         </div>
       </nav>

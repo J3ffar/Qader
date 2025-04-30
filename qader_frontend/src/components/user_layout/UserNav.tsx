@@ -58,7 +58,7 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
       {/* Input + Search Button */}
       <div className="flex items-center h-[70px] max-md:flex-col-reverse max-md:gap-7 max-md:h-full">
         <div className="flex items-center flex-1">
-          <div className="relative w-fit">
+          <div className="relative w-fit mr-4">
             <input
               type="text"
               placeholder="اكتب سؤالك هنا"
@@ -127,7 +127,7 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
               <p className="text-sm font-medium">سالم سعيد</p>
               <p className="text-xs text-gray-400">صباح الخير</p>
             </div>
-            <ChevronDownIcon className="w-5 h-5 text-gray-600" />
+            <ChevronDownIcon className="w-7 h-7 text-gray-600 mr-11" />
           </div>
         </div>
       </div>

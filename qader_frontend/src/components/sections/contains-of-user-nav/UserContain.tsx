@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ThemesToggles } from '@/components/ui/ThemesToggle';
 import {
   Cog6ToothIcon,
   ExclamationCircleIcon,
@@ -40,7 +40,7 @@ const UserContain = ({ showUserContain }: UserContainProps) => {
         <p className="flex gap-2">
           <Squares2X2Icon className="w-5 h-5" /> السمات
         </p>
-        <ThemeToggle />
+        <ThemesToggles />
       </div>
 
       <div className="flex items-center gap-2 w-full py-3 px-4">
