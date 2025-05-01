@@ -1014,29 +1014,55 @@ class PasswordChangeView(generics.GenericAPIView):
 
 
 @extend_schema(
-    tags=["Authentication"],  # Part of the auth flow
+    tags=["Authentication"],
     summary="Request Password Reset",
-    description="Initiates the password reset process. Sends an email with a unique reset link to the user associated with the provided email or username.",
+    description=(
+        "Initiates the password reset process. "
+        "Sends an email with a unique reset link *if* the user associated with the provided email or username exists and is active. "
+        "**WARNING:** This endpoint reveals whether an identifier exists in the system."  # Added warning
+    ),
     request=PasswordResetRequestSerializer,
     responses={
-        status.HTTP_200_OK: OpenApiResponse(
-            description="Request received. If an active account matches the identifier, a password reset email will be sent. (Generic response for security).",
+        status.HTTP_200_OK: OpenApiResponse(  # Updated 200 description
+            description="Request successful. Password reset email sent to the associated account.",
+            response=inline_serializer(
+                name="PasswordResetSent", fields={"detail": serializers.CharField()}
+            ),
             examples=[
                 OpenApiExample(
                     "Success",
-                    value={
-                        "detail": "If an active account with that identifier exists, a password reset link has been sent."
-                    },
+                    value={"detail": "Password reset email sent."},
                 )
             ],
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
             description="Bad Request: Invalid input format (e.g., identifier missing)."
         ),
+        status.HTTP_404_NOT_FOUND: OpenApiResponse(  # Added specific 404
+            description="Not Found: No active user found with the provided identifier.",
+            response=inline_serializer(
+                name="UserNotFound", fields={"detail": serializers.CharField()}
+            ),
+            examples=[
+                OpenApiExample(
+                    "Not Found",
+                    value={"detail": "User with the provided identifier not found."},
+                )
+            ],
+        ),
+        status.HTTP_500_INTERNAL_SERVER_ERROR: OpenApiResponse(  # Keep 500 for unexpected errors
+            description="Internal Server Error: Issue during email sending or processing.",
+            response=inline_serializer(
+                name="PasswordResetError", fields={"detail": serializers.CharField()}
+            ),
+        ),
     },
 )
 class PasswordResetRequestView(generics.GenericAPIView):
-    """Handles requests to initiate the password reset flow using the utility function."""
+    """
+    Handles requests to initiate the password reset flow.
+    Checks for user existence and returns 404 if not found.
+    """
 
     permission_classes = [AllowAny]
     serializer_class = PasswordResetRequestSerializer
@@ -1046,40 +1072,62 @@ class PasswordResetRequestView(generics.GenericAPIView):
         try:
             serializer.is_valid(raise_exception=True)
             # Validator returns the User object if found and active, otherwise None
-            user: Optional[User] = serializer.validated_data.get("identifier")
+            # Crucially, the default serializer validation should *not* raise ValidationError if user is None
+            user: Optional[User] = serializer.validated_data.get(
+                "identifier"
+            )  # Use .get() for safety
 
             if user:
-                # Call the utility function to handle the email sending logic
-                send_password_reset_email(user)
+                # User found, proceed with sending email
+                email_sent_successfully = send_password_reset_email(user)
+
+                if email_sent_successfully:
+                    logger.info(
+                        f"Password reset initiated successfully for {user.username or user.email}"
+                    )
+                    return Response(
+                        {
+                            "detail": _("Password reset email sent.")
+                        },  # Specific success message
+                        status=status.HTTP_200_OK,
+                    )
+                else:
+                    # Email sending failed - this is an internal server error
+                    logger.error(
+                        f"Failed to send password reset email to {user.username or user.email} after user lookup."
+                    )
+                    return Response(
+                        {
+                            "detail": _(
+                                "Failed to send password reset email. Please try again later."
+                            )
+                        },
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
 
             else:
-                # User not found or inactive. Log this internally but don't reveal to the client.
+                # User not found or inactive
+                identifier = request.data.get("identifier", "N/A")
                 logger.info(
-                    f"Password reset requested for unknown or inactive identifier: {request.data.get('identifier', 'N/A')}"
+                    f"Password reset requested for non-existent or inactive identifier: {identifier}"
+                )
+                return Response(
+                    {
+                        "detail": _("User with the provided identifier not found.")
+                    },  # Specific not found message
+                    status=status.HTTP_404_NOT_FOUND,
                 )
 
-            # Always return a generic success message for security,
-            # preventing attackers from discovering valid users.
-            return Response(
-                {
-                    "detail": _(
-                        "If an active account with that identifier exists, a password reset link has been sent."
-                    )
-                },
-                status=status.HTTP_200_OK,
-            )
         except DRFValidationError as e:
-            # Handle validation errors from the serializer itself (e.g., field missing, invalid format)
-            # This is a 400 Bad Request scenario.
+            # Handle validation errors from the serializer itself (e.g., field missing)
             logger.warning(f"Password reset request validation failed: {e.detail}")
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            # Catch any other unexpected errors during the *view's* execution
-            # (e.g., problems accessing settings, although utility should handle mail errors)
+            # Catch any other unexpected errors
+            identifier = request.data.get("identifier", "N/A")
             logger.exception(
-                f"Unexpected error during password reset request for identifier '{request.data.get('identifier', 'N/A')}': {e}"
+                f"Unexpected error during password reset request for identifier '{identifier}': {e}"
             )
-            # Return a 500 but with a generic message if possible
             return Response(
                 {"detail": _("An unexpected error occurred.")},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
