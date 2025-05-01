@@ -1,9 +1,12 @@
 from rest_framework import serializers
 from taggit.serializers import TagListSerializerField, TaggitSerializer
-from ..models import BlogPost, BlogAdviceRequest, PostStatusChoices
-from apps.users.api.serializers import (
-    SimpleUserSerializer,
-)  # Assuming this exists for author info
+from ..models import (
+    BlogPost,
+    BlogAdviceRequest,
+)
+
+# Assuming this exists for author info and is lightweight
+# from apps.users.api.serializers import SimpleUserSerializer
 
 
 class BlogPostListSerializer(TaggitSerializer, serializers.ModelSerializer):
@@ -12,7 +15,10 @@ class BlogPostListSerializer(TaggitSerializer, serializers.ModelSerializer):
     tags = TagListSerializerField(read_only=True)
     # Use the property from the model for consistent author display name
     author_name = serializers.CharField(source="author_display_name", read_only=True)
-    excerpt = serializers.CharField(read_only=True)  # Use the model property
+    # Use the model property directly for the excerpt
+    excerpt = serializers.CharField(
+        read_only=True
+    )  # No 'source' needed if property name matches field name
 
     class Meta:
         model = BlogPost
@@ -25,13 +31,6 @@ class BlogPostListSerializer(TaggitSerializer, serializers.ModelSerializer):
             "excerpt",
             "tags",
         ]
-        read_only_fields = fields  # This serializer is read-only
-
-    def get_excerpt(self, obj: BlogPost) -> str:
-        """Call the model's get_excerpt method."""
-        # You can optionally specify the word count here if needed,
-        # otherwise it uses the model method's default (30).
-        return obj.get_excerpt()
 
 
 class BlogPostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
@@ -48,68 +47,46 @@ class BlogPostDetailSerializer(TaggitSerializer, serializers.ModelSerializer):
             "id",
             "title",
             "slug",
-            "author_name",  # Changed from 'author'
-            "published_at",
+            "author_name",
             "content",
+            "published_at",
             "tags",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = fields  # This serializer is read-only
+        # read_only_fields = fields # Not needed if all fields listed are read-only by definition/attribute
 
 
 class BlogAdviceRequestSerializer(serializers.ModelSerializer):
     """Serializer for creating Blog Advice Requests."""
 
+    # Automatically set the user based on the request, not exposed in API input
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    # Make problem_type optional in the API request
+    problem_type = serializers.CharField(
+        max_length=255, required=False, allow_blank=True
+    )
 
     class Meta:
         model = BlogAdviceRequest
         fields = [
-            "id",  # Read-only field returned after creation
-            "user",
+            "id",
+            "user",  # Included for completeness, but hidden and read-only on input
             "problem_type",
             "description",
-            "status",  # Read-only, set by default
-            "created_at",  # Read-only
+            "status",
+            "created_at",
+            # Exclude admin-managed fields like response_via, related_*
         ]
         read_only_fields = [
             "id",
+            "user",  # User is set internally, not by API client input
             "status",
             "created_at",
-        ]  # Explicitly mark read-only fields
+        ]
 
-
-# --- Admin Serializers (Example - these would live in admin_panel app) ---
-# class AdminBlogPostSerializer(TaggitSerializer, serializers.ModelSerializer):
-#     """ Admin Serializer for full CRUD on Blog Posts """
-#     tags = TagListSerializerField(required=False)
-#     author = serializers.PrimaryKeyRelatedField(
-#         queryset=User.objects.filter(is_staff=True),
-#         required=False, allow_null=True # Assign author explicitly
-#     )
-
-#     class Meta:
-#         model = BlogPost
-#         fields = [
-#             "id", "author", "title", "slug", "content", "status",
-#             "published_at", "tags", "created_at", "updated_at"
-#         ]
-#         read_only_fields = ["id", "created_at", "updated_at"]
-#         extra_kwargs = {
-#             'slug': {'required': False, 'allow_blank': True} # Slug can be auto-generated
-#         }
-
-# class AdminBlogAdviceRequestSerializer(serializers.ModelSerializer):
-#     """ Admin Serializer for managing Blog Advice Requests """
-#     user = serializers.CharField(source='user.username', read_only=True) # Display username
-
-#     class Meta:
-#         model = BlogAdviceRequest
-#         fields = [
-#             "id", "user", "problem_type", "description", "status",
-#             "response_via", "related_support_ticket", "related_blog_post",
-#             "created_at", "updated_at"
-#         ]
-#         read_only_fields = ["id", "user", "problem_type", "description", "created_at", "updated_at"]
-#         # Admin can only update status and links
+    # Optional: Add validation if needed, e.g., ensuring description is not empty
+    # def validate_description(self, value):
+    #     if not value or len(value.strip()) == 0:
+    #         raise serializers.ValidationError(_("Description cannot be empty."))
+    #     return value

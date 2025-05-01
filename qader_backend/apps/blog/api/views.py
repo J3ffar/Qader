@@ -1,4 +1,4 @@
-from rest_framework import viewsets, mixins, permissions, status
+from rest_framework import viewsets, mixins, permissions, status, generics
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -8,6 +8,10 @@ from drf_spectacular.utils import (
     extend_schema_view,
     OpenApiParameter,
     OpenApiTypes,
+)
+
+from apps.community.api.serializers import (
+    TagSerializer,
 )  # Import necessary decorators and types
 
 from ..models import BlogPost, BlogAdviceRequest, PostStatusChoices
@@ -108,3 +112,64 @@ class BlogAdviceRequestViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet)
     serializer_class = BlogAdviceRequestSerializer
     permission_classes = [IsAuthenticated, IsSubscribed]
     queryset = BlogAdviceRequest.objects.none()  # Create only
+
+
+@extend_schema(
+    summary="List Used Blog Tags",
+    description="Retrieve a list of unique tags currently assigned to one or more *published* blog posts.",
+    responses={status.HTTP_200_OK: TagSerializer(many=True)},
+    tags=["Blog"],  # Assign to the Blog tag group
+)
+class BlogTagListView(generics.ListAPIView):
+    """
+    API view to list all unique tags used in published blog posts.
+    """
+
+    serializer_class = TagSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None  # Uncomment if you don't want pagination for tags
+
+    def get_queryset(self):
+        """
+        Return a queryset of Tag objects that are associated with at least
+        one published BlogPost.
+        """
+        # Find IDs of tags used in published posts
+        published_post_tag_ids = (
+            BlogPost.objects.filter(status=PostStatusChoices.PUBLISHED)
+            .values_list("tags", flat=True)
+            .distinct()
+        )
+
+        # Filter Tag objects by these IDs
+        queryset = Tag.objects.filter(pk__in=published_post_tag_ids).order_by("name")
+        return queryset
+
+
+@extend_schema(
+    summary="List My Advice Requests",
+    description="Retrieve a list of advice requests submitted by the currently authenticated and subscribed user.",
+    responses={
+        status.HTTP_200_OK: BlogAdviceRequestSerializer(many=True),
+        status.HTTP_401_UNAUTHORIZED: None,
+        status.HTTP_403_FORBIDDEN: None,
+    },
+    tags=["Blog"],  # Assign to the Blog tag group
+)
+class MyBlogAdviceRequestListView(generics.ListAPIView):
+    """
+    API view to list advice requests submitted by the currently authenticated user.
+    Requires authentication and subscription.
+    """
+
+    serializer_class = BlogAdviceRequestSerializer
+    permission_classes = [IsAuthenticated, IsSubscribed]
+
+    def get_queryset(self):
+        """
+        Return a queryset filtered to only include requests from the
+        currently authenticated user.
+        """
+        user = self.request.user
+        queryset = BlogAdviceRequest.objects.filter(user=user).order_by("-created_at")
+        return queryset

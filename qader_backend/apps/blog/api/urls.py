@@ -1,6 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import BlogPostViewSet, BlogAdviceRequestViewSet
+from .views import (
+    BlogPostViewSet,
+    BlogAdviceRequestViewSet,
+    BlogTagListView,
+    MyBlogAdviceRequestListView,
+)
 
 app_name = "blog"
 
@@ -16,5 +21,15 @@ urlpatterns = [
         "advice-requests/",
         BlogAdviceRequestViewSet.as_view({"post": "create"}),
         name="advice-request-create",
+    ),
+    path(
+        "my-advice-requests/",
+        MyBlogAdviceRequestListView.as_view(),
+        name="my-advice-requests-list",
+    ),
+    path(
+        "tags/",
+        BlogTagListView.as_view(),
+        name="blog-tags-list",
     ),
 ]

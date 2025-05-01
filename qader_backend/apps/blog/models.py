@@ -1,11 +1,11 @@
 from django.db import models
-from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.conf import settings
 from taggit.managers import TaggableManager
 from django.utils.html import strip_tags
 from django.template.defaultfilters import truncatewords_html
+from django.utils.text import slugify  # Import slugify here
 
 # Assuming support and users apps exist as defined in settings
 # Import related models cautiously to avoid circular dependencies if possible
@@ -82,37 +82,57 @@ class BlogPost(models.Model):
     def __str__(self):
         return self.title
 
-    def get_excerpt(self, words=30) -> str:  # Should just be 'def', not '@property'
+    @property
+    def excerpt(self, words=30) -> str:  # Changed to property
         """Generates a short plain text excerpt from the content."""
-        return truncatewords_html(strip_tags(self.content or ""), words)
+        # Ensure content is treated as a string, even if None
+        content_str = str(self.content) if self.content is not None else ""
+        return truncatewords_html(strip_tags(content_str), words)
 
     @property
     def author_display_name(self) -> str:
         """Returns the author's preferred name or username, or a default."""
         if self.author:
-            # Check if the related profile exists
-            if hasattr(self.author, "profile") and self.author.profile:
-                return self.author.profile.preferred_name or self.author.username
-            return self.author.username
+            # Check if the related profile exists and use preferred_name if available
+            # Assumes your user model has a related 'profile' object with 'preferred_name'
+            if (
+                hasattr(self.author, "profile")
+                and self.author.profile
+                and getattr(self.author.profile, "preferred_name", None)
+            ):
+                return self.author.profile.preferred_name
+            return self.author.username  # Fallback to username
         return _("Qader Team")  # Default if no author assigned
 
     def save(self, *args, **kwargs):
         # Auto-populate slug from title if empty
         if not self.slug and self.title:
-            from django.utils.text import slugify
-
             self.slug = slugify(self.title)[:255]
             # Ensure uniqueness
             original_slug = self.slug
             counter = 1
-            while BlogPost.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
-                self.slug = f"{original_slug}-{counter}"[:255]
+            # Check for existing slugs, excluding the current instance if it's already saved
+            queryset = BlogPost.objects.filter(slug=self.slug)
+            if self.pk:
+                queryset = queryset.exclude(pk=self.pk)
+
+            while queryset.exists():
+                max_len = (
+                    255 - len(str(counter)) - 1
+                )  # Max length considering counter and hyphen
+                self.slug = f"{original_slug[:max_len]}-{counter}"
                 counter += 1
+                # Update queryset for the next check
+                queryset = BlogPost.objects.filter(slug=self.slug)
+                if self.pk:
+                    queryset = queryset.exclude(pk=self.pk)
 
         # Set published_at when status changes to published
+        # Check the instance state before saving if possible (requires fetching original object)
+        # Simple approach: Only set if status is published AND published_at is not already set
         if self.status == PostStatusChoices.PUBLISHED and not self.published_at:
             self.published_at = timezone.now()
-        # Clear published_at if status changes away from published (optional behavior)
+        # Optional: Clear published_at if status changes away from published
         # elif self.status != PostStatusChoices.PUBLISHED and self.published_at:
         #     self.published_at = None
 
@@ -134,7 +154,7 @@ class BlogAdviceRequest(models.Model):
         max_length=255,
         blank=True,
         null=True,
-        help_text=_("Type of problem or topic user needs advice on."),
+        help_text=_("Optional: Type of problem or topic user needs advice on."),
     )
     description = models.TextField(
         _("Description"), help_text=_("Detailed description of the issue/request.")
@@ -182,4 +202,5 @@ class BlogAdviceRequest(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Advice request from {self.user.username} ({self.get_status_display()})"
+        username = getattr(self.user, "username", "Unknown User")
+        return f"Advice request from {username} ({self.get_status_display()})"
