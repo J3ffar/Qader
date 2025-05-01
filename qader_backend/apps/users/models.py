@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -227,6 +228,13 @@ class UserProfile(models.Model):
         _("Longest Study Streak (Days)"), default=0
     )
     # Consider if this should be updated by study app signals
+    language = models.CharField(
+        _("Preferred Language"),
+        max_length=5,  # e.g., 'en', 'ar', 'en-us'
+        choices=settings.LANGUAGES,  # Use LANGUAGES from settings
+        default=settings.LANGUAGE_CODE,  # Default to site's default language
+        help_text=_("User's preferred language for emails and interface elements."),
+    )
     last_study_activity_at = models.DateTimeField(
         _("Last Study Activity At"),
         null=True,

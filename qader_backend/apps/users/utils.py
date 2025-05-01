@@ -13,7 +13,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, override
 from decouple import config
 from django.core.exceptions import ValidationError as DjangoValidationError
 
@@ -110,41 +110,60 @@ def send_password_reset_email(user: User, context: dict = None):
     Sends the standard password reset email to a user.
     Can be used by both public and admin reset views.
     """
+    if not user or not user.email:
+        logger.error(
+            "Attempted to send password reset email to invalid user or user without email."
+        )
+        return False
+
+    # Determine the language to use
+    language_code = settings.LANGUAGE_CODE
+
     try:
         token = default_token_generator.make_token(user)
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-        # Get frontend URL from settings/config
         frontend_base_url = getattr(
             settings, "FRONTEND_BASE_URL", "http://localhost:3000"
-        )  # Use settings
+        )
         password_reset_path = getattr(
             settings, "FRONTEND_PASSWORD_RESET_PATH", "/reset-password-confirm"
-        )  # Use settings
-        reset_link = f"{frontend_base_url}{password_reset_path}/{uidb64}/{token}/"
+        )
+        reset_link = (
+            f"{frontend_base_url.rstrip('/')}{password_reset_path}/{uidb64}/{token}/"
+        )
 
-        # Prepare email context - merge provided context with defaults
         email_context = {
             "email": user.email,
             "username": user.username,
             "reset_link": reset_link,
-            "site_name": getattr(
-                settings, "SITE_NAME", "Qader Platform"
-            ),  # Get from settings?
+            "site_name": settings.SITE_NAME,  # SITE_NAME is already lazy translated
             "user": user,
-            **(context or {}),  # Merge any additional context provided
+            **(context or {}),
         }
-        subject = render_to_string(
-            "emails/password_reset_subject.txt", email_context
-        ).strip()
-        html_body = render_to_string("emails/password_reset_body.html", email_context)
-        text_body = render_to_string("emails/password_reset_body.txt", email_context)
+
+        # Activate the user's language for template rendering
+        with override(language_code):
+            subject = render_to_string(
+                "emails/password_reset_subject.txt", email_context
+            ).strip()
+            html_body = render_to_string(
+                "emails/password_reset_body.html", email_context
+            )
+            text_body = render_to_string(
+                "emails/password_reset_body.txt", email_context
+            )
 
         msg = EmailMultiAlternatives(
-            subject, text_body, settings.DEFAULT_FROM_EMAIL, [user.email]
+            subject,  # Subject is now translated
+            text_body,  # Body is now translated
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
         )
-        msg.attach_alternative(html_body, "text/html")
+        msg.attach_alternative(html_body, "text/html")  # HTML body also translated
         msg.send()
-        logger.info(f"Password reset email sent successfully to {user.email}")
+        logger.info(
+            f"Password reset email sent successfully to {user.email} in language '{language_code}'."
+        )
         return True
     except Exception as e:
         logger.exception(f"Error sending password reset email to {user.email}: {e}")
@@ -161,49 +180,58 @@ def send_confirmation_email(user: User, request=None, context: dict = None):
         )
         return False
 
+    language_code = settings.LANGUAGE_CODE
+
     try:
         token = default_token_generator.make_token(user)
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-
-        # Construct confirmation URL using frontend settings
         frontend_base_url = getattr(
             settings, "FRONTEND_BASE_URL", "http://localhost:3000"
-        )  # Default for dev
+        )
         confirmation_path = getattr(
             settings, "FRONTEND_EMAIL_CONFIRMATION_PATH", "/confirm-email"
-        )  # e.g., /confirm-email
-        # Ensure no double slashes
+        )
         confirmation_link = (
             f"{frontend_base_url.rstrip('/')}{confirmation_path}/{uidb64}/{token}/"
         )
 
+        # Get full_name safely, defaulting if profile doesn't exist yet (common during signup)
+        full_name = "User"  # Default
+        try:
+            if hasattr(user, "profile") and user.profile.full_name:
+                full_name = user.profile.full_name
+        except Exception:  # Catch DoesNotExist or other issues
+            pass  # Keep default full_name
+
         email_context = {
             "email": user.email,
-            # Username might not be set if email is the identifier, adjust as needed
             "username": getattr(user, "username", user.email),
-            "full_name": getattr(
-                user.profile, "full_name", "User"
-            ),  # Get full name if available
+            "full_name": full_name,
             "confirmation_link": confirmation_link,
-            "site_name": getattr(settings, "SITE_NAME", "Qader Platform"),
+            "site_name": settings.SITE_NAME,  # Already lazy translated
             "user": user,
             **(context or {}),
         }
-        subject = render_to_string(
-            "emails/confirmation_subject.txt", email_context
-        ).strip()
-        html_body = render_to_string("emails/confirmation_body.html", email_context)
-        text_body = render_to_string("emails/confirmation_body.txt", email_context)
+
+        # Activate the language for template rendering
+        with override(language_code):
+            subject = render_to_string(
+                "emails/confirmation_subject.txt", email_context
+            ).strip()
+            html_body = render_to_string("emails/confirmation_body.html", email_context)
+            text_body = render_to_string("emails/confirmation_body.txt", email_context)
 
         msg = EmailMultiAlternatives(
-            subject,
-            text_body,
-            getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@example.com"),
+            subject,  # Subject is now translated
+            text_body,  # Body is now translated
+            settings.DEFAULT_FROM_EMAIL,
             [user.email],
         )
-        msg.attach_alternative(html_body, "text/html")
+        msg.attach_alternative(html_body, "text/html")  # HTML body also translated
         msg.send()
-        logger.info(f"Account confirmation email sent successfully to {user.email}")
+        logger.info(
+            f"Account confirmation email sent successfully to {user.email} in language '{language_code}'."
+        )
         return True
     except Exception as e:
         logger.exception(f"Error sending confirmation email to {user.email}: {e}")

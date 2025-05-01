@@ -231,6 +231,7 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
     gender = serializers.ChoiceField(
         choices=GenderChoices.choices, required=True, help_text="User's gender."
     )
+    language = serializers.ChoiceField(choices=settings.LANGUAGES, required=False)
     grade = serializers.CharField(
         max_length=100,
         required=True,
@@ -297,6 +298,7 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
             # ---- Read-Only Fields (Explicitly defined above or listed in read_only_fields) ----
             # These are included in the response automatically or via read_only_fields
             "full_name",
+            "language",
             "points",
             "level_determined",
             "profile_picture_url",  # From SerializerMethodField definition
@@ -467,6 +469,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for retrieving the full UserProfile details (/me/)."""
 
     user = SimpleUserSerializer(read_only=True)
+    language = serializers.CharField(source="get_language_display", read_only=True)
+    language_code = serializers.CharField(source="language", read_only=True)
     level_determined = serializers.BooleanField(read_only=True)
     profile_complete = serializers.BooleanField(
         source="is_profile_complete", read_only=True
@@ -498,6 +502,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "level_determined",
             "profile_complete",
             # Settings
+            "language",
+            "language_code",
             "last_visited_study_option",
             "dark_mode_preference",
             "dark_mode_auto_enabled",
@@ -530,6 +536,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
     # Explicitly list allowed fields and make them optional for PATCH
     full_name = serializers.CharField(required=False, max_length=255)
+    language = serializers.ChoiceField(choices=settings.LANGUAGES, required=False)
     preferred_name = serializers.CharField(
         required=False, allow_blank=True, allow_null=True, max_length=100
     )
@@ -563,6 +570,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = (
             "full_name",
+            "language",
             "preferred_name",
             "gender",
             "grade",

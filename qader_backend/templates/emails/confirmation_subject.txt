@@ -1,1 +1,2 @@
-{% block subject %}{% autoescape off %}Account Activation for {{ site_name }}{% endautoescape %}{% endblock subject %}
+{% load i18n %}
+{% block subject %}{% autoescape off %}{% blocktrans with site_name=site_name %}Account Activation for {{ site_name }}{% endblocktrans %}{% endautoescape %}{% endblock subject %}
