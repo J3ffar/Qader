@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -28,6 +28,13 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) return null;
 
   const menuItems = [
     {
@@ -38,7 +45,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     {
       label: "التعلم بالطرق التقليدية",
       icon: <BookOpenIcon className="w-6 h-6" />,
-      link: "/user/traditional-learning",
+      link: "/student/traditional",
     },
     {
       label: "التعلم عبر المحادثة",
@@ -162,13 +169,8 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
       {/* صورة المستخدم */}
       <div className="flex flex-col items-center py-6 border-b border-white/20">
-        <div className="  mb-2">
-          <Image
-            src="/images/logo.svg"
-            width={120}
-            height={120}
-            alt=""
-          />
+        <div className="mb-2">
+          <Image src="/images/logo.svg" width={120} height={120} alt="" />
         </div>
         <AnimatePresence>
           {isOpen && (
