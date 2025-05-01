@@ -1,0 +1,191 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-01 17:13+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+#: .\apps\blog\apps.py:8
+msgid "Blog Management"
+msgstr ""
+
+#: .\apps\blog\models.py:16
+msgid "Draft"
+msgstr ""
+
+#: .\apps\blog\models.py:17
+msgid "Published"
+msgstr ""
+
+#: .\apps\blog\models.py:18
+msgid "Archived"
+msgstr ""
+
+#: .\apps\blog\models.py:22
+msgid "Submitted"
+msgstr ""
+
+#: .\apps\blog\models.py:23
+msgid "Under Review"
+msgstr ""
+
+#: .\apps\blog\models.py:24
+msgid "Answered via Support"
+msgstr ""
+
+#: .\apps\blog\models.py:25
+msgid "Answered via Notification"
+msgstr ""
+
+#: .\apps\blog\models.py:26
+msgid "Published as Blog Post"
+msgstr ""
+
+#: .\apps\blog\models.py:27
+msgid "Closed"
+msgstr ""
+
+#: .\apps\blog\models.py:31
+msgid "Admin Support Ticket"
+msgstr ""
+
+#: .\apps\blog\models.py:32
+msgid "Platform Notification"
+msgstr ""
+
+#: .\apps\blog\models.py:33
+msgid "Published Blog Post"
+msgstr ""
+
+#: .\apps\blog\models.py:41
+msgid "Author"
+msgstr ""
+
+#: .\apps\blog\models.py:47
+msgid "The staff member who authored this post."
+msgstr ""
+
+#: .\apps\blog\models.py:49
+msgid "Title"
+msgstr ""
+
+#: .\apps\blog\models.py:51
+msgid "Slug"
+msgstr ""
+
+#: .\apps\blog\models.py:55
+msgid "URL-friendly identifier (auto-generated if left blank)."
+msgstr ""
+
+#: .\apps\blog\models.py:58
+msgid "Content"
+msgstr ""
+
+#: .\apps\blog\models.py:59
+msgid "Main content of the post (supports HTML/Markdown)."
+msgstr ""
+
+#: .\apps\blog\models.py:62 .\apps\blog\models.py:163
+msgid "Status"
+msgstr ""
+
+#: .\apps\blog\models.py:69
+msgid "Published At"
+msgstr ""
+
+#: .\apps\blog\models.py:72
+msgid "Tags"
+msgstr ""
+
+#: .\apps\blog\models.py:72
+msgid "Comma-separated tags."
+msgstr ""
+
+#: .\apps\blog\models.py:74 .\apps\blog\models.py:196
+msgid "Created At"
+msgstr ""
+
+#: .\apps\blog\models.py:75 .\apps\blog\models.py:197
+msgid "Updated At"
+msgstr ""
+
+#: .\apps\blog\models.py:78
+msgid "Blog Post"
+msgstr ""
+
+#: .\apps\blog\models.py:79
+msgid "Blog Posts"
+msgstr ""
+
+#: .\apps\blog\models.py:105
+msgid "Qader Team"
+msgstr ""
+
+#: .\apps\blog\models.py:147
+msgid "User"
+msgstr ""
+
+#: .\apps\blog\models.py:150
+msgid "The user requesting advice."
+msgstr ""
+
+#: .\apps\blog\models.py:153
+msgid "Problem Type/Topic"
+msgstr ""
+
+#: .\apps\blog\models.py:157
+msgid "Optional: Type of problem or topic user needs advice on."
+msgstr ""
+
+#: .\apps\blog\models.py:160
+msgid "Description"
+msgstr ""
+
+#: .\apps\blog\models.py:160
+msgid "Detailed description of the issue/request."
+msgstr ""
+
+#: .\apps\blog\models.py:170
+msgid "Response Method"
+msgstr ""
+
+#: .\apps\blog\models.py:175
+msgid "How the user was (or will be) answered."
+msgstr ""
+
+#: .\apps\blog\models.py:180
+msgid "Related Support Ticket"
+msgstr ""
+
+#: .\apps\blog\models.py:185
+msgid "Link if this request was answered via a support ticket."
+msgstr ""
+
+#: .\apps\blog\models.py:189
+msgid "Related Blog Post"
+msgstr ""
+
+#: .\apps\blog\models.py:194
+msgid "Link if this request resulted in a published blog post."
+msgstr ""
+
+#: .\apps\blog\models.py:200
+msgid "Blog Advice Request"
+msgstr ""
+
+#: .\apps\blog\models.py:201
+msgid "Blog Advice Requests"
+msgstr ""

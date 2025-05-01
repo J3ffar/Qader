@@ -1,0 +1,308 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-01 17:13+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+#: .\apps\challenges\api\serializers.py:122
+#: .\apps\challenges\api\serializers.py:133
+msgid "You cannot challenge yourself."
+msgstr ""
+
+#: .\apps\challenges\api\serializers.py:129
+msgid "Opponent user not found or inactive."
+msgstr ""
+
+#: .\apps\challenges\api\serializers.py:165
+msgid "Failed to start challenge due to an internal error."
+msgstr ""
+
+#: .\apps\challenges\api\serializers.py:210
+msgid "Invalid question ID for this challenge."
+msgstr ""
+
+#: .\apps\challenges\models.py:18
+msgid "Quick Quant (10 Q)"
+msgstr ""
+
+#: .\apps\challenges\models.py:19
+msgid "Medium Verbal (15 Q, No Hints)"
+msgstr ""
+
+#: .\apps\challenges\models.py:20
+msgid "Comprehensive (20 Q)"
+msgstr ""
+
+#: .\apps\challenges\models.py:21
+msgid "Speed Challenge (5 Min)"
+msgstr ""
+
+#: .\apps\challenges\models.py:22
+msgid "Accuracy Challenge"
+msgstr ""
+
+#: .\apps\challenges\models.py:23
+msgid "Custom"
+msgstr ""
+
+#: .\apps\challenges\models.py:28
+msgid "Pending Invite"
+msgstr ""
+
+#: .\apps\challenges\models.py:31
+msgid "Pending Matchmaking"
+msgstr ""
+
+#: .\apps\challenges\models.py:34
+msgid "Accepted / Waiting Start"
+msgstr ""
+
+#: .\apps\challenges\models.py:36
+msgid "Ongoing"
+msgstr ""
+
+#: .\apps\challenges\models.py:37
+msgid "Completed"
+msgstr ""
+
+#: .\apps\challenges\models.py:38
+msgid "Declined"
+msgstr ""
+
+#: .\apps\challenges\models.py:39
+msgid "Cancelled"
+msgstr ""
+
+#: .\apps\challenges\models.py:40
+msgid "Expired"
+msgstr ""
+
+#: .\apps\challenges\models.py:50
+msgid "Challenger"
+msgstr ""
+
+#: .\apps\challenges\models.py:57
+msgid "Opponent"
+msgstr ""
+
+#: .\apps\challenges\models.py:63
+msgid "challenge type"
+msgstr ""
+
+#: .\apps\challenges\models.py:66
+msgid "Identifier for the predefined type of challenge."
+msgstr ""
+
+#: .\apps\challenges\models.py:69
+msgid "status"
+msgstr ""
+
+#: .\apps\challenges\models.py:77
+msgid "challenge configuration"
+msgstr ""
+
+#: .\apps\challenges\models.py:78
+msgid "Specific parameters for this challenge instance."
+msgstr ""
+
+#: .\apps\challenges\models.py:82
+msgid "question IDs"
+msgstr ""
+
+#: .\apps\challenges\models.py:84
+msgid "Ordered list of question IDs included in this challenge."
+msgstr ""
+
+#: .\apps\challenges\models.py:90
+msgid "Winner"
+msgstr ""
+
+#: .\apps\challenges\models.py:94 .\apps\challenges\models.py:186
+msgid "created at"
+msgstr ""
+
+#: .\apps\challenges\models.py:95
+msgid "accepted at"
+msgstr ""
+
+#: .\apps\challenges\models.py:97
+msgid "started at"
+msgstr ""
+
+#: .\apps\challenges\models.py:99
+msgid "completed at"
+msgstr ""
+
+#: .\apps\challenges\models.py:103
+msgid "Challenger Points Awarded"
+msgstr ""
+
+#: .\apps\challenges\models.py:106
+msgid "Opponent Points Awarded"
+msgstr ""
+
+#: .\apps\challenges\models.py:110 .\apps\challenges\models.py:160
+msgid "Challenge"
+msgstr ""
+
+#: .\apps\challenges\models.py:111
+msgid "Challenges"
+msgstr ""
+
+#: .\apps\challenges\models.py:116
+msgid "Random/Pending"
+msgstr ""
+
+#: .\apps\challenges\models.py:167
+msgid "User"
+msgstr ""
+
+#: .\apps\challenges\models.py:170
+msgid "score"
+msgstr ""
+
+#: .\apps\challenges\models.py:174
+msgid "is ready"
+msgstr ""
+
+#: .\apps\challenges\models.py:177
+msgid ""
+"Indicates if the user has joined the challenge screen and is ready to start."
+msgstr ""
+
+#: .\apps\challenges\models.py:181
+msgid "user start time"
+msgstr ""
+
+#: .\apps\challenges\models.py:184
+msgid "user end time"
+msgstr ""
+
+#: .\apps\challenges\models.py:187
+msgid "updated at"
+msgstr ""
+
+#: .\apps\challenges\models.py:194
+msgid "Question Attempts in this Challenge"
+msgstr ""
+
+#: .\apps\challenges\models.py:198
+msgid "Challenge Attempt"
+msgstr ""
+
+#: .\apps\challenges\models.py:199
+msgid "Challenge Attempts"
+msgstr ""
+
+#: .\apps\challenges\services.py:31
+msgid "Quick Quant Challenge"
+msgstr ""
+
+#: .\apps\challenges\services.py:40
+msgid "Medium Verbal Challenge"
+msgstr ""
+
+#: .\apps\challenges\services.py:49
+msgid "Comprehensive Challenge"
+msgstr ""
+
+#: .\apps\challenges\services.py:129
+msgid "Invalid challenger user."
+msgstr ""
+
+#: .\apps\challenges\services.py:137
+msgid "Invalid challenge type specified."
+msgstr ""
+
+#: .\apps\challenges\services.py:142
+msgid "Could not find suitable questions for this challenge type."
+msgstr ""
+
+#: .\apps\challenges\services.py:152
+msgid "Invalid opponent user specified."
+msgstr ""
+
+#: .\apps\challenges\services.py:154
+#, python-brace-format
+msgid "Challenge issued to {username}!"
+msgstr ""
+
+#: .\apps\challenges\services.py:164
+#, python-brace-format
+msgid "Random challenge started with {username}!"
+msgstr ""
+
+#: .\apps\challenges\services.py:170
+msgid "Searching for a random opponent..."
+msgstr ""
+
+#: .\apps\challenges\services.py:197 .\apps\challenges\services.py:213
+msgid "You are not the invited opponent."
+msgstr ""
+
+#: .\apps\challenges\services.py:199 .\apps\challenges\services.py:215
+msgid "Challenge is not pending invitation."
+msgstr ""
+
+#: .\apps\challenges\services.py:228
+msgid "Only the challenger can cancel."
+msgstr ""
+
+#: .\apps\challenges\services.py:233
+msgid "Challenge cannot be cancelled in its current state."
+msgstr ""
+
+#: .\apps\challenges\services.py:246 .\apps\challenges\services.py:289
+msgid "You are not a participant in this challenge."
+msgstr ""
+
+#: .\apps\challenges\services.py:248
+msgid "Challenge is not in a state to be started."
+msgstr ""
+
+#: .\apps\challenges\services.py:291
+msgid "Challenge is not ongoing."
+msgstr ""
+
+#: .\apps\challenges\services.py:293
+msgid "Invalid question for this challenge."
+msgstr ""
+
+#: .\apps\challenges\services.py:298
+msgid "Question not found."
+msgstr ""
+
+#: .\apps\challenges\services.py:308
+msgid "You have already answered this question in this challenge."
+msgstr ""
+
+#: .\apps\challenges\services.py:436 .\apps\challenges\services.py:456
+#, python-brace-format
+msgid "Challenge #{cid} vs {opp} - Result: {res}"
+msgstr ""
+
+#: .\apps\challenges\services.py:485
+msgid "Can only rematch completed challenges."
+msgstr ""
+
+#: .\apps\challenges\services.py:488
+msgid "You were not a participant in the original challenge."
+msgstr ""
+
+#: .\apps\challenges\services.py:499
+msgid "Cannot rematch this challenge (missing opponent)."
+msgstr ""

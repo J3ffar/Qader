@@ -1,25 +1,26 @@
-# apps/study/admin.py
-
-from django.contrib import admin
+from typing import Any, Optional  # For type hints
+from django.contrib import admin, messages  # Import messages for actions
+from django.db.models import QuerySet  # For type hints
+from django.http import HttpRequest  # For type hints
 from django.urls import reverse
 from django.utils.html import format_html
-from django.utils.translation import gettext_lazy as _
+
+# Removed: from django.utils.translation import gettext_lazy as _
 from django.contrib.admin import DateFieldListFilter
 
-from .models import Test, UserTestAttempt, UserQuestionAttempt
+from .models import (
+    Test,
+    UserTestAttempt,
+    UserQuestionAttempt,
+)  # Assuming TestStatusChoices is not needed for this version
 from apps.learning.models import Question  # Import Question to link to it
 
 
 class UserQuestionAttemptInline(admin.TabularInline):
-    """
-    Inline admin configuration for viewing UserQuestionAttempts
-    within a UserTestAttempt.
-    """
-
     model = UserQuestionAttempt
-    extra = 0  # Don't show extra empty forms
-    can_delete = False  # Don't allow deleting individual attempts from here
-    show_change_link = True  # Allow clicking to the individual attempt admin view
+    extra = 0
+    can_delete = False
+    show_change_link = True
 
     fields = (
         "question_link",
@@ -29,91 +30,93 @@ class UserQuestionAttemptInline(admin.TabularInline):
         "mode",
         "attempted_at",
     )
-    readonly_fields = fields  # Make all fields read-only in the inline view
+    readonly_fields = fields
 
-    # Define the custom method to link to the Question admin
-    def question_link(self, obj):
+    @admin.display(description="Question")  # Plain string
+    def question_link(self, obj: UserQuestionAttempt) -> str:
         if obj.question_id:
             try:
-                # Ensure the related Question model is registered in its app's admin
                 question_admin_url = reverse(
                     "admin:learning_question_change", args=[obj.question.pk]
                 )
                 return format_html(
                     '<a href="{}">Q: {}</a>', question_admin_url, obj.question.pk
                 )
-            except Exception:  # Catch NoReverseMatch or other errors
-                return f"Q: {obj.question.pk} (Link Error)"
-        return _("N/A")
+            except Exception:
+                return f"Q: {obj.question.pk} (Link Error)"  # Plain string
+        return "N/A"  # Plain string
 
-    question_link.short_description = _("Question")
-
-    # Improve performance by selecting related question data if needed often
-    # Not strictly necessary for just the link, but good practice if showing question text etc.
-    # autocomplete_fields = ['question'] # Alternative if you want search lookup
-
-    def has_add_permission(self, request, obj=None):
-        # Prevent adding new attempts directly from the inline
+    def has_add_permission(
+        self, request: HttpRequest, obj: Optional[UserTestAttempt] = None
+    ) -> bool:
         return False
 
 
 @admin.register(Test)
 class TestAdmin(admin.ModelAdmin):
-    """Admin configuration for Test Definitions."""
-
     list_display = (
         "name",
         "test_type",
         "is_predefined",
-        "question_count",
+        "question_count_display",  # Use display method
         "created_at",
-        "updated_at",
     )
     list_filter = ("test_type", "is_predefined", "created_at")
     search_fields = ("name", "description")
-    filter_horizontal = ("questions",)  # Use better widget for M2M selection
-    readonly_fields = ("created_at", "updated_at", "question_count")
+    filter_horizontal = ("questions",)
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "question_count_display",
+    )  # Use display method here too
     ordering = ("name",)
 
-    fieldsets = (
-        (None, {"fields": ("name", "test_type", "description", "is_predefined")}),
-        (
-            _("Configuration"),
-            {
-                "fields": ("configuration", "questions"),
-                "description": _(
-                    "Define either dynamic configuration rules OR link specific questions if 'is predefined' is checked."
-                ),
-            },
-        ),
-        (
-            _("Metadata"),
-            {
-                "fields": ("question_count", "created_at", "updated_at"),
-                "classes": ("collapse",),  # Keep metadata collapsed by default
-            },
-        ),
-    )
+    # Use get_fieldsets for conditional display
+    def get_fieldsets(
+        self, request: HttpRequest, obj: Optional[Test] = None
+    ) -> list[tuple[Optional[str], dict[str, Any]]]:
+        base_fieldsets = [
+            (None, {"fields": ("name", "test_type", "description", "is_predefined")}),
+        ]
+        if obj and obj.is_predefined:
+            base_fieldsets.append(
+                (
+                    "Predefined Questions",
+                    {"fields": ("questions", "question_count_display")},
+                )  # Plain string
+            )
+        else:  # Dynamic test (or new test defaulting to dynamic)
+            base_fieldsets.append(
+                (
+                    "Dynamic Configuration",
+                    {"fields": ("configuration",)},
+                )  # Plain string
+            )
 
-    def question_count(self, obj):
-        """Calculates the number of questions linked to a predefined test."""
-        if obj.is_predefined:
-            return obj.questions.count()
-        return _("N/A (Dynamic)")
+        base_fieldsets.append(
+            (
+                "Metadata",
+                {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
+            ),  # Plain string
+        )
+        return base_fieldsets
 
-    question_count.short_description = _("Question Count (Predefined)")
+    @admin.display(description="Question Count (Predefined)")  # Plain string
+    def question_count_display(self, obj: Optional[Test]) -> str:
+        if obj and obj.is_predefined:
+            return str(obj.question_count)
+        return "N/A (Dynamic)"  # Plain string
 
 
 @admin.register(UserTestAttempt)
 class UserTestAttemptAdmin(admin.ModelAdmin):
-    """Admin configuration for User Test Attempts."""
-
     list_display = (
         "id",
         "user_link",
         "attempt_type",
+        "test_definition_link",  # Added test name link
         "status",
-        "score_percentage",
+        "score_percentage_display",  # Use display method
         "start_time",
         "end_time",
         "num_questions",
@@ -121,34 +124,34 @@ class UserTestAttemptAdmin(admin.ModelAdmin):
     list_filter = (
         "status",
         "attempt_type",
-        ("start_time", DateFieldListFilter),  # Use date hierarchy filter
-        # Add user filter if needed, but can be slow with many users
-        # 'user',
+        ("start_time", DateFieldListFilter),
     )
-    search_fields = ("user__username", "user__email", "id")
+    search_fields = (
+        "user__username",
+        "user__email",
+        "id",
+        "test_definition__name",
+    )  # Added test name search
     ordering = ("-start_time",)
     readonly_fields = (
         "id",
         "user_link",
-        "test_definition",
+        "test_definition_link",  # Added
         "attempt_type",
         "test_configuration",
         "question_ids",
         "start_time",
         "end_time",
-        "score_percentage",
+        "score_percentage_display",  # Added
         "score_verbal",
         "score_quantitative",
         "results_summary",
         "created_at",
         "updated_at",
-        "num_questions",  # Make property read-only
-        "duration_seconds",  # Make property read-only
+        "num_questions",
+        "duration_seconds",
     )
-    list_select_related = (
-        "user",
-        "test_definition",
-    )  # Optimize fetching user/test info for list display
+    list_select_related = ("user", "test_definition")
 
     fieldsets = (
         (
@@ -159,16 +162,16 @@ class UserTestAttemptAdmin(admin.ModelAdmin):
                     "user_link",
                     "attempt_type",
                     "status",
-                    "test_definition",
+                    "test_definition_link",
                 )
             },
         ),
         (
-            _("Configuration & Content"),
+            "Configuration & Content",
             {"fields": ("test_configuration", "question_ids", "num_questions")},
-        ),
+        ),  # Plain string
         (
-            _("Timestamps & Duration"),
+            "Timestamps & Duration",
             {
                 "fields": (
                     "start_time",
@@ -176,26 +179,27 @@ class UserTestAttemptAdmin(admin.ModelAdmin):
                     "duration_seconds",
                     "created_at",
                     "updated_at",
-                ),
+                )
             },
-        ),
+        ),  # Plain string
         (
-            _("Scores & Results"),
+            "Scores & Results",
             {
                 "fields": (
-                    "score_percentage",
+                    "score_percentage_display",
                     "score_verbal",
                     "score_quantitative",
                     "results_summary",
                 ),
-                "classes": ("collapse",),  # Collapse scores/results by default
+                "classes": ("collapse",),
             },
-        ),
+        ),  # Plain string
     )
-    inlines = [UserQuestionAttemptInline]  # Show related question attempts
+    inlines = [UserQuestionAttemptInline]
+    actions = ["mark_as_reviewed"]  # Example action
 
-    # Custom method to link to the User admin page
-    def user_link(self, obj):
+    @admin.display(description="User", ordering="user__username")  # Plain string
+    def user_link(self, obj: UserTestAttempt) -> str:
         if obj.user_id:
             try:
                 user_admin_url = reverse("admin:auth_user_change", args=[obj.user.pk])
@@ -203,58 +207,91 @@ class UserTestAttemptAdmin(admin.ModelAdmin):
                     '<a href="{}">{}</a>', user_admin_url, obj.user.username
                 )
             except Exception:
-                return obj.user.username  # Fallback if link fails
-        return _("N/A")
+                return obj.user.username
+        return "N/A"  # Plain string
 
-    user_link.short_description = _("User")
+    @admin.display(
+        description="Test Definition", ordering="test_definition__name"
+    )  # Plain string
+    def test_definition_link(self, obj: UserTestAttempt) -> str:
+        if obj.test_definition_id:
+            try:
+                test_admin_url = reverse(
+                    "admin:study_test_change", args=[obj.test_definition.pk]
+                )
+                return format_html(
+                    '<a href="{}">{}</a>', test_admin_url, obj.test_definition.name
+                )
+            except Exception:
+                return (
+                    obj.test_definition.name if obj.test_definition else "N/A"
+                )  # Plain string
+        return "N/A"  # Plain string
 
-    # Prevent adding or changing test attempts directly via admin (should be system-generated)
-    def has_add_permission(self, request):
+    @admin.display(description="Score (%)", ordering="score_percentage")  # Plain string
+    def score_percentage_display(self, obj: UserTestAttempt) -> str:
+        if obj.score_percentage is not None:
+            return f"{obj.score_percentage:.1f}%"
+        return "N/A"  # Plain string
+
+    # --- Example Admin Action ---
+    @admin.action(description="Mark selected attempts as Reviewed")  # Plain string
+    def mark_as_reviewed(
+        self, request: HttpRequest, queryset: QuerySet[UserTestAttempt]
+    ):
+        # Example: Update status if there was a 'REVIEWED' status
+        # updated_count = queryset.update(status=TestStatusChoices.REVIEWED) # Assuming REVIEWED exists
+        # self.message_user(request, f"{updated_count} attempts marked as reviewed.", messages.SUCCESS)
+
+        # Placeholder if no 'REVIEWED' status exists
+        updated_count = queryset.count()  # Just count them for the message
+        self.message_user(
+            request,
+            f"Action triggered for {updated_count} attempts (no status change implemented).",
+            messages.WARNING,
+        )  # Plain string
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
         return False
-
-    # Allow changes only if absolutely necessary for debugging/fixing specific fields (e.g., status)
-    # def has_change_permission(self, request, obj=None):
-    #     return False # Or conditionally allow based on user permissions
 
 
 @admin.register(UserQuestionAttempt)
 class UserQuestionAttemptAdmin(admin.ModelAdmin):
-    """Admin configuration for individual User Question Attempts."""
-
     list_display = (
         "id",
         "user_link",
         "question_link",
         "test_attempt_link",
-        "mode",
+        "selected_answer_display",  # Added
+        "correct_answer_display",  # Added
         "is_correct",
+        "mode",
         "attempted_at",
     )
     list_filter = (
         "mode",
         "is_correct",
         ("attempted_at", DateFieldListFilter),
-        # Add user/question filters if needed, but can be slow
-        # 'user',
-        # 'question__subsection__section',
-        # 'question__subsection',
     )
-    search_fields = ("user__username", "user__email", "question__question_text", "id")
+    search_fields = (
+        "user__username",
+        "user__email",
+        "question__question_text",
+        "id",
+        "test_attempt__id",
+    )  # Added test attempt id search
     ordering = ("-attempted_at",)
-    # All fields represent historical data, make them read-only
     readonly_fields = [f.name for f in UserQuestionAttempt._meta.fields] + [
+        "user_link",
         "question_link",
         "test_attempt_link",
-        "user_link",
+        "selected_answer_display",
+        "correct_answer_display",
     ]
-    list_select_related = (
-        "user",
-        "question",
-        "test_attempt",
-    )  # Optimize list view queries
+    list_select_related = ("user", "question", "test_attempt")
 
-    # Custom method to link to the User admin page
-    def user_link(self, obj):
+    @admin.display(description="User", ordering="user__username")  # Plain string
+    def user_link(self, obj: UserQuestionAttempt) -> str:
         if obj.user_id:
             try:
                 user_admin_url = reverse("admin:auth_user_change", args=[obj.user.pk])
@@ -262,19 +299,16 @@ class UserQuestionAttemptAdmin(admin.ModelAdmin):
                     '<a href="{}">{}</a>', user_admin_url, obj.user.username
                 )
             except Exception:
-                return obj.user.username  # Fallback if link fails
-        return _("N/A")
+                return obj.user.username
+        return "N/A"  # Plain string
 
-    user_link.short_description = _("User")
-
-    # Custom method to link to the Question admin page
-    def question_link(self, obj):
+    @admin.display(description="Question", ordering="question__pk")  # Plain string
+    def question_link(self, obj: UserQuestionAttempt) -> str:
         if obj.question_id:
             try:
                 question_admin_url = reverse(
                     "admin:learning_question_change", args=[obj.question.pk]
                 )
-                # Show first ~30 chars of question text for context if available
                 q_text = obj.question.question_text[:30] + (
                     "..." if len(obj.question.question_text) > 30 else ""
                 )
@@ -285,13 +319,13 @@ class UserQuestionAttemptAdmin(admin.ModelAdmin):
                     q_text,
                 )
             except Exception:
-                return f"Q: {obj.question.pk} (Link Error)"
-        return _("N/A")
+                return f"Q: {obj.question.pk} (Link Error)"  # Plain string
+        return "N/A"  # Plain string
 
-    question_link.short_description = _("Question")
-
-    # Custom method to link to the UserTestAttempt admin page
-    def test_attempt_link(self, obj):
+    @admin.display(
+        description="Test Attempt", ordering="test_attempt__pk"
+    )  # Plain string
+    def test_attempt_link(self, obj: UserQuestionAttempt) -> str:
         if obj.test_attempt_id:
             try:
                 attempt_admin_url = reverse(
@@ -303,22 +337,50 @@ class UserQuestionAttemptAdmin(admin.ModelAdmin):
                     obj.test_attempt.pk,
                 )
             except Exception:
-                return f"Attempt: {obj.test_attempt.pk} (Link Error)"
-        return _("N/A (Not part of test)")
+                return f"Attempt: {obj.test_attempt.pk} (Link Error)"  # Plain string
+        # Check if it's a conversational attempt (not linked to a UserTestAttempt)
+        elif (
+            hasattr(obj, "mode") and obj.mode == "conversational"
+        ):  # Assuming you have a 'mode' field
+            return "Conversational"  # Plain string
+        return "N/A"  # Plain string
 
-    test_attempt_link.short_description = _("Test Attempt")
+    @admin.display(description="Selected Answer")  # Plain string
+    def selected_answer_display(self, obj: UserQuestionAttempt) -> str:
+        if (
+            obj.selected_answer
+            and obj.question
+            and hasattr(obj.question, "choices")
+            and obj.question.choices
+        ):
+            choice_text = obj.question.choices.get(
+                obj.selected_answer, obj.selected_answer
+            )
+            return f"{obj.selected_answer}) {choice_text}"
+        return obj.selected_answer or "N/A"  # Plain string
 
-    # Prevent adding or changing question attempts directly via admin
-    def has_add_permission(self, request):
+    @admin.display(description="Correct Answer")  # Plain string
+    def correct_answer_display(self, obj: UserQuestionAttempt) -> str:
+        if obj.question_id and obj.question.correct_answer:
+            if hasattr(obj.question, "choices") and obj.question.choices:
+                correct_choice = obj.question.correct_answer
+                choice_text = obj.question.choices.get(correct_choice, correct_choice)
+                return f"{correct_choice}) {choice_text}"
+            else:
+                return (
+                    obj.question.correct_answer
+                )  # Fallback if choices aren't structured well
+        return "N/A"  # Plain string
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
         return False
 
-    def has_change_permission(self, request, obj=None):
-        return False  # Usually don't want admins changing historical attempts
+    def has_change_permission(
+        self, request: HttpRequest, obj: Optional[UserQuestionAttempt] = None
+    ) -> bool:
+        return False
 
-    def has_delete_permission(self, request, obj=None):
-        return False  # Usually don't want admins deleting historical attempts
-
-
-# Register other models from the study app here later
-# admin.site.register(EmergencyModeSession)
-# admin.site.register(ConversationSession)
+    def has_delete_permission(
+        self, request: HttpRequest, obj: Optional[UserQuestionAttempt] = None
+    ) -> bool:
+        return False

@@ -1,33 +1,20 @@
-{% load i18n %} {% autoescape off %}
+{% load i18n %}
+{% autoescape off %}
 <!DOCTYPE html>
 <html>
   <head>
     {# Translators: Email subject line #}
-    <title>
-      {% blocktrans with site_name=site_name %}Activate Your {{ site_name }}
-      Account{% endblocktrans %}
-    </title>
+    <title>{% blocktrans with site_name=site_name %}Activate Your {{ site_name }} Account{% endblocktrans %}</title>
   </head>
   <body>
-    {# Translators: Email greeting. full_name is the variable for the user's
-    name. #}
-    <p>
-      {% blocktrans with full_name=full_name|default:"User" %}Hi {{ full_name
-      }},{% endblocktrans %}
-    </p>
+    {# Translators: Email greeting. full_name is the variable for the user's name. #}
+    <p>{% blocktrans with full_name=full_name|default:"User" %}Hi {{ full_name }},{% endblocktrans %}</p>
 
-    {# Translators: Email body text thanking user for registering. site_name is
-    the platform name. #}
-    <p>
-      {% blocktrans with site_name=site_name %}Thank you for registering at {{
-      site_name }}!{% endblocktrans %}
-    </p>
+    {# Translators: Email body text thanking user for registering. site_name is the platform name. #}
+    <p>{% blocktrans with site_name=site_name %}Thank you for registering at {{ site_name }}!{% endblocktrans %}</p>
 
     {# Translators: Email body text explaining the activation button. #}
-    <p>
-      {% trans "To activate your account and start your learning journey, please
-      click the button below:" %}
-    </p>
+    <p>{% trans "To activate your account and start your learning journey, please click the button below:" %}</p>
 
     <p style="margin: 20px 0">
       <a
@@ -42,30 +29,19 @@
           border-radius: 5px;
           font-size: 16px;
         "
-        >{# Translators: Text on the account activation button #}{% trans
-        "Activate Account" %}</a
+        >{% trans "Activate Account" %}</a
       >
     </p>
 
-    {# Translators: Email body text providing alternative if button doesn't
-    work. #}
-    <p>
-      {% trans "If clicking the button doesn't work, please copy and paste the
-      following URL into your browser:" %}
-    </p>
+    {# Translators: Email body text providing alternative if button doesn't work. #}
+    <p>{% trans "If clicking the button doesn't work, please copy and paste the following URL into your browser:" %}</p>
     <p><a href="{{ confirmation_link }}">{{ confirmation_link }}</a></p>
 
     {# Translators: Email body text for users who didn't sign up. #}
-    <p>
-      {% trans "If you did not sign up for an account, please ignore this
-      email." %}
-    </p>
+    <p>{% trans "If you did not sign up for an account, please ignore this email." %}</p>
 
     {# Translators: Email closing. site_name is the platform name. #}
-    <p>
-      {% trans "Thanks," %}<br />{% blocktrans with site_name=site_name %}The {{
-      site_name }} Team{% endblocktrans %}
-    </p>
+    <p>{% trans "Thanks," %}<br />{% blocktrans with site_name=site_name %}The {{ site_name }} Team{% endblocktrans %}</p>
   </body>
 </html>
 {% endautoescape %}

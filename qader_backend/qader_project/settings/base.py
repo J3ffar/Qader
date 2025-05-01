@@ -27,7 +27,7 @@ FRONTEND_PASSWORD_RESET_PATH = config(
     "FRONTEND_PASSWORD_RESET_PATH", default="/reset-password-confirm"
 )  # Path before uid/token
 
-SITE_NAME = config("SITE_NAME", default=_("Qader Platform"))
+SITE_NAME = config("SITE_NAME", default=_("Qader"))
 
 # Referral Settings
 REFERRAL_BONUS_DAYS = config("REFERRAL_BONUS_DAYS", default=3, cast=int)

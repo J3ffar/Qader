@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from django.db import transaction
@@ -61,13 +62,44 @@ class Test(models.Model):
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
     updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
+    @property
+    def question_count(self):
+        """Returns the number of questions (only relevant for predefined)."""
+        if self.is_predefined:
+            return self.questions.count()
+        return 0  # Or None? 0 seems safer.
+
+    def clean(self):
+        """
+        Validate Test configuration based on is_predefined.
+        """
+        super().clean()
+        if self.is_predefined:
+            if self.configuration:
+                raise ValidationError(
+                    _(
+                        "Configuration should be empty for predefined tests (select Questions instead)."
+                    )
+                )
+        else:
+            if not self.configuration:
+                raise ValidationError(
+                    _("Configuration must be set for dynamic (non-predefined) tests.")
+                )
+            if self.pk and self.questions.exists():
+                raise ValidationError(
+                    _(
+                        "Questions should not be selected for dynamic tests (use Configuration instead)."
+                    )
+                )
+
+    def __str__(self):
+        return f"{self.name} ({self.get_test_type_display()})"
+
     class Meta:
         verbose_name = _("Test Definition")
         verbose_name_plural = _("Test Definitions")
         ordering = ["name"]
-
-    def __str__(self):
-        return f"{self.get_test_type_display()} - {self.name}"
 
 
 # --- User Attempt Models ---

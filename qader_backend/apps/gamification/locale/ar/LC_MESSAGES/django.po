@@ -1,0 +1,342 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-01 17:13+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+#: .\apps\gamification\admin.py:17
+msgid "Icon"
+msgstr ""
+
+#: .\apps\gamification\admin.py:20 .\apps\gamification\admin.py:68
+msgid "Status"
+msgstr ""
+
+#: .\apps\gamification\admin.py:44
+msgid "Description Snippet"
+msgstr ""
+
+#: .\apps\gamification\admin.py:65
+msgid "Visuals & Assets"
+msgstr ""
+
+#: .\apps\gamification\api\serializers.py:18
+msgid "User's current point balance."
+msgstr ""
+
+#: .\apps\gamification\api\serializers.py:23
+msgid "Number of consecutive study days."
+msgstr ""
+
+#: .\apps\gamification\api\serializers.py:28
+msgid "User's longest ever study streak."
+msgstr ""
+
+#: .\apps\gamification\api\serializers.py:45
+msgid "Whether the current authenticated user has earned this badge."
+msgstr ""
+
+#: .\apps\gamification\api\serializers.py:52
+msgid "Timestamp when the current user earned this badge (null if not earned)."
+msgstr ""
+
+#: .\apps\gamification\api\serializers.py:59
+msgid "URL of the badge icon image."
+msgstr ""
+
+#: .\apps\gamification\api\serializers.py:122
+msgid "Purchase successful!"
+msgstr ""
+
+#: .\apps\gamification\api\views.py:59
+msgid "User profile not found."
+msgstr ""
+
+#: .\apps\gamification\api\views.py:183
+msgid "Reward item not found or is inactive."
+msgstr ""
+
+#: .\apps\gamification\api\views.py:195
+msgid "An unexpected error occurred."
+msgstr ""
+
+#: .\apps\gamification\apps.py:8
+msgid "Gamification"
+msgstr ""
+
+#: .\apps\gamification\models.py:17
+msgid "Question Solved"
+msgstr ""
+
+#: .\apps\gamification\models.py:18
+msgid "Test Completed"
+msgstr ""
+
+#: .\apps\gamification\models.py:20
+msgid "Level Assessment Completed"
+msgstr ""
+
+#: .\apps\gamification\models.py:22
+msgid "Streak Bonus"
+msgstr ""
+
+#: .\apps\gamification\models.py:24
+msgid "Feature First Use"
+msgstr ""
+
+#: .\apps\gamification\models.py:28
+msgid "Challenge Participation"
+msgstr ""
+
+#: .\apps\gamification\models.py:29
+msgid "Challenge Win"
+msgstr ""
+
+#: .\apps\gamification\models.py:32
+msgid "Reward Purchase"
+msgstr ""
+
+#: .\apps\gamification\models.py:33
+msgid "Admin Adjustment"
+msgstr ""
+
+#: .\apps\gamification\models.py:34
+msgid "Referral Bonus"
+msgstr ""
+
+#: .\apps\gamification\models.py:37
+msgid "Badge Earned"
+msgstr ""
+
+#: .\apps\gamification\models.py:40 .\apps\gamification\models.py:192
+msgid "Other"
+msgstr ""
+
+#: .\apps\gamification\models.py:50 .\apps\gamification\models.py:163
+#: .\apps\gamification\models.py:251
+msgid "User"
+msgstr ""
+
+#: .\apps\gamification\models.py:53
+msgid "Points Change"
+msgstr ""
+
+#: .\apps\gamification\models.py:59
+msgid "Reason Code"
+msgstr ""
+
+#: .\apps\gamification\models.py:60
+msgid "Standardized code indicating the reason for the point change."
+msgstr ""
+
+#: .\apps\gamification\models.py:65 .\apps\gamification\models.py:117
+#: .\apps\gamification\models.py:195
+msgid "Description"
+msgstr ""
+
+#: .\apps\gamification\models.py:67
+msgid "Human-readable explanation, especially for OTHER or specific contexts."
+msgstr ""
+
+#: .\apps\gamification\models.py:75
+msgid "Related Object Type"
+msgstr ""
+
+#: .\apps\gamification\models.py:81
+msgid "Related Object ID"
+msgstr ""
+
+#: .\apps\gamification\models.py:87
+msgid "Timestamp"
+msgstr ""
+
+#: .\apps\gamification\models.py:91
+msgid "Point Log"
+msgstr ""
+
+#: .\apps\gamification\models.py:92
+msgid "Point Logs"
+msgstr ""
+
+#: .\apps\gamification\models.py:109 .\apps\gamification\models.py:194
+msgid "Name"
+msgstr ""
+
+#: .\apps\gamification\models.py:113
+msgid "Slug"
+msgstr ""
+
+#: .\apps\gamification\models.py:114
+msgid "Unique identifier used internally and potentially in URLs."
+msgstr ""
+
+#: .\apps\gamification\models.py:120
+msgid "Icon Image"
+msgstr ""
+
+#: .\apps\gamification\models.py:121
+msgid "Upload an image file for the badge icon."
+msgstr ""
+
+#: .\apps\gamification\models.py:126
+msgid "Criteria Description"
+msgstr ""
+
+#: .\apps\gamification\models.py:127
+msgid "User-facing text explaining how to earn the badge."
+msgstr ""
+
+#: .\apps\gamification\models.py:131 .\apps\gamification\models.py:221
+msgid "Is Active"
+msgstr ""
+
+#: .\apps\gamification\models.py:132
+msgid "Inactive badges cannot be earned."
+msgstr ""
+
+#: .\apps\gamification\models.py:139 .\apps\gamification\models.py:170
+msgid "Badge"
+msgstr ""
+
+#: .\apps\gamification\models.py:140
+msgid "Badges"
+msgstr ""
+
+#: .\apps\gamification\models.py:153
+msgid "No icon"
+msgstr ""
+
+#: .\apps\gamification\models.py:173
+msgid "Earned At"
+msgstr ""
+
+#: .\apps\gamification\models.py:176
+msgid "User Badge"
+msgstr ""
+
+#: .\apps\gamification\models.py:177
+msgid "User Badges"
+msgstr ""
+
+#: .\apps\gamification\models.py:189
+msgid "Avatar/Theme"
+msgstr ""
+
+#: .\apps\gamification\models.py:190
+msgid "Study Material/Outline"
+msgstr ""
+
+#: .\apps\gamification\models.py:191
+msgid "Competition Entry"
+msgstr ""
+
+#: .\apps\gamification\models.py:200
+msgid "Item Type"
+msgstr ""
+
+#: .\apps\gamification\models.py:203
+msgid "Cost (Points)"
+msgstr ""
+
+#: .\apps\gamification\models.py:206
+msgid "Item Image"
+msgstr ""
+
+#: .\apps\gamification\models.py:207
+msgid "Optional visual representation of the reward item."
+msgstr ""
+
+#: .\apps\gamification\models.py:213
+msgid "Asset File"
+msgstr ""
+
+#: .\apps\gamification\models.py:215
+msgid ""
+"Optional downloadable file associated with the reward (e.g., PDF outline)."
+msgstr ""
+
+#: .\apps\gamification\models.py:227
+msgid "Reward Store Item"
+msgstr ""
+
+#: .\apps\gamification\models.py:228
+msgid "Reward Store Items"
+msgstr ""
+
+#: .\apps\gamification\models.py:241
+msgid "No image"
+msgstr ""
+
+#: .\apps\gamification\models.py:258
+msgid "Item"
+msgstr ""
+
+#: .\apps\gamification\models.py:260
+msgid "Points Spent"
+msgstr ""
+
+#: .\apps\gamification\models.py:262
+msgid "Purchased At"
+msgstr ""
+
+#: .\apps\gamification\models.py:266
+msgid "User Reward Purchase"
+msgstr ""
+
+#: .\apps\gamification\models.py:267
+msgid "User Reward Purchases"
+msgstr ""
+
+#: .\apps\gamification\services.py:340
+#, python-brace-format
+msgid "Reached {days}-day streak!"
+msgstr ""
+
+#: .\apps\gamification\services.py:386
+msgid "Invalid user for reward purchase."
+msgstr ""
+
+#: .\apps\gamification\services.py:403
+msgid "Insufficient points to purchase this item."
+msgstr ""
+
+#: .\apps\gamification\services.py:417
+msgid "Failed to update points balance during purchase."
+msgstr ""
+
+#: .\apps\gamification\services.py:443
+msgid "User profile error during purchase."
+msgstr ""
+
+#: .\apps\gamification\services.py:453
+msgid "An unexpected error occurred during purchase."
+msgstr ""
+
+#: .\apps\gamification\signals.py:40
+#, python-brace-format
+msgid "Solved Question #{qid} ({mode})"
+msgstr ""
+
+#: .\apps\gamification\signals.py:69
+#, python-brace-format
+msgid "Completed Test Attempt #{att_id} ({type})"
+msgstr ""
+
+#: .\apps\gamification\signals.py:77
+#, python-brace-format
+msgid "Completed Level Assessment #{att_id}"
+msgstr ""

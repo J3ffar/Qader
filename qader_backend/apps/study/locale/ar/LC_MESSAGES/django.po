@@ -1,0 +1,877 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-01 17:13+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+#: .\apps\study\api\serializers\attempts.py:139
+msgid "Unnamed Test"
+msgstr ""
+
+#: .\apps\study\api\serializers\attempts.py:149
+msgid ""
+"The sequence number of this attempt for this specific test type (e.g., 1st "
+"Level Assessment, 3rd Practice Test)."
+msgstr ""
+
+#: .\apps\study\api\serializers\attempts.py:161
+msgid "Primary key of the question being answered."
+msgstr ""
+
+#: .\apps\study\api\serializers\attempts.py:166
+msgid "The answer choice selected by the user (A, B, C, or D)."
+msgstr ""
+
+#: .\apps\study\api\serializers\attempts.py:172
+msgid "Optional: Time spent on this specific question in seconds."
+msgstr ""
+
+#: .\apps\study\api\serializers\attempts.py:187
+msgid "Invalid answer choice."
+msgstr ""
+
+#: .\apps\study\api\serializers\conversation.py:87
+msgid "Choose the desired tone for the AI assistant."
+msgstr ""
+
+#: .\apps\study\api\serializers\conversation.py:107
+msgid "Optional: Link this message to a specific question ID."
+msgstr ""
+
+#: .\apps\study\api\serializers\conversation.py:140
+msgid "The ID of the question being answered."
+msgstr ""
+
+#: .\apps\study\api\serializers\conversation.py:145
+msgid "The answer selected by the user (A, B, C, or D)."
+msgstr ""
+
+#: .\apps\study\api\serializers\level_assessment.py:38
+msgid "List of section slugs (e.g., ['verbal', 'quantitative']) to include."
+msgstr ""
+
+#: .\apps\study\api\serializers\level_assessment.py:46
+msgid "Desired number of questions for the assessment."
+msgstr ""
+
+#: .\apps\study\api\serializers\level_assessment.py:59
+#: .\apps\study\api\serializers\practice_simulation.py:138
+msgid "You already have an ongoing test attempt."
+msgstr ""
+
+#: .\apps\study\api\serializers\level_assessment.py:112
+msgid "No subsections found for the selected sections."
+msgstr ""
+
+#: .\apps\study\api\serializers\level_assessment.py:133
+#, python-brace-format
+msgid ""
+"Not enough active questions ({count}) found in the selected sections to meet "
+"the minimum requirement ({min_req}). Please select fewer questions or "
+"different sections."
+msgstr ""
+
+#: .\apps\study\api\serializers\level_assessment.py:191
+#: .\apps\study\api\serializers\practice_simulation.py:255
+msgid ""
+"Could not select the exact number of required questions. Please try again."
+msgstr ""
+
+#: .\apps\study\api\serializers\level_assessment.py:219
+msgid "Failed to start the assessment."
+msgstr ""
+
+#: .\apps\study\api\serializers\practice_simulation.py:23
+msgid "Optional name for a custom test"
+msgstr ""
+
+#: .\apps\study\api\serializers\practice_simulation.py:31
+msgid "List of subsection slugs to include"
+msgstr ""
+
+#: .\apps\study\api\serializers\practice_simulation.py:39
+msgid "List of specific active skill slugs to include"
+msgstr ""
+
+#: .\apps\study\api\serializers\practice_simulation.py:45
+msgid "Number of questions for the test"
+msgstr ""
+
+#: .\apps\study\api\serializers\practice_simulation.py:50
+msgid "Include only questions starred by the user?"
+msgstr ""
+
+#: .\apps\study\api\serializers\practice_simulation.py:55
+msgid "Include questions from skills the user hasn't mastered?"
+msgstr ""
+
+#: .\apps\study\api\serializers\practice_simulation.py:75
+msgid ""
+"Must specify at least one filter: subsections, skills, starred, or not "
+"mastered questions."
+msgstr ""
+
+#: .\apps\study\api\serializers\practice_simulation.py:100
+msgid ""
+"Selected skills do not belong to the selected subsections or are inactive: {}"
+msgstr ""
+
+#: .\apps\study\api\serializers\practice_simulation.py:123
+msgid "Specify whether this is a Practice Test or a Full Simulation."
+msgstr ""
+
+#: .\apps\study\api\serializers\practice_simulation.py:196
+#, python-brace-format
+msgid ""
+"Not enough active questions ({count}) found matching your criteria to meet "
+"the minimum ({min_req}). Please adjust filters or request fewer questions."
+msgstr ""
+
+#: .\apps\study\api\serializers\practice_simulation.py:291
+msgid "Failed to start the test."
+msgstr ""
+
+#: .\apps\study\api\serializers\traditional.py:25
+msgid "Optional: Filter questions by these subsection slugs."
+msgstr ""
+
+#: .\apps\study\api\serializers\traditional.py:33
+msgid "Optional: Filter questions by these active skill slugs."
+msgstr ""
+
+#: .\apps\study\api\serializers\traditional.py:40
+msgid "Number of questions to fetch initially for the session."
+msgstr ""
+
+#: .\apps\study\api\serializers\traditional.py:43
+msgid "Include only starred questions?"
+msgstr ""
+
+#: .\apps\study\api\serializers\traditional.py:48
+msgid "Include questions from skills not yet mastered?"
+msgstr ""
+
+#: .\apps\study\api\serializers\traditional.py:62
+msgid "You already have an ongoing test or practice session."
+msgstr ""
+
+#: .\apps\study\api\serializers\traditional.py:158
+msgid "Failed to start the traditional practice session."
+msgstr ""
+
+#: .\apps\study\api\serializers\traditional.py:180
+msgid ""
+"The sequence number of this attempt for traditional practice (e.g., 3rd "
+"traditional session)."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:211
+#: .\apps\study\api\views\attempts.py:309
+#: .\apps\study\api\views\attempts.py:400
+msgid "Active test attempt not found or not accessible."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:215
+#: .\apps\study\api\views\attempts.py:315
+#: .\apps\study\api\views\attempts.py:404
+msgid "An error occurred while retrieving the test attempt."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:246
+msgid "An internal error occurred while recording the answer."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:355
+msgid "An internal error occurred while completing the test."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:419
+msgid "Test attempt cancelled."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:426
+msgid "An internal error occurred while cancelling the test."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:493
+msgid "Cannot review a test attempt that is not completed."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:499
+msgid "Completed test attempt not found."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:505
+msgid "An error occurred while retrieving test attempt details."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:515
+msgid "An error occurred retrieving the attempt."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:646
+msgid "Original test attempt not found or not accessible."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:652
+msgid "An error occurred while retrieving the original test attempt."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:667
+msgid "Please complete or cancel your ongoing test before starting a new one."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:680
+msgid "Original test configuration is missing or invalid."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:692
+msgid "Could not determine the type of the original test."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:707
+msgid "Original test configuration format is unrecognized."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:737
+msgid "Invalid or missing 'num_questions' in original configuration."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:812
+msgid ""
+"No suitable questions found to generate a similar test based on the original "
+"criteria."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:834
+msgid "Failed to select questions for the new test."
+msgstr ""
+
+#: .\apps\study\api\views\attempts.py:869
+msgid "Failed to start the new similar test."
+msgstr ""
+
+#: .\apps\study\api\views\conversation.py:132
+#: .\apps\study\api\views\conversation.py:235
+#: .\apps\study\api\views\conversation.py:295
+msgid "This conversation session is completed."
+msgstr ""
+
+#: .\apps\study\api\views\conversation.py:204
+msgid "An error occurred while processing your message."
+msgstr ""
+
+#: .\apps\study\api\views\conversation.py:247
+msgid ""
+"No specific topic context found to test. Please discuss a question first."
+msgstr ""
+
+#: .\apps\study\api\views\conversation.py:334
+msgid "An error occurred while submitting your answer."
+msgstr ""
+
+#: .\apps\study\api\views\conversation.py:362
+msgid "Session ended successfully."
+msgstr ""
+
+#: .\apps\study\api\views\emergency.py:74
+msgid "Could not generate study plan. Please try again later."
+msgstr ""
+
+#: .\apps\study\api\views\emergency.py:113
+msgid "You do not have permission to update this session."
+msgstr ""
+
+#: .\apps\study\api\views\emergency.py:174
+#: .\apps\study\api\views\emergency.py:248
+msgid "Active emergency session not found."
+msgstr ""
+
+#: .\apps\study\api\views\emergency.py:184
+msgid "Invalid study plan associated with this session."
+msgstr ""
+
+#: .\apps\study\api\views\emergency.py:220
+msgid "Could not retrieve questions for the emergency session plan."
+msgstr ""
+
+#: .\apps\study\api\views\emergency.py:272
+msgid "Could not record answer attempt."
+msgstr ""
+
+#: .\apps\study\api\views\level_assessment.py:59
+msgid "An internal error occurred while starting the assessment."
+msgstr ""
+
+#: .\apps\study\api\views\practice_simulation.py:57
+msgid "An internal error occurred while starting the test."
+msgstr ""
+
+#: .\apps\study\api\views\statistics.py:67
+msgid "An unexpected error occurred while generating statistics."
+msgstr ""
+
+#: .\apps\study\api\views\traditional.py:62
+msgid "This action is only valid for active traditional practice sessions."
+msgstr ""
+
+#: .\apps\study\api\views\traditional.py:68
+msgid "Active traditional practice session not found."
+msgstr ""
+
+#: .\apps\study\api\views\traditional.py:75
+msgid "An error occurred retrieving the session."
+msgstr ""
+
+#: .\apps\study\api\views\traditional.py:88
+msgid "Question not found or is inactive."
+msgstr ""
+
+#: .\apps\study\api\views\traditional.py:94
+msgid "An error occurred retrieving the question."
+msgstr ""
+
+#: .\apps\study\api\views\traditional.py:176
+msgid "An internal error occurred while starting the session."
+msgstr ""
+
+#: .\apps\study\api\views\traditional.py:277
+msgid "Invalid integer list format."
+msgstr ""
+
+#: .\apps\study\api\views\traditional.py:325
+msgid "An error occurred while fetching questions."
+msgstr ""
+
+#: .\apps\study\api\views\traditional.py:413
+msgid "Elimination usage recorded."
+msgstr ""
+
+#: .\apps\study\apps.py:8
+msgid "Study & Progress"
+msgstr ""
+
+#: .\apps\study\conversation_service.py:105
+msgid ""
+"I encountered an issue processing your request. Please try again shortly."
+msgstr ""
+
+#: .\apps\study\models.py:26
+msgid "Level Assessment Template"
+msgstr ""
+
+#: .\apps\study\models.py:28
+msgid "Practice Set"
+msgstr ""
+
+#: .\apps\study\models.py:29 .\apps\study\models.py:123
+msgid "Full Simulation"
+msgstr ""
+
+#: .\apps\study\models.py:31
+msgid "name"
+msgstr ""
+
+#: .\apps\study\models.py:32
+msgid "description"
+msgstr ""
+
+#: .\apps\study\models.py:34
+msgid "test definition type"
+msgstr ""
+
+#: .\apps\study\models.py:41
+msgid "is predefined"
+msgstr ""
+
+#: .\apps\study\models.py:44
+msgid ""
+"If true, this definition uses the specific questions linked below. If false, "
+"it acts as a template and relies on 'configuration'."
+msgstr ""
+
+#: .\apps\study\models.py:49
+msgid "specific questions"
+msgstr ""
+
+#: .\apps\study\models.py:52
+msgid "Specific questions included if 'is_predefined' is true."
+msgstr ""
+
+#: .\apps\study\models.py:55
+msgid "dynamic configuration template"
+msgstr ""
+
+#: .\apps\study\models.py:59
+msgid ""
+"JSON defining rules (e.g., {'num_questions_per_skill': {...}, "
+"'total_questions': N}) for dynamically generating tests based on this "
+"template if 'is_predefined' is false."
+msgstr ""
+
+#: .\apps\study\models.py:62 .\apps\study\models.py:205
+#: .\apps\study\models.py:783 .\apps\study\models.py:847
+msgid "created at"
+msgstr ""
+
+#: .\apps\study\models.py:63 .\apps\study\models.py:206
+#: .\apps\study\models.py:784 .\apps\study\models.py:848
+msgid "updated at"
+msgstr ""
+
+#: .\apps\study\models.py:81
+msgid ""
+"Configuration should be empty for predefined tests (select Questions "
+"instead)."
+msgstr ""
+
+#: .\apps\study\models.py:93
+msgid "Configuration must be set for dynamic (non-predefined) tests."
+msgstr ""
+
+#: .\apps\study\models.py:100
+msgid ""
+"Questions should not be selected for dynamic tests (use Configuration "
+"instead)."
+msgstr ""
+
+#: .\apps\study\models.py:108
+msgid "Test Definition"
+msgstr ""
+
+#: .\apps\study\models.py:109
+msgid "Test Definitions"
+msgstr ""
+
+#: .\apps\study\models.py:116
+msgid "Started"
+msgstr ""
+
+#: .\apps\study\models.py:117 .\apps\study\models.py:815
+msgid "Completed"
+msgstr ""
+
+#: .\apps\study\models.py:118
+msgid "Abandoned"
+msgstr ""
+
+#: .\apps\study\models.py:121 .\apps\study\models.py:430
+msgid "Level Assessment"
+msgstr ""
+
+#: .\apps\study\models.py:122
+msgid "Practice Test"
+msgstr ""
+
+#: .\apps\study\models.py:124
+msgid "Traditional Practice Session"
+msgstr ""
+
+#: .\apps\study\models.py:131 .\apps\study\models.py:449
+#: .\apps\study\models.py:767 .\apps\study\models.py:821
+msgid "user"
+msgstr ""
+
+#: .\apps\study\models.py:140
+msgid "test definition used"
+msgstr ""
+
+#: .\apps\study\models.py:141
+msgid "The predefined Test template used for this attempt, if any."
+msgstr ""
+
+#: .\apps\study\models.py:144
+msgid "attempt type"
+msgstr ""
+
+#: .\apps\study\models.py:148
+msgid "The specific type of this test attempt instance."
+msgstr ""
+
+#: .\apps\study\models.py:151
+msgid "test configuration snapshot"
+msgstr ""
+
+#: .\apps\study\models.py:155
+msgid ""
+"Actual configuration used for this specific instance (especially if dynamic/"
+"custom). Includes criteria like sections, skills, starred, not_mastered, "
+"num_questions, etc. Ensure consistent structure."
+msgstr ""
+
+#: .\apps\study\models.py:159
+msgid "question IDs"
+msgstr ""
+
+#: .\apps\study\models.py:161
+msgid "Ordered list of question primary keys included in this attempt."
+msgstr ""
+
+#: .\apps\study\models.py:164 .\apps\study\models.py:828
+msgid "status"
+msgstr ""
+
+#: .\apps\study\models.py:170 .\apps\study\models.py:780
+#: .\apps\study\models.py:845
+msgid "start time"
+msgstr ""
+
+#: .\apps\study\models.py:171 .\apps\study\models.py:781
+#: .\apps\study\models.py:846
+msgid "end time"
+msgstr ""
+
+#: .\apps\study\models.py:173
+msgid "overall score percentage"
+msgstr ""
+
+#: .\apps\study\models.py:179
+msgid "verbal score percentage"
+msgstr ""
+
+#: .\apps\study\models.py:185
+msgid "quantitative score percentage"
+msgstr ""
+
+#: .\apps\study\models.py:191
+msgid "results summary"
+msgstr ""
+
+#: .\apps\study\models.py:195
+msgid ""
+"Detailed breakdown, e.g., {\"subsection_slug\": {\"correct\": X, \"total\": "
+"Y, \"score\": Z, \"name\": \"Sub Name\"}}"
+msgstr ""
+
+#: .\apps\study\models.py:199
+msgid "completion points awarded"
+msgstr ""
+
+#: .\apps\study\models.py:202
+msgid ""
+"Tracks if gamification points for completing this test have been awarded "
+"(managed by signals/tasks)."
+msgstr ""
+
+#: .\apps\study\models.py:209
+msgid "User Test Attempt"
+msgstr ""
+
+#: .\apps\study\models.py:210
+msgid "User Test Attempts"
+msgstr ""
+
+#: .\apps\study\models.py:429
+msgid "Traditional Learning"
+msgstr ""
+
+#: .\apps\study\models.py:432
+msgid "Practice Test/Simulation"
+msgstr ""
+
+#: .\apps\study\models.py:434
+msgid "Emergency Mode"
+msgstr ""
+
+#: .\apps\study\models.py:435
+msgid "Learning via Conversation"
+msgstr ""
+
+#: .\apps\study\models.py:436
+msgid "Challenge"
+msgstr ""
+
+#: .\apps\study\models.py:456
+msgid "question"
+msgstr ""
+
+#: .\apps\study\models.py:464
+msgid "test attempt session"
+msgstr ""
+
+#: .\apps\study\models.py:474
+msgid "conversation session"
+msgstr ""
+
+#: .\apps\study\models.py:483
+msgid "challenge participation"
+msgstr ""
+
+#: .\apps\study\models.py:492
+msgid "emergency mode session"
+msgstr ""
+
+#: .\apps\study\models.py:500
+msgid "selected answer"
+msgstr ""
+
+#: .\apps\study\models.py:507
+msgid "is correct"
+msgstr ""
+
+#: .\apps\study\models.py:513
+msgid "time taken (seconds)"
+msgstr ""
+
+#: .\apps\study\models.py:516
+msgid "Time spent specifically on this question."
+msgstr ""
+
+#: .\apps\study\models.py:519
+msgid "used hint"
+msgstr ""
+
+#: .\apps\study\models.py:520
+msgid "used elimination"
+msgstr ""
+
+#: .\apps\study\models.py:522
+msgid "revealed correct answer"
+msgstr ""
+
+#: .\apps\study\models.py:524
+msgid "Track if the user explicitly revealed the correct answer choice."
+msgstr ""
+
+#: .\apps\study\models.py:527
+msgid "revealed explanation"
+msgstr ""
+
+#: .\apps\study\models.py:529
+msgid "Track if the user explicitly revealed the explanation."
+msgstr ""
+
+#: .\apps\study\models.py:533
+msgid "mode"
+msgstr ""
+
+#: .\apps\study\models.py:537
+msgid "The context (feature) in which the question was attempted."
+msgstr ""
+
+#: .\apps\study\models.py:540
+msgid "attempted at"
+msgstr ""
+
+#: .\apps\study\models.py:546
+msgid "User Question Attempt"
+msgstr ""
+
+#: .\apps\study\models.py:547
+msgid "User Question Attempts"
+msgstr ""
+
+#: .\apps\study\models.py:689
+msgid "Proficiency Score"
+msgstr ""
+
+#: .\apps\study\models.py:692
+msgid "User mastery score (0.0 to 1.0). Updated after attempts."
+msgstr ""
+
+#: .\apps\study\models.py:694
+msgid "Attempts Count"
+msgstr ""
+
+#: .\apps\study\models.py:695
+msgid "Correct Count"
+msgstr ""
+
+#: .\apps\study\models.py:696
+msgid "Last Calculated At"
+msgstr ""
+
+#: .\apps\study\models.py:700
+msgid "User Skill Proficiency"
+msgstr ""
+
+#: .\apps\study\models.py:701
+msgid "User Skill Proficiencies"
+msgstr ""
+
+#: .\apps\study\models.py:770
+msgid "reason"
+msgstr ""
+
+#: .\apps\study\models.py:772
+msgid "suggested plan"
+msgstr ""
+
+#: .\apps\study\models.py:776
+msgid ""
+"Stores plan details: {\"focus_skills\": [\"slug1\", ...], "
+"\"recommended_questions\": N, ...}"
+msgstr ""
+
+#: .\apps\study\models.py:779
+msgid "calm mode active"
+msgstr ""
+
+#: .\apps\study\models.py:782
+msgid "shared with admin"
+msgstr ""
+
+#: .\apps\study\models.py:787
+msgid "Emergency Mode Session"
+msgstr ""
+
+#: .\apps\study\models.py:788
+msgid "Emergency Mode Sessions"
+msgstr ""
+
+#: .\apps\study\models.py:792
+msgid "Ended"
+msgstr ""
+
+#: .\apps\study\models.py:792 .\apps\study\models.py:814
+msgid "Active"
+msgstr ""
+
+#: .\apps\study\models.py:810
+msgid "Cheerful"
+msgstr ""
+
+#: .\apps\study\models.py:811
+msgid "Serious"
+msgstr ""
+
+#: .\apps\study\models.py:825
+msgid "AI tone"
+msgstr ""
+
+#: .\apps\study\models.py:840
+msgid "current topic question"
+msgstr ""
+
+#: .\apps\study\models.py:842
+msgid "The question/concept currently being discussed for 'Got It' testing."
+msgstr ""
+
+#: .\apps\study\models.py:851
+msgid "Conversation Session"
+msgstr ""
+
+#: .\apps\study\models.py:852
+msgid "Conversation Sessions"
+msgstr ""
+
+#: .\apps\study\models.py:874
+msgid "User"
+msgstr ""
+
+#: .\apps\study\models.py:875
+msgid "AI"
+msgstr ""
+
+#: .\apps\study\models.py:881
+msgid "session"
+msgstr ""
+
+#: .\apps\study\models.py:885
+msgid "sender type"
+msgstr ""
+
+#: .\apps\study\models.py:887
+msgid "message text"
+msgstr ""
+
+#: .\apps\study\models.py:888
+msgid "timestamp"
+msgstr ""
+
+#: .\apps\study\models.py:895
+msgid "related question"
+msgstr ""
+
+#: .\apps\study\models.py:896
+msgid "Optional link to a specific question discussed in the message."
+msgstr ""
+
+#: .\apps\study\models.py:900
+msgid "Conversation Message"
+msgstr ""
+
+#: .\apps\study\models.py:901
+msgid "Conversation Messages"
+msgstr ""
+
+#: .\apps\study\services.py:50
+msgid "Take deep breaths before starting each question."
+msgstr ""
+
+#: .\apps\study\services.py:51
+msgid "Don't get stuck on one question for too long."
+msgstr ""
+
+#: .\apps\study\services.py:52
+msgid "Focus on understanding the concept, not just getting the answer."
+msgstr ""
+
+#: .\apps\study\services.py:53
+msgid "Remember your preparation and trust your abilities."
+msgstr ""
+
+#: .\apps\study\services.py:236 .\apps\study\services.py:346
+msgid "Authentication required."
+msgstr ""
+
+#: .\apps\study\services.py:240
+msgid "This test attempt is not currently active."
+msgstr ""
+
+#: .\apps\study\services.py:251
+msgid "This question is not part of the current test attempt."
+msgstr ""
+
+#: .\apps\study\services.py:259
+msgid "Invalid answer choice provided."
+msgstr ""
+
+#: .\apps\study\services.py:312
+msgid "Answer recorded."
+msgstr ""
+
+#: .\apps\study\services.py:319
+msgid "Answer recorded. Feedback provided."
+msgstr ""
+
+#: .\apps\study\services.py:352
+msgid "This test attempt is not active or already completed/abandoned."
+msgstr ""
+
+#: .\apps\study\services.py:366
+msgid "Traditional practice session ended."
+msgstr ""
+
+#: .\apps\study\services.py:451
+#, python-brace-format
+msgid ""
+"Test completed! Good effort. Consider focusing more practice on {subsection} "
+"where your score was {score}%."
+msgstr ""
+
+#: .\apps\study\services.py:455
+msgid "Test completed successfully! Keep up the great work."
+msgstr ""
+
+#: .\apps\study\services.py:462
+msgid "Test completed successfully."
+msgstr ""
+
+#: .\apps\study\services.py:475
+msgid "Test completed successfully. Results calculated."
+msgstr ""
