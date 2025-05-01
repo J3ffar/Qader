@@ -374,14 +374,8 @@ def test_complete_profile_fail_already_complete(
         "grade": "Already Complete",
         "has_taken_qiyas_before": False,
     }
-    # The view/serializer logic doesn't explicitly block this,
-    # it just updates the fields. This might be acceptable.
-    # If blocking is desired, add a check in the view's `get_object` or `perform_update`.
-    # For now, let's assume it updates normally.
     response = authenticated_client.patch(url, data, format="json")
-    assert response.status_code == status.HTTP_200_OK
-    user.profile.refresh_from_db()
-    assert user.profile.grade == "Already Complete"  # Check update happened
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 def test_complete_profile_fail_unauthenticated(api_client):
