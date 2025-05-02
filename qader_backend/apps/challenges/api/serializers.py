@@ -7,14 +7,18 @@ from django.db import transaction
 
 from apps.study.models import UserQuestionAttempt
 
-from ..models import Challenge, ChallengeAttempt, ChallengeType, ChallengeStatus
+from apps.challenges.models import (
+    Challenge,
+    ChallengeAttempt,
+    ChallengeType,
+    ChallengeStatus,
+)
 from apps.users.api.serializers import (
     SimpleUserSerializer,
 )  # Assuming a simple user serializer exists
 from apps.learning.api.serializers import (
     QuestionListSerializer,
 )  # To show questions during challenge
-from ..services import start_challenge  # Import the service function
 
 User = get_user_model()
 
@@ -149,6 +153,8 @@ class ChallengeCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         # Use the service layer to handle challenge creation logic
+        from ..services import start_challenge  # Import the service function
+
         challenger = self.context["request"].user
         opponent = validated_data.get("opponent")
         challenge_type = validated_data["challenge_type"]

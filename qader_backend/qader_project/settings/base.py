@@ -35,6 +35,7 @@ MAX_PROFILE_PIC_SIZE_MB = config("MAX_PROFILE_PIC_SIZE_MB", default=5, cast=int)
 
 # Application definition
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "django_filters",
     "taggit",
+    "channels",
     # Project apps
     "apps.api",
     "apps.users",
@@ -94,7 +96,27 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "qader_project.wsgi.application"
+ASGI_APPLICATION = "qader_project.asgi.application"
+
+# Configure Channel Layers (using Redis)
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            # Use the same Redis instance as Celery/Caching if desired, or a separate one
+            "hosts": [
+                (
+                    config("REDIS_HOST", default="127.0.0.1"),
+                    config("REDIS_PORT", default=6379, cast=int),
+                )
+            ],
+            # Optionally use a different Redis database number
+            "db": config("CHANNELS_REDIS_DB", default=1, cast=int),
+            # Optionally add password if your Redis server requires it
+            # "password": config("REDIS_PASSWORD", default=None),
+        },
+    },
+}
 
 
 # Database
