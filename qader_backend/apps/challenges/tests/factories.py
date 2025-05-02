@@ -60,7 +60,7 @@ class ChallengeFactory(DjangoModelFactory):
             accepted_at=factory.LazyFunction(timezone.now),
             started_at=factory.LazyFunction(timezone.now),
             completed_at=factory.LazyFunction(timezone.now),
-            winner=factory.SelfAttribute("..challenger"),
+            winner=factory.SelfAttribute("challenger"),
         )
 
 

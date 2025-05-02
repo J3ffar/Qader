@@ -288,32 +288,50 @@ def test_set_participant_ready_already_ready():
 )  # Mock finalization check initially
 def test_process_challenge_answer_correct(mock_check_finalize):
     q1 = QuestionFactory(correct_answer="A")
+    # Challenge with only one question
     challenge = ChallengeFactory(
-        ongoing=True, question_ids=[q1.id], challenge_config={"num_questions": 1}
+        ongoing=True, question_ids=[q1.id]  # challenge.num_questions will be 1
     )
     challenger = challenge.challenger
+    opponent = challenge.opponent
+    # Ensure attempts exist for both participants
     attempt_rec = ChallengeAttemptFactory(
         challenge=challenge, user=challenger, ready_to_start=True, score=0
     )
+    ChallengeAttemptFactory(
+        challenge=challenge,
+        user=opponent,
+        as_opponent=True,
+        ready_to_start=True,
+        score=0,
+    )
 
+    # Process the first (and only) answer for the challenger
     user_qa, challenge_ended = process_challenge_answer(
         challenge=challenge,
         user=challenger,
         question_id=q1.id,
-        selected_answer="A",
+        selected_answer="A",  # Correct answer
         time_taken=30,
     )
 
-    assert challenge_ended is False  # Mocked finalize returned False
+    # Assertions about the result of process_challenge_answer
+    assert challenge_ended is False  # Because mock_check_finalize returned False
     assert user_qa.is_correct is True
     assert user_qa.question == q1
     assert user_qa.selected_answer == "A"
     assert user_qa.mode == UserQuestionAttempt.Mode.CHALLENGE
+
+    # Assertions about the state after the call
     attempt_rec.refresh_from_db()
-    assert attempt_rec.score == 1
+    assert attempt_rec.score == 1  # Score updated
     assert attempt_rec.question_attempts.count() == 1
     assert user_qa in attempt_rec.question_attempts.all()
-    mock_check_finalize.assert_not_called()  # Finalize check happens AFTER user finishes their part
+    assert attempt_rec.end_time is not None  # User finished their part
+
+    # Assert that the finalize check WAS called, because user answered last question
+    # mock_check_finalize.assert_not_called() # Incorrect expectation
+    mock_check_finalize.assert_called_once_with(challenge)
 
 
 @patch(

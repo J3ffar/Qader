@@ -132,7 +132,7 @@ def start_challenge(
 
     try:
         config = CHALLENGE_CONFIGS[challenge_type].copy()  # Get base config
-        config["name"] = config.get("name", challenge_type)  # Ensure name is set
+        config["name"] = str(config.get("name", challenge_type))  # Ensure name is set
     except KeyError:
         raise ValidationError(_("Invalid challenge type specified."))
 
@@ -200,7 +200,7 @@ def accept_challenge(challenge: Challenge, user: User) -> Challenge:
 
     challenge.status = ChallengeStatus.ACCEPTED
     challenge.accepted_at = timezone.now()
-    challenge.save(update_fields=["status", "accepted_at", "updated_at"])
+    challenge.save(update_fields=["status", "accepted_at"])
     # TODO: Notify challenger
     logger.info(f"Challenge {challenge.id} accepted by {user.username}")
     return challenge
@@ -215,7 +215,7 @@ def decline_challenge(challenge: Challenge, user: User) -> Challenge:
         raise ValidationError(_("Challenge is not pending invitation."))
 
     challenge.status = ChallengeStatus.DECLINED
-    challenge.save(update_fields=["status", "updated_at"])
+    challenge.save(update_fields=["status"])
     # TODO: Notify challenger
     logger.info(f"Challenge {challenge.id} declined by {user.username}")
     return challenge
@@ -233,7 +233,7 @@ def cancel_challenge(challenge: Challenge, user: User) -> Challenge:
         raise ValidationError(_("Challenge cannot be cancelled in its current state."))
 
     challenge.status = ChallengeStatus.CANCELLED
-    challenge.save(update_fields=["status", "updated_at"])
+    challenge.save(update_fields=["status"])
     # TODO: Notify opponent if invite was sent
     logger.info(f"Challenge {challenge.id} cancelled by {user.username}")
     return challenge
@@ -253,7 +253,7 @@ def set_participant_ready(challenge: Challenge, user: User) -> Tuple[Challenge, 
     if not attempt.is_ready:
         attempt.is_ready = True
         attempt.start_time = timezone.now()  # Mark user's start time
-        attempt.save(update_fields=["is_ready", "start_time", "updated_at"])
+        attempt.save(update_fields=["is_ready", "start_time"])
         logger.info(
             f"User {user.username} marked as ready for Challenge {challenge.id}"
         )
@@ -269,7 +269,7 @@ def set_participant_ready(challenge: Challenge, user: User) -> Tuple[Challenge, 
         if challenge.status == ChallengeStatus.ACCEPTED:
             challenge.status = ChallengeStatus.ONGOING
             challenge.started_at = timezone.now()  # Mark overall challenge start
-            challenge.save(update_fields=["status", "started_at", "updated_at"])
+            challenge.save(update_fields=["status", "started_at"])
             logger.info(f"Challenge {challenge.id} transitioned to ONGOING.")
             # TODO: Trigger WebSocket event to start challenge for clients
             return challenge, True  # Challenge started
@@ -298,7 +298,7 @@ def process_challenge_answer(
         raise ValidationError(_("Question not found."))
 
     # Get or create the user's attempt record for this challenge
-    challenge_attempt, _ = ChallengeAttempt.objects.get_or_create(
+    challenge_attempt, created = ChallengeAttempt.objects.get_or_create(
         challenge=challenge, user=user
     )
 
@@ -323,12 +323,11 @@ def process_challenge_answer(
     # Link it to the ChallengeAttempt via M2M
     challenge_attempt.question_attempts.add(user_question_attempt)
 
-    # Update score immediately (or could do at the end)
+    current_score = ChallengeAttempt.objects.get(pk=challenge_attempt.pk).score
     if is_correct:
-        challenge_attempt.score = F("score") + 1
-        challenge_attempt.save(update_fields=["score", "updated_at"])
-        # Refresh to get updated score for potential immediate checks
-        challenge_attempt.refresh_from_db(fields=["score"])
+        challenge_attempt.score = current_score + 1
+        # Save immediately
+        challenge_attempt.save(update_fields=["score"])
 
     logger.info(
         f"User {user.username} answered Q:{question_id} in Challenge {challenge.id}. Correct: {is_correct}"
@@ -339,7 +338,7 @@ def process_challenge_answer(
     num_answered = challenge_attempt.question_attempts.count()
     if num_answered >= challenge.num_questions:
         challenge_attempt.end_time = timezone.now()
-        challenge_attempt.save(update_fields=["end_time", "updated_at"])
+        challenge_attempt.save(update_fields=["end_time"])
         logger.info(
             f"User {user.username} finished their part of Challenge {challenge.id}"
         )
@@ -481,12 +480,18 @@ def finalize_challenge(challenge: Challenge):
 # --- Rematch Service --- (Optional)
 def create_rematch(original_challenge: Challenge, user_initiating: User) -> Challenge:
     """Creates a new challenge as a rematch of a completed one."""
-    if original_challenge.status != ChallengeStatus.COMPLETED:
-        raise ValidationError(_("Can only rematch completed challenges."))
+    from django.utils.translation import gettext_lazy as _
+
     if not original_challenge.is_participant(user_initiating):
+
+        # Use DRF PermissionDenied for permission issues if preferred
         raise PermissionDenied(
             _("You were not a participant in the original challenge.")
         )
+
+    if original_challenge.status != ChallengeStatus.COMPLETED:
+        # Raise DRF's ValidationError for API handling
+        raise ValidationError(_("Can only rematch completed challenges."))
 
     challenger = user_initiating
     opponent = (
@@ -499,12 +504,16 @@ def create_rematch(original_challenge: Challenge, user_initiating: User) -> Chal
         raise ValidationError(_("Cannot rematch this challenge (missing opponent)."))
 
     # Re-use the same challenge type/config from original
-    new_challenge, _, _ = start_challenge(
-        challenger=challenger,
-        opponent=opponent,
-        challenge_type=original_challenge.challenge_type,
-    )
-    logger.info(
-        f"Rematch initiated (New Challenge {new_challenge.id}) based on original Challenge {original_challenge.id}."
-    )
-    return new_challenge
+    try:
+        new_challenge, _, _ = start_challenge(
+            challenger=challenger,
+            opponent=opponent,
+            challenge_type=original_challenge.challenge_type,
+        )
+        logger.info(
+            f"Rematch initiated (New Challenge {new_challenge.id}) based on original Challenge {original_challenge.id}."
+        )
+        return new_challenge
+    except ValidationError as e:  # Catch potential ValidationError from start_challenge
+        # Re-raise as DRFValidationError if needed, or handle appropriately
+        raise ValidationError(e.message_dict if hasattr(e, "message_dict") else str(e))

@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import viewsets, status, mixins
 from rest_framework.serializers import ValidationError
 from rest_framework.exceptions import PermissionDenied
@@ -292,15 +293,38 @@ class ChallengeViewSet(
     def rematch(self, request, pk=None):
         """Initiate a rematch."""
         original_challenge = self.get_object()
-        try:
+        try:  # <<< ADD try
             new_challenge = create_rematch(original_challenge, request.user)
             serializer = ChallengeDetailSerializer(
                 new_challenge, context=self.get_serializer_context()
             )
             # Use 201 Created for the new resource
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except (ValidationError, PermissionDenied) as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except (
+            DjangoValidationError,
+            ValidationError,
+            PermissionDenied,
+        ) as e:  # <<< ADD except
+            # Handle validation errors from service (Django core or DRF) and permission issues
+            # DRF's handler usually formats DRF's ValidationError well.
+            # For Django core's ValidationError, extract the message.
+            if isinstance(e, DjangoValidationError):
+                # Handle potential list/dict format from Django's ValidationError
+                detail = e.message_dict if hasattr(e, "message_dict") else e.messages
+            elif isinstance(e, (ValidationError, PermissionDenied)):
+                # Use DRF's standard detail attribute
+                detail = e.detail
+            else:  # Fallback for unexpected types caught by base Exception
+                detail = str(e)
+
+            # Determine status code (400 for validation, 403 for permission)
+            error_status = (
+                status.HTTP_403_FORBIDDEN
+                if isinstance(e, PermissionDenied)
+                else status.HTTP_400_BAD_REQUEST
+            )
+
+            return Response({"detail": detail}, status=error_status)
 
 
 # --- Utility View (Optional) ---

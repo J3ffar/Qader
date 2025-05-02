@@ -1,4 +1,5 @@
 import pytest
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 from unittest.mock import patch, MagicMock
@@ -27,7 +28,7 @@ def mock_request():
     factory = APIRequestFactory()
     request = factory.get("/")  # Dummy request
     # Simulate authentication if needed by serializer context methods
-    request.user = UserFactory()
+    request.user = UserFactory(username="test_challenger")
     # Wrap in DRF Request object
     return Request(request)
 
@@ -43,11 +44,15 @@ def test_create_serializer_valid_direct_invite(mock_request):
         "challenge_type": ChallengeType.QUICK_QUANT_10,
     }
     serializer = ChallengeCreateSerializer(data=data, context={"request": mock_request})
-    assert serializer.is_valid()
+
+    # Use is_valid with raise_exception=True for clearer errors if validation fails
+    assert serializer.is_valid(raise_exception=True)
+
+    # Check that the validated data contains the correct opponent object
     assert serializer.validated_data["opponent"] == opponent
-    assert (
-        "opponent_username" not in serializer.validated_data
-    )  # Username removed after validation
+
+    # Check that the opponent_username field was removed by the updated validate method
+    assert "opponent_username" not in serializer.validated_data
 
 
 def test_create_serializer_valid_random(mock_request):
@@ -72,15 +77,24 @@ def test_create_serializer_invalid_opponent(mock_request):
 
 
 def test_create_serializer_challenge_self(mock_request):
-    challenger = mock_request.user
+    # Use the same username as the fixture user
+    challenger_username = mock_request.user.username
     data = {
-        "opponent_username": challenger.username,
+        "opponent_username": challenger_username,  # Challenging self
         "challenge_type": ChallengeType.QUICK_QUANT_10,
     }
     serializer = ChallengeCreateSerializer(data=data, context={"request": mock_request})
-    assert not serializer.is_valid()
-    assert "opponent_username" in serializer.errors
-    assert "challenge yourself" in str(serializer.errors["opponent_username"])
+
+    # Assert that calling is_valid(raise_exception=True) raises DRFValidationError
+    with pytest.raises(serializers.ValidationError) as excinfo:
+        serializer.is_valid(raise_exception=True)
+
+    # Check the details of the raised exception
+    assert "opponent_username" in excinfo.value.detail
+    assert (
+        "cannot challenge yourself"
+        in str(excinfo.value.detail["opponent_username"]).lower()
+    )
 
 
 def test_create_serializer_invalid_type(mock_request):

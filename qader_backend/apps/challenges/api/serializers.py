@@ -117,23 +117,30 @@ class ChallengeCreateSerializer(serializers.Serializer):
         opponent_username = attrs.get("opponent_username")
         opponent = None
 
-        if opponent_username:
-            if opponent_username == challenger.username:
-                raise serializers.ValidationError(_("You cannot challenge yourself."))
+        # Check for self-challenge FIRST
+        if opponent_username is not None and opponent_username == challenger.username:
+            raise serializers.ValidationError(
+                {
+                    "opponent_username": _("You cannot challenge yourself.")
+                }  # Field-specific error
+            )
+
+        if opponent_username:  # Check if it's a non-empty string
             try:
                 opponent = User.objects.get(username=opponent_username, is_active=True)
-                # Pop username only if opponent found and validated
+                # Successfully found opponent, store the object
+                attrs["opponent"] = opponent
+                # Pop the username as it's no longer needed after validation/lookup
                 attrs.pop("opponent_username")
             except User.DoesNotExist:
                 raise serializers.ValidationError(
-                    _("Opponent user not found or inactive.")
+                    {"opponent_username": _("Opponent user not found or inactive.")}
                 )
-            if opponent_username == challenger.username:
-                raise serializers.ValidationError(
-                    {"opponent_username": _("You cannot challenge yourself.")}
-                )
-
-        attrs["opponent"] = opponent
+        else:
+            # If opponent_username is None or "", set opponent to None (for random match)
+            attrs["opponent"] = None
+            # Explicitly pop if it exists (was None or "") to ensure it's removed
+            attrs.pop("opponent_username", None)
 
         # TODO: Add validation for challenge_type if needed (e.g., check if user level is suitable?)
         # TODO: Validate if the challenger/opponent already have an active challenge together?
