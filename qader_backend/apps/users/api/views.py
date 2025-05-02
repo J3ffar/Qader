@@ -1,4 +1,5 @@
 from datetime import timedelta
+from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.password_validation import validate_password
@@ -126,7 +127,7 @@ COMMON_ERRORS = {
 @extend_schema(
     tags=["Authentication"],
     summary="Obtain JWT Tokens",
-    description="Authenticate with username and password to receive JWT access and refresh tokens, along with basic user profile information.",
+    description="Authenticate with username and password to receive JWT access and refresh tokens, along with basic user profile information. Also establishes a session for WebSocket authentication.",
     responses={
         status.HTTP_200_OK: OpenApiResponse(
             response=inline_serializer(
@@ -180,6 +181,31 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         # Add custom user data
         user: User = serializer.user
+
+        if user is not None and user.is_active:
+            try:
+                # Log the user into the session backend
+                login(request, user)
+                logger.info(
+                    f"User '{user.username}' (ID: {user.id}) logged into session for WebSocket auth."
+                )
+            except Exception as e:
+                # Handle potential errors during login (though unlikely for valid user)
+                logger.exception(
+                    f"Error logging user '{user.username}' into session during JWT login: {e}"
+                )
+                # Decide how to proceed: maybe still issue JWTs but log error?
+                # For now, we'll continue but the log indicates a potential issue.
+        else:
+            # This case should be prevented by the serializer validation raising an exception above
+            logger.error(
+                f"Login attempt succeeded validation but user '{user.username if user else 'None'}' is None or inactive."
+            )
+            return Response(
+                {"detail": "Login failed: User account issue."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
         try:
             # Use select_related for efficiency if accessing user fields often in serializer
             profile = UserProfile.objects.select_related(
@@ -245,12 +271,30 @@ class LogoutView(views.APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request) -> Response:
+        user_identifier = f"'{request.user.username}' (ID: {request.user.id})"
         refresh_token = request.data.get("refresh")
         if not refresh_token:
             return Response(
                 {"detail": _("Refresh token is required.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        try:
+            logout(request)
+            logger.info(f"User {user_identifier} session cleared.")
+        except Exception as e:
+            # Log error but potentially continue to blacklist token if provided
+            logger.exception(
+                f"Error clearing session for user {user_identifier} during logout: {e}"
+            )
+
+        # --- Blacklist JWT Refresh Token ---
+        if not refresh_token:
+            # Still return success (204) even if token wasn't provided, as session logout succeeded
+            logger.warning(
+                f"Logout called for {user_identifier} without providing refresh token for blacklisting."
+            )
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         try:
             token = RefreshToken(refresh_token)
@@ -398,7 +442,7 @@ class InitialSignupView(generics.CreateAPIView):
 @extend_schema(
     tags=["Authentication"],
     summary="Confirm Email Address (Stage 2)",
-    description="Confirms the user's email address using the link sent. Activates the account, generates JWT tokens, and indicates if profile completion is needed.",
+    description="Confirms the user's email address using the link sent. Activates the account, generates JWT tokens, establishes a session for WebSocket auth, and indicates if profile completion is needed.",
     parameters=[
         OpenApiParameter(
             "uidb64",
@@ -465,11 +509,25 @@ class ConfirmEmailView(views.APIView):
 
         # Check the token using the default generator
         if default_token_generator.check_token(user, token):
-            user.is_active = True
-            user.save(update_fields=["is_active"])
-            logger.info(
-                f"User {user.email} successfully activated via email confirmation."
-            )
+            account_already_active = user.is_active  # Check before activating
+            if not account_already_active:
+                user.is_active = True
+                user.save(update_fields=["is_active"])
+                logger.info(
+                    f"User {user.email} successfully activated via email confirmation."
+                )
+
+            # --- Log user into session after successful confirmation ---
+            # This ensures a session is established if they click an old link after logging out
+            try:
+                login(request, user)
+                logger.info(
+                    f"User '{user.username}' (ID: {user.id}) logged into session {'after' if not account_already_active else 'again after'} email confirmation."
+                )
+            except Exception as e:
+                logger.exception(
+                    f"Error logging user '{user.username}' into session during email confirmation: {e}"
+                )
 
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
