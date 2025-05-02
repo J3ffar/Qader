@@ -5,8 +5,6 @@ from rest_framework.routers import DefaultRouter
 
 from apps.admin_panel.api.views import community_management as views
 
-app_name = "admin_community_management"
-
 # Use a router for the admin viewsets
 router = DefaultRouter()
 router.register(
