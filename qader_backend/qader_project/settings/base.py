@@ -103,17 +103,16 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            # Use the same Redis instance as Celery/Caching if desired, or a separate one
             "hosts": [
-                (
-                    config("REDIS_HOST", default="127.0.0.1"),
-                    config("REDIS_PORT", default=6379, cast=int),
-                )
+                {
+                    "host": config("REDIS_HOST", default="127.0.0.1"),
+                    "port": config("REDIS_PORT", default=6379, cast=int),
+                    "db": config("CHANNELS_REDIS_DB", default=1, cast=int),
+                    # --- Optionally add password here if needed ---
+                    # "password": config("REDIS_PASSWORD", default=None),
+                }
+                # You can add more hosts for sharding/failover if needed
             ],
-            # Optionally use a different Redis database number
-            "db": config("CHANNELS_REDIS_DB", default=1, cast=int),
-            # Optionally add password if your Redis server requires it
-            # "password": config("REDIS_PASSWORD", default=None),
         },
     },
 }
