@@ -71,39 +71,67 @@ class ChallengeListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields  # List view is read-only
 
-    def get_user_is_participant(self, obj) -> bool:
-        user = self.context["request"].user
+    def _get_current_user(self):
+        """Helper to safely get the user from the context, if available."""
+        request = self.context.get("request")
+        # Check if request exists, has user, and user is authenticated
+        if request and hasattr(request, "user") and request.user.is_authenticated:
+            return request.user
+        return None  # Return None if no authenticated user in context
+
+    def get_user_is_participant(self, obj) -> bool | None:
+        """Check if the user in context is a participant."""
+        user = self._get_current_user()
+        # Return None or False if no user context, adjust based on desired output
+        if not user:
+            return None  # Indicate ambiguity without request context
         return obj.is_participant(user)
 
     def get_user_is_winner(self, obj) -> bool | None:
-        user = self.context["request"].user
-        if obj.status != ChallengeStatus.COMPLETED:
-            return None
+        """Check if the user in context is the winner."""
+        user = self._get_current_user()
+        if not user or obj.status != ChallengeStatus.COMPLETED:
+            return None  # Winner only relevant for completed challenges and known user
         return obj.winner == user
 
     def _get_attempt_score(self, obj, user) -> int | None:
+        """Safely get score for a given user (can be None or context user)."""
         if not user or not obj.is_participant(user):
+            # Don't try to query if user is None or not involved
             return None
         try:
-            # Fetch attempt score efficiently
+            # Fetch attempt score efficiently, default to 0 if attempt exists but no score?
+            # Using .first() handles cases where attempt might not exist yet
             attempt = (
                 obj.attempts.filter(user=user).values_list("score", flat=True).first()
             )
+            # Return score if found, otherwise maybe 0 if participant assumed to have 0 before answering?
             return attempt if attempt is not None else 0
         except Exception:  # Broad except for safety in serializer method
-            return None
+            logger.exception(
+                f"Error fetching score for user {user.id} in challenge {obj.id}"
+            )
+            return None  # Return None on error
 
     def get_user_score(self, obj) -> int | None:
-        user = self.context["request"].user
+        """Get the score for the user in context."""
+        user = self._get_current_user()
         return self._get_attempt_score(obj, user)
 
     def get_opponent_score(self, obj) -> int | None:
-        user = self.context["request"].user
+        """Get the score for the opponent relative to the user in context."""
+        user = self._get_current_user()
+        if not user:
+            # Cannot determine opponent score relative to a non-existent user
+            return None
+
         other_user = None
+        # Determine who the 'other' user is based on the context user
         if obj.challenger == user and obj.opponent:
             other_user = obj.opponent
-        elif obj.opponent == user:
+        elif obj.opponent == user:  # No need to check obj.challenger exists, it must
             other_user = obj.challenger
+        # else: user is not a participant or opponent is None, other_user remains None
 
         return self._get_attempt_score(obj, other_user)
 

@@ -21,6 +21,34 @@ logger = logging.getLogger(__name__)
 # --- Consumer for specific Challenge Instance ---
 
 
+@database_sync_to_async
+def _get_challenge_and_check_participation(challenge_pk, user):
+    """
+    Fetches the challenge and checks if the user is a participant.
+    Raises Challenge.DoesNotExist or PermissionDenied.
+    """
+    try:
+        # Use select_related for efficiency if needed later
+        challenge = Challenge.objects.select_related("challenger", "opponent").get(
+            pk=challenge_pk
+        )
+        if not challenge.is_participant(user):
+            # Raise a specific exception we can catch
+            raise PermissionDenied("User is not a participant in this challenge.")
+        return challenge
+    except Challenge.DoesNotExist:
+        # Let this exception propagate up
+        raise
+    except Exception as e:
+        # Catch other potential DB errors if necessary
+        logger.error(
+            f"Error checking participation for challenge {challenge_pk}, user {user.id}: {e}",
+            exc_info=True,
+        )
+        # Re-raise or raise a generic error
+        raise PermissionDenied("Error during participation check.")
+
+
 class ChallengeConsumer(AsyncWebsocketConsumer):
     """
     Handles WebSocket connections for a specific ongoing challenge instance.
@@ -30,49 +58,51 @@ class ChallengeConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope.get("user")
         if not self.user or not self.user.is_authenticated:
-            await self.close(code=4001)  # Custom code for unauthenticated
+            await self.close(code=4001)
             return
 
         try:
             self.challenge_pk = self.scope["url_route"]["kwargs"]["challenge_pk"]
-            self.challenge = await self.get_challenge(self.challenge_pk)
-            self.is_participant = await self.check_participation(
-                self.challenge, self.user
+
+            # --- Use the combined async DB function ---
+            self.challenge = await _get_challenge_and_check_participation(
+                self.challenge_pk, self.user
+            )
+            # If the above line succeeds, user is authenticated and is a participant
+
+            self.challenge_group_name = f"challenge_{self.challenge_pk}"
+
+            # Join challenge group
+            await self.channel_layer.group_add(
+                self.challenge_group_name, self.channel_name
             )
 
-            if not self.is_participant:
-                logger.warning(
-                    f"User {self.user.id} attempted to connect to challenge {self.challenge_pk} they are not part of."
-                )
-                await self.close(code=4003)  # Custom code for permission denied
-                return
+            await self.accept()
+            logger.info(
+                f"User {self.user.id} connected to WebSocket for Challenge {self.challenge_pk}"
+            )
 
         except Challenge.DoesNotExist:
             logger.warning(
-                f"User {self.user.id} attempted to connect to non-existent challenge {self.challenge_pk}."
+                f"Connection rejected: Challenge {self.challenge_pk} DoesNotExist."
             )
-            await self.close(code=4004)  # Custom code for not found
-            return
+            await self.close(code=4004)
+        except PermissionDenied as e:  # Catch permission denied from our helper
+            logger.warning(
+                f"Connection rejected: User {self.user.id} permission denied for challenge {self.challenge_pk}. Reason: {e}"
+            )
+            await self.close(code=4003)  # Permission denied code
+        except KeyError as ke:
+            logger.error(
+                f"Connection error: Missing key in scope - {ke}", exc_info=True
+            )
+            await self.close(code=4000)
         except Exception as e:
             logger.error(
-                f"Error during ChallengeConsumer connect for user {self.user.id}, challenge {self.challenge_pk}: {e}",
+                f"Connection rejected: Unexpected error during connect for user {self.user.id}, challenge {self.challenge_pk}: {type(e).__name__} - {e}",
                 exc_info=True,
             )
-            await self.close(code=4000)  # Generic error
-            return
-
-        self.challenge_group_name = f"challenge_{self.challenge_pk}"
-
-        # Join challenge group
-        await self.channel_layer.group_add(self.challenge_group_name, self.channel_name)
-
-        await self.accept()
-        logger.info(
-            f"User {self.user.id} connected to WebSocket for Challenge {self.challenge_pk}"
-        )
-
-        # Send initial state? Or rely on frontend fetching via REST?
-        # await self.send_challenge_state()
+            await self.close(code=4000)
 
     async def disconnect(self, close_code):
         if hasattr(self, "challenge_group_name"):

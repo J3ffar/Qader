@@ -848,7 +848,7 @@ def create_rematch(original_challenge: Challenge, user_initiating: User) -> Chal
     # Re-use the same challenge type/config from original
     try:
         # Calls start_challenge, which handles creation and initial broadcast/notification
-        new_challenge, _, initial_status = start_challenge(
+        new_challenge, message, initial_status = start_challenge(
             challenger=challenger,
             opponent=opponent,
             challenge_type=original_challenge.challenge_type,
