@@ -10,5 +10,9 @@ urlpatterns = [
     path("serial-codes/", include("apps.admin_panel.api.urls.serial_code_management")),
     path("gamification/", include("apps.admin_panel.api.urls.gamification_management")),
     path("blog/", include("apps.admin_panel.api.urls.blog_management")),
+    path(
+        "community/",
+        include("apps.admin_panel.api.urls.community_management"),
+    ),
     path("statistics/", include("apps.admin_panel.api.urls.statistics")),
 ]

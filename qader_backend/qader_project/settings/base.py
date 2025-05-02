@@ -320,6 +320,10 @@ SPECTACULAR_SETTINGS = {
             "description": "Endpoints for managing blog posts and advice requests.",
         },
         {
+            "name": "Admin Panel - Community Management",
+            "description": "Endpoints for administrators to manage community posts and replies (moderation).",
+        },
+        {
             "name": "Admin Panel - Support Management",
             "description": "Endpoints for administrators to manage all support tickets.",
         },
