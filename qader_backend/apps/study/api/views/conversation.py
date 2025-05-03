@@ -372,7 +372,13 @@ class ConversationViewSet(
     @extend_schema(
         summary="Submit Answer to Conversation Test",
         request=ConversationTestSubmitSerializer,
-        responses={200: ConversationTestResultSerializer},
+        responses={
+            200: ConversationTestResultSerializer,
+            400: {"description": "Session completed or invalid input."},
+            404: {"description": "Question not found."},
+            500: {"description": "Internal server error."},
+            503: {"description": "AI service unavailable (for feedback generation)."},
+        },
         parameters=[
             OpenApiParameter(
                 name="id",
@@ -385,7 +391,10 @@ class ConversationViewSet(
     )
     @action(detail=True, methods=["post"], url_path="submit-test-answer")
     def submit_test_answer(self, request, pk=None):
-        """Submits the user's answer to the test question presented after 'Got It'."""
+        """
+        Submits the user's answer to the test question presented after 'Got It'.
+        Records the attempt, gets AI feedback, saves feedback, and returns results.
+        """
         session = self.get_object()
         if session.status == ConversationSession.Status.COMPLETED:
             return Response(
@@ -396,36 +405,74 @@ class ConversationViewSet(
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        test_question = serializer.validated_data["question_id"]
+        test_question_instance = serializer.validated_data["question_id"]
         selected_answer = serializer.validated_data["selected_answer"]
-
-        # try:
-        #     test_question = Question.objects.get(pk=question_id)
-        # except Question.DoesNotExist:
-        #     return Response(
-        #         {"detail": _("Test question not found.")},
-        #         status=status.HTTP_404_NOT_FOUND,
-        #     )
+        user = request.user
+        ai_feedback_text = _("Feedback generation pending.")  # Default message
 
         try:
-            # Record the attempt and update stats via service layer
+            # 1. Record the attempt (atomic transaction within the service)
             attempt = conversation_service.record_conversation_test_attempt(
-                user=request.user,
+                user=user,
                 session=session,
-                test_question=test_question,
+                test_question=test_question_instance,
                 selected_answer=selected_answer,
             )
 
-            # Return the detailed result
+            # 2. Get AI Feedback (outside the attempt recording transaction potentially)
+            try:
+                ai_feedback_text = conversation_service.get_ai_feedback_on_answer(
+                    session=session,
+                    attempt=attempt,
+                )
+            except Exception as feedback_error:
+                # Log the feedback error but don't fail the whole request,
+                # as the answer *was* recorded.
+                logger.error(
+                    f"Failed to get AI feedback for attempt {attempt.id}: {feedback_error}",
+                    exc_info=True,
+                )
+                ai_feedback_text = _(
+                    "Answer recorded, but an error occurred while generating feedback."
+                )
+
+            # 3. Save AI Feedback as a Conversation Message (separate transaction)
+            # Use atomic=True to ensure this save succeeds or fails cleanly.
+            try:
+                with transaction.atomic():
+                    ai_msg = ConversationMessage.objects.create(
+                        session=session,
+                        sender_type=ConversationMessage.SenderType.AI,
+                        message_text=ai_feedback_text,
+                        # Do NOT link this feedback message to the original question via related_question
+                        # It's feedback ABOUT the attempt.
+                    )
+                    logger.info(
+                        f"AI feedback message saved (ID: {ai_msg.id}) for attempt {attempt.id}"
+                    )
+            except Exception as msg_save_error:
+                # Log error saving the message, but proceed with response
+                logger.error(
+                    f"Failed to save AI feedback message for attempt {attempt.id}: {msg_save_error}",
+                    exc_info=True,
+                )
+                # The ai_feedback_text variable still holds the generated text for the response
+
+            # 4. Prepare and return the response
+            # Serialize the attempt result first
             result_serializer = ConversationTestResultSerializer(
                 attempt, context=self.get_serializer_context()
             )
-            return Response(result_serializer.data, status=status.HTTP_200_OK)
+            response_data = result_serializer.data
+            # Add the generated AI feedback text to the response dictionary
+            response_data["ai_feedback"] = ai_feedback_text
+
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
-            logger.error(
-                f"Error submitting conversation test answer for session {session.id}, question {question_id}: {e}",
-                exc_info=True,
+            q_id = test_question_instance.id if test_question_instance else "UNKNOWN"
+            logger.exception(
+                f"Error during submit_test_answer for session {session.id}, question {q_id}: {e}"
             )
             return Response(
                 {"detail": _("An error occurred while submitting your answer.")},

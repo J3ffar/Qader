@@ -407,3 +407,102 @@ def generate_ai_question_and_message(
         "ai_message": ai_cheer_message_text,
         "question": selected_question,  # Pass the full Question object
     }
+
+
+def get_ai_feedback_on_answer(
+    session: ConversationSession,
+    attempt: UserQuestionAttempt,
+) -> str:
+    """
+    Generates feedback from the AI based on the user's answer attempt.
+    """
+    if not client:
+        logger.error(
+            f"AI Client not available for answer feedback in session {session.id}."
+        )
+        # Return a generic message, don't raise error here as the main action succeeded
+        return _("Your answer has been recorded.")
+
+    question = attempt.question
+    is_correct = attempt.is_correct
+    user_answer = attempt.selected_answer
+    correct_answer = question.correct_answer
+    explanation = question.explanation or _("No detailed explanation available.")
+
+    # Construct a tailored prompt for the AI
+    if is_correct:
+        prompt_detail = f"""
+        The user correctly answered '{user_answer}' to the following question:
+        Question: "{question.question_text}"
+        Options: A) {question.option_a} B) {question.option_b} C) {question.option_c} D) {question.option_d}
+
+        Provide a short, encouraging confirmation ({session.ai_tone} tone). Briefly reinforce why the answer is correct, perhaps referencing a key part of the concept or explanation if applicable, but keep it concise.
+        Example ({session.ai_tone} tone): "Exactly! '{correct_answer}' was the right choice because..." or "Spot on! ✨ You nailed it by recognizing..."
+        """
+    else:
+        prompt_detail = f"""
+        The user answered '{user_answer}', but the correct answer was '{correct_answer}' for the following question:
+        Question: "{question.question_text}"
+        Options: A) {question.option_a} B) {question.option_b} C) {question.option_c} D) {question.option_d}
+        Correct Explanation: "{explanation}"
+
+        Provide helpful feedback ({session.ai_tone} tone). Gently explain why '{user_answer}' was incorrect and why '{correct_answer}' is correct, possibly referencing the explanation. Keep the feedback constructive and encouraging. Avoid simply repeating the full explanation.
+        Example ({session.ai_tone} tone): "Not quite this time. The correct answer was '{correct_answer}' because... Remember to look out for..." or "Good try! 😊 The answer is actually '{correct_answer}'. The key was..."
+        """
+
+    messages_for_api = [
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT_BASE
+            + "\n"
+            + _get_tone_instruction(session.ai_tone),
+        },
+        # Optional: Add last few messages for context? Maybe not needed for direct feedback.
+        # *formatted_history,
+        {
+            "role": "user",
+            "content": prompt_detail,
+        },  # Use the tailored prompt as user input
+    ]
+
+    # Call AI API
+    try:
+        logger.info(
+            f"Calling OpenAI ({AI_MODEL}) for answer feedback session {session.id}, attempt {attempt.id}."
+        )
+        response = client.chat.completions.create(
+            model=AI_MODEL,
+            messages=messages_for_api,
+            temperature=0.6,  # Slightly less creative for feedback
+            max_tokens=150,  # Limit response length
+            # user=str(session.user.id)
+        )
+        ai_feedback_text = response.choices[0].message.content.strip()
+
+        if not ai_feedback_text:
+            logger.warning(f"Received empty AI feedback for attempt {attempt.id}.")
+            # Fallback based on correctness
+            ai_feedback_text = (
+                _("Correct! Well done.")
+                if is_correct
+                else _(
+                    "Answer recorded. The correct answer was {correct_answer}."
+                ).format(correct_answer=correct_answer)
+            )
+
+        logger.info(f"AI feedback received for attempt {attempt.id}")
+        return ai_feedback_text
+
+    except OpenAIError as e:
+        logger.error(
+            f"OpenAI API error getting feedback for attempt {attempt.id}: {e}",
+            exc_info=True,
+        )
+        return _(
+            "Answer recorded. I had trouble generating detailed feedback this time."
+        )
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error getting AI feedback for attempt {attempt.id}: {e}"
+        )
+        return _("Answer recorded. An error occurred while generating feedback.")
