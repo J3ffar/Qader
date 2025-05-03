@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.study.models import UserTestAttempt, ConversationMessage, ConversationSession
 from apps.api.exceptions import UsageLimitExceeded
 from qader_project.settings.base import (
+    LIMIT_MAX_AI_QUESTIONS_ASKED,
     LIMIT_MAX_CONVERSATION_MESSAGES,
     LIMIT_MAX_QUESTIONS_PER_ATTEMPT,
     LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE,
@@ -110,6 +111,23 @@ class UsageLimiter:
                     limit_type="AI Conversation Messages", limit_value=limit
                 )
         logger.debug(f"User {self.user.id} permitted to send conversation message.")
+
+    def check_can_ask_ai_question(self):
+        """Checks if the user can request an AI-generated question."""
+        limit = self.limits.get(LIMIT_MAX_AI_QUESTIONS_ASKED)
+        if limit is not None:
+            # Count AI messages that have a related_question (indicating AI asked)
+            # Adjust counting logic as needed
+            count = ConversationMessage.objects.filter(
+                session__user=self.user,
+                sender_type=ConversationMessage.SenderType.AI,
+                related_question__isnull=False,
+                # Add time constraints if needed
+            ).count()
+            if count >= limit:
+                raise UsageLimitExceeded(
+                    _("You have reached your limit for asking AI questions today.")
+                )
 
     # --- Add more check methods here as needed ---
     # def check_can_star_question(self):

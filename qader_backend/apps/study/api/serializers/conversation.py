@@ -10,6 +10,9 @@ from apps.study.models import (
 from apps.learning.models import Question
 from apps.users.api.serializers import (
     SimpleUserSerializer,
+)
+from apps.learning.api.serializers import (
+    QuestionDetailSerializer,
 )  # Assumes a simple user serializer exists
 
 
@@ -17,27 +20,35 @@ class ConversationMessageSerializer(serializers.ModelSerializer):
     """Serializer for individual conversation messages."""
 
     sender_type = serializers.CharField(read_only=True)
-    timestamp = serializers.DateTimeField(read_only=True)
-    # Input only needs message_text
+    timestamp = serializers.DateTimeField(read_only=True, format="%Y-%m-%d %H:%M:%S")
+
+    # Use a single field for both read and write, applying write_only=True for input phase if needed
     message_text = serializers.CharField(
-        write_only=True, required=True, style={"base_template": "textarea.html"}
+        required=True, style={"base_template": "textarea.html"}
     )
-    # Output includes text
-    message_text_display = serializers.CharField(source="message_text", read_only=True)
-    # Optionally include related question info if needed
-    # related_question_id = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    # Display related question ID if it exists
+    related_question_id = serializers.PrimaryKeyRelatedField(
+        read_only=True, source="related_question"
+    )
 
     class Meta:
         model = ConversationMessage
         fields = [
             "id",
+            "session",  # Useful for debugging/context sometimes
             "sender_type",
-            "message_text",  # Write-only field for input
-            "message_text_display",  # Read-only field for output
+            "message_text",
+            "related_question_id",
             "timestamp",
-            # 'related_question_id',
         ]
-        read_only_fields = ["id", "sender_type", "timestamp", "message_text_display"]
+        read_only_fields = [
+            "id",
+            "session",
+            "sender_type",
+            "timestamp",
+            "related_question_id",
+        ]
 
 
 class ConversationSessionListSerializer(serializers.ModelSerializer):
@@ -168,3 +179,15 @@ class ConversationTestResultSerializer(serializers.ModelSerializer):
             "explanation",
             "attempted_at",
         ]
+
+
+class AIQuestionResponseSerializer(serializers.Serializer):
+    """Serializer for the response when the AI asks a question."""
+
+    ai_message = serializers.CharField(
+        read_only=True, help_text=_("The encouraging message from the AI.")
+    )
+    # Embed the simple question details directly
+    question = QuestionDetailSerializer(
+        read_only=True, help_text=_("The question posed by the AI.")
+    )

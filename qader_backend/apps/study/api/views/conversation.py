@@ -9,6 +9,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
 from apps.study.models import ConversationSession, ConversationMessage, Question
 from apps.study.api.serializers.conversation import (
+    AIQuestionResponseSerializer,
     ConversationSessionListSerializer,
     ConversationSessionDetailSerializer,
     ConversationSessionCreateSerializer,
@@ -59,22 +60,22 @@ class ConversationViewSet(
         """Only return sessions belonging to the current user."""
         return ConversationSession.objects.filter(
             user=self.request.user
-        ).prefetch_related("messages")
+        ).prefetch_related("messages", "messages__related_question")
 
     def get_serializer_class(self):
         """Return appropriate serializer class based on action."""
-        if self.action == "list":
-            return ConversationSessionListSerializer
-        if self.action == "create":
-            return ConversationSessionCreateSerializer
-        if self.action == "send_message":
-            return ConversationUserMessageInputSerializer
-        if self.action == "confirm_understanding":
-            # Output is the test question, or confirmation if no test needed
-            return ConversationTestQuestionSerializer  # Output serializer
-        if self.action == "submit_test_answer":
-            return ConversationTestSubmitSerializer  # Input serializer
-        # Add other action mappings if needed
+        action_map = {
+            "list": ConversationSessionListSerializer,
+            "create": ConversationSessionCreateSerializer,
+            "send_message": ConversationUserMessageInputSerializer,  # Input
+            "confirm_understanding": ConversationTestQuestionSerializer,  # Output
+            "submit_test_answer": ConversationTestSubmitSerializer,  # Input
+            "ask_question": None,  # No input serializer needed
+            # Add other actions if needed
+        }
+        if self.action in action_map:
+            return action_map[self.action]
+        # Default (retrieve) uses self.serializer_class
         return super().get_serializer_class()
 
     @extend_schema(
@@ -110,9 +111,12 @@ class ConversationViewSet(
         summary="Send Message to AI",
         request=ConversationUserMessageInputSerializer,
         responses={
-            201: ConversationMessageSerializer,
+            201: ConversationMessageSerializer,  # Returns the AI's response message
+            400: {"description": "Session completed or invalid input."},
             403: {"description": "Usage limit exceeded or permission denied."},
-        },  # Returns the AI's response message
+            500: {"description": "Internal server error / AI unavailable."},
+            503: {"description": "AI service unavailable."},
+        },
         parameters=[
             OpenApiParameter(
                 name="id",
@@ -136,8 +140,10 @@ class ConversationViewSet(
         input_serializer = self.get_serializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
         user_message_text = input_serializer.validated_data["message_text"]
-        related_question_id = input_serializer.validated_data.get("related_question_id")
-        related_question = input_serializer.validated_data.get("related_question_id")
+        # Ensure related_question object is fetched if ID is provided
+        related_question_instance = input_serializer.validated_data.get(
+            "related_question_id"
+        )
 
         user = request.user
 
@@ -147,7 +153,7 @@ class ConversationViewSet(
             limiter.check_can_send_conversation_message()
         except UsageLimitExceeded as e:
             return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
-        except ValueError as e:
+        except ValueError as e:  # Handle potential limiter init errors
             logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
             return Response(
                 {"detail": "Could not verify account limits."},
@@ -161,18 +167,21 @@ class ConversationViewSet(
                     session=session,
                     sender_type=ConversationMessage.SenderType.USER,
                     message_text=user_message_text,
-                    related_question=related_question,
+                    related_question=related_question_instance,  # Save FK instance
                 )
                 logger.info(
                     f"User message saved (ID: {user_msg.id}) for session {session.id}"
                 )
 
-                # If user mentions a question, update session context
-                if related_question:
-                    session.current_topic_question = related_question
+                # Update session context if user explicitly linked a question
+                if (
+                    related_question_instance
+                    and session.current_topic_question != related_question_instance
+                ):
+                    session.current_topic_question = related_question_instance
                     session.save(update_fields=["current_topic_question", "updated_at"])
                     logger.info(
-                        f"Session {session.id} context updated to question {related_question.id}"
+                        f"Session {session.id} context updated to question {related_question_instance.id}"
                     )
 
                 # 2. Get AI response (call service layer)
@@ -180,28 +189,116 @@ class ConversationViewSet(
                     session, user_message_text
                 )
 
+                # Handle potential service unavailability messages from the service layer
+                if (
+                    "unavailable" in ai_response_text.lower()
+                    or "issue communicating" in ai_response_text.lower()
+                ):
+                    # Don't save this as a message, return error to user
+                    status_code = (
+                        status.HTTP_503_SERVICE_UNAVAILABLE
+                        if "unavailable" in ai_response_text.lower()
+                        else status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+                    return Response({"detail": ai_response_text}, status=status_code)
+
                 # 3. Save AI response
                 ai_msg = ConversationMessage.objects.create(
                     session=session,
                     sender_type=ConversationMessage.SenderType.AI,
                     message_text=ai_response_text,
+                    # related_question is typically null here unless AI explicitly asks one
                 )
                 logger.info(
-                    f"AI message saved (ID: {ai_msg.id}) for session {session.id}"
+                    f"AI response message saved (ID: {ai_msg.id}) for session {session.id}"
                 )
 
-            # 4. Return the AI message
+            # 4. Return the AI message using the correct serializer
             output_serializer = ConversationMessageSerializer(
                 ai_msg, context=self.get_serializer_context()
             )
             return Response(output_serializer.data, status=status.HTTP_201_CREATED)
 
-        except Exception as e:
-            logger.error(
-                f"Error processing message for session {session.id}: {e}", exc_info=True
-            )
+        except Exception as e:  # Catch broader exceptions during the process
+            logger.exception(f"Error processing message for session {session.id}: {e}")
             return Response(
                 {"detail": _("An error occurred while processing your message.")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    # --- NEW ACTION ---
+    @extend_schema(
+        summary="Ask AI to Provide a Question",
+        request=None,  # No request body needed
+        responses={
+            200: AIQuestionResponseSerializer,
+            400: {"description": "Session completed or cannot find question."},
+            403: {"description": "Usage limit exceeded or permission denied."},
+            404: {"description": "Could not find a suitable question."},
+            500: {"description": "Internal server error."},
+            503: {"description": "AI service unavailable."},
+        },
+        parameters=[
+            OpenApiParameter(
+                name="id",
+                location=OpenApiParameter.PATH,
+                description="Conversation Session ID",
+                required=True,
+                type=OpenApiTypes.INT,
+            ),
+        ],
+    )
+    @action(detail=True, methods=["post"], url_path="ask-question")
+    def ask_question(self, request, pk=None):
+        """Requests the AI to select and ask a relevant question with a cheer message."""
+        session = self.get_object()
+        if session.status == ConversationSession.Status.COMPLETED:
+            return Response(
+                {"detail": _("This conversation session is completed.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = request.user
+
+        # *** Usage Limit Check ***
+        try:
+            limiter = UsageLimiter(user)
+            limiter.check_can_ask_ai_question()  # Use the new check method
+        except UsageLimitExceeded as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except ValueError as e:
+            logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
+            return Response(
+                {"detail": "Could not verify account limits."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        try:
+            # Call the service function to generate the question and message
+            response_data = conversation_service.generate_ai_question_and_message(
+                session, user
+            )
+
+            # Use the specific response serializer
+            serializer = AIQuestionResponseSerializer(
+                response_data, context=self.get_serializer_context()
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except ObjectDoesNotExist as e:
+            logger.warning(f"ask_question failed for session {session.id}: {e}")
+            return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except (
+            ValueError
+        ) as e:  # Catch explicit ValueErrors from service (e.g., AI unavailable)
+            logger.error(f"ask_question value error for session {session.id}: {e}")
+            return Response(
+                {"detail": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        except Exception as e:
+            logger.exception(f"Error during ask_question for session {session.id}: {e}")
+            return Response(
+                {"detail": _("An error occurred while asking for a question.")},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

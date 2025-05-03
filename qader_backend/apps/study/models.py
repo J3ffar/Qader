@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 # --- Test Definition Model ---
 class Test(models.Model):
-    # ... (keep existing Test model code) ...
     class TestType(models.TextChoices):
         LEVEL_ASSESSMENT_TEMPLATE = "level_assessment_template", _(
             "Level Assessment Template"
@@ -458,7 +457,6 @@ class UserQuestionAttempt(models.Model):
         blank=True,
         db_index=True,
     )
-    # TODO: Replace string references with actual imports if models are defined within the project
     conversation_session = models.ForeignKey(
         "ConversationSession",  # Keep as string if defined later or in different app
         on_delete=models.CASCADE,
@@ -664,7 +662,6 @@ class UserQuestionAttempt(models.Model):
 class UserSkillProficiency(models.Model):
     """Stores calculated proficiency score for a user on a specific skill."""
 
-    # ... (keep existing UserSkillProficiency model code - looks good) ...
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -751,7 +748,6 @@ class UserSkillProficiency(models.Model):
 
 # --- Emergency Mode Session Model ---
 class EmergencyModeSession(models.Model):
-    # ... (keep existing EmergencyModeSession model code) ...
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -797,7 +793,6 @@ class EmergencyModeSession(models.Model):
 
 # --- Conversation Session Model ---
 class ConversationSession(models.Model):
-    # ... (keep existing ConversationSession model code) ...
     class AiTone(models.TextChoices):
         CHEERFUL = "cheerful", _("Cheerful")
         SERIOUS = "serious", _("Serious")
@@ -861,7 +856,6 @@ class ConversationSession(models.Model):
 
 # --- Conversation Message Model ---
 class ConversationMessage(models.Model):
-    # ... (keep existing ConversationMessage model code) ...
     class SenderType(models.TextChoices):
         USER = "user", _("User")
         AI = "ai", _("AI")
