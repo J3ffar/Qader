@@ -23,20 +23,37 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 # --- AI Client Initialization ---
+client = None
+openai_init_error = None
+
 try:
     if settings.OPENAI_API_KEY:
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        kwargs = {"api_key": settings.OPENAI_API_KEY}
+        # Check if a custom base URL is provided in settings
+        if settings.OPENAI_API_BASE_URL:
+            kwargs["base_url"] = settings.OPENAI_API_BASE_URL
+            logger.info(
+                f"Initializing OpenAI client with custom base URL: {settings.OPENAI_API_BASE_URL}"
+            )
+        else:
+            logger.info("Initializing OpenAI client with default base URL.")
+
+        client = OpenAI(**kwargs)
+        # Optional: You could add a simple ping or model list check here if needed
+        # client.models.list()
     else:
-        client = None
-        logger.warning("OPENAI_API_KEY not configured. AI features will be disabled.")
+        openai_init_error = (
+            "OPENAI_API_KEY not configured. AI features will be disabled."
+        )
+        logger.warning(openai_init_error)
 except Exception as e:
-    client = None
-    logger.exception(f"Failed to initialize OpenAI client: {e}")
+    openai_init_error = f"Failed to initialize OpenAI client: {e}"
+    logger.exception(openai_init_error)
 # ---
 
 # --- Constants ---
-AI_MODEL = "gpt-3.5-turbo"  # Or your preferred model
-MAX_HISTORY_MESSAGES = 10  # Limit context window
+AI_MODEL = settings.AI_MODEL  # Or your preferred model
+MAX_HISTORY_MESSAGES = settings.MAX_HISTORY_MESSAGES  # Limit context window
 
 SYSTEM_PROMPT_BASE = """
 You are Qader AI, a helpful and encouraging AI assistant for students preparing for the Qudurat test (Saudi Arabia's aptitude test).
@@ -79,10 +96,17 @@ def get_ai_response(session: ConversationSession, user_message_text: str) -> str
     Handles interaction with the external AI service.
     """
     if not client:
-        logger.error(f"AI Client not available for session {session.id}.")
-        return _(
+        logger.error(
+            f"AI Client not available for session {session.id}. Init error: {openai_init_error}"
+        )
+        error_msg = _(
             "Sorry, the AI assistant is currently unavailable. Please try again later."
         )
+        if openai_init_error:
+            error_msg += (
+                f" (Reason: {openai_init_error})"  # Provide more context if possible
+            )
+        return error_msg
 
     # 1. Prepare context
     system_prompt = SYSTEM_PROMPT_BASE + "\n" + _get_tone_instruction(session.ai_tone)
@@ -266,9 +290,12 @@ def generate_ai_question_and_message(
     """
     if not client:
         logger.error(
-            f"AI Client not available for ask-question in session {session.id}."
+            f"AI Client not available for ask-question in session {session.id}. Init error: {openai_init_error}"
         )
-        raise ValueError(_("Sorry, the AI assistant is currently unavailable."))
+        error_msg = _("Sorry, the AI assistant is currently unavailable.")
+        if openai_init_error:
+            error_msg += f" (Reason: {openai_init_error})"
+        raise ValueError(error_msg)
 
     # 1. Select a Question
     # Strategy: Find a question from a skill the user is weak in or hasn't tried much.

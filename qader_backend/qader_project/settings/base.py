@@ -13,6 +13,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SECRET_KEY = config("SECRET_KEY")
 OPENAI_API_KEY = config("OPENAI_API_KEY", default=None)
 
+OPENAI_API_BASE_URL = config("OPENAI_API_BASE_URL", default=None)
+AI_MODEL = config("AI_MODEL", default="gpt-3.5-turbo")
+MAX_HISTORY_MESSAGES = config("MAX_HISTORY_MESSAGES", default=10, cast=int)
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="127.0.0.1,localhost", cast=Csv())
