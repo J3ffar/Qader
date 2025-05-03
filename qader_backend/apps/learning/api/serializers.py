@@ -84,6 +84,27 @@ class LearningSectionBasicSerializer(serializers.ModelSerializer):
 # --- Question Serializers ---
 
 
+class SimpleQuestionSerializer(serializers.ModelSerializer):
+    """
+    A very basic serializer for a Question, including only the ID, text, and options.
+    Suitable for contexts where only the core question content is needed.
+    """
+
+    class Meta:
+        model = Question
+        fields = [
+            "id",
+            "question_text",
+            "option_a",
+            "option_b",
+            "option_c",
+            "option_d",
+        ]
+        # All fields are read-only by default in ModelSerializer when only 'fields' is specified
+        # but explicitly stating it can improve clarity for simple serializers.
+        read_only_fields = fields
+
+
 class QuestionListSerializer(serializers.ModelSerializer):
     """
     Serializer for listing Questions. Excludes sensitive information like
