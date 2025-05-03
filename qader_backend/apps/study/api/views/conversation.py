@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.db import transaction
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+from django.core.exceptions import ObjectDoesNotExist
 
 from apps.study.models import ConversationSession, ConversationMessage, Question
 from apps.study.api.serializers.conversation import (
@@ -129,7 +130,6 @@ class ConversationViewSet(
     )
     @action(detail=True, methods=["post"], url_path="messages")
     def send_message(self, request, pk=None):
-        """Sends a user message within a session and gets the AI's response."""
         session = self.get_object()
         if session.status == ConversationSession.Status.COMPLETED:
             return Response(
@@ -137,69 +137,99 @@ class ConversationViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        input_serializer = self.get_serializer(data=request.data)
+        input_serializer = ConversationUserMessageInputSerializer(
+            data=request.data
+        )  # Use specific input serializer
         input_serializer.is_valid(raise_exception=True)
         user_message_text = input_serializer.validated_data["message_text"]
-        # Ensure related_question object is fetched if ID is provided
         related_question_instance = input_serializer.validated_data.get(
             "related_question_id"
         )
-
         user = request.user
 
-        # *** Usage Limit Check ***
+        # *** Usage Limit Check (keep existing) ***
         try:
             limiter = UsageLimiter(user)
             limiter.check_can_send_conversation_message()
         except UsageLimitExceeded as e:
             return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
-        except ValueError as e:  # Handle potential limiter init errors
+        except ValueError as e:
             logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
             return Response(
                 {"detail": "Could not verify account limits."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        # --- Core Logic ---
         try:
-            with transaction.atomic():
-                # 1. Save user message
+            ai_response_text = ""
+            current_question = session.current_topic_question
+
+            with transaction.atomic():  # Wrap user message saving and AI response generation/saving
+                # 1. Save user message (always happens first)
                 user_msg = ConversationMessage.objects.create(
                     session=session,
                     sender_type=ConversationMessage.SenderType.USER,
                     message_text=user_message_text,
-                    related_question=related_question_instance,  # Save FK instance
+                    related_question=related_question_instance,  # Link if user provided it
                 )
                 logger.info(
                     f"User message saved (ID: {user_msg.id}) for session {session.id}"
                 )
 
-                # Update session context if user explicitly linked a question
+                # Update session context if user explicitly linked a different question
                 if (
                     related_question_instance
-                    and session.current_topic_question != related_question_instance
+                    and current_question != related_question_instance
                 ):
                     session.current_topic_question = related_question_instance
                     session.save(update_fields=["current_topic_question", "updated_at"])
+                    current_question = (
+                        related_question_instance  # Update local variable
+                    )
                     logger.info(
-                        f"Session {session.id} context updated to question {related_question_instance.id}"
+                        f"Session {session.id} context updated by user message to question {current_question.id}"
                     )
 
-                # 2. Get AI response (call service layer)
-                ai_response_text = conversation_service.get_ai_response(
-                    session, user_message_text
-                )
+                # 2. Determine AI response generation path
+                if current_question:
+                    # --- Path A: Implicit Answer ---
+                    logger.info(
+                        f"Handling message for Q {current_question.id} in session {session.id}"
+                    )
+                    # Call the specific service function for hints/guidance
+                    # This service handles the attempt recording internally
+                    ai_response_text = conversation_service.handle_implicit_answer(
+                        session=session,
+                        user=user,
+                        question=current_question,
+                        submitted_answer_choice=user_message_text,
+                    )
+
+                else:
+                    # --- Path B: Normal Conversation ---
+                    logger.info(
+                        f"Handling message as standard conversation for session {session.id} (Current Q: {current_question.id if current_question else 'None'})"
+                    )
+                    # Call the standard AI response function, passing context
+                    ai_response_text = conversation_service.get_ai_response(
+                        session=session,
+                        user_message_text=user_message_text,
+                        current_topic_question=current_question,  # Pass context
+                    )
 
                 # Handle potential service unavailability messages from the service layer
                 if (
                     "unavailable" in ai_response_text.lower()
                     or "issue communicating" in ai_response_text.lower()
+                    or "error occurred" in ai_response_text.lower()
                 ):
-                    # Don't save this as a message, return error to user
                     status_code = (
                         status.HTTP_503_SERVICE_UNAVAILABLE
                         if "unavailable" in ai_response_text.lower()
                         else status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
+                    # Return immediately without saving AI message if service failed critically
                     return Response({"detail": ai_response_text}, status=status_code)
 
                 # 3. Save AI response
@@ -207,19 +237,19 @@ class ConversationViewSet(
                     session=session,
                     sender_type=ConversationMessage.SenderType.AI,
                     message_text=ai_response_text,
-                    # related_question is typically null here unless AI explicitly asks one
+                    # related_question is typically null here
                 )
                 logger.info(
-                    f"AI response message saved (ID: {ai_msg.id}) for session {session.id}"
+                    f"AI response/hint message saved (ID: {ai_msg.id}) for session {session.id}"
                 )
 
-            # 4. Return the AI message using the correct serializer
+            # 4. Return the AI message
             output_serializer = ConversationMessageSerializer(
                 ai_msg, context=self.get_serializer_context()
             )
             return Response(output_serializer.data, status=status.HTTP_201_CREATED)
 
-        except Exception as e:  # Catch broader exceptions during the process
+        except Exception as e:  # Catch broader exceptions
             logger.exception(f"Error processing message for session {session.id}: {e}")
             return Response(
                 {"detail": _("An error occurred while processing your message.")},

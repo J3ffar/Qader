@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import List, Optional, Dict, Any
 from django.conf import settings
@@ -90,10 +91,15 @@ def _format_history_for_ai(messages: List[ConversationMessage]) -> List[Dict[str
     return formatted_messages
 
 
-def get_ai_response(session: ConversationSession, user_message_text: str) -> str:
+def get_ai_response(
+    session: ConversationSession,
+    user_message_text: str,
+    current_topic_question: Optional[Question] = None,
+) -> str:
     """
-    Gets a response from the AI based on the session history and new user message.
-    Handles interaction with the external AI service.
+    Gets a response from the AI based on session history, new user message,
+    and optional current question context.
+    *** Assumes this is called when the message is NOT an implicit answer. ***
     """
     if not client:
         logger.error(
@@ -110,27 +116,33 @@ def get_ai_response(session: ConversationSession, user_message_text: str) -> str
 
     # 1. Prepare context
     system_prompt = SYSTEM_PROMPT_BASE + "\n" + _get_tone_instruction(session.ai_tone)
-    # Fetch history *before* the current user message is saved
     history = list(session.messages.order_by("timestamp").all())
     formatted_history = _format_history_for_ai(history)
+
+    # Add context about the current question if provided
+    context_message = ""
+    if current_topic_question:
+        context_message = f'\n\n[AI Context: We are currently discussing Question ID {current_topic_question.id}: "{current_topic_question.question_text[:150]}..."]'  # Add truncated question text
 
     messages_for_api = [
         {"role": "system", "content": system_prompt},
         *formatted_history,
-        {"role": "user", "content": user_message_text},  # Include the new user message
+        {
+            "role": "user",
+            "content": user_message_text + context_message,
+        },  # Append context to the user message
     ]
 
-    # 2. Call AI API
+    # 2. Call AI API (keep existing try/except block)
     try:
         logger.info(
-            f"Calling OpenAI ({AI_MODEL}) for session {session.id} with {len(messages_for_api)} messages."
+            f"Calling OpenAI ({AI_MODEL}) for session {session.id} with context QID: {current_topic_question.id if current_topic_question else 'None'}."
         )
         response = client.chat.completions.create(
             model=AI_MODEL,
             messages=messages_for_api,
-            temperature=0.7,  # Adjust creativity/focus
-            max_tokens=1000,  # Limit response length
-            # Add user identifier for moderation/tracking if needed
+            temperature=0.7,
+            max_tokens=1000,
             # user=str(session.user.id)
         )
         ai_response_text = response.choices[0].message.content.strip()
@@ -144,13 +156,17 @@ def get_ai_response(session: ConversationSession, user_message_text: str) -> str
         return ai_response_text
 
     except OpenAIError as e:
-        logger.error(f"OpenAI API error for session {session.id}: {e}", exc_info=True)
-        # More specific error messages based on e.type if needed
+        logger.error(
+            f"OpenAI API error for session {session.id} (context QID: {current_topic_question.id if current_topic_question else 'None'}): {e}",
+            exc_info=True,
+        )
         return _(
             "I encountered an issue communicating with my brain (the AI service). Please try again shortly."
         )
     except Exception as e:
-        logger.exception(f"Unexpected error calling AI for session {session.id}: {e}")
+        logger.exception(
+            f"Unexpected error calling AI for session {session.id} (context QID: {current_topic_question.id if current_topic_question else 'None'}): {e}"
+        )
         return _(
             "An unexpected error occurred while generating my response. Please try again."
         )
@@ -409,45 +425,73 @@ def generate_ai_question_and_message(
     }
 
 
-def get_ai_feedback_on_answer(
+@transaction.atomic
+def handle_implicit_answer(
     session: ConversationSession,
-    attempt: UserQuestionAttempt,
+    user: User,
+    question: Question,
+    submitted_answer_choice: str,
 ) -> str:
     """
-    Generates feedback from the AI based on the user's answer attempt.
+    Handles implicit answers. Records attempt, instructs AI to generate JSON feedback
+    (hint or confirmation), parses JSON, and returns the feedback text.
     """
+    # Default fallback message in case of errors
+    default_response = _("Got it. Thinking...")
+
     if not client:
         logger.error(
-            f"AI Client not available for answer feedback in session {session.id}."
+            f"AI Client not available for implicit answer handling in session {session.id}."
         )
-        # Return a generic message, don't raise error here as the main action succeeded
-        return _("Your answer has been recorded.")
+        return _(
+            "Your answer has been noted, but I couldn't generate feedback right now."
+        )
 
-    question = attempt.question
-    is_correct = attempt.is_correct
-    user_answer = attempt.selected_answer
+    # 1. Record the attempt (same as before)
+    attempt, created = UserQuestionAttempt.objects.update_or_create(
+        user=user,
+        question=question,
+        conversation_session=session,
+        defaults={
+            "selected_answer": submitted_answer_choice,
+            "mode": UserQuestionAttempt.Mode.CONVERSATION,
+            "attempted_at": timezone.now(),
+            "is_correct": None,
+        },
+    )
+    attempt.refresh_from_db(fields=["is_correct"])
+    is_correct = attempt.is_correct  # Backend knows the actual correctness
+
+    logger.info(
+        f"{'Recorded' if created else 'Updated'} implicit answer attempt {attempt.id} for Q {question.id}. Correct: {is_correct}"
+    )
+
+    # 2. Generate AI Hint/Guidance Prompt requesting JSON
     correct_answer = question.correct_answer
-    explanation = question.explanation or _("No detailed explanation available.")
+    explanation_snippet = (question.explanation or "")[:200]
 
-    # Construct a tailored prompt for the AI
+    # Define the desired JSON structure
+    json_structure_notes = """
+    Your response MUST be a valid JSON object containing EXACTLY these two keys:
+    1.  `is_correct`: boolean (true if the user's answer was correct, false otherwise). Use the value {is_correct_bool}.
+    2.  `feedback_text`: string (the feedback, hint, or confirmation message for the user in {tone} tone).
+    Example Correct: {{"is_correct": true, "feedback_text": "That's right! Feeling confident?"}}
+    Example Incorrect: {{"is_correct": false, "feedback_text": "Not quite. Think about the concept of X. Want to try again?"}}
+    """.format(
+        is_correct_bool=str(is_correct).lower(), tone=session.ai_tone
+    )  # Pass actual correctness to guide AI
+
     if is_correct:
-        prompt_detail = f"""
-        The user correctly answered '{user_answer}' to the following question:
-        Question: "{question.question_text}"
-        Options: A) {question.option_a} B) {question.option_b} C) {question.option_c} D) {question.option_d}
-
-        Provide a short, encouraging confirmation ({session.ai_tone} tone). Briefly reinforce why the answer is correct, perhaps referencing a key part of the concept or explanation if applicable, but keep it concise.
-        Example ({session.ai_tone} tone): "Exactly! '{correct_answer}' was the right choice because..." or "Spot on! ✨ You nailed it by recognizing..."
+        instruction = f"""
+        The user correctly answered '{submitted_answer_choice}' to the question ID {question.id}.
+        Generate JSON feedback. Confirm their answer briefly and positively. Ask if they feel confident or want another related question.
+        {json_structure_notes}
         """
     else:
-        prompt_detail = f"""
-        The user answered '{user_answer}', but the correct answer was '{correct_answer}' for the following question:
-        Question: "{question.question_text}"
-        Options: A) {question.option_a} B) {question.option_b} C) {question.option_c} D) {question.option_d}
-        Correct Explanation: "{explanation}"
-
-        Provide helpful feedback ({session.ai_tone} tone). Gently explain why '{user_answer}' was incorrect and why '{correct_answer}' is correct, possibly referencing the explanation. Keep the feedback constructive and encouraging. Avoid simply repeating the full explanation.
-        Example ({session.ai_tone} tone): "Not quite this time. The correct answer was '{correct_answer}' because... Remember to look out for..." or "Good try! 😊 The answer is actually '{correct_answer}'. The key was..."
+        instruction = f"""
+        The user answered '{submitted_answer_choice}' to question ID {question.id}, but the correct answer is '{correct_answer}'.
+        Generate JSON feedback. Gently guide the user. Do NOT reveal '{correct_answer}' directly. Provide a hint based on the concept or the explanation snippet: "{explanation_snippet}...". Encourage them to reconsider.
+        {json_structure_notes}
         """
 
     messages_for_api = [
@@ -457,45 +501,185 @@ def get_ai_feedback_on_answer(
             + "\n"
             + _get_tone_instruction(session.ai_tone),
         },
-        # Optional: Add last few messages for context? Maybe not needed for direct feedback.
-        # *formatted_history,
+        # Provide minimal context of the question text itself
         {
-            "role": "user",
-            "content": prompt_detail,
-        },  # Use the tailored prompt as user input
+            "role": "assistant",
+            "content": f"[Current Question Context: {question.question_text[:150]}...]",
+        },
+        {"role": "user", "content": instruction},
     ]
 
-    # Call AI API
+    # 3. Call AI API with JSON mode
     try:
         logger.info(
-            f"Calling OpenAI ({AI_MODEL}) for answer feedback session {session.id}, attempt {attempt.id}."
+            f"Calling OpenAI ({AI_MODEL}) for JSON hint session {session.id}, attempt {attempt.id}."
         )
         response = client.chat.completions.create(
             model=AI_MODEL,
             messages=messages_for_api,
-            temperature=0.6,  # Slightly less creative for feedback
-            max_tokens=150,  # Limit response length
-            # user=str(session.user.id)
+            temperature=0.7,
+            max_tokens=200,  # Adjust if needed for JSON + text
+            response_format={"type": "json_object"},  # <<< Use JSON mode
+            # user=str(user.id)
         )
-        ai_feedback_text = response.choices[0].message.content.strip()
+        ai_response_content = response.choices[0].message.content
 
-        if not ai_feedback_text:
-            logger.warning(f"Received empty AI feedback for attempt {attempt.id}.")
-            # Fallback based on correctness
-            ai_feedback_text = (
-                _("Correct! Well done.")
-                if is_correct
-                else _(
-                    "Answer recorded. The correct answer was {correct_answer}."
-                ).format(correct_answer=correct_answer)
+        # 4. Parse JSON response
+        try:
+            parsed_json = json.loads(ai_response_content)
+            ai_feedback_text = parsed_json.get("feedback_text")
+
+            if not ai_feedback_text:
+                logger.error(
+                    f"AI returned valid JSON but 'feedback_text' key missing or empty for attempt {attempt.id}. JSON: {ai_response_content}"
+                )
+                ai_feedback_text = default_response  # Fallback
+            else:
+                # Optional: Log the correctness value returned by AI vs actual backend correctness
+                ai_correctness = parsed_json.get("is_correct")
+                if ai_correctness is not None and bool(ai_correctness) != is_correct:
+                    logger.warning(
+                        f"AI correctness mismatch for attempt {attempt.id}. Backend: {is_correct}, AI JSON: {ai_correctness}"
+                    )
+                logger.info(
+                    f"AI JSON hint parsed successfully for attempt {attempt.id}"
+                )
+
+            return ai_feedback_text
+
+        except json.JSONDecodeError as json_err:
+            logger.error(
+                f"Failed to parse AI JSON response for attempt {attempt.id}. Error: {json_err}. Response: '{ai_response_content}'"
             )
-
-        logger.info(f"AI feedback received for attempt {attempt.id}")
-        return ai_feedback_text
+            return _(
+                "Got your answer. Had a little trouble formatting my feedback!"
+            )  # Specific fallback
 
     except OpenAIError as e:
         logger.error(
-            f"OpenAI API error getting feedback for attempt {attempt.id}: {e}",
+            f"OpenAI API error getting JSON hint for attempt {attempt.id}: {e}",
+            exc_info=True,
+        )
+        # Don't reveal correctness in fallback if it was wrong
+        return (
+            _("Got your answer. I had trouble generating a hint this time.")
+            if not is_correct
+            else _("Correct! Had trouble generating feedback.")
+        )
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error getting AI JSON hint for attempt {attempt.id}: {e}"
+        )
+        return default_response
+
+
+# --- Optional: Update `get_ai_feedback_on_answer` to also use JSON ---
+# (Recommended for consistency, follow similar pattern as above)
+def get_ai_feedback_on_answer(
+    session: ConversationSession,
+    attempt: UserQuestionAttempt,
+) -> str:
+    """
+    Generates JSON feedback from the AI for explicitly submitted answers,
+    parses it, and returns the feedback text.
+    """
+    # Default fallback message
+    default_response = _("Answer recorded.")
+    if not client:
+        logger.error(
+            f"AI Client not available for answer feedback in session {session.id}."
+        )
+        return default_response
+
+    question = attempt.question
+    is_correct = attempt.is_correct  # Backend knows actual correctness
+    user_answer = attempt.selected_answer
+    correct_answer = question.correct_answer
+    explanation = question.explanation or _("No detailed explanation available.")
+
+    # Define the desired JSON structure (similar to handle_implicit_answer)
+    json_structure_notes = """
+    Your response MUST be a valid JSON object containing EXACTLY these two keys:
+    1.  `is_correct`: boolean. Use the value {is_correct_bool}.
+    2.  `feedback_text`: string (the detailed feedback message for the user in {tone} tone).
+    Example Correct: {{"is_correct": true, "feedback_text": "Excellent! '{correct_answer}' is right because..."}}
+    Example Incorrect: {{"is_correct": false, "feedback_text": "Close! The answer was '{correct_answer}'. Here's why: [brief explanation based on provided context]..."}}
+    """.format(
+        is_correct_bool=str(is_correct).lower(),
+        tone=session.ai_tone,
+        correct_answer=correct_answer,
+    )
+
+    if is_correct:
+        instruction = f"""
+        The user correctly answered '{user_answer}' to question ID {question.id}.
+        Generate JSON feedback. Provide an encouraging confirmation. Briefly reinforce why the answer is correct, using the explanation context: "{explanation[:200]}..."
+        {json_structure_notes}
+        """
+    else:
+        instruction = f"""
+        The user answered '{user_answer}' to question ID {question.id}, but the correct answer was '{correct_answer}'.
+        Generate JSON feedback. Provide helpful feedback explaining why '{correct_answer}' is correct, using the explanation context: "{explanation[:300]}...". Keep it constructive.
+        {json_structure_notes}
+        """
+
+    messages_for_api = [
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT_BASE
+            + "\n"
+            + _get_tone_instruction(session.ai_tone),
+        },
+        {
+            "role": "assistant",
+            "content": f"[Current Question Context: {question.question_text[:150]}...]",
+        },
+        {"role": "user", "content": instruction},
+    ]
+
+    # Call AI API with JSON mode
+    try:
+        logger.info(
+            f"Calling OpenAI ({AI_MODEL}) for JSON answer feedback session {session.id}, attempt {attempt.id}."
+        )
+        response = client.chat.completions.create(
+            model=AI_MODEL,
+            messages=messages_for_api,
+            temperature=0.6,
+            max_tokens=250,  # Allow more tokens for potentially detailed feedback
+            response_format={"type": "json_object"},  # <<< Use JSON mode
+            # user=str(session.user.id)
+        )
+        ai_response_content = response.choices[0].message.content
+
+        # Parse JSON response
+        try:
+            parsed_json = json.loads(ai_response_content)
+            ai_feedback_text = parsed_json.get("feedback_text")
+
+            if not ai_feedback_text:
+                logger.error(
+                    f"AI returned valid JSON but 'feedback_text' missing/empty for explicit feedback attempt {attempt.id}. JSON: {ai_response_content}"
+                )
+                ai_feedback_text = _("Answer recorded. Correct: {is_correct}.").format(
+                    is_correct=is_correct
+                )  # Simple fallback
+            else:
+                logger.info(
+                    f"AI JSON feedback parsed successfully for explicit attempt {attempt.id}"
+                )
+
+            return ai_feedback_text
+
+        except json.JSONDecodeError as json_err:
+            logger.error(
+                f"Failed to parse AI JSON feedback response for explicit attempt {attempt.id}. Error: {json_err}. Response: '{ai_response_content}'"
+            )
+            return _("Answer recorded. Had a little trouble formatting my feedback!")
+
+    except OpenAIError as e:
+        logger.error(
+            f"OpenAI API error getting JSON feedback for explicit attempt {attempt.id}: {e}",
             exc_info=True,
         )
         return _(
@@ -503,6 +687,6 @@ def get_ai_feedback_on_answer(
         )
     except Exception as e:
         logger.exception(
-            f"Unexpected error getting AI feedback for attempt {attempt.id}: {e}"
+            f"Unexpected error getting AI JSON feedback for explicit attempt {attempt.id}: {e}"
         )
-        return _("Answer recorded. An error occurred while generating feedback.")
+        return default_response
