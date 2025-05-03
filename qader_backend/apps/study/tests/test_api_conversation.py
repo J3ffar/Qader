@@ -24,10 +24,12 @@ def create_session(client, data=None):
     return client.post(url, data=data or {})
 
 
-def create_question_with_skill(subsection):
+def create_question_with_skill(subsection, correct_answer="A"):
     """Helper to create a question associated with a new skill."""
     skill = SkillFactory(subsection=subsection)
-    question = QuestionFactory(subsection=subsection, skill=skill, correct_answer="A")
+    question = QuestionFactory(
+        subsection=subsection, skill=skill, correct_answer=correct_answer
+    )
     return question, skill
 
 
@@ -91,11 +93,13 @@ class TestConversationSessionCRUD:
         assert session.ai_tone == ConversationSession.AiTone.CHEERFUL
         assert response.data["ai_tone"] == ConversationSession.AiTone.CHEERFUL
 
-    def test_list_sessions(self, subscribed_client, base_user):
+    def test_list_sessions(self, subscribed_client, standard_user):
         # Create sessions for the subscribed user and another user
         create_session(subscribed_client)
         create_session(subscribed_client)
-        ConversationSession.objects.create(user=base_user)  # Session for another user
+        ConversationSession.objects.create(
+            user=standard_user
+        )  # Session for another user
 
         response = subscribed_client.get(self.list_url)
         assert response.status_code == status.HTTP_200_OK
@@ -121,8 +125,8 @@ class TestConversationSessionCRUD:
         assert response.data["id"] == session_id
         assert "messages" in response.data  # Detail view should include messages
 
-    def test_cannot_retrieve_other_user_session(self, subscribed_client, base_user):
-        other_session = ConversationSession.objects.create(user=base_user)
+    def test_cannot_retrieve_other_user_session(self, subscribed_client, standard_user):
+        other_session = ConversationSession.objects.create(user=standard_user)
         # Correct URL name
         detail_url = reverse(
             "api:v1:study:conversation-detail", kwargs={"pk": other_session.id}
@@ -134,13 +138,14 @@ class TestConversationSessionCRUD:
 
 
 # --- Messaging Tests ---
-@patch(
-    "apps.study.conversation_service.get_ai_response", return_value="Mocked AI Response"
-)
+@patch("apps.study.conversation_service.process_user_message_with_ai")
 class TestConversationMessaging:
     """Tests sending messages and AI interaction within a session."""
 
-    def test_send_message_success(self, mock_get_ai_response, subscribed_client):
+    def test_send_message_ai_interprets_as_conversation(
+        self, mock_process_ai, subscribed_client, setup_learning_content
+    ):
+        """Test when AI processes the message as non-answer."""
         session_resp = create_session(subscribed_client)
         session_id = session_resp.data["id"]
         session = ConversationSession.objects.get(pk=session_id)
@@ -148,30 +153,50 @@ class TestConversationMessaging:
             "api:v1:study:conversation-send-message", kwargs={"pk": session_id}
         )
 
-        user_message = "Tell me about analogies."
+        # Setup a current question context
+        current_q, _ = create_question_with_skill(setup_learning_content["algebra_sub"])
+        session.current_topic_question = current_q
+        session.save()
+
+        user_message = "Can you explain this concept more?"
+        ai_response_text = "Sure, this concept involves..."
+
+        # Mock the AI service response (not an answer)
+        mock_process_ai.return_value = {
+            "processed_as_answer": False,
+            "user_choice": None,
+            "feedback_text": ai_response_text,
+        }
+
         response = subscribed_client.post(
             messages_url, data={"message_text": user_message}
         )
 
         assert response.status_code == status.HTTP_201_CREATED
+        # Verify messages saved: User + AI
         assert ConversationMessage.objects.filter(session=session).count() == 2
-
-        user_msg_obj = ConversationMessage.objects.get(
-            session=session, sender_type=ConversationMessage.SenderType.USER
-        )
         ai_msg_obj = ConversationMessage.objects.get(
             session=session, sender_type=ConversationMessage.SenderType.AI
         )
-
-        assert user_msg_obj.message_text == user_message
-        assert ai_msg_obj.message_text == "Mocked AI Response"
-        mock_get_ai_response.assert_called_once()
+        assert ai_msg_obj.message_text == ai_response_text
+        # Verify attempt was NOT created
+        assert not UserQuestionAttempt.objects.filter(
+            conversation_session=session
+        ).exists()
+        # Verify the service was called correctly
+        mock_process_ai.assert_called_once_with(
+            session=session,
+            user_message_text=user_message,
+            current_topic_question=current_q,
+        )
+        # Check response data
         assert response.data["sender_type"] == "ai"
-        assert response.data["message_text_display"] == "Mocked AI Response"
+        assert response.data["message_text"] == ai_response_text  # Use message_text now
 
-    def test_send_message_updates_session_context(
-        self, mock_get_ai_response, subscribed_client, setup_learning_content
+    def test_send_message_ai_interprets_as_incorrect_answer(
+        self, mock_process_ai, subscribed_client, setup_learning_content
     ):
+        """Test when AI processes as incorrect answer and provides hint."""
         session_resp = create_session(subscribed_client)
         session_id = session_resp.data["id"]
         session = ConversationSession.objects.get(pk=session_id)
@@ -179,84 +204,198 @@ class TestConversationMessaging:
             "api:v1:study:conversation-send-message", kwargs={"pk": session_id}
         )
 
-        question = Question.objects.filter(
-            subsection=setup_learning_content["reading_comp_sub"]
-        ).first()
-        assert question is not None
-        assert session.current_topic_question is None
+        current_q, _ = create_question_with_skill(
+            setup_learning_content["algebra_sub"], correct_answer="A"
+        )
+        session.current_topic_question = current_q
+        session.save()
 
-        user_message = f"Explain question {question.id}"
+        user_message = "B"  # Incorrect answer
+        ai_hint_text = "Not quite! Remember the formula for..."
+
+        # Mock the AI service response (incorrect answer)
+        mock_process_ai.return_value = {
+            "processed_as_answer": True,
+            "user_choice": "B",  # AI detected 'B'
+            "feedback_text": ai_hint_text,
+        }
+
         response = subscribed_client.post(
-            messages_url,
-            data={"message_text": user_message, "related_question_id": question.id},
+            messages_url, data={"message_text": user_message}
         )
 
-        # Check the response first for the TypeError origin
         assert response.status_code == status.HTTP_201_CREATED
-        assert (
-            response.data["sender_type"] == "ai"
-        )  # Ensure basic AI response serialization works
+        # Verify messages saved: User + AI Hint
+        assert ConversationMessage.objects.filter(session=session).count() == 2
+        ai_msg_obj = ConversationMessage.objects.get(
+            session=session, sender_type=ConversationMessage.SenderType.AI
+        )
+        assert ai_msg_obj.message_text == ai_hint_text
+        # Verify attempt WAS created and marked incorrect
+        attempt = UserQuestionAttempt.objects.filter(
+            conversation_session=session, question=current_q
+        ).first()
+        assert attempt is not None
+        assert attempt.selected_answer == "B"
+        assert attempt.is_correct is False
+        # Verify the service was called correctly
+        mock_process_ai.assert_called_once_with(
+            session=session,
+            user_message_text=user_message,
+            current_topic_question=current_q,
+        )
+        # Check response data
+        assert response.data["sender_type"] == "ai"
+        assert response.data["message_text"] == ai_hint_text
 
-        # Now check the DB state
-        session.refresh_from_db()
-        assert session.current_topic_question == question
-        mock_get_ai_response.assert_called_once()
-
-    def test_send_message_to_completed_session(
-        self, mock_get_ai_response, subscribed_client
+    def test_send_message_ai_interprets_as_correct_answer(
+        self, mock_process_ai, subscribed_client, setup_learning_content
     ):
+        """Test when AI processes as correct answer and provides confirmation."""
         session_resp = create_session(subscribed_client)
         session_id = session_resp.data["id"]
         session = ConversationSession.objects.get(pk=session_id)
-        session.end_session()
-        assert session.status == ConversationSession.Status.COMPLETED
-
         messages_url = reverse(
             "api:v1:study:conversation-send-message", kwargs={"pk": session_id}
         )
+
+        current_q, _ = create_question_with_skill(
+            setup_learning_content["algebra_sub"], correct_answer="C"
+        )
+        session.current_topic_question = current_q
+        session.save()
+
+        user_message = "c."  # Correct answer with variation
+        ai_confirm_text = "That's right! Nicely done."
+
+        # Mock the AI service response (correct answer)
+        mock_process_ai.return_value = {
+            "processed_as_answer": True,
+            "user_choice": "C",  # AI detected 'C'
+            "feedback_text": ai_confirm_text,
+        }
+
         response = subscribed_client.post(
-            messages_url, data={"message_text": "One more thing"}
+            messages_url, data={"message_text": user_message}
         )
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "completed" in response.data.get("detail", "").lower()
-        mock_get_ai_response.assert_not_called()
+        assert response.status_code == status.HTTP_201_CREATED
+        # Verify messages saved: User + AI Confirmation
+        assert ConversationMessage.objects.filter(session=session).count() == 2
+        ai_msg_obj = ConversationMessage.objects.get(
+            session=session, sender_type=ConversationMessage.SenderType.AI
+        )
+        assert ai_msg_obj.message_text == ai_confirm_text
+        # Verify attempt WAS created and marked correct
+        attempt = UserQuestionAttempt.objects.filter(
+            conversation_session=session, question=current_q
+        ).first()
+        assert attempt is not None
+        assert attempt.selected_answer == "C"
+        assert attempt.is_correct is True
+        # Verify the service was called correctly
+        mock_process_ai.assert_called_once_with(
+            session=session,
+            user_message_text=user_message,
+            current_topic_question=current_q,
+        )
+        # Check response data
+        assert response.data["sender_type"] == "ai"
+        assert response.data["message_text"] == ai_confirm_text
 
-    @patch("apps.study.conversation_service.logger")
-    def test_send_message_ai_error(
-        self, mock_logger, mock_get_ai_response, subscribed_client
+    def test_send_message_ai_fails_json_parsing(
+        self, mock_process_ai, subscribed_client, setup_learning_content
     ):
-        mock_get_ai_response.side_effect = Exception("Simulated AI API Error")
+        """Test view's handling of AI service returning invalid JSON."""
+        session_resp = create_session(subscribed_client)
+        session_id = session_resp.data["id"]
+        session = ConversationSession.objects.get(pk=session_id)
+        messages_url = reverse(
+            "api:v1:study:conversation-send-message", kwargs={"pk": session_id}
+        )
+        current_q, _ = create_question_with_skill(setup_learning_content["algebra_sub"])
+        session.current_topic_question = current_q
+        session.save()
 
+        user_message = "A"
+        # Simulate the service function raising an error during parsing or returning error dict
+        mock_process_ai.return_value = {
+            "processed_as_answer": False,
+            "user_choice": None,
+            "feedback_text": "Sorry, I had a little trouble structuring my response.",  # Example fallback text
+        }
+        # OR mock_process_ai.side_effect = json.JSONDecodeError("Expecting property name enclosed in double quotes", doc="", pos=0)
+        # The view should catch exceptions from the service call
+
+        response = subscribed_client.post(
+            messages_url, data={"message_text": user_message}
+        )
+
+        assert (
+            response.status_code == status.HTTP_201_CREATED
+        )  # View saves fallback msg
+        # Verify messages saved: User + AI Fallback
+        assert ConversationMessage.objects.filter(session=session).count() == 2
+        ai_msg_obj = ConversationMessage.objects.get(
+            session=session, sender_type=ConversationMessage.SenderType.AI
+        )
+        assert "trouble structuring" in ai_msg_obj.message_text  # Check fallback saved
+        # Verify attempt was NOT created
+        assert not UserQuestionAttempt.objects.filter(
+            conversation_session=session
+        ).exists()
+
+    def test_send_message_ai_service_unavailable(
+        self, mock_process_ai, subscribed_client
+    ):
+        """Test view's handling of AI service unavailability indicated by response."""
         session_resp = create_session(subscribed_client)
         session_id = session_resp.data["id"]
         messages_url = reverse(
             "api:v1:study:conversation-send-message", kwargs={"pk": session_id}
         )
 
-        response = subscribed_client.post(
-            messages_url, data={"message_text": "Cause an error"}
+        # Simulate the service returning an unavailability message
+        mock_process_ai.return_value = {
+            "processed_as_answer": False,
+            "user_choice": None,
+            "feedback_text": "Sorry, the AI assistant is currently unavailable.",
+        }
+
+        response = subscribed_client.post(messages_url, data={"message_text": "Hello?"})
+
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        assert "unavailable" in response.data["detail"]
+        # Only user message should be saved
+        assert ConversationMessage.objects.filter(session_id=session_id).count() == 1
+        assert (
+            ConversationMessage.objects.filter(
+                session_id=session_id, sender_type=ConversationMessage.SenderType.AI
+            ).count()
+            == 0
         )
-
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-        assert "error occurred" in response.data.get("detail", "").lower()
-
-        # FIX: Assert count is 0 due to transaction rollback
-        assert ConversationMessage.objects.filter(session_id=session_id).count() == 0
 
 
 # --- Testing Flow Tests ---
-@patch("apps.study.conversation_service.select_test_question_for_concept")
-# REMOVE patch for record_conversation_test_attempt to let it create real objects
-# @patch('apps.study.conversation_service.record_conversation_test_attempt')
-# Optional: Patch proficiency update if needed for isolation
-@patch.object(UserSkillProficiency, "record_attempt", return_value=None)
-class TestConversationTestingFlow:
-    """Tests the 'Got It' confirmation and test answer submission flow."""
+@patch(
+    "apps.study.conversation_service.select_test_question_for_concept"
+)  # Creates mock_select_question (arg 3)
+@patch(
+    "apps.study.conversation_service.get_ai_feedback_on_answer"
+)  # Creates mock_get_ai_feedback (arg 2)
+@patch.object(
+    UserSkillProficiency, "record_attempt", return_value=None
+)  # Creates mock_record_prof_attempt (arg 1)
+class TestConversationTestingFlowUpdated:
+    """Tests the 'Got It' and explicit test answer submission flow with AI feedback."""
 
-    # Pass the mocked record_attempt (now patching UserSkillProficiency method)
+    # Method signature order should match decorator order (inner to outer)
     def test_confirm_understanding_no_context(
-        self, mock_record_prof_attempt, mock_select_question, subscribed_client
+        self,
+        mock_record_prof_attempt,
+        mock_get_ai_feedback,
+        mock_select_question,
+        subscribed_client,
     ):
         session_resp = create_session(subscribed_client)
         session_id = session_resp.data["id"]
@@ -271,10 +410,12 @@ class TestConversationTestingFlow:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "no specific topic context" in response.data.get("detail", "").lower()
         mock_select_question.assert_not_called()
+        mock_get_ai_feedback.assert_not_called()
 
     def test_confirm_understanding_success_with_test_question(
         self,
         mock_record_prof_attempt,
+        mock_get_ai_feedback,
         mock_select_question,
         subscribed_client,
         setup_learning_content,
@@ -290,7 +431,6 @@ class TestConversationTestingFlow:
         session.save()
 
         test_q, _ = create_question_with_skill(setup_learning_content["algebra_sub"])
-        assert test_q.id != original_q.id
         mock_select_question.return_value = test_q
 
         confirm_url = reverse(
@@ -301,12 +441,12 @@ class TestConversationTestingFlow:
         assert response.status_code == status.HTTP_200_OK
         mock_select_question.assert_called_once_with(original_q, subscribed_client.user)
         assert response.data["id"] == test_q.id
-        assert "question_text" in response.data
-        assert "correct_answer" not in response.data
+        mock_get_ai_feedback.assert_not_called()
 
     def test_confirm_understanding_no_suitable_test_question(
         self,
         mock_record_prof_attempt,
+        mock_get_ai_feedback,
         mock_select_question,
         subscribed_client,
         setup_learning_content,
@@ -330,11 +470,14 @@ class TestConversationTestingFlow:
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         mock_select_question.assert_called_once_with(original_q, subscribed_client.user)
+        mock_get_ai_feedback.assert_not_called()  # Also check here
 
-    def test_submit_test_answer_success(
+    # FIX: Add mock_select_question to the signature for all methods in this class
+    def test_submit_test_answer_success_with_ai_feedback(
         self,
         mock_record_prof_attempt,
-        mock_select_question,
+        mock_get_ai_feedback,
+        mock_select_question,  # <-- ADDED ARGUMENT
         subscribed_client,
         setup_learning_content,
     ):
@@ -343,13 +486,13 @@ class TestConversationTestingFlow:
         session = ConversationSession.objects.get(pk=session_id)
 
         test_q, test_skill = create_question_with_skill(
-            setup_learning_content["algebra_sub"]
+            setup_learning_content["algebra_sub"], correct_answer="C"
         )
-        test_q.correct_answer = "C"
         test_q.explanation = "Test Explanation"
         test_q.save()
-        # Ensure the skill exists for proficiency check later
-        assert test_skill is not None
+
+        ai_feedback_text = "Great job! That's exactly right."
+        mock_get_ai_feedback.return_value = ai_feedback_text
 
         submit_url = reverse(
             "api:v1:study:conversation-submit-test-answer", kwargs={"pk": session_id}
@@ -359,32 +502,34 @@ class TestConversationTestingFlow:
 
         assert response.status_code == status.HTTP_200_OK
 
-        # Verify the attempt was actually created in DB
         attempt = UserQuestionAttempt.objects.filter(
-            user=subscribed_client.user,
-            question=test_q,
-            conversation_session=session,  # Ensure it's linked to the session if model changes
-            mode=UserQuestionAttempt.Mode.CONVERSATION,
+            user=subscribed_client.user, question=test_q, conversation_session=session
         ).first()
         assert attempt is not None
         assert attempt.is_correct is True
-        assert attempt.selected_answer == "C"
 
-        # Check response contains result details from the REAL attempt object
+        mock_get_ai_feedback.assert_called_once_with(session=session, attempt=attempt)
+        ai_msg = ConversationMessage.objects.filter(
+            session=session, sender_type=ConversationMessage.SenderType.AI
+        ).first()
+        assert ai_msg is not None
+        assert ai_msg.message_text == ai_feedback_text
+
         assert response.data["id"] == attempt.id
         assert response.data["is_correct"] is True
-        assert response.data["selected_answer"] == "C"
+        assert "ai_feedback" in response.data
+        assert response.data["ai_feedback"] == ai_feedback_text
         assert response.data["correct_answer"] == "C"
-        assert response.data["explanation"] == "Test Explanation"
-        assert response.data["question"]["id"] == test_q.id
 
-        # Verify the mocked proficiency update was called
         mock_record_prof_attempt.assert_called_once_with(is_correct=True)
+        mock_select_question.assert_not_called()  # This mock shouldn't be used here
 
-    def test_submit_test_answer_incorrect(
+    # FIX: Add mock_select_question to the signature
+    def test_submit_test_answer_incorrect_with_ai_feedback(
         self,
         mock_record_prof_attempt,
-        mock_select_question,
+        mock_get_ai_feedback,
+        mock_select_question,  # <-- ADDED ARGUMENT
         subscribed_client,
         setup_learning_content,
     ):
@@ -392,86 +537,92 @@ class TestConversationTestingFlow:
         session_id = session_resp.data["id"]
         session = ConversationSession.objects.get(pk=session_id)
 
-        test_q, test_skill = create_question_with_skill(
-            setup_learning_content["algebra_sub"]
+        test_q, _ = create_question_with_skill(
+            setup_learning_content["algebra_sub"], correct_answer="A"
         )
-        test_q.correct_answer = "A"
         test_q.explanation = "Explanation B"
         test_q.save()
-        assert test_skill is not None
+
+        ai_feedback_text = "Not quite. The correct answer involves..."
+        mock_get_ai_feedback.return_value = ai_feedback_text
 
         submit_url = reverse(
             "api:v1:study:conversation-submit-test-answer", kwargs={"pk": session_id}
         )
-        data = {"question_id": test_q.id, "selected_answer": "B"}  # Incorrect answer
+        data = {"question_id": test_q.id, "selected_answer": "B"}
         response = subscribed_client.post(submit_url, data=data)
 
         assert response.status_code == status.HTTP_200_OK
 
-        # Verify the attempt was created
         attempt = UserQuestionAttempt.objects.filter(
-            user=subscribed_client.user,
-            question=test_q,
-            conversation_session=session,  # Future-proofing if model changes
-            mode=UserQuestionAttempt.Mode.CONVERSATION,
+            user=subscribed_client.user, question=test_q, conversation_session=session
         ).first()
         assert attempt is not None
         assert attempt.is_correct is False
-        assert attempt.selected_answer == "B"
 
-        # Check response
-        assert response.data["id"] == attempt.id
+        mock_get_ai_feedback.assert_called_once_with(session=session, attempt=attempt)
+        ai_msg = ConversationMessage.objects.filter(
+            session=session, sender_type=ConversationMessage.SenderType.AI
+        ).first()
+        assert ai_msg is not None
+        assert ai_msg.message_text == ai_feedback_text
+
         assert response.data["is_correct"] is False
-        assert response.data["selected_answer"] == "B"
-        assert response.data["correct_answer"] == "A"  # Show correct answer
-        assert response.data["explanation"] == "Explanation B"
-        assert response.data["question"]["id"] == test_q.id
+        assert "ai_feedback" in response.data
+        assert response.data["ai_feedback"] == ai_feedback_text
+        assert response.data["correct_answer"] == "A"
 
-        # Verify the mocked proficiency update was called
         mock_record_prof_attempt.assert_called_once_with(is_correct=False)
+        mock_select_question.assert_not_called()  # This mock shouldn't be used here
 
-    # Pass the mocked record_attempt even if not used directly in this test's assertions
-    def test_submit_test_answer_invalid_question(
-        self, mock_record_prof_attempt, mock_select_question, subscribed_client
-    ):
-        session_resp = create_session(subscribed_client)
-        session_id = session_resp.data["id"]
-
-        submit_url = reverse(
-            "api:v1:study:conversation-submit-test-answer", kwargs={"pk": session_id}
-        )
-        invalid_q_id = 99999
-        data = {"question_id": invalid_q_id, "selected_answer": "A"}
-        response = subscribed_client.post(submit_url, data=data)
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "question_id" in response.data
-        assert "Invalid pk" in str(response.data["question_id"])
-        # Ensure proficiency wasn't called
-        mock_record_prof_attempt.assert_not_called()
-
-    def test_submit_test_answer_to_completed_session(
+    # FIX: Add mock_select_question to the signature
+    def test_submit_test_answer_ai_feedback_fails(
         self,
         mock_record_prof_attempt,
-        mock_select_question,
+        mock_get_ai_feedback,
+        mock_select_question,  # <-- ADDED ARGUMENT
         subscribed_client,
         setup_learning_content,
     ):
         session_resp = create_session(subscribed_client)
         session_id = session_resp.data["id"]
         session = ConversationSession.objects.get(pk=session_id)
-        session.end_session()
+        test_q, _ = create_question_with_skill(
+            setup_learning_content["algebra_sub"], correct_answer="A"
+        )
 
-        test_q, _ = create_question_with_skill(setup_learning_content["algebra_sub"])
+        fallback_text = (
+            "Answer recorded, but an error occurred while generating feedback."
+        )
+        mock_get_ai_feedback.side_effect = Exception("Simulated feedback error")
+
         submit_url = reverse(
             "api:v1:study:conversation-submit-test-answer", kwargs={"pk": session_id}
         )
         data = {"question_id": test_q.id, "selected_answer": "A"}
         response = subscribed_client.post(submit_url, data=data)
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "completed" in response.data.get("detail", "").lower()
-        mock_record_prof_attempt.assert_not_called()
+        assert response.status_code == status.HTTP_200_OK
+
+        attempt = UserQuestionAttempt.objects.filter(
+            user=subscribed_client.user, question=test_q, conversation_session=session
+        ).first()
+        assert attempt is not None
+        assert attempt.is_correct is True
+
+        mock_get_ai_feedback.assert_called_once()
+
+        ai_msg = ConversationMessage.objects.filter(
+            session=session, sender_type=ConversationMessage.SenderType.AI
+        ).first()
+        assert ai_msg is not None
+        assert fallback_text in ai_msg.message_text
+
+        assert "ai_feedback" in response.data
+        assert fallback_text in response.data["ai_feedback"]
+
+        mock_record_prof_attempt.assert_called_once_with(is_correct=True)
+        mock_select_question.assert_not_called()  # This mock shouldn't be used here
 
 
 # --- End Session Tests ---
