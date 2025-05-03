@@ -3,12 +3,18 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.db import transaction
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from django.core.exceptions import ObjectDoesNotExist
 
-from apps.study.models import ConversationSession, ConversationMessage, Question
+from apps.study.models import (
+    ConversationSession,
+    ConversationMessage,
+    Question,
+    UserQuestionAttempt,
+)
 from apps.study.api.serializers.conversation import (
     AIQuestionResponseSerializer,
     ConversationSessionListSerializer,
@@ -162,16 +168,18 @@ class ConversationViewSet(
 
         # --- Core Logic ---
         try:
-            ai_response_text = ""
-            current_question = session.current_topic_question
+            current_question = session.current_topic_question  # Get context Q
+            ai_response_data = {}  # To store structured response from service
 
-            with transaction.atomic():  # Wrap user message saving and AI response generation/saving
-                # 1. Save user message (always happens first)
+            # Use a single transaction block for user message, AI call (read-only part),
+            # potential attempt saving, and AI message saving.
+            with transaction.atomic():
+                # 1. Save user message
                 user_msg = ConversationMessage.objects.create(
                     session=session,
                     sender_type=ConversationMessage.SenderType.USER,
                     message_text=user_message_text,
-                    related_question=related_question_instance,  # Link if user provided it
+                    related_question=related_question_instance,
                 )
                 logger.info(
                     f"User message saved (ID: {user_msg.id}) for session {session.id}"
@@ -191,72 +199,92 @@ class ConversationViewSet(
                         f"Session {session.id} context updated by user message to question {current_question.id}"
                     )
 
-                # 2. Determine AI response generation path
-                if current_question:
-                    # --- Path A: Implicit Answer ---
-                    logger.info(
-                        f"Handling message for Q {current_question.id} in session {session.id}"
-                    )
-                    # Call the specific service function for hints/guidance
-                    # This service handles the attempt recording internally
-                    ai_response_text = conversation_service.handle_implicit_answer(
-                        session=session,
-                        user=user,
-                        question=current_question,
-                        submitted_answer_choice=user_message_text,
-                    )
+                # 2. Call AI Service to process message and get structured response
+                ai_response_data = conversation_service.process_user_message_with_ai(
+                    session=session,
+                    user_message_text=user_message_text,
+                    current_topic_question=current_question,  # Pass context
+                )
 
-                else:
-                    # --- Path B: Normal Conversation ---
-                    logger.info(
-                        f"Handling message as standard conversation for session {session.id} (Current Q: {current_question.id if current_question else 'None'})"
-                    )
-                    # Call the standard AI response function, passing context
-                    ai_response_text = conversation_service.get_ai_response(
-                        session=session,
-                        user_message_text=user_message_text,
-                        current_topic_question=current_question,  # Pass context
-                    )
-
-                # Handle potential service unavailability messages from the service layer
+                # Check for critical AI errors indicated by the response structure/text
                 if (
-                    "unavailable" in ai_response_text.lower()
-                    or "issue communicating" in ai_response_text.lower()
-                    or "error occurred" in ai_response_text.lower()
+                    "unavailable" in ai_response_data["feedback_text"].lower()
+                    or "couldn't connect" in ai_response_data["feedback_text"].lower()
                 ):
-                    status_code = (
-                        status.HTTP_503_SERVICE_UNAVAILABLE
-                        if "unavailable" in ai_response_text.lower()
-                        else status.HTTP_500_INTERNAL_SERVER_ERROR
+                    # Don't save AI message, return error directly
+                    # Use raise Exception to rollback transaction if needed, or handle differently
+                    # For now, return response, transaction will commit user message.
+                    logger.warning(
+                        f"AI Service unavailable/error during processing for session {session.id}. AI Response: {ai_response_data}"
                     )
-                    # Return immediately without saving AI message if service failed critically
-                    return Response({"detail": ai_response_text}, status=status_code)
+                    return Response(
+                        {"detail": ai_response_data["feedback_text"]},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    )
 
-                # 3. Save AI response
+                # 3. Conditionally Save UserQuestionAttempt based on AI interpretation
+                if (
+                    ai_response_data.get("processed_as_answer")
+                    and ai_response_data.get("user_choice")
+                    and current_question
+                ):
+                    submitted_choice = ai_response_data["user_choice"]
+                    logger.info(
+                        f"AI processed message as answer '{submitted_choice}' for Q {current_question.id}. Saving attempt."
+                    )
+                    try:
+                        # Use update_or_create for idempotency within the session context
+                        attempt, created = UserQuestionAttempt.objects.update_or_create(
+                            user=user,
+                            question=current_question,
+                            conversation_session=session,
+                            defaults={
+                                "selected_answer": submitted_choice,
+                                "mode": UserQuestionAttempt.Mode.CONVERSATION,
+                                "attempted_at": timezone.now(),
+                                "is_correct": None,  # Let model calculate
+                            },
+                        )
+                        # We don't strictly *need* the result here unless logging correctness
+                        # attempt.refresh_from_db(fields=['is_correct'])
+                        logger.info(
+                            f"{'Created' if created else 'Updated'} UserQuestionAttempt {attempt.id} based on AI interpretation."
+                        )
+                    except Exception as attempt_err:
+                        # Log error but continue to save AI message and return feedback
+                        logger.error(
+                            f"Failed to save UserQuestionAttempt for session {session.id}, Q {current_question.id} despite AI indicating answer. Error: {attempt_err}",
+                            exc_info=True,
+                        )
+                        # Modify feedback slightly?
+                        ai_response_data["feedback_text"] += _(
+                            " (Note: There was an issue recording this attempt.)"
+                        )
+
+                # 4. Save AI response message (always happens if AI call didn't critically fail)
                 ai_msg = ConversationMessage.objects.create(
                     session=session,
                     sender_type=ConversationMessage.SenderType.AI,
-                    message_text=ai_response_text,
-                    # related_question is typically null here
+                    message_text=ai_response_data["feedback_text"],
+                    # related_question is null here, message is feedback/response
                 )
                 logger.info(
-                    f"AI response/hint message saved (ID: {ai_msg.id}) for session {session.id}"
+                    f"AI response message saved (ID: {ai_msg.id}) for session {session.id}"
                 )
 
-            # 4. Return the AI message
+            # 5. Return the saved AI message
             output_serializer = ConversationMessageSerializer(
                 ai_msg, context=self.get_serializer_context()
             )
             return Response(output_serializer.data, status=status.HTTP_201_CREATED)
 
-        except Exception as e:  # Catch broader exceptions
+        except Exception as e:  # Catch broader exceptions during the whole process
             logger.exception(f"Error processing message for session {session.id}: {e}")
             return Response(
                 {"detail": _("An error occurred while processing your message.")},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    # --- NEW ACTION ---
     @extend_schema(
         summary="Ask AI to Provide a Question",
         request=None,  # No request body needed

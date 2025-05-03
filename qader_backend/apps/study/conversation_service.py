@@ -426,151 +426,184 @@ def generate_ai_question_and_message(
 
 
 @transaction.atomic
-def handle_implicit_answer(
+def process_user_message_with_ai(
     session: ConversationSession,
-    user: User,
-    question: Question,
-    submitted_answer_choice: str,
-) -> str:
+    user_message_text: str,
+    current_topic_question: Optional[Question] = None,
+) -> Dict[str, Any]:
     """
-    Handles implicit answers. Records attempt, instructs AI to generate JSON feedback
-    (hint or confirmation), parses JSON, and returns the feedback text.
+    Processes user message, interacts with AI to determine intent (answer vs conversation),
+    generates appropriate response (hint/confirmation/conversation), and returns structured data.
+
+    Returns:
+        Dict: {
+            "processed_as_answer": bool,
+            "user_choice": Optional[str], # 'A', 'B', 'C', 'D' or None
+            "feedback_text": str
+        }
     """
-    # Default fallback message in case of errors
-    default_response = _("Got it. Thinking...")
+    default_response = {
+        "processed_as_answer": False,
+        "user_choice": None,
+        "feedback_text": _("Processing your message..."),
+    }
+    fallback_error_response = {
+        "processed_as_answer": False,
+        "user_choice": None,
+        "feedback_text": _(
+            "Sorry, I encountered an issue processing that. Could you try again?"
+        ),
+    }
 
     if not client:
-        logger.error(
-            f"AI Client not available for implicit answer handling in session {session.id}."
-        )
-        return _(
-            "Your answer has been noted, but I couldn't generate feedback right now."
-        )
+        logger.error(f"AI Client not available for session {session.id}.")
+        return {
+            **fallback_error_response,
+            "feedback_text": _("Sorry, the AI assistant is currently unavailable."),
+        }
 
-    # 1. Record the attempt (same as before)
-    attempt, created = UserQuestionAttempt.objects.update_or_create(
-        user=user,
-        question=question,
-        conversation_session=session,
-        defaults={
-            "selected_answer": submitted_answer_choice,
-            "mode": UserQuestionAttempt.Mode.CONVERSATION,
-            "attempted_at": timezone.now(),
-            "is_correct": None,
-        },
-    )
-    attempt.refresh_from_db(fields=["is_correct"])
-    is_correct = attempt.is_correct  # Backend knows the actual correctness
+    # 1. Prepare Context & Prompt Engineering
+    system_prompt = SYSTEM_PROMPT_BASE + "\n" + _get_tone_instruction(session.ai_tone)
+    history = list(session.messages.order_by("timestamp").all())
+    formatted_history = _format_history_for_ai(history)  # Limit history length
 
-    logger.info(
-        f"{'Recorded' if created else 'Updated'} implicit answer attempt {attempt.id} for Q {question.id}. Correct: {is_correct}"
-    )
+    # --- Build the instruction prompt ---
+    instruction_parts = [f"Analyze the latest user message: '{user_message_text}'"]
 
-    # 2. Generate AI Hint/Guidance Prompt requesting JSON
-    correct_answer = question.correct_answer
-    explanation_snippet = (question.explanation or "")[:200]
-
-    # Define the desired JSON structure
-    json_structure_notes = """
-    Your response MUST be a valid JSON object containing EXACTLY these two keys:
-    1.  `is_correct`: boolean (true if the user's answer was correct, false otherwise). Use the value {is_correct_bool}.
-    2.  `feedback_text`: string (the feedback, hint, or confirmation message for the user in {tone} tone).
-    Example Correct: {{"is_correct": true, "feedback_text": "That's right! Feeling confident?"}}
-    Example Incorrect: {{"is_correct": false, "feedback_text": "Not quite. Think about the concept of X. Want to try again?"}}
-    """.format(
-        is_correct_bool=str(is_correct).lower(), tone=session.ai_tone
-    )  # Pass actual correctness to guide AI
-
-    if is_correct:
-        instruction = f"""
-        The user correctly answered '{submitted_answer_choice}' to the question ID {question.id}.
-        Generate JSON feedback. Confirm their answer briefly and positively. Ask if they feel confident or want another related question.
-        {json_structure_notes}
+    current_q_context = ""
+    if current_topic_question:
+        correct_letter = current_topic_question.correct_answer
+        explanation_snippet = (current_topic_question.explanation or "")[:200]
+        current_q_context = f"""
+        [Current Question Context (ID {current_topic_question.id}):
+        Text: "{current_topic_question.question_text[:200]}..."
+        Options: A) {current_topic_question.option_a[:50]}... B) {current_topic_question.option_b[:50]}... C) {current_topic_question.option_c[:50]}... D) {current_topic_question.option_d[:50]}...
+        Correct Answer Letter: '{correct_letter}']
         """
+        instruction_parts.append(current_q_context)
+        instruction_parts.append(
+            f"Determine if the user's message is primarily intended as an answer choice (A, B, C, or D) for this specific question context. Consider variations like 'a.', 'answer is b', etc."
+        )
+        instruction_parts.append(f"If it IS an answer choice:")
+        instruction_parts.append(f"  - Identify the letter (A, B, C, or D).")
+        instruction_parts.append(
+            f"  - Compare it to the Correct Answer Letter ('{correct_letter}')."
+        )
+        instruction_parts.append(
+            f"  - If correct: Generate brief, positive confirmation text."
+        )
+        instruction_parts.append(
+            f"  - If incorrect: Generate a guiding hint text based on the concept or explanation snippet ('{explanation_snippet}...'). DO NOT reveal '{correct_letter}' in the hint."
+        )
+        instruction_parts.append(
+            f'  - Return JSON: {{"processed_as_answer": true, "user_choice": "[Detected Letter]", "feedback_text": "[Your hint/confirmation text]"}}'
+        )
+        instruction_parts.append(f"If it is NOT an answer choice:")
+        instruction_parts.append(
+            f"  - Generate a standard helpful conversational response related to the user's message and the question context (if any)."
+        )
+        instruction_parts.append(
+            f'  - Return JSON: {{"processed_as_answer": false, "user_choice": null, "feedback_text": "[Your conversational response]"}}'
+        )
     else:
-        instruction = f"""
-        The user answered '{submitted_answer_choice}' to question ID {question.id}, but the correct answer is '{correct_answer}'.
-        Generate JSON feedback. Gently guide the user. Do NOT reveal '{correct_answer}' directly. Provide a hint based on the concept or the explanation snippet: "{explanation_snippet}...". Encourage them to reconsider.
-        {json_structure_notes}
-        """
+        # No current question context
+        instruction_parts.append(
+            f"Generate a standard helpful conversational response to the user's message."
+        )
+        instruction_parts.append(
+            f'Return JSON: {{"processed_as_answer": false, "user_choice": null, "feedback_text": "[Your conversational response]"}}'
+        )
+
+    instruction_parts.append(
+        f"Your response MUST be a valid JSON object matching the specified structure."
+    )
+    final_instruction = "\n".join(instruction_parts)
 
     messages_for_api = [
-        {
-            "role": "system",
-            "content": SYSTEM_PROMPT_BASE
-            + "\n"
-            + _get_tone_instruction(session.ai_tone),
-        },
-        # Provide minimal context of the question text itself
-        {
-            "role": "assistant",
-            "content": f"[Current Question Context: {question.question_text[:150]}...]",
-        },
-        {"role": "user", "content": instruction},
+        {"role": "system", "content": system_prompt},
+        *formatted_history,  # Include limited history
+        {"role": "user", "content": final_instruction},
     ]
 
-    # 3. Call AI API with JSON mode
+    # 2. Call AI API
     try:
         logger.info(
-            f"Calling OpenAI ({AI_MODEL}) for JSON hint session {session.id}, attempt {attempt.id}."
+            f"Calling OpenAI ({AI_MODEL}) for intent analysis/response session {session.id} QID: {current_topic_question.id if current_topic_question else 'None'}."
         )
         response = client.chat.completions.create(
-            model=AI_MODEL,
+            model=AI_MODEL,  # Ensure model supports JSON mode
             messages=messages_for_api,
-            temperature=0.7,
-            max_tokens=200,  # Adjust if needed for JSON + text
-            response_format={"type": "json_object"},  # <<< Use JSON mode
-            # user=str(user.id)
+            temperature=0.7,  # More focused for instruction following
+            max_tokens=1000,  # Allow enough for JSON + text\
+            # user=str(session.user.id)
         )
         ai_response_content = response.choices[0].message.content
 
-        # 4. Parse JSON response
+        # 3. Parse JSON response
         try:
             parsed_json = json.loads(ai_response_content)
-            ai_feedback_text = parsed_json.get("feedback_text")
+            processed_as_answer = parsed_json.get("processed_as_answer", False)
+            user_choice = parsed_json.get("user_choice")  # Could be None
+            feedback_text = parsed_json.get("feedback_text")
 
-            if not ai_feedback_text:
+            # Basic validation
+            if feedback_text is None:
                 logger.error(
-                    f"AI returned valid JSON but 'feedback_text' key missing or empty for attempt {attempt.id}. JSON: {ai_response_content}"
+                    f"AI JSON missing 'feedback_text' for session {session.id}. JSON: {ai_response_content}"
                 )
-                ai_feedback_text = default_response  # Fallback
-            else:
-                # Optional: Log the correctness value returned by AI vs actual backend correctness
-                ai_correctness = parsed_json.get("is_correct")
-                if ai_correctness is not None and bool(ai_correctness) != is_correct:
-                    logger.warning(
-                        f"AI correctness mismatch for attempt {attempt.id}. Backend: {is_correct}, AI JSON: {ai_correctness}"
-                    )
-                logger.info(
-                    f"AI JSON hint parsed successfully for attempt {attempt.id}"
+                return fallback_error_response
+            if processed_as_answer and user_choice not in ["A", "B", "C", "D"]:
+                logger.warning(
+                    f"AI indicated processed_as_answer=true but user_choice ('{user_choice}') is invalid for session {session.id}. Treating as non-answer."
                 )
+                processed_as_answer = False
+                user_choice = None
+                # Optionally: Could try to generate a standard response here as a fallback
+                # feedback_text = get_ai_response(...) # Recursive call needs care
 
-            return ai_feedback_text
+            logger.info(
+                f"AI response parsed successfully for session {session.id}. Processed as answer: {processed_as_answer}, Choice: {user_choice}"
+            )
+            return {
+                "processed_as_answer": processed_as_answer,
+                "user_choice": (
+                    user_choice if processed_as_answer else None
+                ),  # Ensure choice is None if not an answer
+                "feedback_text": feedback_text,
+            }
 
         except json.JSONDecodeError as json_err:
             logger.error(
-                f"Failed to parse AI JSON response for attempt {attempt.id}. Error: {json_err}. Response: '{ai_response_content}'"
+                f"Failed to parse AI JSON response for session {session.id}. Error: {json_err}. Response: '{ai_response_content}'"
             )
-            return _(
-                "Got your answer. Had a little trouble formatting my feedback!"
-            )  # Specific fallback
+            return {
+                **fallback_error_response,
+                "feedback_text": _(
+                    "Sorry, I had a little trouble structuring my response."
+                ),
+            }
+        except KeyError as key_err:
+            logger.error(
+                f"AI JSON missing expected key for session {session.id}. Error: {key_err}. Response: '{ai_response_content}'"
+            )
+            return fallback_error_response
 
     except OpenAIError as e:
         logger.error(
-            f"OpenAI API error getting JSON hint for attempt {attempt.id}: {e}",
+            f"OpenAI API error processing message for session {session.id}: {e}",
             exc_info=True,
         )
-        # Don't reveal correctness in fallback if it was wrong
-        return (
-            _("Got your answer. I had trouble generating a hint this time.")
-            if not is_correct
-            else _("Correct! Had trouble generating feedback.")
-        )
+        return {
+            **fallback_error_response,
+            "feedback_text": _(
+                "Sorry, I couldn't connect to my core AI service right now."
+            ),
+        }
     except Exception as e:
         logger.exception(
-            f"Unexpected error getting AI JSON hint for attempt {attempt.id}: {e}"
+            f"Unexpected error processing message with AI for session {session.id}: {e}"
         )
-        return default_response
+        return fallback_error_response
 
 
 # --- Optional: Update `get_ai_feedback_on_answer` to also use JSON ---
