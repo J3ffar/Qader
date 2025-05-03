@@ -99,6 +99,12 @@ class TraditionalPracticeStartSerializer(serializers.Serializer):
         starred = self.context["starred"]
         not_mastered = self.context["not_mastered"]
 
+        attempt_type = UserTestAttempt.AttemptType.LEVEL_ASSESSMENT
+        previous_attempts_count = UserTestAttempt.objects.filter(
+            user=user, attempt_type=attempt_type
+        ).count()
+        attempt_number_for_type = previous_attempts_count + 1
+
         selected_question_ids = []
         actual_num_selected = 0
         if num_questions_requested > 0:
@@ -164,7 +170,7 @@ class TraditionalPracticeStartSerializer(serializers.Serializer):
 
         return {
             "attempt_id": test_attempt.id,
-            "status": test_attempt.status,
+            "attempt_number_for_type": attempt_number_for_type,
             "questions": final_questions_queryset,
         }
 
