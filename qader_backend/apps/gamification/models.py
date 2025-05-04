@@ -5,6 +5,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
+from django.core.validators import MinValueValidator
 
 # User = get_user_model() # This is fine, or use settings.AUTH_USER_MODEL
 User = settings.AUTH_USER_MODEL
@@ -106,6 +107,18 @@ class PointLog(models.Model):
 class Badge(models.Model):
     """Defines achievable badges/achievements."""
 
+    class BadgeCriteriaType(models.TextChoices):
+        """Defines the type of event or state required to earn the badge."""
+
+        STUDY_STREAK = "STUDY_STREAK", _("Consecutive Study Days")
+        QUESTIONS_SOLVED_CORRECTLY = "QUESTIONS_SOLVED", _("Correct Questions Solved")
+        TESTS_COMPLETED = "TESTS_COMPLETED", _("Tests Completed (Any Type)")
+        # Add more types as needed:
+        # CHALLENGES_WON = "CHALLENGES_WON", _("Challenges Won")
+        # PROFILE_COMPLETION = "PROFILE_COMPLETION", _("Profile Completion (%)")
+        # SPECIFIC_ACTION = "SPECIFIC_ACTION", _("Specific Action Completed") # Needs custom logic tie-in
+        OTHER = "OTHER", _("Other / Manual Award")
+
     name = models.CharField(max_length=100, unique=True, verbose_name=_("Name"))
     slug = models.SlugField(
         unique=True,
@@ -125,6 +138,24 @@ class Badge(models.Model):
     criteria_description = models.TextField(
         verbose_name=_("Criteria Description"),
         help_text=_("User-facing text explaining how to earn the badge."),
+    )
+    criteria_type = models.CharField(
+        max_length=50,
+        choices=BadgeCriteriaType.choices,
+        verbose_name=_("Criteria Type"),
+        help_text=_("The type of condition required to earn this badge."),
+        db_index=True,
+        null=True,  # Allow null initially or for types not needing it
+        blank=True,  # Allow blank in admin
+    )
+    target_value = models.PositiveIntegerField(
+        verbose_name=_("Target Value"),
+        help_text=_(
+            "The numerical goal for the criteria (e.g., 5 for a 5-day streak, 50 for 50 questions). Not used for 'Other' type."
+        ),
+        validators=[MinValueValidator(1)],
+        null=True,  # Allow null initially or for types not needing it
+        blank=True,  # Allow blank in admin
     )
     is_active = models.BooleanField(
         default=True,

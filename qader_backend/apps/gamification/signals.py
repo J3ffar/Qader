@@ -10,7 +10,7 @@ import logging
 from apps.study.models import UserQuestionAttempt, UserTestAttempt
 
 # from apps.challenges.models import Challenge # Import when ready
-from .models import PointReason  # Import Enum
+from .models import Badge, PointReason  # Import Enum
 
 # PointLog model not needed directly here if using award_points service
 from .services import award_points, update_streak, check_and_award_badge
@@ -42,16 +42,6 @@ def gamify_on_question_solved(sender, instance: UserQuestionAttempt, created, **
                 ),
                 related_object=question,
             )
-
-        # Update streak after any correct answer
-        # The update_streak service handles streak points/badges
-        update_streak(user)
-
-        # Check for badges related to solving questions (e.g., 50 questions)
-        # This check might be better placed within update_streak or triggered differently
-        # if performance is a concern, but check_and_award_badge handles duplicates.
-        check_and_award_badge(user, settings.BADGE_SLUG_50_QUESTIONS)
-        # Add checks for other question-count badges here if needed
 
 
 @receiver(post_save, sender=UserTestAttempt, dispatch_uid="gamify_test_completed_v2")
@@ -112,13 +102,25 @@ def gamify_on_test_completed(sender, instance: UserTestAttempt, created, **kwarg
                             update_streak(user)
 
                             # Check for relevant badges AFTER points/streak update
-                            if (
-                                instance.attempt_type
-                                == UserTestAttempt.AttemptType.SIMULATION
-                            ):
-                                check_and_award_badge(
-                                    user, settings.BADGE_SLUG_FIRST_FULL_TEST
-                                )
+                            test_badges = Badge.objects.filter(
+                                is_active=True,
+                                criteria_type=Badge.BadgeCriteriaType.TESTS_COMPLETED,
+                            ).only("slug")
+                            for badge in test_badges:
+                                check_and_award_badge(user, badge.slug)
+
+                            # Check for badges related to solving questions (e.g., 50 questions)
+                            # This check might be better placed within update_streak or triggered differently
+                            # if performance is a concern, but check_and_award_badge handles duplicates.
+                            question_badges = Badge.objects.filter(
+                                is_active=True,
+                                criteria_type=Badge.BadgeCriteriaType.QUESTIONS_SOLVED_CORRECTLY,
+                            ).only("slug")
+
+                            for badge in question_badges:
+                                # Let the service do the heavy lifting of counting and comparing
+                                check_and_award_badge(user, badge.slug)
+
                         else:
                             logger.warning(
                                 f"Attempted to mark completion points awarded for "
@@ -134,25 +136,3 @@ def gamify_on_test_completed(sender, instance: UserTestAttempt, created, **kwarg
                 logger.exception(
                     f"Error processing gamification for completed test attempt {instance.id}: {e}"
                 )
-
-
-# --- Placeholder for Challenge Signal ---
-# @receiver(post_save, sender=Challenge) # Import Challenge model when ready
-# def award_points_on_challenge_completed(sender, instance: Challenge, **kwargs):
-#     if instance.status == Challenge.StatusChoices.COMPLETED: # Assuming status choices
-#         # Award participation points (if applicable)
-#         if settings.POINTS_CHALLENGE_PARTICIPATION > 0:
-#             # Award to challenger
-#             award_points(instance.challenger, settings.POINTS_CHALLENGE_PARTICIPATION, PointReason.CHALLENGE_PARTICIPATION, ...)
-#             # Award to opponent (if exists)
-#             if instance.opponent:
-#                  award_points(instance.opponent, settings.POINTS_CHALLENGE_PARTICIPATION, PointReason.CHALLENGE_PARTICIPATION, ...)
-
-#         # Award win bonus (if applicable)
-#         if instance.winner and settings.POINTS_CHALLENGE_WIN > 0:
-#              award_points(instance.winner, settings.POINTS_CHALLENGE_WIN, PointReason.CHALLENGE_WIN, ...)
-
-#         # Check for challenge-related badges
-#         if instance.winner:
-#              check_and_award_badge(instance.winner, 'challenge-winner-badge-slug') # Use correct slug
-#         # Check for consecutive win badges, etc.

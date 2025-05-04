@@ -172,14 +172,14 @@ BADGE_CHECKERS: Dict[str, BadgeChecker] = {
 }
 
 
-def check_and_award_badge(user: DjangoUser, badge_slug: str) -> bool:  # <-- Return bool
+def check_and_award_badge(user: DjangoUser, badge_slug: str) -> bool:
     """
-    Checks if a user qualifies for a specific badge and awards it if not already earned.
-    Uses the BADGE_CHECKERS dictionary to find the correct logic.
+    Checks if a user qualifies for a specific badge based on its defined
+    criteria_type and target_value, and awards it if not already earned.
 
     Args:
         user: The user to check.
-        badge_slug: The unique slug of the badge to check (should match settings).
+        badge_slug: The unique slug of the badge to check.
 
     Returns:
         True if the badge was newly awarded in this call, False otherwise.
@@ -190,46 +190,98 @@ def check_and_award_badge(user: DjangoUser, badge_slug: str) -> bool:  # <-- Ret
 
     username = getattr(user, "username", f"UserID_{user.pk}")
 
-    # Find the checker function for this badge slug
-    checker_func = BADGE_CHECKERS.get(badge_slug)
-    if not checker_func:
-        logger.error(f"No checker function defined for badge slug: {badge_slug}")
-        return False
-
     try:
-        profile = UserProfile.objects.get(user=user)
         badge = Badge.objects.get(slug=badge_slug, is_active=True)
+        profile = UserProfile.objects.get(user=user)
 
+        # 1. Check if already earned
         if UserBadge.objects.filter(user=user, badge=badge).exists():
+            # logger.debug(f"User {username} already has badge '{badge_slug}'.")
+            return False  # Not newly awarded
+
+        # 2. Check if criteria type requires automatic check
+        if badge.criteria_type == Badge.BadgeCriteriaType.OTHER:
+            logger.debug(
+                f"Badge '{badge_slug}' is type OTHER, skipping automatic check."
+            )
+            return False  # Cannot be auto-awarded by this function
+
+        # 3. Validate target_value (should be caught by model clean, but double-check)
+        if badge.target_value is None:
+            logger.error(
+                f"Badge '{badge_slug}' (type: {badge.criteria_type}) is missing target_value."
+            )
             return False
 
-        criteria_met = checker_func(user, profile)
+        # 4. Get current progress based on criteria type
+        current_value = None
+        if badge.criteria_type == Badge.BadgeCriteriaType.STUDY_STREAK:
+            current_value = profile.current_streak_days
+        elif badge.criteria_type == Badge.BadgeCriteriaType.QUESTIONS_SOLVED_CORRECTLY:
+            # Potential Performance Bottleneck: Consider denormalizing this count onto UserProfile
+            # if this query becomes slow under load.
+            current_value = UserQuestionAttempt.objects.filter(
+                user=user, is_correct=True
+            ).count()
+            # logger.debug(f"User {username} solved questions count: {current_value} for badge {badge_slug}")
+        elif badge.criteria_type == Badge.BadgeCriteriaType.TESTS_COMPLETED:
+            # Potential Performance Bottleneck: Consider denormalizing.
+            current_value = UserTestAttempt.objects.filter(
+                user=user, status=UserTestAttempt.Status.COMPLETED
+            ).count()
+            # logger.debug(f"User {username} completed tests count: {current_value} for badge {badge_slug}")
+        # --- Add elif blocks for other BadgeCriteriaType values ---
+        # elif badge.criteria_type == Badge.BadgeCriteriaType.CHALLENGES_WON:
+        #     # current_value = ... query Challenge participation/results ...
+        #     pass
+        else:
+            logger.warning(
+                f"Unhandled criteria type '{badge.criteria_type}' for badge '{badge_slug}'."
+            )
+            return False  # Cannot check this type
 
+        # 5. Compare current progress with target value
+        criteria_met = False
+        if current_value is not None and current_value >= badge.target_value:
+            criteria_met = True
+            # logger.debug(f"Criteria MET for badge '{badge_slug}' for user {username}. Current: {current_value}, Target: {badge.target_value}")
+        # else:
+        #     logger.debug(f"Criteria NOT MET for badge '{badge_slug}' for user {username}. Current: {current_value}, Target: {badge.target_value}")
+
+        # 6. Award badge if criteria are met
         if criteria_met:
             with transaction.atomic():
-                user_badge = UserBadge.objects.create(user=user, badge=badge)
-                logger.info(
-                    f"Awarded badge '{badge.name}' (slug: {badge_slug}) to user {username}"
+                user_badge, created = UserBadge.objects.get_or_create(
+                    user=user,
+                    badge=badge,
+                    # Defaults not needed here, creation timestamp is automatic
                 )
 
-                # Award points for earning the badge, using constant from settings
-                points_badge_earned = getattr(
-                    settings, "POINTS_BADGE_EARNED", 0
-                )  # Safe getattr
-                if points_badge_earned > 0:
-                    # --- Pass the profile object to award_points if needed ---
-                    # Note: award_points currently doesn't *use* profile, but might later
-                    award_points(
-                        user=user,
-                        points_change=points_badge_earned,
-                        reason_code=PointReason.BADGE_EARNED,
-                        description=f"Earned badge: {badge.name}",
-                        related_object=user_badge,  # Link points to the UserBadge record
+                if created:  # Ensure we only log/award points on actual creation
+                    logger.info(
+                        f"Awarded badge '{badge.name}' (slug: {badge_slug}) to user {username}"
                     )
-                return True  # <-- Return True (newly awarded)
+
+                    # Award points for earning the badge, using constant from settings
+                    points_badge_earned = getattr(settings, "POINTS_BADGE_EARNED", 0)
+                    if points_badge_earned > 0:
+                        award_points(
+                            user=user,
+                            points_change=points_badge_earned,
+                            reason_code=PointReason.BADGE_EARNED,
+                            description=f"Earned badge: {badge.name}",
+                            related_object=user_badge,  # Link points to the UserBadge record
+                        )
+                    return True  # Newly awarded
+                else:
+                    # This case should theoretically be caught by the initial check,
+                    # but get_or_create handles potential race conditions.
+                    logger.warning(
+                        f"Badge '{badge_slug}' was already present for user {username} despite initial check (race condition?)."
+                    )
+                    return False  # Not newly awarded
         else:
-            # logger.debug(f"Criteria not met for badge '{badge_slug}' for user {username}")
-            return False
+            return False  # Criteria not met
 
     except Badge.DoesNotExist:
         logger.warning(
@@ -360,10 +412,17 @@ def update_streak(user: DjangoUser):
                         related_object=profile,
                     )
 
-                if current_streak >= 5 and original_streak < 5:
-                    check_and_award_badge(user, settings.BADGE_SLUG_5_DAY_STREAK)
-                if current_streak >= 10 and original_streak < 10:
-                    check_and_award_badge(user, settings.BADGE_SLUG_10_DAY_STREAK)
+                active_streak_badges = Badge.objects.filter(
+                    is_active=True, criteria_type=Badge.BadgeCriteriaType.STUDY_STREAK
+                ).only(
+                    "slug"
+                )  # Fetch only slugs for efficiency
+
+                for badge in active_streak_badges:
+                    # Only check if the current streak meets or exceeds the badge's target
+                    # (The check_and_award function will handle the actual comparison and award)
+                    # No need to check original_streak here, let check_and_award handle it.
+                    check_and_award_badge(user, badge.slug)
 
     except UserProfile.DoesNotExist:
         logger.error(f"UserProfile not found for user {username} during streak update.")

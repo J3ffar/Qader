@@ -1,0 +1,66 @@
+[
+  {
+    "model": "gamification.badge",
+    "pk": 1,
+    "fields": {
+      "name": "5-Day Study Streak",
+      "slug": "5-day-streak",
+      "description": "Awarded for maintaining a study streak for 5 consecutive days.",
+      "icon": null,
+      "criteria_description": "Study consecutively for 5 days.",
+      "criteria_type": "STUDY_STREAK",
+      "target_value": 5,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "gamification.badge",
+    "pk": 2,
+    "fields": {
+      "name": "10-Day Study Streak",
+      "slug": "10-days-studying",
+      "description": "Awarded for maintaining a study streak for 10 consecutive days.",
+      "icon": null,
+      "criteria_description": "Study consecutively for 10 days.",
+      "criteria_type": "STUDY_STREAK",
+      "target_value": 10,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "gamification.badge",
+    "pk": 3,
+    "fields": {
+      "name": "First Test Completed",
+      "slug": "first-full-test",
+      "description": "Awarded for completing your first test attempt (any type).",
+      "icon": null,
+      "criteria_description": "Complete your first practice, simulation, or level assessment test.",
+      "criteria_type": "TESTS_COMPLETED",
+      "target_value": 1,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "gamification.badge",
+    "pk": 4,
+    "fields": {
+      "name": "Question Solver (50)",
+      "slug": "50-questions-solved",
+      "description": "Awarded for correctly solving 50 questions.",
+      "icon": null,
+      "criteria_description": "Solve 50 questions correctly across all study modes.",
+      "criteria_type": "QUESTIONS_SOLVED_CORRECTLY",
+      "target_value": 50,
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  }
+]
