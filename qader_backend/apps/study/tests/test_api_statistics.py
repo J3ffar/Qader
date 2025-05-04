@@ -1,5 +1,3 @@
-# qader_backend/apps/study/tests/test_statistics_api.py
-
 import random
 import factory
 import pytest
@@ -363,11 +361,11 @@ class TestUserStatisticsAPI:
 
     # Test missing profile (should be caught by permissions now)
     def test_statistics_missing_profile_handled(
-        self, api_client, base_user, statistics_url
+        self, api_client, standard_user, statistics_url
     ):
-        api_client.force_authenticate(user=base_user)
+        api_client.force_authenticate(user=standard_user)
         try:
-            profile = UserProfile.objects.get(user=base_user)
+            profile = UserProfile.objects.get(user=standard_user)
             profile.delete()
         except UserProfile.DoesNotExist:
             pass

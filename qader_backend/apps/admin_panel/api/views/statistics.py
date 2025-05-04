@@ -1,9 +1,9 @@
 import datetime
 import csv
-import openpyxl  # Requires: pip install openpyxl
+import openpyxl
 from io import StringIO, BytesIO
 from django.utils import timezone
-from django.http import HttpResponse  # Import HttpResponse
+from django.http import HttpResponse
 from django.db.models import Count, Avg, Q, F, FloatField
 from django.db.models.functions import TruncDate, Cast
 from rest_framework.views import APIView
@@ -20,6 +20,7 @@ from drf_spectacular.utils import (
 from apps.users.models import UserProfile
 from apps.study.models import UserQuestionAttempt, UserTestAttempt
 from apps.learning.models import Question, LearningSection
+from apps.users.constants import RoleChoices
 
 # Import base serializer if needed for validation, but not for response
 from ..serializers import statistics as stats_serializers
@@ -116,12 +117,12 @@ class AdminStatisticsOverviewAPIView(APIView):
 
         # --- Perform Aggregations ---
         active_students_q = UserProfile.objects.filter(
-            role=UserProfile.RoleChoices.STUDENT,
+            role=RoleChoices.STUDENT,
             subscription_expires_at__gte=timezone.now(),
         )
         total_active_students = active_students_q.count()
         new_registrations_period = UserProfile.objects.filter(
-            role=UserProfile.RoleChoices.STUDENT,
+            role=RoleChoices.STUDENT,
             user__date_joined__range=(datetime_from, datetime_to),
         ).count()
         attempts_in_period = UserQuestionAttempt.objects.filter(
