@@ -17,6 +17,7 @@ from apps.users.models import UserProfile
 from .models import (
     PointLog,
     Badge,
+    StudyDayLog,
     UserBadge,
     RewardStoreItem,
     UserRewardPurchase,
@@ -250,10 +251,11 @@ def check_and_award_badge(user: DjangoUser, badge_slug: str) -> bool:  # <-- Ret
 
 def update_streak(user: DjangoUser):
     """
-    Updates the user's study streak based on their last activity.
+    Updates the user's study streak based on their last activity AND logs the study day.
 
     Should be called after any significant study activity. Handles awarding
     streak-related points and badges internally by calling check_and_award_badge.
+    Logs a StudyDayLog entry for the current day if activity occurs.
     """
     if not user or not hasattr(user, "pk"):
         logger.warning("Streak update skipped for invalid user object.")
@@ -263,7 +265,7 @@ def update_streak(user: DjangoUser):
 
     try:
         now_utc = timezone.now()  # Use UTC for comparison consistency
-        today_utc = now_utc.date()
+        today_utc = now_utc.date()  # Get the date part in UTC
         yesterday_utc = today_utc - timedelta(days=1)
 
         with transaction.atomic():  # Ensure profile lock and updates are atomic
@@ -271,33 +273,51 @@ def update_streak(user: DjangoUser):
 
             last_activity_date_utc = None
             if profile.last_study_activity_at:
-                # Ensure comparison is done in UTC
                 last_activity_date_utc = profile.last_study_activity_at.astimezone(
                     datetime.timezone.utc
                 ).date()
 
+            # --- Log Study Day ---
+            # Log the activity day *before* checking streak logic if it happened today
+            # We only need to log if the last recorded activity was *not* today
+            study_day_logged = False
+            if last_activity_date_utc != today_utc:
+                # Use get_or_create to handle uniqueness constraint gracefully
+                log_entry, created = StudyDayLog.objects.get_or_create(
+                    user=user,
+                    study_date=today_utc,
+                    # Defaults can be added here if needed, but not necessary for creation check
+                )
+                if created:
+                    study_day_logged = True
+                    logger.info(
+                        f"Logged new study day {today_utc.isoformat()} for user {username}"
+                    )
+                # else: log already exists for today, no action needed
+
+            # --- Streak Logic (largely unchanged) ---
             # If last activity was today (UTC), only update timestamp if necessary
             if last_activity_date_utc == today_utc:
+                # Still update timestamp if a later activity happened today
                 if profile.last_study_activity_at < now_utc:
                     profile.last_study_activity_at = now_utc
                     profile.save(update_fields=["last_study_activity_at"])
-                return  # No streak logic needed
+                # No streak update needed, but day logging might have happened above if first activity today
+                return
 
-            # --- Streak Logic ---
             original_streak = profile.current_streak_days
             streak_updated = False
             new_streak_value = 1  # Default for new/reset streak
 
             if last_activity_date_utc == yesterday_utc:
-                # Continued streak: Increment using F()
+                # Continued streak
                 profile.current_streak_days = F("current_streak_days") + 1
                 streak_updated = True
-                # We don't know the exact value yet because of F(), will refresh later
                 logger.info(f"User {username} continued streak.")
             elif (
                 last_activity_date_utc is None or last_activity_date_utc < yesterday_utc
             ):
-                # Started new streak or broke streak: Reset to 1
+                # Started new streak or broke streak
                 profile.current_streak_days = 1
                 streak_updated = True
                 logger.info(f"User {username} started/reset streak to 1.")
@@ -310,15 +330,13 @@ def update_streak(user: DjangoUser):
 
             profile.save(update_fields=update_fields)
 
-            # --- Post-Streak Update Actions ---
+            # --- Post-Streak Update Actions (unchanged) ---
             if streak_updated:
-                # Refresh to get the actual value after F() expression if used
                 profile.refresh_from_db(
                     fields=["current_streak_days", "longest_streak_days"]
                 )
                 current_streak = profile.current_streak_days
 
-                # Check and update longest streak
                 if current_streak > profile.longest_streak_days:
                     profile.longest_streak_days = current_streak
                     profile.save(update_fields=["longest_streak_days"])
@@ -326,7 +344,6 @@ def update_streak(user: DjangoUser):
                         f"User {username} updated longest streak to {current_streak} days."
                     )
 
-                # Award points based on streak milestones (only when milestone is hit)
                 points_to_award = settings.POINTS_STREAK_BONUS_MAP.get(current_streak)
                 if (
                     points_to_award
@@ -343,19 +360,15 @@ def update_streak(user: DjangoUser):
                         related_object=profile,
                     )
 
-                # Check for streak-based badges (using slugs from settings)
-                if (
-                    current_streak >= 5 and original_streak < 5
-                ):  # Check only when crossing threshold
+                if current_streak >= 5 and original_streak < 5:
                     check_and_award_badge(user, settings.BADGE_SLUG_5_DAY_STREAK)
                 if current_streak >= 10 and original_streak < 10:
                     check_and_award_badge(user, settings.BADGE_SLUG_10_DAY_STREAK)
-                # Add more badge checks here for other streak milestones
 
     except UserProfile.DoesNotExist:
         logger.error(f"UserProfile not found for user {username} during streak update.")
     except Exception as e:
-        logger.exception(f"Error updating streak for {username}: {e}")
+        logger.exception(f"Error updating streak/logging study day for {username}: {e}")
 
 
 # --- Rewards Store Management ---

@@ -17,4 +17,5 @@ urlpatterns = [
         views.RewardPurchaseView.as_view(),
         name="reward-purchase",
     ),
+    path("study-days/", views.StudyDayLogListView.as_view(), name="study-day-list"),
 ]

@@ -269,3 +269,38 @@ class UserRewardPurchase(models.Model):
 
     def __str__(self):
         return f"{getattr(self.user, 'username', 'N/A')} purchased {self.item.name} at {self.purchased_at}"
+
+
+class StudyDayLog(models.Model):
+    """Records each unique calendar day a user performs a study activity."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="study_days",
+        verbose_name=_("User"),
+        db_index=True,
+    )
+    study_date = models.DateField(
+        verbose_name=_("Study Date"),
+        db_index=True,
+        help_text=_("The calendar date (UTC) of the study activity."),
+    )
+    # Optional: Add a timestamp if needed, but study_date is the key info
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Logged At"))
+
+    class Meta:
+        verbose_name = _("Study Day Log")
+        verbose_name_plural = _("Study Day Logs")
+        # Ensure a user can only have one entry per day
+        unique_together = ("user", "study_date")
+        ordering = ["-study_date"]  # Order by most recent date first
+        indexes = [
+            models.Index(
+                fields=["user", "study_date"]
+            ),  # Index for unique_together lookup
+        ]
+
+    def __str__(self):
+        username = getattr(self.user, "username", "N/A")
+        return f"{username} studied on {self.study_date.isoformat()}"

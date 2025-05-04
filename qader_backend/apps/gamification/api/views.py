@@ -3,6 +3,13 @@ from django.http import Http404
 from rest_framework import generics, viewsets, status, views
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+import django_filters
+from django_filters.rest_framework import (
+    DjangoFilterBackend,
+    DateFromToRangeFilter,
+    FilterSet,
+)
+from rest_framework import filters as drf_filters
 
 # from rest_framework.decorators import action # Not used here currently
 from django.utils.translation import gettext_lazy as _
@@ -17,13 +24,14 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 
 from apps.api.permissions import IsSubscribed  # Use this where appropriate
 from apps.users.models import UserProfile
-from ..models import PointLog, Badge, UserBadge, RewardStoreItem
+from ..models import PointLog, Badge, StudyDayLog, UserBadge, RewardStoreItem
 from .serializers import (
     GamificationSummarySerializer,
     BadgeSerializer,
     RewardStoreItemSerializer,
     PointLogSerializer,
     RewardPurchaseResponseSerializer,
+    StudyDayLogSerializer,
 )
 from ..services import purchase_reward, PurchaseError  # Import error classes
 
@@ -222,3 +230,82 @@ class PointLogViewSet(viewsets.ReadOnlyModelViewSet):
         """Ensure users only see their own point logs."""
         # Order by timestamp descending is handled by model Meta ordering
         return PointLog.objects.filter(user=self.request.user)
+
+
+class StudyDayLogFilter(FilterSet):
+    """FilterSet for StudyDayLog."""
+
+    date_range = DateFromToRangeFilter(field_name="study_date")
+    year = django_filters.NumberFilter(field_name="study_date", lookup_expr="year")
+    month = django_filters.NumberFilter(field_name="study_date", lookup_expr="month")
+
+    class Meta:
+        model = StudyDayLog
+        fields = [
+            "date_range",
+            "year",
+            "month",
+        ]  # Allow filtering by date range, year, month
+
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="List Study Days",
+        description="Retrieve the list of calendar dates the current authenticated user performed study activities. Supports filtering by date range, year, and month.",
+        parameters=[
+            OpenApiParameter(
+                name="date_range_after",
+                description="Start date (YYYY-MM-DD)",
+                type=str,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="date_range_before",
+                description="End date (YYYY-MM-DD)",
+                type=str,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="year",
+                description="Filter by year (e.g., 2024)",
+                type=int,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="month",
+                description="Filter by month (1-12)",
+                type=int,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="ordering",
+                description="Field to order by (e.g., study_date, -study_date)",
+                type=str,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+        responses={200: StudyDayLogSerializer(many=True)},
+        tags=["Gamification"],
+    )
+)
+class StudyDayLogListView(generics.ListAPIView):
+    """
+    Provides a list of dates on which the user completed study activities.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = StudyDayLogSerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        drf_filters.OrderingFilter,
+    ]  # Add OrderingFilter
+    filterset_class = StudyDayLogFilter
+    ordering_fields = ["study_date"]  # Allow ordering by date
+    ordering = ["-study_date"]  # Default ordering
+
+    # Standard DRF pagination will apply based on settings
+
+    def get_queryset(self):
+        """Ensure users only see their own study day logs."""
+        # Ordering is handled by OrderingFilter and default 'ordering' attribute
+        return StudyDayLog.objects.filter(user=self.request.user)

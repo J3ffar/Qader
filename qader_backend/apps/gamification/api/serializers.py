@@ -4,7 +4,14 @@ from django.utils.translation import gettext_lazy as _
 # from django.contrib.auth import get_user_model # Not needed directly
 from django.conf import settings  # If using settings.AUTH_USER_MODEL
 
-from ..models import Badge, UserBadge, RewardStoreItem, PointLog, PointReason
+from ..models import (
+    Badge,
+    StudyDayLog,
+    UserBadge,
+    RewardStoreItem,
+    PointLog,
+    PointReason,
+)
 
 # from apps.users.models import UserProfile # Not needed directly if getting from request.user.profile
 
@@ -142,4 +149,13 @@ class PointLogSerializer(serializers.ModelSerializer):
             "timestamp",
             # 'related_object_str' # Uncomment if representation needed
         )
+        read_only_fields = fields
+
+
+class StudyDayLogSerializer(serializers.ModelSerializer):
+    """Serializer for study day log entries."""
+
+    class Meta:
+        model = StudyDayLog
+        fields = ("study_date",)  # Only expose the date
         read_only_fields = fields
