@@ -13,6 +13,7 @@ from typing import List, Optional, Dict, Any
 from apps.learning.models import Question, LearningSection, LearningSubSection, Skill
 
 # Import related models needed for FKs (adjust paths if necessary)
+# Assuming these models exist in the specified apps
 # from apps.challenges.models import ChallengeAttempt
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,8 @@ class Test(models.Model):
         _("is predefined"),
         default=False,
         help_text=_(
-            "If true, this definition uses the specific questions linked below. If false, it acts as a template and relies on 'configuration'."
+            "If true, this definition uses the specific questions linked below. "
+            "If false, it acts as a template and relies on 'configuration'."
         ),
     )
     questions = models.ManyToManyField(
@@ -55,41 +57,52 @@ class Test(models.Model):
         blank=True,
         null=True,
         help_text=_(
-            "JSON defining rules (e.g., {'num_questions_per_skill': {...}, 'total_questions': N}) for dynamically generating tests based on this template if 'is_predefined' is false."
+            "JSON defining rules (e.g., {'num_questions_per_skill': {...}, "
+            "'total_questions': N}) for dynamically generating tests based "
+            "on this template if 'is_predefined' is false."
         ),
     )
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
     updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     @property
-    def question_count(self):
-        """Returns the number of questions (only relevant for predefined)."""
+    def question_count(self) -> int:
+        """Returns the number of specific questions linked (only relevant for predefined)."""
         if self.is_predefined:
-            return self.questions.count()
-        return 0  # Or None? 0 seems safer.
+            # Ensure the instance is saved before accessing M2M
+            if self.pk:
+                return self.questions.count()
+            return 0
+        return 0
 
     def clean(self):
-        """
-        Validate Test configuration based on is_predefined.
-        """
+        """Validate Test configuration based on is_predefined."""
         super().clean()
         if self.is_predefined:
             if self.configuration:
                 raise ValidationError(
                     _(
-                        "Configuration should be empty for predefined tests (select Questions instead)."
+                        "Configuration must be empty for predefined tests "
+                        "(select Questions instead)."
                     )
                 )
-        else:
+            # Optional: Add validation check for questions M2M field when saving
+            # if self.pk is None and not self.questions.exists(): # Needs rethink for M2M saving
+            #     pass
+        else:  # Dynamic Test (Template)
             if not self.configuration:
                 raise ValidationError(
                     _("Configuration must be set for dynamic (non-predefined) tests.")
                 )
+            # Prevent linking specific questions if it's dynamic (check after save or in form/serializer)
             if self.pk and self.questions.exists():
+                logger.warning(
+                    f"Dynamic Test Definition {self.id} unexpectedly has questions linked. "
+                    "These will be ignored unless 'is_predefined' is set to True."
+                )
+                # Optionally raise ValidationError if this state is strictly forbidden
                 raise ValidationError(
-                    _(
-                        "Questions should not be selected for dynamic tests (use Configuration instead)."
-                    )
+                    _("Questions should not be selected for dynamic tests.")
                 )
 
     def __str__(self):
@@ -113,7 +126,8 @@ class UserTestAttempt(models.Model):
         PRACTICE = "practice", _("Practice Test")
         SIMULATION = "simulation", _("Full Simulation")
         TRADITIONAL = "traditional", _("Traditional Practice Session")
-        # Add other types if needed
+        # Add other types like 'EMERGENCY'? Maybe map emergency actions to TRADITIONAL?
+        # Let's keep TRADITIONAL for now to represent unstructured practice.
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -129,7 +143,7 @@ class UserTestAttempt(models.Model):
         blank=True,
         related_name="attempts",
         verbose_name=_("test definition used"),
-        help_text=_("The predefined Test template used for this attempt, if any."),
+        help_text=_("The Test Definition used for this attempt, if based on one."),
     )
     attempt_type = models.CharField(
         _("attempt type"),
@@ -143,9 +157,11 @@ class UserTestAttempt(models.Model):
         blank=True,
         null=True,
         help_text=_(
-            "Actual configuration used for this specific instance (especially if dynamic/custom). Includes criteria like sections, skills, starred, not_mastered, num_questions, etc. Ensure consistent structure."
+            "Snapshot of the configuration used to generate this attempt "
+            "(e.g., sections, skills, num_questions). Ensure consistent structure."
         ),
     )
+    # Store question IDs as JSON list for flexibility and order preservation
     question_ids = models.JSONField(
         _("question IDs"),
         default=list,
@@ -190,7 +206,7 @@ class UserTestAttempt(models.Model):
         _("completion points awarded"),
         default=False,
         help_text=_(
-            "Tracks if gamification points for completing this test have been awarded (managed by signals/tasks)."
+            "Tracks if gamification points for completing this attempt have been awarded."
         ),
     )
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
@@ -203,36 +219,40 @@ class UserTestAttempt(models.Model):
         indexes = [
             models.Index(fields=["user", "status"]),
             models.Index(fields=["user", "attempt_type"]),
-            models.Index(fields=["user", "start_time"]),  # Added for ordering/filtering
+            models.Index(fields=["user", "start_time"]),
         ]
 
     def __str__(self):
         attempt_label = self.get_attempt_type_display()
-        return f"{self.user.username} - {attempt_label} ({self.get_status_display()}) - {self.start_time.strftime('%Y-%m-%d')}"
+        user_display = self.user.username if self.user else "N/A"
+        start_display = (
+            self.start_time.strftime("%Y-%m-%d %H:%M") if self.start_time else "N/A"
+        )
+        return f"{user_display} - {attempt_label} ({self.get_status_display()}) - {start_display}"
 
     @property
     def duration_seconds(self) -> Optional[float]:
-        """Calculates the duration of the attempt in seconds, if completed or abandoned."""
-        if (
-            self.end_time
-            and self.start_time
-            and self.status in [self.Status.COMPLETED, self.Status.ABANDONED]
-        ):
+        """Calculates the duration of the attempt in seconds, if ended."""
+        if self.end_time and self.start_time:
+            # No need to check status, duration is valid if end_time is set
             return (self.end_time - self.start_time).total_seconds()
         return None
 
     @property
     def num_questions(self) -> int:
-        """Returns the number of questions included in this attempt."""
+        """Returns the number of questions included in this attempt based on question_ids field."""
         return len(self.question_ids) if isinstance(self.question_ids, list) else 0
 
     @property
     def answered_question_count(self) -> int:
-        """Returns the number of questions answered in this attempt. Requires annotation or separate query."""
-        # This relies on the queryset being annotated or fetching related objects
+        """
+        Returns the number of questions answered in this attempt.
+        Relies on the related 'question_attempts' count or an annotation.
+        """
+        # Prefer annotation if provided by the view/queryset
         if hasattr(self, "answered_question_count_agg"):
             return self.answered_question_count_agg
-        # Fallback (less efficient): query related objects if not annotated
+        # Fallback: query related objects if not annotated (less efficient in loops)
         if self.pk:
             return self.question_attempts.count()
         return 0
@@ -242,10 +262,19 @@ class UserTestAttempt(models.Model):
         if not self.question_ids or not isinstance(self.question_ids, list):
             return Question.objects.none()
 
-        valid_question_ids = [qid for qid in self.question_ids if isinstance(qid, int)]
+        # Ensure IDs are integers before querying
+        valid_question_ids = [
+            qid
+            for qid in self.question_ids
+            if isinstance(qid, (int, str)) and str(qid).isdigit()
+        ]
         if not valid_question_ids:
             return Question.objects.none()
+        valid_question_ids = [
+            int(qid) for qid in valid_question_ids
+        ]  # Convert valid ones to int
 
+        # Use Case/When to preserve the order defined in self.question_ids
         preserved_order = Case(
             *[When(pk=pk, then=pos) for pos, pk in enumerate(valid_question_ids)],
             output_field=IntegerField(),
@@ -257,40 +286,45 @@ class UserTestAttempt(models.Model):
             .order_by(preserved_order)
         )
 
+    @transaction.atomic  # Ensure score calculation and saving are atomic
     def calculate_and_save_scores(
-        self, question_attempts_qs: QuerySet["UserQuestionAttempt"]
+        self, question_attempts_qs: Optional[QuerySet["UserQuestionAttempt"]] = None
     ):
         """
-        Calculates scores based on provided question attempts queryset and updates the instance.
-        Requires attempts to have related question/subsection/section loaded.
+        Calculates scores based on provided or fetched question attempts and updates the instance.
+        Prefetches related data if queryset is not provided.
+
+        Args:
+            question_attempts_qs: Optional pre-fetched queryset of UserQuestionAttempt
+                                  related to this test_attempt. If None, it will be fetched.
         """
+        if not question_attempts_qs:
+            # Fetch attempts if not provided, ensuring necessary related data is loaded
+            question_attempts_qs = self.question_attempts.select_related(
+                "question__subsection__section", "question__skill"
+            ).all()
+
         total_questions_in_attempt = self.num_questions
-        answered_attempts = list(question_attempts_qs)  # Fetch into memory
+        answered_attempts = list(
+            question_attempts_qs
+        )  # Fetch into memory for processing
         num_answered = len(answered_attempts)
 
-        if num_answered == 0 and total_questions_in_attempt == 0:
+        if total_questions_in_attempt == 0:
             logger.warning(
-                f"Attempt {self.id} has no questions defined and none answered. Setting scores to zero/null."
+                f"Attempt {self.id} has 0 questions defined in question_ids. Setting scores to zero/null."
             )
             self.score_percentage = 0.0
             self.score_verbal = None
             self.score_quantitative = None
             self.results_summary = {}
-        elif total_questions_in_attempt == 0:
-            logger.error(
-                f"Attempt {self.id} has 0 questions defined, cannot calculate percentage score. Setting score to null."
-            )
-            self.score_percentage = None  # Cannot divide by zero
-            self.score_verbal = None
-            self.score_quantitative = None
-            self.results_summary = {}  # No questions to summarize
         else:
             correct_answers = sum(
                 1 for attempt in answered_attempts if attempt.is_correct
             )
-            # Overall score based on total questions *in the attempt*
+            # Overall score based on total questions *in the attempt* definition
             overall_score = round(
-                (correct_answers / total_questions_in_attempt * 100), 1
+                (correct_answers / total_questions_in_attempt * 100.0), 1
             )
 
             verbal_correct, verbal_total, quant_correct, quant_total = 0, 0, 0, 0
@@ -299,50 +333,71 @@ class UserTestAttempt(models.Model):
             all_q_ids = set(self.question_ids)
             if not all_q_ids:
                 logger.warning(
-                    f"Attempt {self.id} has empty question_ids list during scoring."
+                    f"Attempt {self.id} has empty question_ids list during scoring calculation."
                 )
                 q_detail_map = {}
             else:
-                q_details = (
-                    Question.objects.filter(id__in=all_q_ids)
-                    .select_related("subsection__section")
-                    .values(
-                        "id",
-                        "subsection_id",
-                        "subsection__slug",
-                        "subsection__name",
-                        "subsection__section__slug",
+                # Ensure IDs are integers for the query
+                valid_q_ids = [int(qid) for qid in all_q_ids if str(qid).isdigit()]
+                if not valid_q_ids:
+                    logger.warning(
+                        f"Attempt {self.id} has no valid integer question IDs for scoring."
                     )
-                )
-                q_detail_map = {q["id"]: q for q in q_details}
+                    q_detail_map = {}
+                else:
+                    # Fetch details for ALL questions defined in the attempt
+                    q_details = (
+                        Question.objects.filter(id__in=valid_q_ids)
+                        .select_related(
+                            "subsection__section"
+                        )  # Ensure section is loaded
+                        .values(
+                            "id",
+                            "subsection_id",
+                            "subsection__slug",
+                            "subsection__name",
+                            "subsection__section__slug",  # Get section slug directly
+                        )
+                    )
+                    q_detail_map = {q["id"]: q for q in q_details}
 
-            involved_subsections = {
-                q["subsection_id"]: {
-                    "slug": q["subsection__slug"],
-                    "name": q["subsection__name"],
-                }
-                for qid, q in q_detail_map.items()
-                if q.get("subsection_id")
-            }
-
-            for sub_id, sub_data in involved_subsections.items():
-                results_summary_calc[sub_data["slug"]] = {
-                    "correct": 0,
-                    "total": 0,
-                    "name": sub_data["name"],
-                    "score": 0.0,
-                }
+            # Initialize results summary based on involved subsections from ALL questions
+            involved_subsections = {}
+            for qid, q_detail in q_detail_map.items():
+                sub_id = q_detail.get("subsection_id")
+                if sub_id and sub_id not in involved_subsections:
+                    involved_subsections[sub_id] = {
+                        "slug": q_detail.get("subsection__slug"),
+                        "name": q_detail.get("subsection__name"),
+                    }
+                    if q_detail.get(
+                        "subsection__slug"
+                    ):  # Initialize summary only if slug exists
+                        results_summary_calc[q_detail["subsection__slug"]] = {
+                            "correct": 0,
+                            "total": 0,
+                            "name": q_detail.get("subsection__name", "Unknown"),
+                            "score": 0.0,
+                        }
 
             # Count totals per section/subsection based on ALL questions in the attempt
             for qid in all_q_ids:
-                detail = q_detail_map.get(qid)
+                # Ensure qid is integer before map lookup
+                qid_int = int(qid) if str(qid).isdigit() else None
+                if qid_int is None:
+                    continue
+
+                detail = q_detail_map.get(qid_int)
                 if not detail:
                     logger.warning(
-                        f"Missing details for Question ID {qid} in Attempt {self.id} during scoring total count."
+                        f"Missing details for Question ID {qid_int} in Attempt {self.id} during scoring total count."
                     )
                     continue
-                if detail.get("subsection__slug") in results_summary_calc:
-                    results_summary_calc[detail["subsection__slug"]]["total"] += 1
+
+                sub_slug = detail.get("subsection__slug")
+                if sub_slug and sub_slug in results_summary_calc:
+                    results_summary_calc[sub_slug]["total"] += 1
+
                 section_slug = detail.get("subsection__section__slug")
                 if section_slug == "verbal":
                     verbal_total += 1
@@ -351,57 +406,52 @@ class UserTestAttempt(models.Model):
 
             # Count correct answers from the *answered* attempts
             for attempt in answered_attempts:
-                question = (
-                    attempt.question
-                )  # Assumes preloaded via select_related on input qs
-                detail = q_detail_map.get(question.id)
+                question_id = attempt.question_id  # Use FK directly
+                detail = q_detail_map.get(question_id)
 
-                if (
-                    not detail
-                    or not detail.get("subsection__slug")
-                    or not detail.get("subsection__section__slug")
-                ):
+                if not detail:
                     logger.warning(
-                        f"Missing detail/section/subsection for answered Q {question.id} in attempt {self.id} during scoring."
+                        f"Missing detail for answered Q {question_id} in attempt {self.id} during scoring correct count."
                     )
                     continue
 
-                subsection_slug = detail["subsection__slug"]
-                section_slug = detail["subsection__section__slug"]
+                subsection_slug = detail.get("subsection__slug")
+                section_slug = detail.get("subsection__section__slug")
 
                 if attempt.is_correct:
-                    if subsection_slug in results_summary_calc:
+                    if subsection_slug and subsection_slug in results_summary_calc:
                         results_summary_calc[subsection_slug]["correct"] += 1
                     if section_slug == "verbal":
                         verbal_correct += 1
                     elif section_slug == "quantitative":
                         quant_correct += 1
 
-            # Calculate final scores
+            # Calculate final scores for summary and sections
             for slug, data in results_summary_calc.items():
                 data["score"] = (
-                    round((data["correct"] / data["total"] * 100), 1)
+                    round((data["correct"] / data["total"] * 100.0), 1)
                     if data["total"] > 0
                     else 0.0
                 )
 
             verbal_score = (
-                round((verbal_correct / verbal_total * 100), 1)
+                round((verbal_correct / verbal_total * 100.0), 1)
                 if verbal_total > 0
                 else None
             )
             quantitative_score = (
-                round((quant_correct / quant_total * 100), 1)
+                round((quant_correct / quant_total * 100.0), 1)
                 if quant_total > 0
                 else None
             )
 
+            # Assign calculated scores to the instance
             self.score_percentage = overall_score
             self.score_verbal = verbal_score
             self.score_quantitative = quantitative_score
             self.results_summary = results_summary_calc
 
-        # Use update_fields to be specific
+        # Save the updated fields efficiently
         update_fields_list = [
             "score_percentage",
             "score_verbal",
@@ -419,13 +469,10 @@ class UserQuestionAttempt(models.Model):
     class Mode(models.TextChoices):
         TRADITIONAL = "traditional", _("Traditional Learning")
         LEVEL_ASSESSMENT = "level_assessment", _("Level Assessment")
-        TEST = "test", _(
-            "Practice Test/Simulation"
-        )  # Consolidated Practice/Simulation context
+        TEST = "test", _("Practice Test/Simulation")  # Consolidated
         EMERGENCY = "emergency", _("Emergency Mode")
         CONVERSATION = "conversation", _("Learning via Conversation")
         CHALLENGE = "challenge", _("Challenge")
-        # Removed 'GENERAL' as mode should always be derived from context
 
     class AnswerChoice(models.TextChoices):
         A = "A", "A"
@@ -448,9 +495,10 @@ class UserQuestionAttempt(models.Model):
         db_index=True,
     )
     # --- Context Links ---
+    # Ensure only ONE context link is set per record (validation in forms/serializers/services)
     test_attempt = models.ForeignKey(
         UserTestAttempt,
-        on_delete=models.CASCADE,  # If UserTestAttempt is deleted, these child attempts go too
+        on_delete=models.CASCADE,  # If UserTestAttempt is deleted, associated question attempts go too
         related_name="question_attempts",
         verbose_name=_("test attempt session"),
         null=True,
@@ -458,31 +506,31 @@ class UserQuestionAttempt(models.Model):
         db_index=True,
     )
     conversation_session = models.ForeignKey(
-        "ConversationSession",  # Keep as string if defined later or in different app
-        on_delete=models.CASCADE,
+        "ConversationSession",  # Keep as string if defined later or circular
+        on_delete=models.CASCADE,  # If ConversationSession deleted, attempts go too
         related_name="question_attempts",
         verbose_name=_("conversation session"),
         null=True,
         blank=True,
-        db_index=True,  # Add index
+        db_index=True,
     )
     challenge_attempt = models.ForeignKey(
-        "challenges.ChallengeAttempt",  # Keep as string reference
-        on_delete=models.CASCADE,
-        related_name="user_question_attempts_in_challenge",  # Keep specific related name
+        "challenges.ChallengeAttempt",  # Use app_label.ModelName string format
+        on_delete=models.CASCADE,  # If ChallengeAttempt deleted, attempts go too
+        related_name="user_question_attempts_in_challenge",  # Keep specific name if needed elsewhere
         verbose_name=_("challenge participation"),
         null=True,
         blank=True,
-        db_index=True,  # Add index
+        db_index=True,
     )
     emergency_session = models.ForeignKey(
-        "EmergencyModeSession",  # Keep as string if defined later or in different app
-        on_delete=models.SET_NULL,  # Keep SET_NULL if session deletion shouldn't delete attempts
+        "EmergencyModeSession",  # Keep as string if defined later or circular
+        on_delete=models.CASCADE,  # Consider if deleting session should delete attempts? CASCADE seems logical.
         related_name="question_attempts",
         verbose_name=_("emergency mode session"),
         null=True,
         blank=True,
-        db_index=True,  # Add index
+        db_index=True,
     )
 
     # --- Attempt Details ---
@@ -490,12 +538,12 @@ class UserQuestionAttempt(models.Model):
         _("selected answer"),
         max_length=1,
         choices=AnswerChoice.choices,
-        null=True,  # Allow null if question not answered yet
+        null=True,  # Allow null if question not answered yet (e.g., just used hint)
         blank=True,
     )
     is_correct = models.BooleanField(
         _("is correct"),
-        null=True,  # Calculated on save, can be null initially
+        null=True,  # Calculated on save based on selected_answer, can be null initially
         blank=True,
         db_index=True,
     )
@@ -505,7 +553,7 @@ class UserQuestionAttempt(models.Model):
         blank=True,
         help_text=_("Time spent specifically on this question."),
     )
-
+    # Flags for user actions (useful for traditional mode feedback and analytics)
     used_hint = models.BooleanField(_("used hint"), default=False)
     used_elimination = models.BooleanField(_("used elimination"), default=False)
     revealed_answer = models.BooleanField(
@@ -537,49 +585,56 @@ class UserQuestionAttempt(models.Model):
         verbose_name_plural = _("User Question Attempts")
         ordering = ["-attempted_at"]
         constraints = [
-            # Ensure only ONE answer per question within a specific test attempt context
+            # Ensure only ONE answer per question within a specific CONTEXT
+            # We assume only one context FK (test_attempt, conversation_session, etc.) is set.
+            # A single constraint per context is cleaner.
             models.UniqueConstraint(
                 fields=["user", "question", "test_attempt"],
                 condition=models.Q(test_attempt__isnull=False),
-                name="unique_user_question_per_test_attempt",
+                name="uq_user_question_per_test_attempt",  # Use 'uq_' prefix convention
             ),
-            # Keep challenge constraint
             models.UniqueConstraint(
                 fields=["user", "question", "challenge_attempt"],
                 condition=models.Q(challenge_attempt__isnull=False),
-                name="unique_user_question_per_challenge_attempt",
+                name="uq_user_question_per_challenge_attempt",
             ),
-            # Add constraint for conversation?
-            # models.UniqueConstraint(
-            #     fields=["user", "question", "conversation_session"],
-            #     condition=models.Q(conversation_session__isnull=False),
-            #     name="unique_user_question_per_conversation",
-            # ),
-            # Add constraint for emergency?
-            # models.UniqueConstraint(
-            #     fields=["user", "question", "emergency_session"],
-            #     condition=models.Q(emergency_session__isnull=False),
-            #     name="unique_user_question_per_emergency",
-            # ),
+            models.UniqueConstraint(
+                fields=["user", "question", "conversation_session"],
+                condition=models.Q(conversation_session__isnull=False),
+                name="uq_user_question_per_conversation",
+            ),
+            models.UniqueConstraint(
+                fields=["user", "question", "emergency_session"],
+                condition=models.Q(emergency_session__isnull=False),
+                name="uq_user_question_per_emergency",
+            ),
+            # Add CHECK constraint if DB supports it to ensure only one context FK is non-null?
+            # models.CheckConstraint(...)
         ]
         indexes = [  # Explicit indexes for common lookups
-            models.Index(fields=["test_attempt", "question"]),
             models.Index(fields=["user", "mode"]),
-            models.Index(
-                fields=["user", "question", "is_correct"]
-            ),  # For proficiency calcs potentially
+            models.Index(fields=["user", "question", "is_correct"]),
+            # Index for faster lookup of attempts within a specific context
+            models.Index(fields=["test_attempt", "question"]),
+            models.Index(fields=["challenge_attempt", "question"]),
+            models.Index(fields=["conversation_session", "question"]),
+            models.Index(fields=["emergency_session", "question"]),
         ]
 
     def __str__(self):
-        context = self.get_mode_display()  # Default context
+        context_str = ""
         if self.test_attempt_id:
-            context = f"Test:{self.test_attempt_id}"
+            context_str = f"Test:{self.test_attempt_id}"
         elif self.challenge_attempt_id:
-            context = f"Challenge:{self.challenge_attempt_id}"
+            context_str = f"Challenge:{self.challenge_attempt_id}"
         elif self.conversation_session_id:
-            context = f"Convo:{self.conversation_session_id}"
+            context_str = f"Convo:{self.conversation_session_id}"
         elif self.emergency_session_id:
-            context = f"Emergency:{self.emergency_session_id}"
+            context_str = f"Emergency:{self.emergency_session_id}"
+        else:
+            context_str = (
+                f"Mode:{self.get_mode_display()}"  # Fallback to mode if no context FK
+            )
 
         q_id = self.question_id or "N/A"
         user_name = self.user.username if self.user else "N/A"
@@ -587,73 +642,95 @@ class UserQuestionAttempt(models.Model):
             self.attempted_at.strftime("%Y-%m-%d %H:%M") if self.attempted_at else "N/A"
         )
 
-        return f"{user_name} - Q:{q_id} ({context}) @ {timestamp}"
+        return f"{user_name} - Q:{q_id} ({context_str}) @ {timestamp}"
 
-    def save(self, *args, **kwargs):
-        # Auto-set mode based on context FKs if not explicitly set
-        # Important: Ensure only ONE context FK is set per attempt record.
-        # This logic assumes validation elsewhere prevents multiple contexts.
-        if not self.mode:  # Only set if not already specified
-            if self.test_attempt:
-                # Map UserTestAttempt.AttemptType to UserQuestionAttempt.Mode
-                mode_map = {
-                    UserTestAttempt.AttemptType.LEVEL_ASSESSMENT: self.Mode.LEVEL_ASSESSMENT,
-                    UserTestAttempt.AttemptType.PRACTICE: self.Mode.TEST,
-                    UserTestAttempt.AttemptType.SIMULATION: self.Mode.TEST,
-                    UserTestAttempt.AttemptType.TRADITIONAL: self.Mode.TRADITIONAL,
-                }
-                # Fallback to generic TEST if type somehow not in map
-                self.mode = mode_map.get(self.test_attempt.attempt_type, self.Mode.TEST)
-            elif self.challenge_attempt:
-                self.mode = self.Mode.CHALLENGE
-            elif self.emergency_session:
-                self.mode = self.Mode.EMERGENCY
-            elif self.conversation_session:
-                self.mode = self.Mode.CONVERSATION
-            else:
-                # This case should ideally not happen if attempts are always created within a context.
-                # Log a warning if it does. Defaulting might hide issues.
-                logger.warning(
-                    f"UserQuestionAttempt created (User: {self.user_id}, Q: {self.question_id}) without explicit mode or context link. Defaulting to TRADITIONAL."
-                )
-                self.mode = self.Mode.TRADITIONAL
+    def _determine_mode(self):
+        """Determines the mode based on the set context FK."""
+        if self.test_attempt_id:
+            # Map UserTestAttempt.AttemptType to UserQuestionAttempt.Mode
+            mode_map = {
+                UserTestAttempt.AttemptType.LEVEL_ASSESSMENT: self.Mode.LEVEL_ASSESSMENT,
+                UserTestAttempt.AttemptType.PRACTICE: self.Mode.TEST,
+                UserTestAttempt.AttemptType.SIMULATION: self.Mode.TEST,
+                UserTestAttempt.AttemptType.TRADITIONAL: self.Mode.TRADITIONAL,
+            }
+            # Use getattr to safely access attempt_type if test_attempt is loaded
+            attempt_type = getattr(self.test_attempt, "attempt_type", None)
+            if not attempt_type and self.test_attempt_id:  # Fetch if not loaded
+                try:
+                    attempt_type = UserTestAttempt.objects.values_list(
+                        "attempt_type", flat=True
+                    ).get(pk=self.test_attempt_id)
+                except UserTestAttempt.DoesNotExist:
+                    logger.error(
+                        f"Could not find TestAttempt {self.test_attempt_id} referenced in UserQuestionAttempt during mode determination."
+                    )
+                    return self.Mode.TEST  # Fallback
+            return mode_map.get(
+                attempt_type, self.Mode.TEST
+            )  # Fallback to generic TEST
+        elif self.challenge_attempt_id:
+            return self.Mode.CHALLENGE
+        elif self.emergency_session_id:
+            return self.Mode.EMERGENCY
+        elif self.conversation_session_id:
+            return self.Mode.CONVERSATION
+        else:
+            # This case should ideally not happen if attempts are always created via a service
+            # that sets the context link. Log a warning.
+            logger.warning(
+                f"UserQuestionAttempt created (User: {self.user_id}, Q: {self.question_id}) "
+                f"without a context link. Mode cannot be reliably determined automatically. "
+                f"Falling back to TRADITIONAL, but this might be incorrect."
+            )
+            return self.Mode.TRADITIONAL  # Fallback, but indicates potential issue
 
-        # Auto-calculate is_correct if answer selected and correctness not set
-        if self.selected_answer and self.is_correct is None:
+    def _calculate_correctness(self):
+        """Calculates and sets is_correct based on selected_answer and question's correct_answer."""
+        if self.selected_answer and self.question_id:
             try:
-                # Try to use the related object if pre-fetched
-                if (
-                    hasattr(self, "question")
-                    and self.question
-                    and self.question._state.db
-                ):
-                    correct_ans = self.question.correct_answer
-                else:
-                    # Fetch if necessary (less efficient - should be pre-fetched by caller)
+                # Try to use related object if already fetched
+                correct_ans = getattr(self.question, "correct_answer", None)
+                if correct_ans is None:
+                    # Fetch if necessary (less efficient, caller should ideally prefetch)
                     correct_ans = Question.objects.values_list(
                         "correct_answer", flat=True
                     ).get(pk=self.question_id)
+
                 self.is_correct = self.selected_answer == correct_ans
             except Question.DoesNotExist:
                 logger.error(
-                    f"Question {self.question_id} not found during UserQuestionAttempt save (User: {self.user_id}). Cannot calculate is_correct."
+                    f"Question {self.question_id} not found during UserQuestionAttempt save "
+                    f"(User: {self.user_id}). Cannot calculate is_correct."
                 )
                 self.is_correct = None  # Explicitly set to None if question missing
-            except AttributeError as e:
-                logger.error(
-                    f"Error accessing correct_answer for Question {self.question_id} during save: {e}"
-                )
-                self.is_correct = None
             except Exception as e:
                 logger.exception(
                     f"Unexpected error calculating is_correct for Q:{self.question_id}, User:{self.user_id}: {e}"
                 )
                 self.is_correct = None
+        elif self.selected_answer is None:
+            # If no answer selected (e.g., only used hint), correctness is undefined (null)
+            self.is_correct = None
+        # Else: is_correct might have been explicitly set (e.g. by admin), leave it alone.
 
-        # Ensure attempted_at reflects the save time if it's being created or updated
-        # The default=timezone.now works on creation, but we might want to update it on every save?
-        # Let's stick to default=timezone.now for creation time. Services can update if needed.
-        # self.attempted_at = timezone.now() # Uncomment if last interaction time is needed
+    def save(self, *args, **kwargs):
+        # 1. Determine Mode if not explicitly set
+        # We trust that only one context FK is set, validation should happen elsewhere.
+        if not self.mode:
+            self.mode = self._determine_mode()
+
+        # 2. Calculate is_correct if an answer is selected and correctness not already set
+        # Allow explicit setting of is_correct to override calculation if needed.
+        if self.selected_answer and self.is_correct is None:
+            self._calculate_correctness()
+        elif self.selected_answer is None and self.is_correct is None:
+            # Ensure is_correct is None if no answer selected
+            self.is_correct = None
+
+        # 3. Ensure attempted_at reflects save time on creation (handled by default=timezone.now)
+        # If you need to update attempted_at on *every* save (last interaction time), uncomment below:
+        # self.attempted_at = timezone.now()
 
         super().save(*args, **kwargs)
 
@@ -685,65 +762,88 @@ class UserSkillProficiency(models.Model):
     last_calculated_at = models.DateTimeField(_("Last Calculated At"), auto_now=True)
 
     class Meta:
+        # Ensure a user can only have one proficiency record per skill
         unique_together = [["user", "skill"]]
         verbose_name = _("User Skill Proficiency")
         verbose_name_plural = _("User Skill Proficiencies")
         ordering = ["user", "skill__name"]
         indexes = [
-            models.Index(
-                fields=["user", "proficiency_score"]
-            ),  # Added index for filtering by score
+            # Added index for filtering/ordering by score
+            models.Index(fields=["user", "proficiency_score"]),
         ]
 
     def __str__(self):
-        skill_name = self.skill.name if self.skill else "N/A"
-        user_name = self.user.username if self.user else "N/A"
+        skill_name = getattr(self.skill, "name", "N/A")
+        user_name = getattr(self.user, "username", "N/A")
         return f"{user_name} - {skill_name}: {self.proficiency_score:.2f}"
 
-    @transaction.atomic  # Ensure atomic updates
+    @transaction.atomic  # Ensure atomic updates for counters and score
     def record_attempt(self, is_correct: bool):
-        """Atomically updates counters and recalculates proficiency score."""
+        """
+        Atomically updates counters and recalculates proficiency score for this record.
+        Should be called after a UserQuestionAttempt related to this user/skill is saved.
+        """
         if not isinstance(is_correct, bool):
             logger.error(
                 f"record_attempt called with non-boolean is_correct for UserSkillProficiency pk={self.pk}"
             )
             return
 
-        # Atomically increment counters using F expressions
-        updated_rows = UserSkillProficiency.objects.filter(pk=self.pk).update(
-            attempts_count=F("attempts_count") + 1,
-            correct_count=F("correct_count") + (1 if is_correct else 0),
-            last_calculated_at=timezone.now(),  # Keep track of last update time
-        )
-
-        if updated_rows == 0:
-            # This might happen if the object was deleted between fetch and update, or concurrent update issues
-            logger.warning(
-                f"Failed to update counters for UserSkillProficiency pk={self.pk}. Maybe deleted or race condition?"
+        # Lock the row for update to prevent race conditions
+        # Note: select_for_update() needs to be called on the queryset *before* the update
+        try:
+            # Re-fetch with select_for_update within the transaction
+            locked_self = UserSkillProficiency.objects.select_for_update().get(
+                pk=self.pk
             )
-            return  # Avoid proceeding if update failed
 
-        # Refresh the instance from DB to get updated counts for score calculation
-        # Only fetch fields needed for calculation
-        self.refresh_from_db(
-            fields=["attempts_count", "correct_count", "proficiency_score"]
-        )
+            # Increment counters using the locked instance's values
+            locked_self.attempts_count += 1
+            if is_correct:
+                locked_self.correct_count += 1
+            locked_self.last_calculated_at = (
+                timezone.now()
+            )  # Keep track of last update time
 
-        # Recalculate the new score
-        if self.attempts_count > 0:
-            # Round to a reasonable number of decimal places
-            new_score = round(self.correct_count / self.attempts_count, 4)
-        else:
-            new_score = 0.0  # Should not happen if attempts_count was incremented, but safe fallback
+            # Recalculate the new score
+            if locked_self.attempts_count > 0:
+                # Round to a reasonable number of decimal places (e.g., 4)
+                new_score = round(
+                    locked_self.correct_count / locked_self.attempts_count, 4
+                )
+            else:
+                new_score = 0.0  # Should not happen if attempts_count was incremented, but safe fallback
 
-        # Update score only if it has changed significantly (avoid unnecessary writes)
-        # Use a small tolerance for float comparison
-        if abs(self.proficiency_score - new_score) > 1e-5:
-            # Update score using a separate update query for atomicity
-            UserSkillProficiency.objects.filter(pk=self.pk).update(
-                proficiency_score=new_score
+            # Update score only if it has changed significantly (avoid unnecessary writes/signals)
+            # Use a small tolerance for float comparison
+            if abs(locked_self.proficiency_score - new_score) > 1e-5:
+                locked_self.proficiency_score = new_score
+
+            # Save all changes at once
+            locked_self.save(
+                update_fields=[
+                    "attempts_count",
+                    "correct_count",
+                    "proficiency_score",
+                    "last_calculated_at",
+                ]
             )
-            self.proficiency_score = new_score  # Update in-memory object as well
+
+            # Update the current in-memory object to reflect changes if needed by caller
+            self.attempts_count = locked_self.attempts_count
+            self.correct_count = locked_self.correct_count
+            self.proficiency_score = locked_self.proficiency_score
+            self.last_calculated_at = locked_self.last_calculated_at
+
+        except UserSkillProficiency.DoesNotExist:
+            logger.error(
+                f"UserSkillProficiency pk={self.pk} not found during record_attempt update."
+            )
+        except Exception as e:
+            logger.exception(
+                f"Error during UserSkillProficiency.record_attempt for pk={self.pk}: {e}"
+            )
+            # Transaction will be rolled back
 
 
 # --- Emergency Mode Session Model ---
@@ -761,7 +861,8 @@ class EmergencyModeSession(models.Model):
         null=True,
         blank=True,
         help_text=_(
-            'Stores plan details: {"focus_skills": ["slug1", ...], "recommended_questions": N, ...}'
+            'Stores plan details: {"focus_skills": ["slug1", ...], '
+            '"recommended_questions": N, "quick_review_topics": [...]}'
         ),
     )
     calm_mode_active = models.BooleanField(_("calm mode active"), default=False)
@@ -777,12 +878,12 @@ class EmergencyModeSession(models.Model):
         ordering = ["-start_time"]
 
     def __str__(self):
-        status = _("Ended") if self.end_time else _("Active")
-        user_name = self.user.username if self.user else "N/A"
+        status_display = _("Ended") if self.end_time else _("Active")
+        user_name = getattr(self.user, "username", "N/A")
         timestamp = (
             self.start_time.strftime("%Y-%m-%d %H:%M") if self.start_time else "N/A"
         )
-        return f"{user_name} - Emergency Session ({status}) @ {timestamp}"
+        return f"{user_name} - Emergency Session ({status_display}) @ {timestamp}"
 
     def mark_as_ended(self):
         """Sets the end time for the session if not already set."""
@@ -796,10 +897,12 @@ class ConversationSession(models.Model):
     class AiTone(models.TextChoices):
         CHEERFUL = "cheerful", _("Cheerful")
         SERIOUS = "serious", _("Serious")
+        # Add more tones as needed
 
     class Status(models.TextChoices):
         ACTIVE = "active", _("Active")
         COMPLETED = "completed", _("Completed")
+        # Add other statuses like 'PAUSED'?
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -818,16 +921,15 @@ class ConversationSession(models.Model):
         default=Status.ACTIVE,
         db_index=True,
     )
+    # Tracks the specific question/concept being discussed for targeted testing/clarification
     current_topic_question = models.ForeignKey(
         Question,
-        on_delete=models.SET_NULL,
+        on_delete=models.SET_NULL,  # Don't delete session if question is deleted
         null=True,
         blank=True,
         related_name="+",  # No reverse relation needed from Question
         verbose_name=_("current topic question"),
-        help_text=_(
-            "The question/concept currently being discussed for 'Got It' testing."
-        ),
+        help_text=_("The question/concept currently being focused on."),
     )
     start_time = models.DateTimeField(_("start time"), auto_now_add=True)
     end_time = models.DateTimeField(_("end time"), null=True, blank=True)
@@ -840,7 +942,7 @@ class ConversationSession(models.Model):
         ordering = ["-start_time"]
 
     def __str__(self):
-        user_name = self.user.username if self.user else "N/A"
+        user_name = getattr(self.user, "username", "N/A")
         timestamp = (
             self.start_time.strftime("%Y-%m-%d %H:%M") if self.start_time else "N/A"
         )
@@ -862,7 +964,7 @@ class ConversationMessage(models.Model):
 
     session = models.ForeignKey(
         ConversationSession,
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE,  # Messages belong to a session
         related_name="messages",
         verbose_name=_("session"),
         db_index=True,
@@ -872,20 +974,20 @@ class ConversationMessage(models.Model):
     )
     message_text = models.TextField(_("message text"))
     timestamp = models.DateTimeField(_("timestamp"), auto_now_add=True, db_index=True)
+    # Optional link to a specific question discussed/referenced in the message
     related_question = models.ForeignKey(
         Question,
-        on_delete=models.SET_NULL,
+        on_delete=models.SET_NULL,  # Keep message even if question is deleted
         null=True,
         blank=True,
-        related_name="+",  # No reverse relation needed
+        related_name="+",  # No reverse relation needed from Question
         verbose_name=_("related question"),
-        help_text=_("Optional link to a specific question discussed in the message."),
     )
 
     class Meta:
         verbose_name = _("Conversation Message")
         verbose_name_plural = _("Conversation Messages")
-        ordering = ["timestamp"]  # Ensure chronological order
+        ordering = ["timestamp"]  # Ensure chronological order within a session
 
     def __str__(self):
         session_id = self.session_id or "N/A"

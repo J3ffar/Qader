@@ -1,18 +1,20 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 import logging
 
 from apps.study.models import UserTestAttempt, UserQuestionAttempt, Question
-from apps.learning.api.serializers import QuestionListSerializer
+from apps.learning.api.serializers import (
+    QuestionListSerializer,
+)  # Assumes this is well-defined
 from apps.users.api.serializers import (
     UserProfileSerializer,
-)  # Needed for level assessment completion
+)  # Needed for level assessment completion response
 
 
 logger = logging.getLogger(__name__)
 
-# --- Unified Attempt Serializers ---
+# --- Unified Attempt Listing/Detail Serializers ---
 
 
 class UserTestAttemptListSerializer(serializers.ModelSerializer):
@@ -21,8 +23,8 @@ class UserTestAttemptListSerializer(serializers.ModelSerializer):
     attempt_id = serializers.IntegerField(source="id", read_only=True)
     test_type = serializers.CharField(source="get_attempt_type_display", read_only=True)
     date = serializers.DateTimeField(source="start_time", read_only=True)
+    # Uses the model property which checks for annotation first
     num_questions = serializers.IntegerField(read_only=True)
-    # Uses the annotated/calculated property from the model/view
     answered_question_count = serializers.IntegerField(read_only=True)
     performance = serializers.SerializerMethodField(read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
@@ -33,14 +35,14 @@ class UserTestAttemptListSerializer(serializers.ModelSerializer):
             "attempt_id",
             "test_type",
             "date",
-            "status",  # Raw status
-            "status_display",  # User-friendly status
+            "status",  # Raw status enum value
+            "status_display",  # User-friendly display name
             "num_questions",
             "answered_question_count",
             "score_percentage",  # Populated only if completed
-            "performance",
+            "performance",  # Detailed scores if completed
         ]
-        read_only_fields = fields
+        read_only_fields = fields  # All fields are read-only in list view
 
     def get_performance(self, obj: UserTestAttempt) -> Optional[Dict[str, float]]:
         """Returns a dictionary of scores if the attempt is completed."""
@@ -48,28 +50,30 @@ class UserTestAttemptListSerializer(serializers.ModelSerializer):
             return None
 
         perf = {}
+        # Use round() for consistent display, assuming scores are calculated with precision
         if obj.score_percentage is not None:
             perf["overall"] = round(obj.score_percentage, 1)
         if obj.score_verbal is not None:
             perf["verbal"] = round(obj.score_verbal, 1)
         if obj.score_quantitative is not None:
             perf["quantitative"] = round(obj.score_quantitative, 1)
-        return perf if perf else None
+        return perf if perf else None  # Return None if no scores are set
 
 
 class UserQuestionAttemptBriefSerializer(serializers.ModelSerializer):
     """Brief serializer for representing an answered question within attempt details."""
 
     question_id = serializers.IntegerField(source="question.id", read_only=True)
-    question_text = serializers.CharField(
+    # Assuming Question model has 'question_text' or similar field
+    question_text_preview = serializers.CharField(
         source="question.question_text", read_only=True
-    )
+    )  # Example field
 
     class Meta:
         model = UserQuestionAttempt
         fields = [
             "question_id",
-            "question_text",
+            "question_text_preview",  # Provide some context
             "selected_answer",
             "is_correct",
             "attempted_at",
@@ -85,20 +89,23 @@ class UserTestAttemptDetailSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     config_name = serializers.SerializerMethodField(read_only=True)
     date = serializers.DateTimeField(source="start_time", read_only=True)
+    # Use model properties which check for annotations first
     num_questions = serializers.IntegerField(read_only=True)
-    # Uses the annotated/calculated property from the model/view
     answered_question_count = serializers.IntegerField(read_only=True)
-    # Shows all questions included in the attempt (useful for FE rendering)
+
+    # Shows all questions included in the attempt (relies on view prefetching)
     included_questions = QuestionListSerializer(
         source="get_questions_queryset", many=True, read_only=True
     )
-    # Shows questions already answered by the user (for ongoing tests or review)
-    # Uses prefetch_related('question_attempts', 'question_attempts__question') in view
+
+    # Shows questions already answered by the user (relies on view prefetching)
     attempted_questions = UserQuestionAttemptBriefSerializer(
         source="question_attempts", many=True, read_only=True
     )
-    # Populated only if COMPLETED
-    results_summary = serializers.JSONField(read_only=True)
+
+    results_summary = serializers.JSONField(
+        read_only=True
+    )  # Populated only if COMPLETED
     configuration_snapshot = serializers.JSONField(
         source="test_configuration", read_only=True
     )
@@ -127,24 +134,30 @@ class UserTestAttemptDetailSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_config_name(self, obj: UserTestAttempt) -> str:
-        """Extracts a display name from the configuration snapshot."""
+        """Extracts a display name from the configuration snapshot, handling different structures."""
         config = obj.test_configuration or {}
-        # Handle nested structure from Practice/Simulation tests
-        if isinstance(config.get("config"), dict):
-            name = config["config"].get("name")
-        else:
-            # Handle potentially flat structure (e.g., older Level Assessment?)
-            name = config.get("name")
+        name = _("Unnamed Test")  # Default
 
-        return name or _("Unnamed Test")
+        # Try practice/simulation structure first
+        if isinstance(config.get("config"), dict):
+            name = config["config"].get("name", name)
+        # Try level assessment/traditional structure
+        elif isinstance(config, dict):
+            # Try common keys used in different start serializers
+            name = config.get("name") or config.get("test_name") or name
+
+        return name
+
+
+# --- Unified Action/Response Serializers ---
 
 
 class UserTestAttemptStartResponseSerializer(serializers.Serializer):
-    """Standard response after starting any type of test attempt."""
+    """Standard response structure after successfully starting any type of test attempt."""
 
     attempt_id = serializers.IntegerField(read_only=True)
     attempt_number_for_type = serializers.IntegerField(
-        read_only=True,
+        read_only=True,  # Calculated in the service/view
         help_text=_(
             "The sequence number of this attempt for this specific test type (e.g., 1st Level Assessment, 3rd Practice Test)."
         ),
@@ -156,13 +169,16 @@ class UserQuestionAttemptSerializer(serializers.Serializer):
     """Serializer for submitting a single answer during ANY ongoing test attempt."""
 
     question_id = serializers.PrimaryKeyRelatedField(
-        queryset=Question.objects.filter(is_active=True),  # Basic validation
+        queryset=Question.objects.filter(
+            is_active=True
+        ),  # Basic validation: exists and active
         required=True,
         help_text=_("Primary key of the question being answered."),
     )
     selected_answer = serializers.ChoiceField(
         choices=UserQuestionAttempt.AnswerChoice.choices,
         required=True,
+        allow_blank=False,  # Must select an answer
         help_text=_("The answer choice selected by the user (A, B, C, or D)."),
     )
     time_taken_seconds = serializers.IntegerField(
@@ -171,20 +187,16 @@ class UserQuestionAttemptSerializer(serializers.Serializer):
         allow_null=True,
         help_text=_("Optional: Time spent on this specific question in seconds."),
     )
-    # Add other flags if needed (e.g., hints used)
-    # used_hint = serializers.BooleanField(default=False, required=False)
-    # used_elimination = serializers.BooleanField(default=False, required=False)
+    # Other flags like used_hint, used_elimination are typically handled by separate endpoints
+    # in traditional mode, or implicitly tracked if needed. Don't include them here unless
+    # the frontend submits them with the answer.
 
     def validate_question_id(self, value: Question):
-        """View/Service layer handles validation against the specific test attempt."""
+        """
+        Further validation can happen in the view/service layer to check
+        if the question belongs to the specific test attempt.
+        """
         # PrimaryKeyRelatedField already validates existence and active status.
-        return value
-
-    def validate_selected_answer(self, value: str):
-        """Ensures the selected answer is a valid choice."""
-        # ChoiceField handles validation against choices. This is redundant but safe.
-        if value not in UserQuestionAttempt.AnswerChoice.values:
-            raise serializers.ValidationError(_("Invalid answer choice."))
         return value
 
 
@@ -193,26 +205,36 @@ class UserQuestionAttemptResponseSerializer(serializers.Serializer):
 
     question_id = serializers.IntegerField(read_only=True)
     is_correct = serializers.BooleanField(read_only=True)
-    # Correct answer/explanation only revealed based on mode (handled by service)
-    correct_answer = serializers.CharField(read_only=True, allow_null=True)
-    explanation = serializers.CharField(read_only=True, allow_null=True)
-    feedback_message = serializers.CharField(read_only=True)
+    # Correct answer/explanation are revealed conditionally based on mode/context (handled by service/view)
+    correct_answer = serializers.CharField(
+        read_only=True, allow_null=True, required=False
+    )
+    explanation = serializers.CharField(read_only=True, allow_null=True, required=False)
+    feedback_message = serializers.CharField(
+        read_only=True, required=False
+    )  # Optional message
 
 
 class UserTestAttemptCompletionResponseSerializer(serializers.Serializer):
-    """Standard response after successfully completing a test attempt (Practice, Sim, Level Assessment)."""
+    """
+    Standard response after successfully completing a non-Traditional test attempt
+    (Practice, Simulation, Level Assessment).
+    """
 
     attempt_id = serializers.IntegerField()
-    status = serializers.CharField()
+    status = serializers.CharField()  # User-friendly status display name
     score_percentage = serializers.FloatField(allow_null=True)
     score_verbal = serializers.FloatField(allow_null=True)
     score_quantitative = serializers.FloatField(allow_null=True)
     results_summary = serializers.JSONField()
     answered_question_count = serializers.IntegerField()
     total_questions = serializers.IntegerField()
-    smart_analysis = serializers.CharField(allow_blank=True, allow_null=True)
+    smart_analysis = serializers.CharField(
+        allow_blank=True, allow_null=True, required=False
+    )
     message = serializers.CharField()
-    # Include profile only if it was updated (level assessment - populated by service)
+    # Include profile only if it was updated (e.g., for Level Assessment)
+    # Populated by the service/view based on the result data.
     updated_profile = UserProfileSerializer(
         read_only=True, allow_null=True, required=False
     )
@@ -222,14 +244,14 @@ class UserTestAttemptCompletionResponseSerializer(serializers.Serializer):
 
 
 class UserTestAttemptReviewQuestionSerializer(serializers.ModelSerializer):
-    """Serializer for a single question within the review context."""
+    """Serializer for a single question within the review context of a completed attempt."""
 
-    user_answer = serializers.SerializerMethodField()
-    user_is_correct = serializers.SerializerMethodField()
-    # Basic question details from QuestionListSerializer can be inherited or duplicated
+    # Fields from the Question model itself
     question_id = serializers.IntegerField(source="id", read_only=True)
     question_text = serializers.CharField(read_only=True)
-    choices = serializers.JSONField(read_only=True)
+    choices = serializers.JSONField(
+        read_only=True
+    )  # Assuming choices are stored as JSON
     correct_answer = serializers.CharField(read_only=True)
     explanation = serializers.CharField(read_only=True, allow_null=True)
     subsection_name = serializers.CharField(
@@ -239,53 +261,73 @@ class UserTestAttemptReviewQuestionSerializer(serializers.ModelSerializer):
         source="skill.name", read_only=True, allow_null=True
     )
 
+    # Fields derived from the user's attempt context
+    user_answer = serializers.SerializerMethodField()
+    user_is_correct = serializers.SerializerMethodField()
+    # Optional: Add user actions if tracked and relevant for review
+    # used_hint = serializers.SerializerMethodField()
+
     class Meta:
-        model = Question
+        model = Question  # Based on the Question model for core fields
         fields = [
             "question_id",
             "question_text",
             "choices",
-            "user_answer",  # Added
+            "user_answer",  # Added field
             "correct_answer",
-            "user_is_correct",  # Added
+            "user_is_correct",  # Added field
             "explanation",
             "subsection_name",
             "skill_name",
+            # "used_hint", # Optional
         ]
         read_only_fields = fields
 
+    def _get_user_attempt_from_context(
+        self, obj: Question
+    ) -> Optional[UserQuestionAttempt]:
+        """Helper to safely get the specific UserQuestionAttempt for this question from context."""
+        user_attempts_map = self.context.get("user_attempts_map", {})
+        return user_attempts_map.get(obj.id)
+
     def get_user_answer(self, obj: Question) -> Optional[str]:
         """Gets the user's selected answer for this question from context."""
-        user_attempts_map = self.context.get("user_attempts_map", {})
-        user_attempt = user_attempts_map.get(obj.id)
+        user_attempt = self._get_user_attempt_from_context(obj)
         return user_attempt.selected_answer if user_attempt else None
 
     def get_user_is_correct(self, obj: Question) -> Optional[bool]:
         """Gets whether the user's answer was correct from context."""
-        user_attempts_map = self.context.get("user_attempts_map", {})
-        user_attempt = user_attempts_map.get(obj.id)
+        user_attempt = self._get_user_attempt_from_context(obj)
         # Return None if the user didn't answer this question in the attempt
+        # Check if selected_answer is not None before returning is_correct
         return (
             user_attempt.is_correct
             if user_attempt and user_attempt.selected_answer is not None
             else None
         )
 
+    # def get_used_hint(self, obj: Question) -> Optional[bool]:
+    #     """Gets whether the user used a hint (example)."""
+    #     user_attempt = self._get_user_attempt_from_context(obj)
+    #     return user_attempt.used_hint if user_attempt else None
+
 
 class UserTestAttemptReviewSerializer(serializers.Serializer):
     """Serializer for the overall test review response."""
 
     attempt_id = serializers.IntegerField(read_only=True)
-    # Field name changed from 'review_questions' to match context data key
+    # Use 'questions' to match the data key passed from the view
     questions = UserTestAttemptReviewQuestionSerializer(many=True, read_only=True)
-    # Optionally include overall summary data again if needed
-    # score_percentage = serializers.FloatField(source="attempt.score_percentage", read_only=True, allow_null=True)
-    # ... other summary fields ...
 
+    # Optionally include overall summary data again if needed by the frontend during review
+    # score_percentage = serializers.FloatField(source="attempt.score_percentage", read_only=True, allow_null=True)
+    # score_verbal = serializers.FloatField(source="attempt.score_verbal", read_only=True, allow_null=True)
+    # score_quantitative = serializers.FloatField(source="attempt.score_quantitative", read_only=True, allow_null=True)
+    # results_summary = serializers.JSONField(source="attempt.results_summary", read_only=True)
+
+    # This serializer is read-only, used for response structuring. No create/update.
     def create(self, validated_data):
-        # This serializer is read-only, used for response structuring.
-        raise NotImplementedError("This serializer cannot be used to create data.")
+        raise NotImplementedError("This serializer cannot create data.")
 
     def update(self, instance, validated_data):
-        # This serializer is read-only, used for response structuring.
-        raise NotImplementedError("This serializer cannot be used to update data.")
+        raise NotImplementedError("This serializer cannot update data.")

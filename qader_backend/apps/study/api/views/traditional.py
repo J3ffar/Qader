@@ -1,8 +1,13 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from rest_framework import generics, status, serializers as drf_serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied, NotFound, APIException
+from rest_framework.exceptions import (
+    PermissionDenied,
+    NotFound,
+    APIException,
+    ValidationError,
+)
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import (
     extend_schema,
@@ -11,52 +16,51 @@ from drf_spectacular.utils import (
     OpenApiExample,
 )
 from django.shortcuts import get_object_or_404
+from django.http import Http404
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 import logging
 
 from apps.api.permissions import IsSubscribed
 from apps.study.models import UserTestAttempt, Question, UserQuestionAttempt
-from apps.study.services.study import get_filtered_questions
+from apps.study.services import study as study_services
+from apps.study.api.serializers import traditional as traditional_serializers  # Alias
 from apps.study.api.serializers import (
-    TraditionalPracticeStartSerializer,
-    TraditionalPracticeStartResponseSerializer,
-)
+    attempts as attempt_serializers,
+)  # Unified answer response
 from apps.learning.api.serializers import (
     QuestionListSerializer,
-)
-from apps.study.api.serializers.traditional import (
-    HintResponseSerializer,
-    RevealCorrectAnswerResponseSerializer,
-    RevealExplanationResponseSerializer,
-)  # For Question List view response
-
+)  # For question list response
+from apps.api.exceptions import UsageLimitExceeded
 
 logger = logging.getLogger(__name__)
 
 # --- Traditional Learning Views ---
 
+# --- Helper Methods (Moved to Service or remain private if simple enough) ---
+# These helpers are now largely replaced by service calls or simple get_object_or_404
 
-# --- Helper Methods (Shared Logic) ---
 
-
-def _get_active_traditional_attempt(view, attempt_id: int, user) -> UserTestAttempt:
+def _get_active_traditional_attempt(user, attempt_id: int) -> UserTestAttempt:
     """Helper to get the specific active traditional attempt for views."""
     try:
-        test_attempt = UserTestAttempt.objects.get(
+        # Ensure type is Traditional and status is Started
+        test_attempt = get_object_or_404(
+            UserTestAttempt,
             pk=attempt_id,
             user=user,
             status=UserTestAttempt.Status.STARTED,
             attempt_type=UserTestAttempt.AttemptType.TRADITIONAL,
         )
         return test_attempt
-    except UserTestAttempt.DoesNotExist:
-        exists_non_trad = UserTestAttempt.objects.filter(
+    except Http404:
+        # Check if exists but wrong type/status
+        attempt_exists = UserTestAttempt.objects.filter(
             pk=attempt_id, user=user
-        ).exists()
-        if exists_non_trad:
+        ).first()
+        if attempt_exists:
             logger.warning(
-                f"User {user.id} attempted traditional action on non-active/non-traditional attempt {attempt_id}"
+                f"User {user.id} attempted traditional action on non-active/non-traditional attempt {attempt_id} (Type: {attempt_exists.attempt_type}, Status: {attempt_exists.status})"
             )
             raise PermissionDenied(
                 _("This action is only valid for active traditional practice sessions.")
@@ -67,107 +71,73 @@ def _get_active_traditional_attempt(view, attempt_id: int, user) -> UserTestAtte
             )
             raise NotFound(_("Active traditional practice session not found."))
     except Exception as e:
-        logger.error(
-            f"Error fetching traditional attempt {attempt_id} in helper: {e}",
-            exc_info=True,
+        logger.exception(
+            f"Error fetching traditional attempt {attempt_id} in helper: {e}"
         )
-        raise APIException(
-            _("An error occurred retrieving the session."),
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        raise APIException(_("An error occurred retrieving the session."))
 
 
-def _get_active_question(view, question_id: int) -> Question:
-    """Helper to get the active question."""
+def _get_active_question(question_id: int) -> Question:
+    """Helper to get the active question by ID."""
     try:
-        # TODO: Optional: Check if question is within the scope of the attempt's filters?
-        question = Question.objects.get(pk=question_id, is_active=True)
+        # Add select_related if needed by the action (e.g., reveal explanation needs explanation field)
+        question = get_object_or_404(Question, pk=question_id, is_active=True)
         return question
-    except Question.DoesNotExist:
+    except Http404:
         logger.warning(f"Active question {question_id} not found.")
         raise NotFound(_("Question not found or is inactive."))
     except Exception as e:
-        logger.error(
-            f"Error fetching question {question_id} in helper: {e}", exc_info=True
-        )
-        raise APIException(
-            _("An error occurred retrieving the question."),
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        logger.exception(f"Error fetching question {question_id} in helper: {e}")
+        raise APIException(_("An error occurred retrieving the question."))
 
 
-def _record_question_attempt_action(
-    user, test_attempt: UserTestAttempt, question: Question, updates: dict
-):
-    """Helper to record an action in UserQuestionAttempt."""
-    try:
-        defaults = {
-            "mode": UserQuestionAttempt.Mode.TRADITIONAL,
-            "attempted_at": timezone.now(),  # Update interaction time
-            **updates,  # Apply specific action flags (e.g., used_hint=True)
-        }
-        # Ensure we don't overwrite existing correct answer/selection unless intended
-        if "selected_answer" not in defaults:
-            defaults["selected_answer"] = None  # Avoid setting if not provided
-        if "is_correct" not in defaults:
-            defaults["is_correct"] = None  # Avoid setting if not provided
-
-        attempt_record, created = UserQuestionAttempt.objects.update_or_create(
-            user=user,
-            test_attempt=test_attempt,
-            question=question,
-            defaults=defaults,
-        )
-        action_keys = ", ".join(updates.keys())
-        logger.info(
-            f"Recorded action ({action_keys}) for Q:{question.id}, Attempt:{test_attempt.id}, User:{user.id} (Created: {created})"
-        )
-        return attempt_record
-    except Exception as e:
-        action_keys = ", ".join(updates.keys())
-        logger.exception(
-            f"Error recording action ({action_keys}) for Q:{question.id}, Attempt:{test_attempt.id}, User:{user.id}: {e}"
-        )
-        # Decide if this should prevent the action (e.g., returning hint)
-        # For now, log the error but allow the primary action (like getting hint) to proceed
-        # raise APIException(_("Failed to record action."), status.HTTP_500_INTERNAL_SERVER_ERROR) # Option to fail hard
-        return None  # Indicate recording failed
-
-
+# --- Start View ---
 @extend_schema(
     tags=["Study - Traditional Learning"],
     summary="Start Traditional Practice Session",
     description="Starts a new traditional practice session, creating a trackable UserTestAttempt record. Can optionally return an initial set of questions based on filters.",
-    request=TraditionalPracticeStartSerializer,
+    request=traditional_serializers.TraditionalPracticeStartSerializer,
     responses={
-        201: OpenApiResponse(
-            response=TraditionalPracticeStartResponseSerializer,
-            description="Traditional session started.",
-        ),
+        201: traditional_serializers.TraditionalPracticeStartResponseSerializer,  # Specific start response
         400: OpenApiResponse(
             description="Validation Error (e.g., already active session)."
         ),
-        403: OpenApiResponse(description="Permission Denied."),
+        403: OpenApiResponse(
+            description="Permission Denied (Auth, Subscription, or Usage Limit)."
+        ),
     },
 )
 class TraditionalPracticeStartView(generics.GenericAPIView):
     """Starts a new Traditional Practice session (UserTestAttempt)."""
 
-    serializer_class = TraditionalPracticeStartSerializer
+    serializer_class = traditional_serializers.TraditionalPracticeStartSerializer
     permission_classes = [IsAuthenticated, IsSubscribed]
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(
-            data=request.data, context={"request": request}
-        )
+        serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
-            # Serializer's create method handles attempt creation and initial question fetching
-            result_data = (
-                serializer.save()
-            )  # Returns {'attempt_id', 'status', 'questions'}
-        except drf_serializers.ValidationError as e:
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+            user = request.user
+            validated_data = serializer.validated_data
+
+            # Call the service function
+            result_data = study_services.start_traditional_practice(
+                user=user,
+                subsections=validated_data.get("subsections", []),
+                skills=validated_data.get("skills", []),
+                num_questions_initial=validated_data["num_questions"],
+                starred=validated_data.get("starred", False),
+                not_mastered=validated_data.get("not_mastered", False),
+            )
+
+        except (ValidationError, UsageLimitExceeded) as e:
+            status_code = (
+                status.HTTP_403_FORBIDDEN
+                if isinstance(e, UsageLimitExceeded)
+                else status.HTTP_400_BAD_REQUEST
+            )
+            error_detail = e.detail if hasattr(e, "detail") else str(e)
+            return Response({"detail": error_detail}, status=status_code)
         except Exception as e:
             logger.exception(
                 f"Unexpected error during TraditionalPracticeStartView post for user {request.user.id}: {e}"
@@ -178,45 +148,48 @@ class TraditionalPracticeStartView(generics.GenericAPIView):
             )
 
         # Use the specific response serializer for traditional start
-        response_serializer = TraditionalPracticeStartResponseSerializer(
-            result_data, context={"request": request}
+        response_serializer = (
+            traditional_serializers.TraditionalPracticeStartResponseSerializer(
+                result_data, context=self.get_serializer_context()
+            )
         )
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
-# Note: Answering questions during Traditional Practice is handled by the unified UserTestAttemptAnswerView
+# Note: Answering questions is handled by the unified UserTestAttemptAnswerView
 
 
+# --- Ad-hoc Question Fetching View ---
 @extend_schema(
     tags=["Study - Traditional Learning"],
     summary="Fetch Questions for Traditional Practice",
     description=(
-        "Retrieves a list of questions for traditional practice based on filters, outside the context of a specific ongoing attempt. "
-        "Supports filtering by subsections, skills, starred, not_mastered, and excluding specific question IDs."
+        "Retrieves a list of questions for traditional practice based on filters, independent of a specific ongoing attempt. "
+        "Supports filtering by subsections, skills, starred, not_mastered, and excluding specific question IDs. Uses limit parameter for count."
     ),
     parameters=[
         OpenApiParameter(
             name="limit",
-            description="Maximum number of questions to return.",
+            description="Max number of questions.",
             type=int,
             default=10,
             required=False,
         ),
         OpenApiParameter(
             name="subsection__slug__in",
-            description="Filter by subsection slugs (comma-separated).",
+            description="Subsection slugs (comma-separated).",
             type=str,
             required=False,
         ),
         OpenApiParameter(
             name="skill__slug__in",
-            description="Filter by skill slugs (comma-separated).",
+            description="Skill slugs (comma-separated).",
             type=str,
             required=False,
         ),
         OpenApiParameter(
             name="starred",
-            description="Filter by starred questions (`true`/`1`).",
+            description="Filter by starred (`true`/`1`).",
             type=str,
             required=False,
         ),
@@ -228,18 +201,16 @@ class TraditionalPracticeStartView(generics.GenericAPIView):
         ),
         OpenApiParameter(
             name="exclude_ids",
-            description="Question IDs to exclude (comma-separated integers).",
+            description="Question IDs to exclude (comma-separated ints).",
             type=str,
             required=False,
         ),
     ],
     responses={
-        200: OpenApiResponse(
-            response=QuestionListSerializer(many=True),
-            description="List of questions matching criteria.",
-        ),
+        200: QuestionListSerializer(many=True),
         400: OpenApiResponse(description="Invalid filter parameters."),
-        403: OpenApiResponse(description="Permission Denied."),
+        401: OpenApiResponse(description="Authentication required."),
+        403: OpenApiResponse(description="Permission Denied (Subscription required)."),
     },
 )
 class TraditionalQuestionListView(generics.ListAPIView):
@@ -247,19 +218,17 @@ class TraditionalQuestionListView(generics.ListAPIView):
 
     serializer_class = QuestionListSerializer
     permission_classes = [IsAuthenticated, IsSubscribed]
-    pagination_class = None  # Use 'limit' parameter
+    pagination_class = None  # Use 'limit' parameter instead of standard pagination
 
-    # Helper function to parse boolean query params robustly
+    # Helper methods for parsing query params
     def _parse_bool_param(self, param_name: str) -> bool:
         val = self.request.query_params.get(param_name, "").strip().lower()
         return val in ["true", "1", "yes", "on"]
 
-    # Helper function to parse comma-separated list params
     def _parse_list_param(self, param_name: str) -> Optional[List[str]]:
         val_str = self.request.query_params.get(param_name)
         return [s.strip() for s in val_str.split(",") if s.strip()] if val_str else None
 
-    # Helper function to parse comma-separated integer list params
     def _parse_int_list_param(self, param_name: str) -> Optional[List[int]]:
         val_str = self.request.query_params.get(param_name)
         ids = []
@@ -269,24 +238,16 @@ class TraditionalQuestionListView(generics.ListAPIView):
             ids = [int(s.strip()) for s in val_str.split(",") if s.strip().isdigit()]
             return ids
         except ValueError:
-            logger.warning(
-                f"Invalid non-integer value found in query parameter '{param_name}': {val_str}"
-            )
-            # Raise validation error to inform the client
-            raise drf_serializers.ValidationError(
-                {param_name: [_("Invalid integer list format.")]}
-            )
+            raise ValidationError({param_name: [_("Invalid integer list format.")]})
 
     def get_queryset(self):
         user = self.request.user
         limit_str = self.request.query_params.get("limit", "10")
         try:
             limit = int(limit_str)
-            limit = max(
-                1, min(limit, 100)
-            )  # Ensure limit is within reasonable bounds (e.g., 1-100)
+            limit = max(1, min(limit, 100))  # Ensure reasonable bounds (e.g., 1-100)
         except ValueError:
-            limit = 10  # Default limit
+            limit = 10  # Default if invalid
 
         try:
             subsections = self._parse_list_param("subsection__slug__in")
@@ -294,20 +255,14 @@ class TraditionalQuestionListView(generics.ListAPIView):
             starred = self._parse_bool_param("starred")
             not_mastered = self._parse_bool_param("not_mastered")
             exclude_ids = self._parse_int_list_param("exclude_ids")
-        except drf_serializers.ValidationError as e:
-            # Need to handle validation error raised by helper
-            # DRF ListAPIView doesn't automatically handle this in get_queryset
-            # A simple way is to return an empty queryset and let DRF handle the response later,
-            # but ideally, we'd raise the error correctly. Let's try raising it.
-            # This might require overriding the `list` method to catch it.
-            # For now, let's log and return none.
-            logger.error(f"Validation error processing query parameters: {e.detail}")
-            return Question.objects.none()
-            # Alternative: raise APIException(e.detail, status.HTTP_400_BAD_REQUEST)
+        except ValidationError as e:
+            # Re-raise validation error for DRF to handle
+            raise e
 
         # Use the central service function to get questions
         try:
-            return get_filtered_questions(
+            # Pass proficiency threshold from settings if needed by service
+            return study_services.get_filtered_questions(
                 user=user,
                 limit=limit,
                 subsections=subsections,
@@ -315,30 +270,27 @@ class TraditionalQuestionListView(generics.ListAPIView):
                 starred=starred,
                 not_mastered=not_mastered,
                 exclude_ids=exclude_ids,
+                # proficiency_threshold=settings.DEFAULT_PROFICIENCY_THRESHOLD # Example
             )
         except Exception as e:
             logger.exception(
                 f"Error fetching traditional questions for user {user.id}: {e}"
             )
-            # Raise an API exception for internal errors
-            raise APIException(
-                _("An error occurred while fetching questions."),
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            raise APIException(_("An error occurred while fetching questions."))
+
+
+# --- Traditional Action Views (Hints/Reveals) ---
 
 
 @extend_schema(
     tags=["Study - Traditional Learning"],
     summary="Use Hint (Traditional Mode)",
-    description="Retrieves the hint for a specific question within an active traditional practice session and marks that the hint was used for this question attempt.",
+    description="Retrieves the hint for a specific question within an active traditional practice session and marks that the hint was used.",
     request=None,  # POST request with no body
     responses={
-        200: OpenApiResponse(
-            response=HintResponseSerializer, description="Hint revealed."
-        ),
-        400: OpenApiResponse(
-            description="Bad Request (e.g., attempt not active/traditional)."
-        ),
+        200: traditional_serializers.HintResponseSerializer,
+        400: OpenApiResponse(description="Bad Request."),
+        401: OpenApiResponse(description="Authentication required."),
         403: OpenApiResponse(description="Permission Denied."),
         404: OpenApiResponse(description="Not Found (Attempt or Question ID invalid)."),
     },
@@ -349,27 +301,32 @@ class TraditionalUseHintView(APIView):
     permission_classes = [IsAuthenticated, IsSubscribed]
 
     def post(self, request, attempt_id, question_id, *args, **kwargs):
-        test_attempt = _get_active_traditional_attempt(self, attempt_id, request.user)
-        question = _get_active_question(self, question_id)
+        test_attempt = _get_active_traditional_attempt(request.user, attempt_id)
+        question = _get_active_question(question_id)
 
-        # Record the action
-        _record_question_attempt_action(
-            user=request.user,
-            test_attempt=test_attempt,
-            question=question,
-            updates={"used_hint": True},
-        )
+        try:
+            # Call service to handle recording the action and potentially fetching hint
+            hint_text = study_services.record_traditional_action_and_get_data(
+                user=request.user,
+                test_attempt=test_attempt,
+                question=question,
+                action_type="hint",
+            )
+        except Exception as e:
+            logger.exception(
+                f"Error recording hint usage for Q:{question_id}, Attempt:{attempt_id}, User:{request.user.id}: {e}"
+            )
+            raise APIException(
+                _("Failed to record hint usage or retrieve hint."),
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         # Prepare and Return Response
-        response_data = {
-            "question_id": question.id,
-            "hint": question.hint,
-        }
-        serializer = HintResponseSerializer(response_data)
+        response_data = {"question_id": question.id, "hint": hint_text}
+        serializer = traditional_serializers.HintResponseSerializer(response_data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# --- NEW: View for using Elimination ---
 @extend_schema(
     tags=["Study - Traditional Learning"],
     summary="Mark Elimination Used (Traditional Mode)",
@@ -377,18 +334,17 @@ class TraditionalUseHintView(APIView):
     request=None,  # POST request with no body
     responses={
         200: OpenApiResponse(
-            description="Elimination usage recorded successfully.",
+            description="Elimination usage recorded.",
             examples=[
                 OpenApiExample(
                     "Success", value={"detail": "Elimination usage recorded."}
                 )
             ],
         ),
-        400: OpenApiResponse(
-            description="Bad Request (e.g., attempt not active/traditional)."
-        ),
+        400: OpenApiResponse(description="Bad Request."),
+        401: OpenApiResponse(description="Authentication required."),
         403: OpenApiResponse(description="Permission Denied."),
-        404: OpenApiResponse(description="Not Found (Attempt or Question ID invalid)."),
+        404: OpenApiResponse(description="Not Found."),
     },
 )
 class TraditionalUseEliminationView(APIView):
@@ -397,18 +353,26 @@ class TraditionalUseEliminationView(APIView):
     permission_classes = [IsAuthenticated, IsSubscribed]
 
     def post(self, request, attempt_id, question_id, *args, **kwargs):
-        test_attempt = _get_active_traditional_attempt(self, attempt_id, request.user)
-        question = _get_active_question(self, question_id)
+        test_attempt = _get_active_traditional_attempt(request.user, attempt_id)
+        question = _get_active_question(question_id)
 
-        # Record the action
-        _record_question_attempt_action(
-            user=request.user,
-            test_attempt=test_attempt,
-            question=question,
-            updates={"used_elimination": True},
-        )
+        try:
+            # Call service to record the action
+            study_services.record_traditional_action_and_get_data(
+                user=request.user,
+                test_attempt=test_attempt,
+                question=question,
+                action_type="eliminate",
+            )
+        except Exception as e:
+            logger.exception(
+                f"Error recording elimination usage for Q:{question_id}, Attempt:{attempt_id}, User:{request.user.id}: {e}"
+            )
+            raise APIException(
+                _("Failed to record elimination usage."),
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-        # Prepare and Return Simple Success Response
         return Response(
             {"detail": _("Elimination usage recorded.")}, status=status.HTTP_200_OK
         )
@@ -417,14 +381,12 @@ class TraditionalUseEliminationView(APIView):
 @extend_schema(
     tags=["Study - Traditional Learning"],
     summary="Reveal Correct Answer (Traditional Mode)",
-    description="Retrieves the correct answer choice (e.g., 'A', 'B') for a specific question within an active traditional practice session and marks that the answer was revealed.",
+    description="Retrieves the correct answer choice for a specific question within an active traditional practice session and marks that the answer was revealed.",
     request=None,  # POST request with no body
     responses={
-        200: OpenApiResponse(
-            response=RevealCorrectAnswerResponseSerializer,
-            description="Correct answer revealed.",
-        ),
+        200: traditional_serializers.RevealCorrectAnswerResponseSerializer,
         400: OpenApiResponse(description="Bad Request."),
+        401: OpenApiResponse(description="Authentication required."),
         403: OpenApiResponse(description="Permission Denied."),
         404: OpenApiResponse(description="Not Found."),
     },
@@ -435,38 +397,42 @@ class TraditionalRevealAnswerView(APIView):
     permission_classes = [IsAuthenticated, IsSubscribed]
 
     def post(self, request, attempt_id, question_id, *args, **kwargs):
-        test_attempt = _get_active_traditional_attempt(self, attempt_id, request.user)
-        question = _get_active_question(self, question_id)
+        test_attempt = _get_active_traditional_attempt(request.user, attempt_id)
+        question = _get_active_question(question_id)
 
-        # Record the specific action
-        _record_question_attempt_action(
-            user=request.user,
-            test_attempt=test_attempt,
-            question=question,
-            updates={"revealed_answer": True},  # Use the new model field
+        try:
+            # Call service to record action and get data
+            correct_answer = study_services.record_traditional_action_and_get_data(
+                user=request.user,
+                test_attempt=test_attempt,
+                question=question,
+                action_type="reveal_answer",
+            )
+        except Exception as e:
+            logger.exception(
+                f"Error revealing answer for Q:{question_id}, Attempt:{attempt_id}, User:{request.user.id}: {e}"
+            )
+            raise APIException(
+                _("Failed to record action or retrieve answer."),
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        response_data = {"question_id": question.id, "correct_answer": correct_answer}
+        serializer = traditional_serializers.RevealCorrectAnswerResponseSerializer(
+            response_data
         )
-
-        # Prepare and Return Response
-        response_data = {
-            "question_id": question.id,
-            "correct_answer": question.correct_answer,
-        }
-        serializer = RevealCorrectAnswerResponseSerializer(response_data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# --- NEW: View for Revealing Explanation ---
 @extend_schema(
     tags=["Study - Traditional Learning"],
     summary="Reveal Explanation (Traditional Mode)",
     description="Retrieves the explanation for a specific question within an active traditional practice session and marks that the explanation was revealed.",
     request=None,  # POST request with no body
     responses={
-        200: OpenApiResponse(
-            response=RevealExplanationResponseSerializer,
-            description="Explanation revealed.",
-        ),
+        200: traditional_serializers.RevealExplanationResponseSerializer,
         400: OpenApiResponse(description="Bad Request."),
+        401: OpenApiResponse(description="Authentication required."),
         403: OpenApiResponse(description="Permission Denied."),
         404: OpenApiResponse(description="Not Found."),
     },
@@ -477,21 +443,30 @@ class TraditionalRevealExplanationView(APIView):
     permission_classes = [IsAuthenticated, IsSubscribed]
 
     def post(self, request, attempt_id, question_id, *args, **kwargs):
-        test_attempt = _get_active_traditional_attempt(self, attempt_id, request.user)
-        question = _get_active_question(self, question_id)
+        test_attempt = _get_active_traditional_attempt(request.user, attempt_id)
+        question = _get_active_question(
+            question_id
+        )  # Ensure explanation is loaded if needed
 
-        # Record the specific action
-        _record_question_attempt_action(
-            user=request.user,
-            test_attempt=test_attempt,
-            question=question,
-            updates={"revealed_explanation": True},  # Use the new model field
+        try:
+            # Call service to record action and get data
+            explanation = study_services.record_traditional_action_and_get_data(
+                user=request.user,
+                test_attempt=test_attempt,
+                question=question,
+                action_type="reveal_explanation",
+            )
+        except Exception as e:
+            logger.exception(
+                f"Error revealing explanation for Q:{question_id}, Attempt:{attempt_id}, User:{request.user.id}: {e}"
+            )
+            raise APIException(
+                _("Failed to record action or retrieve explanation."),
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        response_data = {"question_id": question.id, "explanation": explanation}
+        serializer = traditional_serializers.RevealExplanationResponseSerializer(
+            response_data
         )
-
-        # Prepare and Return Response
-        response_data = {
-            "question_id": question.id,
-            "explanation": question.explanation,
-        }
-        serializer = RevealExplanationResponseSerializer(response_data)
         return Response(serializer.data, status=status.HTTP_200_OK)

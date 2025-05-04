@@ -1,6 +1,6 @@
 import random
 import logging
-from typing import Optional, List, Dict, Any, Set
+from typing import Optional, List, Dict, Any, Set, Union
 
 from django.db.models import (
     QuerySet,
@@ -18,13 +18,11 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
-from django.core.exceptions import (
-    ObjectDoesNotExist,
-    ValidationError as DjangoValidationError,
-)
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers  # Use DRF's validation error for API context
+from rest_framework.exceptions import PermissionDenied
 
 from apps.learning.models import (
     LearningSubSection,
@@ -40,6 +38,9 @@ from apps.study.models import (
     UserQuestionAttempt,
 )
 from django.contrib.auth import get_user_model
+
+from apps.api.exceptions import UsageLimitExceeded
+from apps.users.services import UsageLimiter
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -71,6 +72,7 @@ def get_filtered_questions(
     not_mastered: bool = False,
     exclude_ids: Optional[List[int]] = None,
     proficiency_threshold: float = DEFAULT_PROFICIENCY_THRESHOLD,
+    min_required: int = 1,
 ) -> QuerySet[Question]:
     """
     Retrieves a randomly ordered QuerySet of active Questions based on various filters.
@@ -85,6 +87,7 @@ def get_filtered_questions(
                       the proficiency_threshold in, or skills they haven't attempted yet.
         exclude_ids: Optional list of Question IDs to exclude from the results.
         proficiency_threshold: The score threshold used for the 'not_mastered' filter.
+        min_required: If > 0, checks if at least this many questions match the criteria.
 
     Returns:
         A QuerySet of Question objects, randomly ordered up to the specified limit.
@@ -95,7 +98,9 @@ def get_filtered_questions(
 
     # Base queryset - only active questions, prefetch related data for efficiency
     queryset = Question.objects.filter(is_active=True).select_related(
-        "subsection__section", "skill"  # Select related for common access patterns
+        "subsection",
+        "subsection__section",
+        "skill",  # Select related for common access patterns
     )
     filters = Q()
     exclude_ids_set = (
@@ -170,6 +175,20 @@ def get_filtered_questions(
     if exclude_ids_set:
         queryset = queryset.exclude(id__in=exclude_ids_set)
 
+    if min_required > 0:
+        # Use count() which is efficient after filtering
+        pool_count = queryset.count()
+        if pool_count < min_required:
+            logger.warning(
+                f"Insufficient questions ({pool_count}) found matching criteria for user {user.id}. Minimum required: {min_required}."
+            )
+            # Raise validation error to be caught by caller (e.g., start service)
+            raise ValidationError(
+                _(
+                    "Not enough questions found matching your criteria (found {count}, need at least {min}). Please broaden your filters."
+                ).format(count=pool_count, min=min_required)
+            )
+
     # --- Random Sampling Technique ---
     # 1. Get all potential IDs matching the criteria
     all_matching_ids = list(queryset.values_list("id", flat=True))
@@ -202,7 +221,9 @@ def get_filtered_questions(
     # Final query retrieving only the randomly selected questions in the specific random order
     final_queryset = (
         Question.objects.filter(id__in=random_ids)
-        .select_related("subsection__section", "skill")  # Re-apply select_related
+        .select_related(
+            "subsection", "subsection__section", "skill"
+        )  # Re-apply select_related
         .order_by(preserved_order)
     )
 
@@ -626,6 +647,355 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             "message": _("Test completed successfully. Results calculated."),
             "updated_profile": updated_profile_data,  # Include updated profile if applicable
         }
+
+
+# --- Start Test Attempt Services ---
+
+
+@transaction.atomic
+def _start_test_attempt_base(
+    user: User,
+    attempt_type: UserTestAttempt.AttemptType,
+    config_snapshot: Dict[str, Any],
+    num_questions_requested: int,
+    subsections: Optional[List[str]] = None,
+    skills: Optional[List[str]] = None,
+    starred: bool = False,
+    not_mastered: bool = False,
+    exclude_ids: Optional[List[int]] = None,
+) -> Dict[str, Any]:
+    """
+    Internal base function to start any test attempt type.
+    Handles limits, question selection, and object creation.
+    """
+    # 1. Check for existing active attempt
+    if UserTestAttempt.objects.filter(
+        user=user, status=UserTestAttempt.Status.STARTED
+    ).exists():
+        raise ValidationError(
+            {
+                "non_field_errors": [
+                    _(
+                        "Please complete or cancel your ongoing test before starting a new one."
+                    )
+                ]
+            }
+        )
+
+    # 2. Check Usage Limits (Type Limit and Question Limit)
+    try:
+        limiter = UsageLimiter(user)
+        limiter.check_can_start_test_attempt(attempt_type)  # Checks attempt type limit
+
+        # Cap the number of questions based on plan limits
+        max_allowed_questions = limiter.get_max_questions_per_attempt()
+        actual_num_questions_to_select = num_questions_requested
+        if (
+            max_allowed_questions is not None
+            and num_questions_requested > max_allowed_questions
+        ):
+            logger.info(
+                f"User {user.id} requested {num_questions_requested} questions for {attempt_type.label}, capped at {max_allowed_questions}."
+            )
+            actual_num_questions_to_select = max_allowed_questions
+        elif num_questions_requested <= 0:
+            # Handle cases where 0 questions are requested (e.g., traditional start)
+            actual_num_questions_to_select = 0
+
+    except UsageLimitExceeded as e:
+        logger.warning(
+            f"Usage limit exceeded for user {user.id} trying to start {attempt_type.label}: {e}"
+        )
+        raise e  # Re-raise for the view to handle
+    except ValueError as e:  # UsageLimiter init error
+        logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
+        raise ValidationError(
+            {"non_field_errors": [_("Could not verify account limits.")]}
+        )
+
+    # 3. Select Questions
+    selected_questions_queryset = Question.objects.none()
+    selected_question_ids = []
+    actual_num_selected = 0
+
+    if actual_num_questions_to_select > 0:
+        try:
+            # Use get_filtered_questions, it raises ValidationError if min_required not met
+            # Set min_required=1 to ensure at least one question if > 0 requested
+            selected_questions_queryset = get_filtered_questions(
+                user=user,
+                limit=actual_num_questions_to_select,
+                subsections=subsections,
+                skills=skills,
+                starred=starred,
+                not_mastered=not_mastered,
+                exclude_ids=exclude_ids,
+                min_required=1,  # Ensure at least 1 is found if requested > 0
+            )
+            selected_question_ids = list(
+                selected_questions_queryset.values_list("id", flat=True)
+            )
+            actual_num_selected = len(selected_question_ids)
+
+            # Log if fewer questions were found than requested/capped
+            if actual_num_selected < actual_num_questions_to_select:
+                logger.warning(
+                    f"Found only {actual_num_selected} questions matching criteria for {attempt_type.label} start for user {user.id} (requested/capped: {actual_num_questions_to_select})."
+                )
+
+        except ValidationError as e:
+            # Catch validation error from get_filtered_questions (insufficient questions)
+            logger.warning(
+                f"Insufficient questions validation error for user {user.id} starting {attempt_type.label}: {e.detail}"
+            )
+            raise e  # Re-raise for the view
+        except Exception as e:
+            logger.exception(
+                f"Error selecting questions for {attempt_type.label} start for user {user.id}: {e}"
+            )
+            raise ValidationError(
+                {
+                    "non_field_errors": [
+                        _(
+                            "Failed to select questions for the test. Please try again later."
+                        )
+                    ]
+                }
+            )
+
+    # 4. Update Config Snapshot with actual numbers
+    config_snapshot["num_questions_requested"] = (
+        num_questions_requested  # Original request
+    )
+    config_snapshot["num_questions_selected"] = (
+        actual_num_selected  # Actual number included
+    )
+    config_snapshot["limit_applied"] = (
+        max_allowed_questions is not None
+        and num_questions_requested > max_allowed_questions
+    )
+
+    # 5. Create UserTestAttempt
+    try:
+        test_attempt = UserTestAttempt.objects.create(
+            user=user,
+            attempt_type=attempt_type,
+            test_configuration=config_snapshot,
+            question_ids=selected_question_ids,  # Store the ordered list of selected IDs
+            status=UserTestAttempt.Status.STARTED,
+        )
+        logger.info(
+            f"Started {attempt_type.label} (Attempt ID: {test_attempt.id}) for user {user.id} with {actual_num_selected} questions."
+        )
+    except Exception as e:
+        logger.exception(
+            f"Error creating {attempt_type.label} UserTestAttempt for user {user.id}: {e}"
+        )
+        raise ValidationError(
+            {"non_field_errors": [_("Failed to start the test session.")]}
+        )
+
+    # 6. Calculate attempt number for this type
+    attempt_number = UserTestAttempt.objects.filter(
+        user=user, attempt_type=attempt_type
+    ).count()  # New attempt is now included
+
+    # 7. Prepare response data
+    return {
+        "attempt_id": test_attempt.id,
+        "attempt_number_for_type": attempt_number,
+        # Use the queryset obtained from get_filtered_questions which has the correct order
+        "questions": selected_questions_queryset,
+    }
+
+
+# --- Public Service Functions for Starting Attempts ---
+
+
+def start_level_assessment(
+    user: User, sections: List[LearningSection], num_questions_requested: int
+) -> Dict[str, Any]:
+    """Starts a Level Assessment test."""
+    section_slugs = [s.slug for s in sections]
+    attempt_type = UserTestAttempt.AttemptType.LEVEL_ASSESSMENT
+
+    # Determine relevant subsection slugs for question filtering
+    subsection_slugs = list(
+        LearningSubSection.objects.filter(section__slug__in=section_slugs).values_list(
+            "slug", flat=True
+        )
+    )
+    if not subsection_slugs:
+        raise ValidationError(
+            {"sections": [_("No subsections found for the selected sections.")]}
+        )
+
+    config_snapshot = {
+        "test_type": attempt_type.value,
+        "sections_requested": section_slugs,
+        # num_questions will be added by base function
+    }
+
+    return _start_test_attempt_base(
+        user=user,
+        attempt_type=attempt_type,
+        config_snapshot=config_snapshot,
+        num_questions_requested=num_questions_requested,
+        subsections=subsection_slugs,  # Filter by subsections within selected sections
+        skills=None,
+        starred=False,
+        not_mastered=False,
+        exclude_ids=None,
+    )
+
+
+def start_practice_or_simulation(
+    user: User,
+    attempt_type: UserTestAttempt.AttemptType,  # PRACTICE or SIMULATION
+    num_questions_requested: int,
+    name: Optional[str] = None,
+    subsections: Optional[List[LearningSubSection]] = None,
+    skills: Optional[List[Skill]] = None,
+    starred: bool = False,
+    not_mastered: bool = False,
+) -> Dict[str, Any]:
+    """Starts a Practice or Simulation test."""
+    subsection_slugs = [s.slug for s in subsections] if subsections else None
+    skill_slugs = [s.slug for s in skills] if skills else None
+
+    config_snapshot = {
+        "test_type": attempt_type.value,
+        "name": name,
+        "subsections_requested": subsection_slugs or [],
+        "skills_requested": skill_slugs or [],
+        "starred_requested": starred,
+        "not_mastered_requested": not_mastered,
+        # num_questions will be added by base function
+    }
+
+    return _start_test_attempt_base(
+        user=user,
+        attempt_type=attempt_type,
+        config_snapshot=config_snapshot,
+        num_questions_requested=num_questions_requested,
+        subsections=subsection_slugs,
+        skills=skill_slugs,
+        starred=starred,
+        not_mastered=not_mastered,
+        exclude_ids=None,
+    )
+
+
+def start_traditional_practice(
+    user: User,
+    num_questions_initial: int,  # Can be 0
+    subsections: Optional[List[LearningSubSection]] = None,
+    skills: Optional[List[Skill]] = None,
+    starred: bool = False,
+    not_mastered: bool = False,
+) -> Dict[str, Any]:
+    """Starts a Traditional practice session."""
+    attempt_type = UserTestAttempt.AttemptType.TRADITIONAL
+    subsection_slugs = [s.slug for s in subsections] if subsections else None
+    skill_slugs = [s.slug for s in skills] if skills else None
+
+    config_snapshot = {
+        "test_type": attempt_type.value,
+        "subsections_requested": subsection_slugs or [],
+        "skills_requested": skill_slugs or [],
+        "starred_requested": starred,
+        "not_mastered_requested": not_mastered,
+        # num_questions (initial) will be added by base function
+    }
+
+    # Call base function, allowing 0 questions initially
+    result = _start_test_attempt_base(
+        user=user,
+        attempt_type=attempt_type,
+        config_snapshot=config_snapshot,
+        num_questions_requested=num_questions_initial,
+        subsections=subsection_slugs,
+        skills=skill_slugs,
+        starred=starred,
+        not_mastered=not_mastered,
+        exclude_ids=None,
+    )
+
+    # Add 'status' key needed by TraditionalPracticeStartResponseSerializer
+    result["status"] = UserTestAttempt.Status.STARTED.value
+    return result
+
+
+# --- Traditional Mode Action Service ---
+@transaction.atomic
+def record_traditional_action_and_get_data(
+    user: User,
+    test_attempt: UserTestAttempt,
+    question: Question,
+    action_type: str,  # e.g., 'hint', 'eliminate', 'reveal_answer', 'reveal_explanation'
+) -> Optional[Union[str, bool]]:
+    """
+    Records a specific action (hint, eliminate, reveal) in UserQuestionAttempt
+    for a traditional session and returns the relevant data (hint text, answer, explanation).
+    """
+    # Basic validation (already done in view, but good practice)
+    if (
+        test_attempt.attempt_type != UserTestAttempt.AttemptType.TRADITIONAL
+        or test_attempt.status != UserTestAttempt.Status.STARTED
+        or test_attempt.user != user
+    ):
+        raise PermissionDenied(_("Action not valid for this session."))
+
+    update_fields = {}
+    return_data = None
+
+    if action_type == "hint":
+        update_fields = {"used_hint": True}
+        return_data = question.hint
+    elif action_type == "eliminate":
+        update_fields = {"used_elimination": True}
+        return_data = True  # Indicate success
+    elif action_type == "reveal_answer":
+        update_fields = {"revealed_answer": True}
+        return_data = question.correct_answer
+    elif action_type == "reveal_explanation":
+        update_fields = {"revealed_explanation": True}
+        return_data = question.explanation
+    else:
+        logger.error(f"Unknown traditional action type '{action_type}' requested.")
+        raise ValueError("Invalid action type specified.")
+
+    try:
+        # Use update_or_create to record the action. Handles first interaction or subsequent ones.
+        attempt_record, created = UserQuestionAttempt.objects.update_or_create(
+            user=user,
+            test_attempt=test_attempt,
+            question=question,
+            defaults={
+                **update_fields,
+                "mode": UserQuestionAttempt.Mode.TRADITIONAL,  # Ensure mode is set
+                "attempted_at": timezone.now(),  # Update interaction time
+            },
+        )
+        action_keys = ", ".join(update_fields.keys())
+        logger.info(
+            f"Recorded action ({action_keys}) for Q:{question.id}, Trad. Attempt:{test_attempt.id}, User:{user.id} (Created: {created})"
+        )
+
+        # Optionally update proficiency if revealing answer counts as an attempt?
+        # if action_type == 'reveal_answer':
+        #     update_user_skill_proficiency(user=user, skill=question.skill, is_correct=False) # Assume incorrect if revealed
+
+        return return_data
+
+    except Exception as e:
+        action_keys = ", ".join(update_fields.keys())
+        logger.exception(
+            f"Error recording action ({action_keys}) for Q:{question.id}, Attempt:{test_attempt.id}, User:{user.id}: {e}"
+        )
+        raise APIException(
+            _("Failed to record action."), status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 # --- Emergency Mode Plan Generation ---

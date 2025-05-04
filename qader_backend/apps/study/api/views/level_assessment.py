@@ -1,14 +1,18 @@
 from rest_framework import generics, status, serializers as drf_serializers
 from rest_framework.response import Response
+from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiResponse
+from django.utils.translation import gettext_lazy as _
 import logging
 
 from apps.api.permissions import IsSubscribed
+from apps.study.api.serializers import level_assessment as la_serializers  # Alias
 from apps.study.api.serializers import (
-    LevelAssessmentStartSerializer,
-    UserTestAttemptStartResponseSerializer,  # Use standard response
-)
+    attempts as attempt_serializers,
+)  # Unified responses
+from apps.study.services import study as study_services
+from apps.api.exceptions import UsageLimitExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -19,36 +23,46 @@ logger = logging.getLogger(__name__)
     tags=["Study - Level Assessment"],
     summary="Start Level Assessment Test",
     description="Initiates a new level assessment test for the user based on selected sections and number of questions. Returns the attempt ID and the list of questions.",
-    request=LevelAssessmentStartSerializer,
+    request=la_serializers.LevelAssessmentStartSerializer,
     responses={
-        201: OpenApiResponse(
-            response=UserTestAttemptStartResponseSerializer,  # Standard start response
-            description="Level assessment started successfully. Returns attempt ID and questions.",
-        ),
+        201: attempt_serializers.UserTestAttemptStartResponseSerializer,  # Standard start response
         400: OpenApiResponse(
-            description="Validation Error (e.g., ongoing test exists, not enough questions found, invalid sections)."
+            description="Validation Error (e.g., ongoing test exists, invalid sections, insufficient questions)."
         ),
         403: OpenApiResponse(
-            description="Permission Denied (Authentication or Subscription required)."
+            description="Permission Denied (Authentication, Subscription, or Usage Limit reached)."
         ),
     },
 )
 class LevelAssessmentStartView(generics.GenericAPIView):
     """Handles starting a new Level Assessment test."""
 
-    serializer_class = LevelAssessmentStartSerializer
+    serializer_class = la_serializers.LevelAssessmentStartSerializer
     permission_classes = [IsAuthenticated, IsSubscribed]
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(
-            data=request.data, context={"request": request}
-        )
+        serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
-            # The serializer's create method now handles question fetching and attempt creation
-            result_data = serializer.save()  # Returns dict: {'attempt_id', 'questions'}
-        except drf_serializers.ValidationError as e:
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+            user = request.user
+            validated_data = serializer.validated_data
+
+            # Call the service function to handle the logic
+            result_data = study_services.start_level_assessment(
+                user=user,
+                sections=validated_data["sections"],
+                num_questions_requested=validated_data["num_questions"],
+            )
+
+        except (ValidationError, UsageLimitExceeded) as e:
+            # Handle specific known errors (validation, limits)
+            status_code = (
+                status.HTTP_403_FORBIDDEN
+                if isinstance(e, UsageLimitExceeded)
+                else status.HTTP_400_BAD_REQUEST
+            )
+            error_detail = e.detail if hasattr(e, "detail") else str(e)
+            return Response({"detail": error_detail}, status=status_code)
         except Exception as e:
             logger.exception(
                 f"Unexpected error during LevelAssessmentStartView post for user {request.user.id}: {e}"
@@ -63,11 +77,12 @@ class LevelAssessmentStartView(generics.GenericAPIView):
             )
 
         # Use the standard response serializer for starting attempts
-        response_serializer = UserTestAttemptStartResponseSerializer(
-            result_data, context={"request": request}
+        response_serializer = (
+            attempt_serializers.UserTestAttemptStartResponseSerializer(
+                result_data, context=self.get_serializer_context()
+            )
         )
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
-# Note: Completion of Level Assessment is handled by the unified UserTestAttemptCompleteView
-# Note: Answering questions during Level Assessment is handled by the unified UserTestAttemptAnswerView
+# Note: Completion/Answering handled by unified views in attempts.py
