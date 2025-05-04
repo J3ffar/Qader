@@ -14,7 +14,6 @@ from apps.study.models import (
 from apps.learning.models import Question, Skill
 from apps.study.tests.factories import EmergencyModeSessionFactory
 from apps.learning.tests.factories import QuestionFactory, SkillFactory
-from apps.study.services import EMERGENCY_MODE_TIPS  # Import the constant
 
 
 # Mark all tests in this module to use the database
@@ -28,7 +27,7 @@ pytestmark = pytest.mark.django_db
 class TestEmergencyModeStart:
     url = reverse("api:v1:study:emergency-start")
 
-    @patch("apps.study.services.generate_emergency_plan")
+    @patch("apps.study.services.study.generate_emergency_plan")
     def test_start_emergency_success(
         self, mock_generate_plan, subscribed_client, setup_learning_content
     ):
@@ -52,7 +51,6 @@ class TestEmergencyModeStart:
         assert response.status_code == status.HTTP_201_CREATED
         assert "session_id" in response.data
         assert response.data["suggested_plan"] == mock_plan
-        assert response.data["tips"] == EMERGENCY_MODE_TIPS
 
         # Check database
         assert EmergencyModeSession.objects.filter(user=user).exists()
@@ -94,7 +92,7 @@ class TestEmergencyModeStart:
         assert "available_time_hours" in response.data
         assert "focus_areas" in response.data
 
-    @patch("apps.study.services.generate_emergency_plan")
+    @patch("apps.study.services.study")
     def test_start_emergency_plan_generation_fails(
         self, mock_generate_plan, subscribed_client
     ):
@@ -246,7 +244,7 @@ class TestEmergencyModeAnswer:
         """Returns a question NOT linked to a skill."""
         return Question.objects.filter(skill__isnull=True, is_active=True).first()
 
-    @patch("apps.study.services.update_user_skill_proficiency")
+    @patch("apps.study.services.study")
     def test_answer_correct_with_skill_success(
         self, mock_update_prof, subscribed_client, active_session, question_with_skill
     ):
@@ -282,7 +280,7 @@ class TestEmergencyModeAnswer:
             user=user, skill=question.skill, is_correct=True
         )
 
-    @patch("apps.study.services.update_user_skill_proficiency")
+    @patch("apps.study.services.study")
     def test_answer_incorrect_with_skill_success(
         self, mock_update_prof, subscribed_client, active_session, question_with_skill
     ):
@@ -314,7 +312,7 @@ class TestEmergencyModeAnswer:
             user=user, skill=question.skill, is_correct=False
         )
 
-    @patch("apps.study.services.update_user_skill_proficiency")
+    @patch("apps.study.services.study")
     def test_answer_correct_without_skill_success(
         self,
         mock_update_prof,

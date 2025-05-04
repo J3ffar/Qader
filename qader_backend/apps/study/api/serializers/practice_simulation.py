@@ -5,7 +5,7 @@ import logging
 from apps.study.models import UserTestAttempt, Question
 from apps.learning.models import LearningSubSection, Skill
 from apps.api.utils import get_user_from_context
-from apps.study.services import get_filtered_questions
+from apps.study.services.study import get_filtered_questions
 from apps.api.exceptions import UsageLimitExceeded
 from apps.users.services import UsageLimiter
 

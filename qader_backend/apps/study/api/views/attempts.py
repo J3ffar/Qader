@@ -16,7 +16,7 @@ import random
 
 from apps.api.permissions import IsSubscribed
 from apps.study.models import UserQuestionAttempt, UserTestAttempt, Question
-from apps.study.services import (
+from apps.study.services.study import (
     record_single_answer,
     complete_test_attempt,
     get_filtered_questions,

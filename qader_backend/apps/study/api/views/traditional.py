@@ -17,7 +17,7 @@ import logging
 
 from apps.api.permissions import IsSubscribed
 from apps.study.models import UserTestAttempt, Question, UserQuestionAttempt
-from apps.study.services import get_filtered_questions
+from apps.study.services.study import get_filtered_questions
 from apps.study.api.serializers import (
     TraditionalPracticeStartSerializer,
     TraditionalPracticeStartResponseSerializer,

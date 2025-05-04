@@ -138,7 +138,7 @@ class TestConversationSessionCRUD:
 
 
 # --- Messaging Tests ---
-@patch("apps.study.conversation_service.process_user_message_with_ai")
+@patch("apps.study.services.conversation.process_user_message_with_ai")
 class TestConversationMessaging:
     """Tests sending messages and AI interaction within a session."""
 
@@ -378,10 +378,10 @@ class TestConversationMessaging:
 
 # --- Testing Flow Tests ---
 @patch(
-    "apps.study.conversation_service.select_test_question_for_concept"
+    "apps.study.services.conversation.select_test_question_for_concept"
 )  # Creates mock_select_question (arg 3)
 @patch(
-    "apps.study.conversation_service.get_ai_feedback_on_answer"
+    "apps.study.services.conversation.get_ai_feedback_on_answer"
 )  # Creates mock_get_ai_feedback (arg 2)
 @patch.object(
     UserSkillProficiency, "record_attempt", return_value=None

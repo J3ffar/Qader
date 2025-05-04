@@ -18,10 +18,9 @@ from apps.study.models import (
     Question,  # Need Question model
     UserSkillProficiency,
 )
-from apps.study.services import (
+from apps.study.services.study import (
     EMERGENCY_MODE_DEFAULT_QUESTIONS,
     generate_emergency_plan,
-    EMERGENCY_MODE_TIPS,
     update_user_skill_proficiency,
     get_filtered_questions,  # Import question filtering service
 )
@@ -85,7 +84,6 @@ class EmergencyModeStartView(generics.GenericAPIView):
         response_data = {
             "session_id": session.id,
             "suggested_plan": plan,
-            "tips": EMERGENCY_MODE_TIPS,
         }
         response_serializer = EmergencyModeStartResponseSerializer(response_data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)

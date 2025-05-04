@@ -27,7 +27,7 @@ from apps.study.api.serializers.conversation import (
     ConversationTestSubmitSerializer,
     ConversationTestResultSerializer,
 )
-from apps.study import conversation_service
+from apps.study.services import conversation
 from apps.api.permissions import IsSubscribed  # Import the permission class
 from apps.learning.models import Question  # Ensure Question model is available
 from apps.api.exceptions import UsageLimitExceeded
@@ -200,7 +200,7 @@ class ConversationViewSet(
                     )
 
                 # 2. Call AI Service to process message and get structured response
-                ai_response_data = conversation_service.process_user_message_with_ai(
+                ai_response_data = conversation.process_user_message_with_ai(
                     session=session,
                     user_message_text=user_message_text,
                     current_topic_question=current_question,  # Pass context
@@ -333,9 +333,7 @@ class ConversationViewSet(
 
         try:
             # Call the service function to generate the question and message
-            response_data = conversation_service.generate_ai_question_and_message(
-                session, user
-            )
+            response_data = conversation.generate_ai_question_and_message(session, user)
 
             # Use the specific response serializer
             serializer = AIQuestionResponseSerializer(
@@ -406,7 +404,7 @@ class ConversationViewSet(
             )
 
         # Select a test question based on the original concept/skill
-        test_question = conversation_service.select_test_question_for_concept(
+        test_question = conversation.select_test_question_for_concept(
             original_question, request.user
         )
 
@@ -470,7 +468,7 @@ class ConversationViewSet(
 
         try:
             # 1. Record the attempt (atomic transaction within the service)
-            attempt = conversation_service.record_conversation_test_attempt(
+            attempt = conversation.record_conversation_test_attempt(
                 user=user,
                 session=session,
                 test_question=test_question_instance,
@@ -479,7 +477,7 @@ class ConversationViewSet(
 
             # 2. Get AI Feedback (outside the attempt recording transaction potentially)
             try:
-                ai_feedback_text = conversation_service.get_ai_feedback_on_answer(
+                ai_feedback_text = conversation.get_ai_feedback_on_answer(
                     session=session,
                     attempt=attempt,
                 )

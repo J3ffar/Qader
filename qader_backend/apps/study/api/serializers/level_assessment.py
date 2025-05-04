@@ -8,7 +8,7 @@ from apps.study.models import UserTestAttempt
 from apps.learning.models import LearningSection, LearningSubSection, Question
 from apps.users.api.serializers import UserProfileSerializer
 from apps.api.utils import get_user_from_context
-from apps.study.services import get_filtered_questions
+from apps.study.services.study import get_filtered_questions
 from apps.study.api.serializers.attempts import (
     UserTestAttemptCompletionResponseSerializer,
 )
