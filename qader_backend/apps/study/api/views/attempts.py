@@ -4,7 +4,7 @@ from rest_framework.exceptions import (
     PermissionDenied,
     NotFound,
     APIException,
-    ValidationError,
+    ValidationError as DRFValidationError,
 )
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import (
@@ -189,23 +189,31 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
             return attempt
         except Http404:
             # Check if exists but wrong status/owner for better error message
-            exists_but_wrong_state = UserTestAttempt.objects.filter(
-                pk=attempt_id
-            ).exists()
-            if exists_but_wrong_state:
+            try:
+                # Check existence and ownership first
+                attempt_check = UserTestAttempt.objects.get(pk=attempt_id, user=user)
+                # If found, but get_object_or_404 failed, it must be the status mismatch
                 logger.warning(
-                    f"Attempt {attempt_id} is not active or not owned by user {user.id} in AnswerView."
+                    f"Attempt {attempt_id} found for user {user.id} but status is not STARTED in {self.__class__.__name__}."
                 )
-                raise PermissionDenied(
-                    _(
-                        "Cannot answer questions for this test attempt (it may be inactive or not yours)."
-                    )
+                # Raise NotFound because the *active* attempt wasn't found
+                raise NotFound(
+                    _("The specified test attempt is not currently active or ongoing.")
                 )
-            else:
+            except UserTestAttempt.DoesNotExist:
+                # Attempt doesn't exist at all, or doesn't belong to the user
                 logger.warning(
-                    f"Attempt {attempt_id} not found for user {user.id} in AnswerView."
+                    f"Attempt {attempt_id} not found for user {user.id} in {self.__class__.__name__}."
                 )
+                # Keep raising NotFound
                 raise NotFound(_("Test attempt not found."))
+            except Exception as e_inner:  # Catch potential errors in the inner check
+                logger.exception(
+                    f"Error during existence check in {self.__class__.__name__} get_object for attempt {attempt_id}: {e_inner}"
+                )
+                raise APIException(
+                    _("An error occurred checking the test attempt state.")
+                )
         except Exception as e:
             logger.exception(f"Error fetching attempt {attempt_id} in AnswerView: {e}")
             raise APIException(
@@ -236,7 +244,7 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
             )
             return Response(response_serializer.data, status=status.HTTP_200_OK)
 
-        except ValidationError as e:
+        except DRFValidationError as e:
             # Propagate validation errors raised by the service
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -300,23 +308,26 @@ class UserTestAttemptCompleteView(generics.GenericAPIView):
             return attempt
         except Http404:
             # Check if exists but wrong status/owner for better error message
-            exists_but_wrong_state = UserTestAttempt.objects.filter(
-                pk=attempt_id
-            ).exists()
-            if exists_but_wrong_state:
+            try:
+                attempt_check = UserTestAttempt.objects.get(pk=attempt_id, user=user)
                 logger.warning(
-                    f"Attempt {attempt_id} is not active or not owned by user {user.id} in CompleteView."
+                    f"Attempt {attempt_id} found for user {user.id} but status is not STARTED in {self.__class__.__name__}."
                 )
-                raise PermissionDenied(
-                    _(
-                        "Cannot complete this test attempt (it may be inactive or not yours)."
-                    )
+                raise NotFound(
+                    _("The specified test attempt is not currently active or ongoing.")
                 )
-            else:
+            except UserTestAttempt.DoesNotExist:
                 logger.warning(
-                    f"Attempt {attempt_id} not found for user {user.id} in CompleteView."
+                    f"Attempt {attempt_id} not found for user {user.id} in {self.__class__.__name__}."
                 )
-                raise NotFound(_("Active test attempt not found."))
+                raise NotFound(_("Test attempt not found."))
+            except Exception as e_inner:
+                logger.exception(
+                    f"Error during existence check in {self.__class__.__name__} get_object for attempt {attempt_id}: {e_inner}"
+                )
+                raise APIException(
+                    _("An error occurred checking the test attempt state.")
+                )
         except Exception as e:
             logger.exception(
                 f"Error fetching attempt {attempt_id} in CompleteView: {e}"
@@ -356,7 +367,7 @@ class UserTestAttemptCompleteView(generics.GenericAPIView):
 
                 return Response(response_serializer.data, status=status.HTTP_200_OK)
 
-        except ValidationError as e:
+        except DRFValidationError as e:
             # Propagate validation errors from the service (e.g., attempt not started)
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -409,23 +420,26 @@ class UserTestAttemptCancelView(generics.GenericAPIView):
             )
             return attempt
         except Http404:
-            exists_but_wrong_state = UserTestAttempt.objects.filter(
-                pk=attempt_id
-            ).exists()
-            if exists_but_wrong_state:
+            try:
+                attempt_check = UserTestAttempt.objects.get(pk=attempt_id, user=user)
                 logger.warning(
-                    f"Attempt {attempt_id} is not active or not owned by user {user.id} in CancelView."
+                    f"Attempt {attempt_id} found for user {user.id} but status is not STARTED in {self.__class__.__name__}."
                 )
-                raise PermissionDenied(
-                    _(
-                        "Cannot cancel this test attempt (it may be inactive or not yours)."
-                    )
+                raise NotFound(
+                    _("The specified test attempt is not currently active or ongoing.")
                 )
-            else:
+            except UserTestAttempt.DoesNotExist:
                 logger.warning(
-                    f"Attempt {attempt_id} not found for user {user.id} in CancelView."
+                    f"Attempt {attempt_id} not found for user {user.id} in {self.__class__.__name__}."
                 )
-                raise NotFound(_("Active test attempt not found."))
+                raise NotFound(_("Test attempt not found."))
+            except Exception as e_inner:
+                logger.exception(
+                    f"Error during existence check in {self.__class__.__name__} get_object for attempt {attempt_id}: {e_inner}"
+                )
+                raise APIException(
+                    _("An error occurred checking the test attempt state.")
+                )
         except Exception as e:
             logger.exception(f"Error fetching attempt {attempt_id} in CancelView: {e}")
             raise APIException(
@@ -519,7 +533,7 @@ class UserTestAttemptReviewView(generics.GenericAPIView):
                     f"User {user.id} attempted review on non-completed test {attempt_id} (Status: {attempt_exists.status})."
                 )
                 # Raise 400 Bad Request if not completed
-                raise ValidationError(
+                raise DRFValidationError(
                     {"detail": _("Cannot review a test attempt that is not completed.")}
                 )
             else:
@@ -663,15 +677,17 @@ class UserTestAttemptRetakeView(generics.GenericAPIView):
             result_data = study_services.retake_test_attempt(
                 user=user, original_attempt=original_attempt
             )
-        except (ValidationError, UsageLimitExceeded) as e:
-            # Handle specific known errors (validation, limits)
+        except (
+            DRFValidationError,
+            UsageLimitExceeded,
+        ) as e:  # Now catching DRFValidationError
             status_code = (
                 status.HTTP_403_FORBIDDEN
                 if isinstance(e, UsageLimitExceeded)
                 else status.HTTP_400_BAD_REQUEST
             )
-            # DRF serializers.ValidationError typically returns dict, UsageLimitExceeded returns string
-            error_detail = e.detail if hasattr(e, "detail") else str(e)
+            # DRF ValidationError has .detail, UsageLimitExceeded is just a string
+            error_detail = e.detail if isinstance(e, DRFValidationError) else str(e)
             return Response({"detail": error_detail}, status=status_code)
         except Exception as e:
             logger.exception(

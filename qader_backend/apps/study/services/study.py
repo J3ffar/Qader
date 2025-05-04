@@ -18,7 +18,11 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ValidationError as CoreValidationError
+from django.core.exceptions import (
+    ObjectDoesNotExist,
+    ValidationError as DRFValidationError,
+)
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import (
@@ -675,7 +679,7 @@ def _start_test_attempt_base(
     if UserTestAttempt.objects.filter(
         user=user, status=UserTestAttempt.Status.STARTED
     ).exists():
-        raise ValidationError(
+        raise DRFValidationError(
             {
                 "non_field_errors": [
                     _(
@@ -712,7 +716,7 @@ def _start_test_attempt_base(
         raise e  # Re-raise for the view to handle
     except ValueError as e:  # UsageLimiter init error
         logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
-        raise ValidationError(
+        raise DRFValidationError(
             {"non_field_errors": [_("Could not verify account limits.")]}
         )
 
@@ -723,7 +727,7 @@ def _start_test_attempt_base(
 
     if actual_num_questions_to_select > 0:
         try:
-            # Use get_filtered_questions, it raises ValidationError if min_required not met
+            # Use get_filtered_questions, it raises DRFValidationError if min_required not met
             # Set min_required=1 to ensure at least one question if > 0 requested
             selected_questions_queryset = get_filtered_questions(
                 user=user,
@@ -746,7 +750,7 @@ def _start_test_attempt_base(
                     f"Found only {actual_num_selected} questions matching criteria for {attempt_type.label} start for user {user.id} (requested/capped: {actual_num_questions_to_select})."
                 )
 
-        except ValidationError as e:
+        except DRFValidationError as e:
             # Catch validation error from get_filtered_questions (insufficient questions)
             logger.warning(
                 f"Insufficient questions validation error for user {user.id} starting {attempt_type.label}: {e.detail}"
@@ -756,7 +760,7 @@ def _start_test_attempt_base(
             logger.exception(
                 f"Error selecting questions for {attempt_type.label} start for user {user.id}: {e}"
             )
-            raise ValidationError(
+            raise DRFValidationError(
                 {
                     "non_field_errors": [
                         _(
@@ -794,7 +798,7 @@ def _start_test_attempt_base(
         logger.exception(
             f"Error creating {attempt_type.label} UserTestAttempt for user {user.id}: {e}"
         )
-        raise ValidationError(
+        raise DRFValidationError(
             {"non_field_errors": [_("Failed to start the test session.")]}
         )
 
@@ -829,7 +833,7 @@ def start_level_assessment(
         )
     )
     if not subsection_slugs:
-        raise ValidationError(
+        raise DRFValidationError(
             {"sections": [_("No subsections found for the selected sections.")]}
         )
 
@@ -942,7 +946,7 @@ def retake_test_attempt(
     if UserTestAttempt.objects.filter(
         user=user, status=UserTestAttempt.Status.STARTED
     ).exists():
-        raise ValidationError(
+        raise DRFValidationError(
             {
                 "non_field_errors": [
                     _(
@@ -958,7 +962,7 @@ def retake_test_attempt(
         logger.error(
             f"Invalid config snapshot for original attempt {original_attempt.id} during retake."
         )
-        raise ValidationError(
+        raise DRFValidationError(
             {"detail": _("Original test configuration is missing or invalid.")}
         )
 
@@ -976,7 +980,7 @@ def retake_test_attempt(
     if not isinstance(num_questions, int) or num_questions <= 0:
         # If original had 0 questions, retake doesn't make sense? Or should allow starting with 0?
         # Let's require original to have had questions.
-        raise ValidationError(
+        raise DRFValidationError(
             {"detail": _("Cannot retake a test that had no questions selected.")}
         )
 
@@ -1005,9 +1009,14 @@ def retake_test_attempt(
             num_questions = max_allowed_questions  # Cap the number for the new attempt
     except UsageLimitExceeded as e:
         raise e
+    except (
+        CoreValidationError
+    ) as e:  # Or catch Core VE if get_filtered_questions uses it
+        # --- FIXED: Convert Core VE to DRF VE ---
+        raise DRFValidationError(e.message_dict or {"detail": e.messages})
     except ValueError as e:
         logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
-        raise ValidationError(
+        raise DRFValidationError(
             {"non_field_errors": [_("Could not verify account limits.")]}
         )
 
@@ -1049,7 +1058,7 @@ def retake_test_attempt(
             ids_count = len(new_question_ids)
 
         if ids_count == 0:
-            raise ValidationError(
+            raise DRFValidationError(
                 {
                     "detail": _(
                         "No suitable questions found to generate a similar test based on the original criteria."
@@ -1082,13 +1091,15 @@ def retake_test_attempt(
                 f"Only selecting {actual_num_selected} questions for retake of {original_attempt.id} (target was {num_questions}) due to availability."
             )
 
-    except ValidationError as e:  # Catch validation errors from get_filtered_questions
+    except (
+        DRFValidationError
+    ) as e:  # Catch validation errors from get_filtered_questions
         raise e
     except Exception as e:
         logger.exception(
             f"Error selecting questions for retake of attempt {original_attempt.id}: {e}"
         )
-        raise ValidationError(
+        raise DRFValidationError(
             {"detail": _("Failed to select questions for the new test.")}
         )
 
@@ -1118,7 +1129,7 @@ def retake_test_attempt(
         logger.exception(
             f"Error creating retake UserTestAttempt for user {user.id} (original: {original_attempt.id}): {e}"
         )
-        raise ValidationError(
+        raise DRFValidationError(
             {"non_field_errors": [_("Failed to start the new similar test.")]}
         )
 
@@ -1217,9 +1228,11 @@ def generate_emergency_plan(
     proficiency_threshold: float = DEFAULT_PROFICIENCY_THRESHOLD,
     num_weak_skills: int = EMERGENCY_MODE_WEAK_SKILL_COUNT,
     default_question_count: int = EMERGENCY_MODE_DEFAULT_QUESTIONS,
+    min_question_count: int = EMERGENCY_MODE_MIN_QUESTIONS,
+    estimated_mins_per_q: float = EMERGENCY_MODE_ESTIMATED_MINS_PER_Q,
 ) -> Dict[str, Any]:
     """
-    Generates a quick study plan for Emergency Mode based on the user's weakest skills.
+    Generates a more detailed study plan for Emergency Mode.
 
     Args:
         user: The user requesting the plan.
@@ -1228,34 +1241,88 @@ def generate_emergency_plan(
         proficiency_threshold: Score below which a skill is considered weak.
         num_weak_skills: The number of weakest skills to target.
         default_question_count: Default number of questions if time is not specified.
+        min_question_count: Minimum questions to recommend, regardless of time.
+        estimated_mins_per_q: Estimated minutes per question for time calculation.
 
     Returns:
-        A dictionary representing the plan:
+        A dictionary representing the plan with enhanced details:
         {
-            "focus_skills": List[Dict[str, str]], # [{'slug': 'skill-slug', 'name': 'Skill Name'}]
-            "recommended_questions": int,
-            "quick_review_topics": List[Dict[str, str]], # [{'name': 'SubSection Name', 'description': '...'}]
-            "motivational_tips": List[str] # General tips
+            "focus_area_names": List[str], # e.g., ["Verbal", "Quantitative"]
+            "estimated_duration_minutes": Optional[int], # Based on time or question count
+            "target_skills": [
+                {
+                    "slug": str, "name": str, "reason": str, # e.g., "Low score (0.3)", "Not attempted"
+                    "current_proficiency": Optional[float], # Actual score if available
+                    "subsection_name": str,
+                }
+            ],
+            "recommended_question_count": int,
+            "quick_review_topics": [
+                {"slug": str, "name": str, "description": Optional[str]}
+            ],
+            "motivational_tips": List[str]
         }
     """
+    if not user or not user.is_authenticated:
+        logger.warning("Cannot generate emergency plan for unauthenticated user.")
+        # Return a minimal structure indicating failure/login required
+        return {
+            "focus_area_names": [],
+            "estimated_duration_minutes": None,
+            "target_skills": [],
+            "recommended_question_count": 0,
+            "quick_review_topics": [],
+            "motivational_tips": [_("Please log in to get a personalized plan.")],
+        }
+
     plan = {
-        "focus_skills": [],
-        "recommended_questions": default_question_count,
+        "focus_area_names": [],
+        "estimated_duration_minutes": None,
+        "target_skills": [],
+        "recommended_question_count": default_question_count,
         "quick_review_topics": [],
         "motivational_tips": random.sample(
             getattr(settings, "EMERGENCY_MODE_TIPS", [_("Focus and do your best!")]),
-            k=min(
-                len(getattr(settings, "EMERGENCY_MODE_TIPS", [])), 2
-            ),  # Show 1 or 2 random tips
+            k=min(len(getattr(settings, "EMERGENCY_MODE_TIPS", [])), 2),
         ),
     }
 
-    if not user or not user.is_authenticated:
-        logger.warning("Cannot generate emergency plan for unauthenticated user.")
-        plan["motivational_tips"].append(_("Log in to get a personalized plan!"))
-        return plan
+    # --- Determine Recommended Question Count & Duration ---
+    if (
+        available_time_hours
+        and isinstance(available_time_hours, (int, float))
+        and available_time_hours > 0
+    ):
+        try:
+            plan["estimated_duration_minutes"] = int(available_time_hours * 60)
+            estimated_questions = int(
+                plan["estimated_duration_minutes"] / estimated_mins_per_q
+            )
+            plan["recommended_question_count"] = max(
+                min_question_count, estimated_questions
+            )
+            logger.info(
+                f"Emergency plan questions set to {plan['recommended_question_count']} based on {available_time_hours} hours for user {user.id}."
+            )
+        except Exception as e:
+            logger.error(
+                f"Error adjusting question count based on time for user {user.id}: {e}"
+            )
+            # Keep default count, estimate duration based on default count
+            plan["estimated_duration_minutes"] = int(
+                default_question_count * estimated_mins_per_q
+            )
+    else:
+        # Estimate duration based on default question count
+        plan["estimated_duration_minutes"] = int(
+            plan["recommended_question_count"] * estimated_mins_per_q
+        )
 
-    # --- Determine Weak Skills ---
+    # --- Determine Weak Skills & Focus Areas ---
+    target_skills_data = []
+    target_skill_ids = set()
+    subsection_ids_for_review = set()
+
     try:
         # Base query for user's skill proficiencies
         proficiency_qs = UserSkillProficiency.objects.filter(user=user).select_related(
@@ -1263,96 +1330,140 @@ def generate_emergency_plan(
         )
 
         # Apply section focus if provided
+        focus_sections_qs = LearningSection.objects.none()
         if focus_areas:
+            focus_sections_qs = LearningSection.objects.filter(slug__in=focus_areas)
             proficiency_qs = proficiency_qs.filter(
                 skill__subsection__section__slug__in=focus_areas
             )
+            plan["focus_area_names"] = list(
+                focus_sections_qs.values_list("name", flat=True)
+            )
+        else:
+            # If no focus specified, consider all sections relevant to found proficiencies
+            section_ids = proficiency_qs.values_list(
+                "skill__subsection__section_id", flat=True
+            ).distinct()
+            plan["focus_area_names"] = list(
+                LearningSection.objects.filter(id__in=section_ids).values_list(
+                    "name", flat=True
+                )
+            )
+            if not plan["focus_area_names"]:
+                plan["focus_area_names"] = [
+                    "Verbal",
+                    "Quantitative",
+                ]  # Default if no proficiency yet
 
-        # Annotate with a score, defaulting to 0 if no record exists (less likely needed here)
-        # Order by proficiency score ascending (weakest first)
+        # 1. Find skills strictly below the threshold
         weakest_proficiencies = list(
             proficiency_qs.filter(proficiency_score__lt=proficiency_threshold).order_by(
-                "proficiency_score"
+                "proficiency_score"  # Weakest first
             )[:num_weak_skills]
         )
 
-        target_skill_ids = {p.skill_id for p in weakest_proficiencies if p.skill_id}
+        for p in weakest_proficiencies:
+            if p.skill and p.skill_id not in target_skill_ids:
+                target_skills_data.append(
+                    {
+                        "slug": p.skill.slug,
+                        "name": p.skill.name,
+                        "reason": _("Low score ({score}%)").format(
+                            score=round(p.proficiency_score * 100)
+                        ),
+                        "current_proficiency": round(p.proficiency_score, 2),
+                        "subsection_name": (
+                            p.skill.subsection.name if p.skill.subsection else _("N/A")
+                        ),
+                    }
+                )
+                target_skill_ids.add(p.skill_id)
+                if p.skill.subsection_id:
+                    subsection_ids_for_review.add(p.skill.subsection_id)
 
-        if len(weakest_proficiencies) < num_weak_skills:
-            # Need more skills - find skills user has attempted but are still weak-ish or least attempted
-            logger.info(
-                f"Found only {len(weakest_proficiencies)} skills below threshold {proficiency_threshold} for user {user.id} (Emergency Mode). Looking for other candidates."
-            )
-            needed = num_weak_skills - len(weakest_proficiencies)
-
-            # Option 1: Skills attempted but still below a slightly higher threshold or just the next lowest
+        # 2. If needed, find skills attempted but not weak (lowest proficiency first)
+        needed = num_weak_skills - len(target_skills_data)
+        if needed > 0:
             additional_candidates = list(
                 proficiency_qs.exclude(
-                    skill_id__in=target_skill_ids
-                ).order_by(  # Exclude already selected
-                    "proficiency_score", "attempts_count"
+                    skill_id__in=target_skill_ids  # Exclude already selected
+                ).order_by(
+                    "proficiency_score",
+                    "attempts_count",  # Lowest score, then fewest attempts
                 )[
                     :needed
-                ]  # Lowest score, then fewest attempts
+                ]
             )
-            weakest_proficiencies.extend(additional_candidates)
-            target_skill_ids.update(
-                p.skill_id for p in additional_candidates if p.skill_id
+            for p in additional_candidates:
+                if p.skill and p.skill_id not in target_skill_ids:
+                    target_skills_data.append(
+                        {
+                            "slug": p.skill.slug,
+                            "name": p.skill.name,
+                            "reason": _("Area for improvement ({score}%)").format(
+                                score=round(p.proficiency_score * 100)
+                            ),
+                            "current_proficiency": round(p.proficiency_score, 2),
+                            "subsection_name": (
+                                p.skill.subsection.name
+                                if p.skill.subsection
+                                else _("N/A")
+                            ),
+                        }
+                    )
+                    target_skill_ids.add(p.skill_id)
+                    if p.skill.subsection_id:
+                        subsection_ids_for_review.add(p.skill.subsection_id)
+
+        # 3. If still needed, find unattempted skills in focus areas
+        needed = num_weak_skills - len(target_skills_data)
+        if needed > 0:
+            unattempted_skills_qs = (
+                Skill.objects.filter(is_active=True)
+                .exclude(id__in=target_skill_ids)
+                .select_related("subsection", "subsection__section")
             )
 
-        if len(weakest_proficiencies) < num_weak_skills:
-            # Still need more - find skills they *haven't* attempted yet in focused sections
-            logger.info(
-                f"Still need {num_weak_skills - len(weakest_proficiencies)} skills. Looking for unattempted skills for user {user.id}."
-            )
-            needed = num_weak_skills - len(weakest_proficiencies)
-            unattempted_skills_qs = Skill.objects.filter(is_active=True).exclude(
-                id__in=target_skill_ids
-            )
             if focus_areas:
                 unattempted_skills_qs = unattempted_skills_qs.filter(
                     subsection__section__slug__in=focus_areas
                 )
 
             # Select randomly from unattempted skills
-            unattempted_skills = list(
-                unattempted_skills_qs.order_by("?")[:needed]
-            )  # Random sample
+            unattempted_skills = list(unattempted_skills_qs.order_by("?")[:needed])
 
-            # Create mock proficiency objects for consistent structure (or just store slugs/names)
-            # For simplicity, let's just store slugs/names directly for these
-            plan["focus_skills"].extend(
-                [{"slug": s.slug, "name": s.name} for s in unattempted_skills if s]
-            )
+            for s in unattempted_skills:
+                if s and s.id not in target_skill_ids:
+                    target_skills_data.append(
+                        {
+                            "slug": s.slug,
+                            "name": s.name,
+                            "reason": _("Not attempted yet"),
+                            "current_proficiency": None,
+                            "subsection_name": (
+                                s.subsection.name if s.subsection else _("N/A")
+                            ),
+                        }
+                    )
+                    target_skill_ids.add(s.id)
+                    if s.subsection_id:
+                        subsection_ids_for_review.add(s.subsection_id)
 
-        # Add the skills identified from proficiency records
-        plan["focus_skills"].extend(
-            [
-                {"slug": p.skill.slug, "name": p.skill.name}
-                for p in weakest_proficiencies
-                if p.skill
-            ]
-        )
-        # Ensure uniqueness if a skill was somehow added twice
-        plan["focus_skills"] = list(
-            {frozenset(item.items()): item for item in plan["focus_skills"]}.values()
-        )
+        plan["target_skills"] = target_skills_data
 
-        # --- Determine Quick Review Topics (Subsections of weak skills) ---
-        subsection_ids = {
-            p.skill.subsection_id
-            for p in weakest_proficiencies
-            if p.skill and p.skill.subsection_id
-        }
-        if subsection_ids:
+        # --- Determine Quick Review Topics ---
+        if subsection_ids_for_review:
             review_topics = LearningSubSection.objects.filter(
-                id__in=subsection_ids, is_active=True
+                id__in=subsection_ids_for_review, is_active=True
             ).exclude(Q(description__isnull=True) | Q(description__exact=""))[
-                :num_weak_skills
-            ]  # Limit review topics
-
+                :num_weak_skills  # Limit review topics
+            ]
             plan["quick_review_topics"] = [
-                {"name": topic.name, "description": topic.description}
+                {
+                    "slug": topic.slug,
+                    "name": topic.name,
+                    "description": topic.description,
+                }
                 for topic in review_topics
             ]
 
@@ -1361,34 +1472,11 @@ def generate_emergency_plan(
             f"Error determining weak skills/topics for user {user.id} emergency plan: {e}",
             exc_info=True,
         )
-        # Return default plan structure in case of error, maybe add a generic tip
         plan["motivational_tips"].append(
             _("Could not generate personalized focus areas due to an error.")
         )
 
-    # --- Adjust Recommended Question Count based on available time ---
-    if (
-        available_time_hours
-        and isinstance(available_time_hours, (int, float))
-        and available_time_hours > 0
-    ):
-        try:
-            estimated_questions = int(
-                available_time_hours * 60 / EMERGENCY_MODE_ESTIMATED_MINS_PER_Q
-            )
-            plan["recommended_questions"] = max(
-                EMERGENCY_MODE_MIN_QUESTIONS, estimated_questions
-            )
-            logger.info(
-                f"Adjusted emergency plan question count to {plan['recommended_questions']} based on {available_time_hours} hours for user {user.id}."
-            )
-        except Exception as e:
-            logger.error(
-                f"Error adjusting question count based on time for user {user.id}: {e}"
-            )
-            # Keep default count
-
     logger.info(
-        f"Generated emergency plan for user {user.id}. Focus Skills: {len(plan['focus_skills'])}, Rec Qs: {plan['recommended_questions']}, Review Topics: {len(plan['quick_review_topics'])}"
+        f"Generated emergency plan for user {user.id}. Focus Areas: {plan['focus_area_names']}, Skills: {len(plan['target_skills'])}, Rec Qs: {plan['recommended_question_count']}, Review Topics: {len(plan['quick_review_topics'])}"
     )
     return plan
