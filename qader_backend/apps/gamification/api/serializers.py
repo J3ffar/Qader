@@ -159,3 +159,18 @@ class StudyDayLogSerializer(serializers.ModelSerializer):
         model = StudyDayLog
         fields = ("study_date",)  # Only expose the date
         read_only_fields = fields
+
+
+class DailyPointSummarySerializer(serializers.Serializer):
+    """Serializer for aggregated daily points."""
+
+    date = serializers.DateField(
+        read_only=True, help_text="The date for which points are summarized."
+    )
+    total_points = serializers.IntegerField(
+        read_only=True, help_text="Total points earned/lost on this date."
+    )
+
+    class Meta:
+        # Define fields for clarity, even though not a ModelSerializer
+        fields = ("date", "total_points")

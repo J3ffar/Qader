@@ -12,6 +12,10 @@ from django_filters.rest_framework import (
 from rest_framework import filters as drf_filters
 
 # from rest_framework.decorators import action # Not used here currently
+from django.db.models import Sum
+from django.db.models.functions import TruncDate
+from django.utils import timezone
+from datetime import timedelta, date, datetime, time
 from django.utils.translation import gettext_lazy as _
 from django.db.models import (
     OuterRef,
@@ -26,6 +30,7 @@ from apps.api.permissions import IsSubscribed  # Use this where appropriate
 from apps.users.models import UserProfile
 from ..models import PointLog, Badge, StudyDayLog, UserBadge, RewardStoreItem
 from .serializers import (
+    DailyPointSummarySerializer,
     GamificationSummarySerializer,
     BadgeSerializer,
     RewardStoreItemSerializer,
@@ -309,3 +314,180 @@ class StudyDayLogListView(generics.ListAPIView):
         """Ensure users only see their own study day logs."""
         # Ordering is handled by OrderingFilter and default 'ordering' attribute
         return StudyDayLog.objects.filter(user=self.request.user)
+
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="Get Daily Points Summary",
+        description=(
+            "Retrieve the total points earned/lost by the current user per day "
+            "within a specified date range. Results are ordered by date ascending."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="start_date",
+                description="Start date (YYYY-MM-DD). If not provided, defaults depend on `range`.",
+                type=str,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="end_date",
+                description="End date (YYYY-MM-DD). If not provided, defaults depend on `range`.",
+                type=str,
+                location=OpenApiParameter.QUERY,
+            ),
+            OpenApiParameter(
+                name="range",
+                description="Predefined range ('today', 'week', 'month', 'year'). Overrides start/end_date if provided.",
+                type=str,
+                enum=["today", "week", "month", "year"],  # Use enum for allowed values
+                location=OpenApiParameter.QUERY,
+            ),
+            # Pagination parameters are handled automatically by DRF if pagination is enabled
+        ],
+        responses={200: DailyPointSummarySerializer(many=True)},
+        tags=["Gamification"],
+    )
+)
+class DailyPointSummaryView(generics.ListAPIView):
+    """
+    Provides a daily summary of points earned/lost by the user within a given range.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = DailyPointSummarySerializer
+    # Optional: Add pagination if results can be large
+    # pagination_class = PageNumberPagination # Or your custom pagination
+
+    def _get_date_range(self):
+        """Helper to determine the start and end datetime for filtering."""
+        request = self.request
+        range_param = request.query_params.get("range")
+        start_date_str = request.query_params.get("start_date")
+        end_date_str = request.query_params.get("end_date")
+
+        now = timezone.now()
+        today = now.date()
+
+        start_dt = None
+        end_dt = None  # Use datetime for filtering DateTimeField
+
+        if range_param:
+            if range_param == "today":
+                start_dt = timezone.make_aware(datetime.combine(today, time.min))
+                end_dt = start_dt + timedelta(days=1)
+            elif range_param == "week":
+                start_of_week = today - timedelta(
+                    days=today.weekday()
+                )  # Monday as start
+                # Or use: today - timedelta(days=(today.weekday() + 1) % 7) # Sunday as start
+                start_dt = timezone.make_aware(
+                    datetime.combine(start_of_week, time.min)
+                )
+                end_dt = start_dt + timedelta(weeks=1)
+            elif range_param == "month":
+                start_of_month = today.replace(day=1)
+                start_dt = timezone.make_aware(
+                    datetime.combine(start_of_month, time.min)
+                )
+                # Calculate end of month (start of next month)
+                next_month = (
+                    start_of_month.replace(day=28) + timedelta(days=4)
+                ).replace(day=1)
+                end_dt = timezone.make_aware(datetime.combine(next_month, time.min))
+            elif range_param == "year":
+                start_of_year = today.replace(month=1, day=1)
+                start_dt = timezone.make_aware(
+                    datetime.combine(start_of_year, time.min)
+                )
+                end_dt = timezone.make_aware(
+                    datetime.combine(
+                        start_of_year.replace(year=start_of_year.year + 1), time.min
+                    )
+                )
+        else:
+            # Use custom start/end dates if range is not specified
+            try:
+                if start_date_str:
+                    start_date = date.fromisoformat(start_date_str)
+                    start_dt = timezone.make_aware(
+                        datetime.combine(start_date, time.min)
+                    )
+                else:
+                    # Default start: e.g., 30 days ago or beginning of time? Let's default to 30 days.
+                    start_date = today - timedelta(days=30)
+                    start_dt = timezone.make_aware(
+                        datetime.combine(start_date, time.min)
+                    )
+
+                if end_date_str:
+                    end_date = date.fromisoformat(end_date_str)
+                    # Make end_dt exclusive (up to the beginning of the next day)
+                    end_dt = timezone.make_aware(
+                        datetime.combine(end_date + timedelta(days=1), time.min)
+                    )
+                else:
+                    # Default end: beginning of tomorrow (includes all of today)
+                    end_dt = timezone.make_aware(
+                        datetime.combine(today + timedelta(days=1), time.min)
+                    )
+
+            except ValueError:
+                # Handle invalid date format - maybe raise validation error or default
+                # For simplicity, we'll default to 'today' range if format is bad
+                logger.warning(
+                    f"Invalid date format received: start='{start_date_str}', end='{end_date_str}'. Defaulting range."
+                )
+                start_dt = timezone.make_aware(datetime.combine(today, time.min))
+                end_dt = start_dt + timedelta(days=1)
+
+        # Ensure end_dt is always after start_dt
+        if start_dt and end_dt and end_dt <= start_dt:
+            # Handle invalid range (end before start) - default or raise error
+            logger.warning(
+                f"End date '{end_dt}' is not after start date '{start_dt}'. Defaulting range."
+            )
+            start_dt = timezone.make_aware(datetime.combine(today, time.min))
+            end_dt = start_dt + timedelta(days=1)
+
+        return start_dt, end_dt
+
+    def get_queryset(self):
+        """
+        Aggregates PointLog entries by day for the authenticated user
+        within the specified date range.
+        """
+        user = self.request.user
+        start_dt, end_dt = self._get_date_range()
+
+        if not start_dt or not end_dt:
+            # Should not happen with current logic, but as a safeguard
+            return PointLog.objects.none()
+
+        queryset = (
+            PointLog.objects.filter(
+                user=user,
+                timestamp__gte=start_dt,
+                timestamp__lt=end_dt,  # Use less than for exclusive end
+            )
+            .annotate(
+                # Truncate timestamp to date
+                date=TruncDate("timestamp")
+            )
+            .values(
+                # Group by the truncated date
+                "date"
+            )
+            .annotate(
+                # Sum points for each date group
+                total_points=Sum("points_change")
+            )
+            .values(
+                # Select the final fields needed for the serializer
+                "date",
+                "total_points",
+            )
+            .order_by("date")
+        )  # Order by date ascending
+
+        return queryset

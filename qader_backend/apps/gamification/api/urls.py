@@ -18,4 +18,9 @@ urlpatterns = [
         name="reward-purchase",
     ),
     path("study-days/", views.StudyDayLogListView.as_view(), name="study-day-list"),
+    path(
+        "points-summary/daily/",
+        views.DailyPointSummaryView.as_view(),
+        name="points-summary-daily",
+    ),
 ]
