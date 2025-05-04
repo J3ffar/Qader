@@ -603,11 +603,11 @@ class UserQuestionAttempt(models.Model):
                 condition=models.Q(conversation_session__isnull=False),
                 name="uq_user_question_per_conversation",
             ),
-            models.UniqueConstraint(
-                fields=["user", "question", "emergency_session"],
-                condition=models.Q(emergency_session__isnull=False),
-                name="uq_user_question_per_emergency",
-            ),
+            # models.UniqueConstraint(
+            #     fields=["user", "question", "emergency_session"],
+            #     condition=models.Q(emergency_session__isnull=False),
+            #     name="uq_user_question_per_emergency",
+            # ),
             # Add CHECK constraint if DB supports it to ensure only one context FK is non-null?
             # models.CheckConstraint(...)
         ]
