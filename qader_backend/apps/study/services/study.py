@@ -21,8 +21,11 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.utils import timezone
-from rest_framework import serializers  # Use DRF's validation error for API context
-from rest_framework.exceptions import PermissionDenied
+from rest_framework import (
+    serializers,
+    status,
+)  # Use DRF's validation error for API context
+from rest_framework.exceptions import PermissionDenied, APIException
 
 from apps.learning.models import (
     LearningSubSection,
@@ -924,6 +927,212 @@ def start_traditional_practice(
     # Add 'status' key needed by TraditionalPracticeStartResponseSerializer
     result["status"] = UserTestAttempt.Status.STARTED.value
     return result
+
+
+# --- Retake Test Attempt Service ---
+@transaction.atomic
+def retake_test_attempt(
+    user: User, original_attempt: UserTestAttempt
+) -> Dict[str, Any]:
+    """
+    Starts a new test attempt based on the configuration of a previous one.
+    Handles limits, finding new questions, and creating the new attempt.
+    """
+    # 1. Check for Existing Active Test
+    if UserTestAttempt.objects.filter(
+        user=user, status=UserTestAttempt.Status.STARTED
+    ).exists():
+        raise ValidationError(
+            {
+                "non_field_errors": [
+                    _(
+                        "Please complete or cancel your ongoing test before starting a new one."
+                    )
+                ]
+            }
+        )
+
+    # 2. Extract and Validate Original Config
+    original_config_snapshot = original_attempt.test_configuration
+    if not isinstance(original_config_snapshot, dict):
+        logger.error(
+            f"Invalid config snapshot for original attempt {original_attempt.id} during retake."
+        )
+        raise ValidationError(
+            {"detail": _("Original test configuration is missing or invalid.")}
+        )
+
+    # Determine original type and parameters needed for filtering
+    original_attempt_type = (
+        original_attempt.attempt_type
+    )  # Use the reliable field from the model
+    num_questions = original_config_snapshot.get(
+        "num_questions_selected"
+    )  # Use actual selected number from original
+    if num_questions is None:  # Fallback for older snapshots?
+        num_questions = original_config_snapshot.get(
+            "num_questions_used"
+        ) or original_config_snapshot.get("num_questions")
+    if not isinstance(num_questions, int) or num_questions <= 0:
+        # If original had 0 questions, retake doesn't make sense? Or should allow starting with 0?
+        # Let's require original to have had questions.
+        raise ValidationError(
+            {"detail": _("Cannot retake a test that had no questions selected.")}
+        )
+
+    # Extract filters (handle different snapshot structures)
+    sub_slugs = original_config_snapshot.get("subsections_requested", [])
+    skill_slugs = original_config_snapshot.get("skills_requested", [])
+    starred = original_config_snapshot.get("starred_requested", False)
+    not_mastered = original_config_snapshot.get("not_mastered_requested", False)
+    # Handle nested 'config' dict if present
+    if isinstance(original_config_snapshot.get("config"), dict):
+        nested_config = original_config_snapshot["config"]
+        sub_slugs = nested_config.get("subsections", sub_slugs)
+        skill_slugs = nested_config.get("skills", skill_slugs)
+        starred = nested_config.get("starred", starred)
+        not_mastered = nested_config.get("not_mastered", not_mastered)
+
+    # 3. Check Usage Limits for the *new* attempt
+    try:
+        limiter = UsageLimiter(user)
+        limiter.check_can_start_test_attempt(original_attempt_type)
+        max_allowed_questions = limiter.get_max_questions_per_attempt()
+        if max_allowed_questions is not None and num_questions > max_allowed_questions:
+            logger.info(
+                f"Retake attempt for user {user.id} (original: {original_attempt.id}) capped from {num_questions} to {max_allowed_questions} questions."
+            )
+            num_questions = max_allowed_questions  # Cap the number for the new attempt
+    except UsageLimitExceeded as e:
+        raise e
+    except ValueError as e:
+        logger.error(f"Error initializing UsageLimiter for user {user.id}: {e}")
+        raise ValidationError(
+            {"non_field_errors": [_("Could not verify account limits.")]}
+        )
+
+    # 4. Select New Questions
+    new_questions_queryset = Question.objects.none()
+    try:
+        # First, try excluding questions from the original attempt
+        new_questions_queryset = get_filtered_questions(
+            user=user,
+            limit=num_questions,
+            subsections=sub_slugs,
+            skills=skill_slugs,
+            starred=starred,
+            not_mastered=not_mastered,
+            exclude_ids=original_attempt.question_ids,  # Exclude original Qs
+            min_required=0,  # Don't fail if fewer than num_questions are found *without* originals
+        )
+        new_question_ids = list(new_questions_queryset.values_list("id", flat=True))
+        ids_count = len(new_question_ids)
+
+        # Fallback: If not enough *new* questions, try again *including* originals
+        if ids_count < num_questions:
+            logger.warning(
+                f"Could not find {num_questions} *new* questions for retake of {original_attempt.id} (found {ids_count}). Trying again including original questions."
+            )
+            new_questions_queryset_fallback = get_filtered_questions(
+                user=user,
+                limit=num_questions,
+                subsections=sub_slugs,
+                skills=skill_slugs,
+                starred=starred,
+                not_mastered=not_mastered,
+                exclude_ids=None,  # No exclusion
+                min_required=1,  # Must find at least 1 question overall
+            )
+            # Use the fallback queryset for selection
+            new_questions_queryset = new_questions_queryset_fallback
+            new_question_ids = list(new_questions_queryset.values_list("id", flat=True))
+            ids_count = len(new_question_ids)
+
+        if ids_count == 0:
+            raise ValidationError(
+                {
+                    "detail": _(
+                        "No suitable questions found to generate a similar test based on the original criteria."
+                    )
+                }
+            )
+
+        # Randomly sample if more questions were found than needed
+        final_num_to_select = min(num_questions, ids_count)
+        if ids_count > final_num_to_select:
+            final_question_ids = random.sample(new_question_ids, final_num_to_select)
+            # Re-fetch queryset with correct order
+            preserved_order = Case(
+                *[When(pk=pk, then=pos) for pos, pk in enumerate(final_question_ids)],
+                output_field=IntegerField(),
+            )
+            new_questions_queryset = (
+                Question.objects.filter(id__in=final_question_ids)
+                .select_related("subsection", "subsection__section", "skill")
+                .order_by(preserved_order)
+            )
+        else:
+            # Use all found questions, queryset already has random order from get_filtered_questions
+            final_question_ids = new_question_ids
+            # Queryset is already new_questions_queryset
+
+        actual_num_selected = len(final_question_ids)
+        if actual_num_selected < num_questions:
+            logger.warning(
+                f"Only selecting {actual_num_selected} questions for retake of {original_attempt.id} (target was {num_questions}) due to availability."
+            )
+
+    except ValidationError as e:  # Catch validation errors from get_filtered_questions
+        raise e
+    except Exception as e:
+        logger.exception(
+            f"Error selecting questions for retake of attempt {original_attempt.id}: {e}"
+        )
+        raise ValidationError(
+            {"detail": _("Failed to select questions for the new test.")}
+        )
+
+    # 5. Create New Test Attempt
+    # Create a new snapshot, marking it as a retake and updating selected count
+    new_config_snapshot = original_config_snapshot.copy()
+    new_config_snapshot["retake_of_attempt_id"] = original_attempt.id
+    new_config_snapshot["num_questions_selected"] = (
+        actual_num_selected  # Update actual count
+    )
+    # Ensure nested config dict also has updated count if it exists
+    if isinstance(new_config_snapshot.get("config"), dict):
+        new_config_snapshot["config"]["num_questions_selected"] = actual_num_selected
+
+    try:
+        new_attempt = UserTestAttempt.objects.create(
+            user=user,
+            attempt_type=original_attempt_type,
+            test_configuration=new_config_snapshot,
+            question_ids=final_question_ids,
+            status=UserTestAttempt.Status.STARTED,
+        )
+        logger.info(
+            f"Started retake (New Attempt: {new_attempt.id}) of original attempt {original_attempt.id} for user {user.id}."
+        )
+    except Exception as e:
+        logger.exception(
+            f"Error creating retake UserTestAttempt for user {user.id} (original: {original_attempt.id}): {e}"
+        )
+        raise ValidationError(
+            {"non_field_errors": [_("Failed to start the new similar test.")]}
+        )
+
+    # 6. Calculate attempt number
+    attempt_number = UserTestAttempt.objects.filter(
+        user=user, attempt_type=original_attempt_type
+    ).count()
+
+    # 7. Prepare response data
+    return {
+        "attempt_id": new_attempt.id,
+        "attempt_number_for_type": attempt_number,
+        "questions": new_questions_queryset,  # Use the final queryset with correct order/selection
+    }
 
 
 # --- Traditional Mode Action Service ---
