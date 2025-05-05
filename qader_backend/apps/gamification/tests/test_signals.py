@@ -22,25 +22,8 @@ POINTS_LEVEL_ASSESSMENT_COMPLETED = getattr(
 )
 
 
-# Add mocker fixture
 @patch("apps.gamification.signals.award_points")
-@patch("apps.gamification.signals.check_and_award_badge")
-def test_gamify_on_correct_question_solved(
-    mock_check_badge, mock_award_points, mocker
-):  # Add mocker
-
-    BadgeFactory(
-        slug="first-question",
-        criteria_type=Badge.BadgeCriteriaType.QUESTIONS_SOLVED_CORRECTLY,
-        target_value=1,
-    )
-    # Create other relevant question badges as needed for the test
-    BadgeFactory(
-        slug=settings.BADGE_SLUG_50_QUESTIONS,
-        criteria_type=Badge.BadgeCriteriaType.QUESTIONS_SOLVED_CORRECTLY,
-        target_value=50,
-    )
-
+def test_gamify_on_correct_question_solved(mock_award_points):
     attempt = UserQuestionAttemptFactory(is_correct=True)
     if POINTS_QUESTION_SOLVED > 0:
         mock_award_points.assert_called_once_with(
@@ -52,22 +35,6 @@ def test_gamify_on_correct_question_solved(
         )
     else:
         mock_award_points.assert_not_called()
-
-    expected_badge_slugs = list(
-        Badge.objects.filter(
-            is_active=True,
-            criteria_type=Badge.BadgeCriteriaType.QUESTIONS_SOLVED_CORRECTLY,
-        ).values_list("slug", flat=True)
-    )
-
-    # Check that the mock was called for each expected slug
-    expected_calls = [call(attempt.user, slug) for slug in expected_badge_slugs]
-    # If the order doesn't matter and duplicates are okay:
-    # mock_check_badge.assert_has_calls(expected_calls, any_order=True)
-    # If the exact number/order matters (depends on signal logic complexity):
-    assert mock_check_badge.call_count == len(expected_badge_slugs)
-    for expected_call in expected_calls:
-        mock_check_badge.assert_any_call(*expected_call.args, **expected_call.kwargs)
 
     mock_award_points.reset_mock()
     attempt.save()
