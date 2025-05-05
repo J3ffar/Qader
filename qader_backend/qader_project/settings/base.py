@@ -475,3 +475,9 @@ BADGE_SLUG_FIRST_FULL_TEST = config(
 BADGE_SLUG_50_QUESTIONS = config(
     "BADGE_SLUG_50_QUESTIONS", default="50-questions-solved"
 )
+BADGE_SLUG_CHALLENGE_WINNER_1 = config(
+    "BADGE_SLUG_CHALLENGE_WINNER_1", default="first-challenge-win"
+)
+BADGE_SLUG_CHALLENGE_WINNER_5 = config(
+    "BADGE_SLUG_CHALLENGE_WINNER_5", default="5-challenge-wins"
+)

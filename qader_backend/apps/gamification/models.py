@@ -113,8 +113,8 @@ class Badge(models.Model):
         STUDY_STREAK = "STUDY_STREAK", _("Consecutive Study Days")
         QUESTIONS_SOLVED_CORRECTLY = "QUESTIONS_SOLVED", _("Correct Questions Solved")
         TESTS_COMPLETED = "TESTS_COMPLETED", _("Tests Completed (Any Type)")
+        CHALLENGES_WON = "CHALLENGES_WON", _("Challenges Won")
         # Add more types as needed:
-        # CHALLENGES_WON = "CHALLENGES_WON", _("Challenges Won")
         # PROFILE_COMPLETION = "PROFILE_COMPLETION", _("Profile Completion (%)")
         # SPECIFIC_ACTION = "SPECIFIC_ACTION", _("Specific Action Completed") # Needs custom logic tie-in
         OTHER = "OTHER", _("Other / Manual Award")

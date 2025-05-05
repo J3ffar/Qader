@@ -3,6 +3,7 @@ import logging
 import json  # Add json import
 from typing import Tuple, Optional
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, F
 from django.contrib.auth import get_user_model
@@ -10,7 +11,11 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.utils.translation import gettext_lazy as _
 from channels.layers import get_channel_layer  # Add channel layer import
-from asgiref.sync import async_to_sync  # To call async group_send from sync code
+from asgiref.sync import async_to_sync
+
+from apps.gamification.models import (
+    Badge,
+)  # To call async group_send from sync code
 
 from .models import Challenge, ChallengeAttempt, ChallengeType, ChallengeStatus
 from apps.learning.models import (
@@ -695,13 +700,13 @@ def _check_and_finalize_challenge(challenge: Challenge) -> bool:
 @transaction.atomic
 def finalize_challenge(challenge: Challenge):
     """Calculates winner, updates status, awards points/badges, broadcasts end."""
-    # Double check status inside transaction, though _check_and_finalize should handle it
+    # Double check status inside transaction
+    challenge.refresh_from_db()  # Get latest status first
     if challenge.status != ChallengeStatus.ONGOING:
         logger.warning(
             f"Attempted to finalize challenge {challenge.id} which is not ONGOING (Status: {challenge.status}). Aborting finalization."
         )
-        # Do NOT broadcast end if it wasn't ongoing
-        return
+        return  # Do not proceed if not ONGOING
 
     # Ensure attempts are loaded for calculation
     challenger_attempt = challenge.attempts.filter(user=challenge.challenger).first()
@@ -711,44 +716,58 @@ def finalize_challenge(challenge: Challenge):
         else None
     )
 
-    # Determine winner (simple score comparison, add time tie-breaker if needed)
+    # --- Determine Winner ---
     winner = None
-    # Ensure both attempts exist before comparing scores
-    if challenger_attempt and opponent_attempt:
+    # Ensure both attempts exist and have end_times before comparing scores
+    # (Or adjust logic if finishing first matters even if opponent disconnects)
+    if (
+        challenger_attempt
+        and challenger_attempt.end_time
+        and opponent_attempt
+        and opponent_attempt.end_time
+    ):
         if challenger_attempt.score > opponent_attempt.score:
             winner = challenge.challenger
         elif opponent_attempt.score > challenger_attempt.score:
             winner = challenge.opponent
-        # Handle ties explicitly? Tie means winner remains None.
-    elif challenger_attempt and not opponent_attempt:
-        # Opponent didn't participate/finish? Treat as challenger win? Or forfeit?
-        # Current logic: No winner if opponent didn't finish. Adjust as needed.
+        # Handle ties: winner remains None.
+        # TODO: Add time tie-breaker logic if required using attempt.start_time/end_time
+
+    # Handle cases where one participant didn't finish (optional, based on rules)
+    # Example: If opponent didn't finish, challenger wins by default?
+    # elif challenger_attempt and challenger_attempt.end_time and \
+    #      (not opponent_attempt or not opponent_attempt.end_time):
+    #     winner = challenge.challenger # Challenger wins by forfeit/timeout
+    #     logger.info(f"Challenge {challenge.id}: Opponent did not complete, challenger wins.")
+    # elif opponent_attempt and opponent_attempt.end_time and \
+    #      (not challenger_attempt or not challenger_attempt.end_time):
+    #     winner = challenge.opponent # Opponent wins by forfeit/timeout
+    #     logger.info(f"Challenge {challenge.id}: Challenger did not complete, opponent wins.")
+    else:
         logger.info(
-            f"Challenge {challenge.id}: Opponent attempt missing/incomplete during finalization."
-        )
-    elif not challenger_attempt and opponent_attempt:
-        # Challenger didn't finish? Should not happen if challenger initiated.
-        logger.error(
-            f"Challenge {challenge.id}: Challenger attempt missing during finalization."
+            f"Challenge {challenge.id}: Finalizing without a clear winner (tie or incomplete participation)."
         )
 
+    # --- Calculate Points ---
+    # Use constants from settings directly
+    challenger_points = settings.POINTS_CHALLENGE_PARTICIPATION
+    opponent_points = (
+        settings.POINTS_CHALLENGE_PARTICIPATION if challenge.opponent else 0
+    )
+
+    if winner == challenge.challenger:
+        challenger_points += settings.POINTS_CHALLENGE_WIN
+    elif winner == challenge.opponent:
+        opponent_points += settings.POINTS_CHALLENGE_WIN
+
+    # --- Update Challenge State ---
     challenge.winner = winner
     challenge.status = ChallengeStatus.COMPLETED
     challenge.completed_at = timezone.now()
-
-    # Award points - Calculate points first
-    challenger_points = POINTS_CHALLENGE_PARTICIPATION
-    opponent_points = POINTS_CHALLENGE_PARTICIPATION if challenge.opponent else 0
-
-    if winner == challenge.challenger:
-        challenger_points += POINTS_CHALLENGE_WIN
-    elif winner == challenge.opponent:
-        opponent_points += POINTS_CHALLENGE_WIN
-
     challenge.challenger_points_awarded = challenger_points
-    challenge.opponent_points_awarded = opponent_points if challenge.opponent else None
+    # Store 0 or None if opponent didn't exist/participate meaningfully
+    challenge.opponent_points_awarded = opponent_points if opponent_attempt else None
 
-    # Save challenge state BEFORE awarding points/badges
     challenge.save(
         update_fields=[
             "winner",
@@ -758,63 +777,78 @@ def finalize_challenge(challenge: Challenge):
             "opponent_points_awarded",
         ]
     )
+    logger.info(
+        f"Challenge {challenge.id} status set to COMPLETED. Winner: {winner.username if winner else 'Tie/Incomplete'}. "
+        f"Points: C={challenger_points}, O={opponent_points if opponent_attempt else 'N/A'}."
+    )
 
-    # --- Award Points/Badges using Gamification Service ---
-    # Safe to call these after challenge state is saved
-    if challenger_attempt:  # Check if attempt exists
+    # --- Award Points using Gamification Service ---
+    # Only award points if the attempt record exists (meaning they participated)
+    if challenger_attempt:
+        challenger_reason = PointReason.CHALLENGE_PARTICIPATION
+        challenger_result_desc = _("Tie/Completed")
+        if winner == challenge.challenger:
+            challenger_reason = PointReason.CHALLENGE_WIN
+            challenger_result_desc = _("Win")
+        elif winner == challenge.opponent:
+            challenger_result_desc = _("Loss")
+
         award_points(
             user=challenge.challenger,
             points_change=challenger_points,
-            reason_code=(
-                PointReason.CHALLENGE_WIN
-                if winner == challenge.challenger
-                else PointReason.CHALLENGE_PARTICIPATION  # Covers loss & tie
-            ),
+            reason_code=challenger_reason,
             description=_("Challenge #{cid} vs {opp} - Result: {res}").format(
                 cid=challenge.id,
                 opp=challenge.opponent.username if challenge.opponent else "N/A",
-                res=(
-                    "Win"
-                    if winner == challenge.challenger
-                    else ("Loss" if winner else "Tie/Completed")
-                ),
+                res=challenger_result_desc,
             ),
             related_object=challenge,
         )
-    if opponent_attempt:  # Check if attempt exists
+
+    if opponent_attempt:  # Check if opponent actually participated
+        opponent_reason = PointReason.CHALLENGE_PARTICIPATION
+        opponent_result_desc = _("Tie/Completed")
+        if winner == challenge.opponent:
+            opponent_reason = PointReason.CHALLENGE_WIN
+            opponent_result_desc = _("Win")
+        elif winner == challenge.challenger:
+            opponent_result_desc = _("Loss")
+
         award_points(
             user=challenge.opponent,
             points_change=opponent_points,
-            reason_code=(
-                PointReason.CHALLENGE_WIN
-                if winner == challenge.opponent
-                else PointReason.CHALLENGE_PARTICIPATION  # Covers loss & tie
-            ),
+            reason_code=opponent_reason,
             description=_("Challenge #{cid} vs {opp} - Result: {res}").format(
                 cid=challenge.id,
                 opp=challenge.challenger.username,
-                res=(
-                    "Win"
-                    if winner == challenge.opponent
-                    else ("Loss" if winner else "Tie/Completed")
-                ),
+                res=opponent_result_desc,
             ),
             related_object=challenge,
         )
 
-    # Check for badges (example)
-    if winner:
-        # Add logic based on badge definitions (e.g., check win count, streak)
-        check_and_award_badge(winner, "challenge-winner-badge")  # Placeholder slug
-        # Need to track consecutive wins elsewhere for badges like "3-consecutive-wins"
-
-    logger.info(
-        f"Challenge {challenge.id} finalized. Winner: {winner.username if winner else 'Tie/Incomplete'}."
+    # --- Check for and Award Badges ---
+    # Fetch relevant active badge slugs once
+    challenge_badge_slugs = list(
+        Badge.objects.filter(
+            is_active=True,
+            criteria_type=Badge.BadgeCriteriaType.CHALLENGES_WON,  # Use the new type
+        ).values_list("slug", flat=True)
     )
 
+    if winner:
+        logger.info(
+            f"Checking CHALLENGES_WON badges for winner {winner.username} on Challenge {challenge.id}"
+        )
+        # Call check_and_award_badge for each relevant badge slug
+        # The service function will handle the logic of counting wins and comparing to target_value
+        for slug in challenge_badge_slugs:
+            check_and_award_badge(winner, slug)  # Pass the winner user and badge slug
+
     # --- Broadcast Challenge End ---
-    # Broadcast AFTER all updates and point awards are done
+    # Broadcast AFTER all updates and point/badge awards are done
     broadcast_challenge_end(challenge)
+
+    logger.info(f"Challenge {challenge.id} finalized completely.")
 
 
 # --- Rematch Service ---

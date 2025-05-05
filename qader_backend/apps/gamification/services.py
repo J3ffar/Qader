@@ -14,6 +14,7 @@ from django.conf import settings  # Import settings
 from django.core.exceptions import ObjectDoesNotExist
 
 from apps.users.models import UserProfile
+from apps.challenges.models import Challenge, ChallengeStatus
 from .models import (
     PointLog,
     Badge,
@@ -230,10 +231,14 @@ def check_and_award_badge(user: DjangoUser, badge_slug: str) -> bool:
                 user=user, status=UserTestAttempt.Status.COMPLETED
             ).count()
             # logger.debug(f"User {username} completed tests count: {current_value} for badge {badge_slug}")
-        # --- Add elif blocks for other BadgeCriteriaType values ---
-        # elif badge.criteria_type == Badge.BadgeCriteriaType.CHALLENGES_WON:
-        #     # current_value = ... query Challenge participation/results ...
-        #     pass
+        elif badge.criteria_type == Badge.BadgeCriteriaType.CHALLENGES_WON:
+            # Query completed challenges where the user is the winner
+            current_value = Challenge.objects.filter(
+                winner=user, status=ChallengeStatus.COMPLETED  # Ensure it's completed
+            ).count()
+            logger.debug(
+                f"User {username} challenge wins count: {current_value} for badge {badge_slug}"
+            )
         else:
             logger.warning(
                 f"Unhandled criteria type '{badge.criteria_type}' for badge '{badge_slug}'."
