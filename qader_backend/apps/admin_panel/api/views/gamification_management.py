@@ -44,22 +44,28 @@ from ..serializers.gamification_management import (
 class AdminBadgeViewSet(viewsets.ModelViewSet):
     """
     Admin ViewSet for managing Badge definitions.
-    Provides full CRUD operations for administrators.
+    Provides full CRUD operations for administrators, including criteria management.
     """
 
     queryset = Badge.objects.all().order_by("name")
     serializer_class = AdminBadgeSerializer
-    permission_classes = [
-        permissions.IsAdminUser
-    ]  # Or [IsAdminOrSubAdminWithPermission('manage_gamification')]
+    permission_classes = [permissions.IsAdminUser]
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
-    filterset_fields = ["is_active"]
+    filterset_fields = ["is_active", "criteria_type"]
     search_fields = ["name", "slug", "description", "criteria_description"]
-    ordering_fields = ["name", "slug", "created_at", "updated_at", "is_active"]
+    ordering_fields = [
+        "name",
+        "slug",
+        "created_at",
+        "updated_at",
+        "is_active",
+        "criteria_type",
+        "target_value",
+    ]
 
 
 @extend_schema_view(
