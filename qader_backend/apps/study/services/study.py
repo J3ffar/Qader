@@ -1,3 +1,4 @@
+import json
 import random
 import logging
 from typing import Optional, List, Dict, Any, Set, Union
@@ -25,6 +26,7 @@ from django.core.exceptions import (
 )
 from django.db import transaction
 from django.utils import timezone
+from openai import OpenAIError
 from rest_framework import (
     serializers,
     status,
@@ -51,6 +53,33 @@ from apps.users.services import UsageLimiter
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+# --- Import AI utilities from the conversation service ---
+# Note: Ideally, AI utilities would be in a separate shared app/service.
+# For now, we import directly, assuming they are within the same 'study' app context.
+try:
+    from .conversation import (
+        client as ai_client,  # Rename to avoid potential conflicts if 'client' is used elsewhere
+        AI_MODEL,
+        DEFAULT_AI_ERROR_MSG,
+        DEFAULT_AI_RESPONSE_ERROR_MSG,
+        DEFAULT_AI_SPEECHLESS_MSG,
+        openai_init_error,  # Check if client initialized correctly
+    )
+
+    AI_AVAILABLE = ai_client is not None
+except ImportError:
+    logger.warning(
+        "Could not import AI utilities from conversation service. AI features in study service will be disabled."
+    )
+    ai_client = None
+    AI_MODEL = "N/A"
+    DEFAULT_AI_ERROR_MSG = _("AI Assistant is unavailable.")
+    DEFAULT_AI_RESPONSE_ERROR_MSG = _("AI Assistant response error.")
+    DEFAULT_AI_SPEECHLESS_MSG = _("AI Assistant is speechless.")
+    openai_init_error = "Import Error"
+    AI_AVAILABLE = False
+
 
 # --- Constants ---
 DEFAULT_PROFICIENCY_THRESHOLD = getattr(settings, "DEFAULT_PROFICIENCY_THRESHOLD", 0.7)
@@ -1218,13 +1247,142 @@ def record_traditional_action_and_get_data(
         )
 
 
+DEFAULT_EMERGENCY_TIPS = [
+    _("Take deep breaths before starting."),
+    _("Focus on one question at a time."),
+    _("Read questions carefully."),
+    _("Manage your time effectively, but don't rush needlessly."),
+    _("Trust your preparation and stay positive!"),
+]
+
+
+def _generate_ai_emergency_tips(
+    user: User,
+    target_skills_data: List[Dict[str, Any]],
+    focus_area_names: List[str],
+    available_time_hours: Optional[float] = None,
+) -> List[str]:
+    """Generates personalized emergency tips using AI based on user context."""
+    if not AI_AVAILABLE:
+        logger.warning(
+            f"AI client not available, using default tips for user {user.id}. Reason: {openai_init_error}"
+        )
+        return random.sample(
+            DEFAULT_EMERGENCY_TIPS, k=min(len(DEFAULT_EMERGENCY_TIPS), 3)
+        )
+
+    # Prepare context for the AI
+    weak_skills_summary = [
+        f"- {s['name']} ({s['reason']})" for s in target_skills_data[:3]
+    ]  # Top 3 weak skills
+    focus_areas_str = (
+        ", ".join(focus_area_names) if focus_area_names else "Verbal and Quantitative"
+    )
+    time_context = (
+        f"The user has approximately {available_time_hours} hours available."
+        if available_time_hours
+        else "Time is limited."
+    )
+
+    # Simplified system prompt for this specific task
+    system_prompt = "You are an encouraging AI assistant helping a student in 'Emergency Mode' prepare for the Qudurat test."
+
+    # Prompt Engineering for JSON Output
+    prompt = f"""
+    The user needs quick, actionable tips for an emergency study session.
+    Context:
+    - Focus Areas: {focus_areas_str}
+    - Identified Weak Skills/Areas for Improvement:
+      {chr(10).join(weak_skills_summary) if weak_skills_summary else '  (None specifically highlighted or user is new)'}
+    - Available Time: {time_context}
+
+    Task: Generate 2-3 concise, positive, and actionable tips tailored to this context.
+    Focus on:
+    - Stress management / staying calm.
+    - Quick strategies relevant to identified weak areas (if any).
+    - General test-taking advice for time pressure.
+
+    Your response MUST be a valid JSON object containing EXACTLY ONE key:
+      `tips`: List[str] (A list containing 2 or 3 string tips).
+
+    Example JSON Output:
+    {{
+      "tips": [
+        "Take a moment to breathe deeply before you begin. You've got this!",
+        "For '{{weak_skill_example}}', focus on [quick strategy, e.g., keyword spotting/formula recall].",
+        "Read each question carefully, but trust your first instinct if short on time."
+      ]
+    }}
+
+    Output ONLY the JSON object.
+    """
+
+    try:
+        logger.info(
+            f"Calling OpenAI ({AI_MODEL}) for emergency tips for user {user.id}"
+        )
+        response = ai_client.chat.completions.create(
+            model=AI_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.7,
+            max_tokens=500,
+            response_format={"type": "json_object"},
+            # user=str(user.id) # Optional: for OpenAI monitoring
+        )
+        ai_response_content = response.choices[0].message.content
+
+        # Parse and validate JSON
+        try:
+            parsed_json = json.loads(ai_response_content)
+            generated_tips = parsed_json.get("tips")
+
+            if (
+                isinstance(generated_tips, list)
+                and all(isinstance(tip, str) for tip in generated_tips)
+                and 1 < len(generated_tips) < 4
+            ):
+                logger.info(
+                    f"Successfully generated {len(generated_tips)} AI emergency tips for user {user.id}."
+                )
+                return generated_tips
+            else:
+                logger.warning(
+                    f"AI returned invalid 'tips' structure for user {user.id}. JSON: {ai_response_content}. Using default tips."
+                )
+                raise ValueError("Invalid tips structure")
+
+        except (json.JSONDecodeError, ValueError, KeyError) as json_err:
+            logger.error(
+                f"Failed to parse or validate AI JSON tips response for user {user.id}. Error: {json_err}. Response: '{ai_response_content}'",
+                exc_info=True,
+            )
+            return random.sample(
+                DEFAULT_EMERGENCY_TIPS, k=min(len(DEFAULT_EMERGENCY_TIPS), 3)
+            )
+
+    except OpenAIError as e:
+        logger.error(
+            f"OpenAI API error generating tips for user {user.id}: {e}",
+            exc_info=True,
+        )
+        return random.sample(
+            DEFAULT_EMERGENCY_TIPS, k=min(len(DEFAULT_EMERGENCY_TIPS), 3)
+        )
+    except Exception as e:
+        logger.exception(f"Unexpected error generating AI tips for user {user.id}: {e}")
+        return random.sample(
+            DEFAULT_EMERGENCY_TIPS, k=min(len(DEFAULT_EMERGENCY_TIPS), 3)
+        )
+
+
 # --- Emergency Mode Plan Generation ---
 def generate_emergency_plan(
     user: User,
-    available_time_hours: Optional[int] = None,
-    focus_areas: Optional[
-        List[str]
-    ] = None,  # List of SECTION slugs (e.g., 'verbal', 'quantitative')
+    available_time_hours: Optional[float] = None,  # Changed to float for flexibility
+    focus_areas: Optional[List[str]] = None,
     proficiency_threshold: float = DEFAULT_PROFICIENCY_THRESHOLD,
     num_weak_skills: int = EMERGENCY_MODE_WEAK_SKILL_COUNT,
     default_question_count: int = EMERGENCY_MODE_DEFAULT_QUESTIONS,
@@ -1275,16 +1433,14 @@ def generate_emergency_plan(
             "motivational_tips": [_("Please log in to get a personalized plan.")],
         }
 
+    # Initialize plan structure (without tips initially)
     plan = {
         "focus_area_names": [],
         "estimated_duration_minutes": None,
         "target_skills": [],
         "recommended_question_count": default_question_count,
         "quick_review_topics": [],
-        "motivational_tips": random.sample(
-            getattr(settings, "EMERGENCY_MODE_TIPS", [_("Focus and do your best!")]),
-            k=min(len(getattr(settings, "EMERGENCY_MODE_TIPS", [])), 2),
-        ),
+        "motivational_tips": [],  # Will be populated later
     }
 
     # --- Determine Recommended Question Count & Duration ---
@@ -1313,21 +1469,22 @@ def generate_emergency_plan(
                 default_question_count * estimated_mins_per_q
             )
     else:
-        # Estimate duration based on default question count
         plan["estimated_duration_minutes"] = int(
             plan["recommended_question_count"] * estimated_mins_per_q
         )
 
     # --- Determine Weak Skills & Focus Areas ---
+    # ... (keep the existing logic to populate target_skills_data, target_skill_ids,
+    #      subsection_ids_for_review, plan["focus_area_names"], and plan["quick_review_topics"]) ...
     target_skills_data = []
     target_skill_ids = set()
     subsection_ids_for_review = set()
 
     try:
-        # Base query for user's skill proficiencies
         proficiency_qs = UserSkillProficiency.objects.filter(user=user).select_related(
             "skill", "skill__subsection", "skill__subsection__section"
         )
+        # ... (rest of the logic to find weak/unattempted skills) ...
 
         # Apply section focus if provided
         focus_sections_qs = LearningSection.objects.none()
@@ -1358,14 +1515,13 @@ def generate_emergency_plan(
         # 1. Find skills strictly below the threshold
         weakest_proficiencies = list(
             proficiency_qs.filter(proficiency_score__lt=proficiency_threshold).order_by(
-                "proficiency_score"  # Weakest first
+                "proficiency_score"
             )[:num_weak_skills]
         )
-
         for p in weakest_proficiencies:
             if p.skill and p.skill_id not in target_skill_ids:
                 target_skills_data.append(
-                    {
+                    {  # Storing data needed for tips
                         "slug": p.skill.slug,
                         "name": p.skill.name,
                         "reason": _("Low score ({score}%)").format(
@@ -1451,12 +1607,12 @@ def generate_emergency_plan(
 
         plan["target_skills"] = target_skills_data
 
-        # --- Determine Quick Review Topics ---
+        # ... (logic for quick_review_topics) ...
         if subsection_ids_for_review:
             review_topics = LearningSubSection.objects.filter(
                 id__in=subsection_ids_for_review, is_active=True
             ).exclude(Q(description__isnull=True) | Q(description__exact=""))[
-                :num_weak_skills  # Limit review topics
+                :num_weak_skills
             ]
             plan["quick_review_topics"] = [
                 {
@@ -1472,11 +1628,21 @@ def generate_emergency_plan(
             f"Error determining weak skills/topics for user {user.id} emergency plan: {e}",
             exc_info=True,
         )
+        # Add a generic error message tip if skill calculation fails
         plan["motivational_tips"].append(
             _("Could not generate personalized focus areas due to an error.")
         )
 
+    # --- Generate Motivational Tips (AI or Fallback) ---
+    # Pass the calculated context to the AI tip generator
+    plan["motivational_tips"] = _generate_ai_emergency_tips(
+        user=user,
+        target_skills_data=plan["target_skills"],
+        focus_area_names=plan["focus_area_names"],
+        available_time_hours=available_time_hours,  # Pass optional time
+    )
+
     logger.info(
-        f"Generated emergency plan for user {user.id}. Focus Areas: {plan['focus_area_names']}, Skills: {len(plan['target_skills'])}, Rec Qs: {plan['recommended_question_count']}, Review Topics: {len(plan['quick_review_topics'])}"
+        f"Generated emergency plan for user {user.id}. Focus Areas: {plan['focus_area_names']}, Skills: {len(plan['target_skills'])}, Rec Qs: {plan['recommended_question_count']}, Review Topics: {len(plan['quick_review_topics'])}, Tips generated: {len(plan['motivational_tips'])}"
     )
     return plan
