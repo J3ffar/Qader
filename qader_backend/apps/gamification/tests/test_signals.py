@@ -1,5 +1,3 @@
-# qader_backend/apps/gamification/tests/test_signals.py
-
 import pytest
 from unittest.mock import patch, call, ANY  # Import ANY
 from django.conf import settings
@@ -10,6 +8,7 @@ from apps.study.tests.factories import (
     # Need UserFactory if creating users directly in tests
 )
 from apps.study.models import UserQuestionAttempt, UserTestAttempt
+from apps.gamification.models import Badge
 from ..services import PointReason  # Import PointReason
 from apps.gamification.tests.factories import BadgeFactory  # For badge test setup
 
@@ -25,10 +24,23 @@ POINTS_LEVEL_ASSESSMENT_COMPLETED = getattr(
 
 # Add mocker fixture
 @patch("apps.gamification.signals.award_points")
-@patch("apps.gamification.signals.update_streak")
+@patch("apps.gamification.signals.check_and_award_badge")
 def test_gamify_on_correct_question_solved(
-    mock_update_streak, mock_award_points, mocker
+    mock_check_badge, mock_award_points, mocker
 ):  # Add mocker
+
+    BadgeFactory(
+        slug="first-question",
+        criteria_type=Badge.BadgeCriteriaType.QUESTIONS_SOLVED_CORRECTLY,
+        target_value=1,
+    )
+    # Create other relevant question badges as needed for the test
+    BadgeFactory(
+        slug=settings.BADGE_SLUG_50_QUESTIONS,
+        criteria_type=Badge.BadgeCriteriaType.QUESTIONS_SOLVED_CORRECTLY,
+        target_value=50,
+    )
+
     attempt = UserQuestionAttemptFactory(is_correct=True)
     if POINTS_QUESTION_SOLVED > 0:
         mock_award_points.assert_called_once_with(
@@ -40,13 +52,26 @@ def test_gamify_on_correct_question_solved(
         )
     else:
         mock_award_points.assert_not_called()
-    mock_update_streak.assert_called_once_with(attempt.user)
+
+    expected_badge_slugs = list(
+        Badge.objects.filter(
+            is_active=True,
+            criteria_type=Badge.BadgeCriteriaType.QUESTIONS_SOLVED_CORRECTLY,
+        ).values_list("slug", flat=True)
+    )
+
+    # Check that the mock was called for each expected slug
+    expected_calls = [call(attempt.user, slug) for slug in expected_badge_slugs]
+    # If the order doesn't matter and duplicates are okay:
+    # mock_check_badge.assert_has_calls(expected_calls, any_order=True)
+    # If the exact number/order matters (depends on signal logic complexity):
+    assert mock_check_badge.call_count == len(expected_badge_slugs)
+    for expected_call in expected_calls:
+        mock_check_badge.assert_any_call(*expected_call.args, **expected_call.kwargs)
 
     mock_award_points.reset_mock()
-    mock_update_streak.reset_mock()
     attempt.save()
     mock_award_points.assert_not_called()
-    mock_update_streak.assert_not_called()
 
 
 @patch("apps.gamification.signals.award_points")
@@ -89,7 +114,6 @@ def test_gamify_on_test_completed_practice(
     assert attempt.completion_points_awarded is True
 
 
-# Add mocker fixture
 @patch("apps.gamification.signals.award_points")
 @patch("apps.gamification.signals.update_streak")
 @patch("apps.gamification.signals.check_and_award_badge")
@@ -101,7 +125,12 @@ def test_gamify_on_test_completed_simulation(
         attempt_type=UserTestAttempt.AttemptType.SIMULATION,
         completion_points_awarded=False,
     )
-    BadgeFactory(slug="first-full-test")  # Ensure badge exists for check
+    first_test_slug = getattr(settings, "BADGE_SLUG_FIRST_FULL_TEST", "first-full-test")
+    BadgeFactory(
+        slug=first_test_slug,
+        criteria_type=Badge.BadgeCriteriaType.TESTS_COMPLETED,
+        target_value=1,  # Assuming the first test badge has target_value 1
+    )
 
     attempt.status = UserTestAttempt.Status.COMPLETED
     attempt.save()
@@ -118,7 +147,18 @@ def test_gamify_on_test_completed_simulation(
         mock_award_points.assert_not_called()
     mock_update_streak.assert_called_once_with(attempt.user)
     # Check badge call if the logic is expected to run
-    mock_check_badge.assert_called_once_with(attempt.user, "first-full-test")
+
+    expected_badge_slugs = list(
+        Badge.objects.filter(
+            is_active=True, criteria_type=Badge.BadgeCriteriaType.TESTS_COMPLETED
+        ).values_list("slug", flat=True)
+    )
+
+    expected_calls = [call(attempt.user, slug) for slug in expected_badge_slugs]
+    assert mock_check_badge.call_count == len(expected_badge_slugs)
+    for expected_call in expected_calls:
+        mock_check_badge.assert_any_call(*expected_call.args, **expected_call.kwargs)
+
     attempt.refresh_from_db()
     assert attempt.completion_points_awarded is True
 

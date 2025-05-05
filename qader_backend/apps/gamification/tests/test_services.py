@@ -259,7 +259,11 @@ def test_update_streak_triggers_rewards_on_hitting_milestone(
     with freeze_time("2024-07-30 10:00:00"):  # Advance time further
         profile.last_study_activity_at = timezone.now() - timedelta(days=1)
         profile.save()
-        BadgeFactory(slug=settings.BADGE_SLUG_5_DAY_STREAK)  # Ensure badge exists
+        BadgeFactory(
+            slug=settings.BADGE_SLUG_5_DAY_STREAK,
+            criteria_type=Badge.BadgeCriteriaType.STUDY_STREAK,
+            target_value=5,  # Also good to be explicit with target_value
+        )
 
         update_streak(user)
         profile.refresh_from_db()
@@ -316,7 +320,12 @@ def test_check_award_badge_success_criteria_met(mocker):  # Add mocker fixture a
     user = UserFactory()
     # Use a badge slug that exists in settings and BADGE_CHECKERS
     badge_slug = getattr(settings, "BADGE_SLUG_10_DAY_STREAK", "10-day-streak")
-    badge = BadgeFactory(slug=badge_slug, is_active=True)
+    badge = BadgeFactory(
+        slug=badge_slug,
+        is_active=True,
+        criteria_type=Badge.BadgeCriteriaType.STUDY_STREAK,
+        target_value=10,
+    )
     profile = user.profile
     profile.current_streak_days = 10  # Set profile state to meet criteria
     profile.save()

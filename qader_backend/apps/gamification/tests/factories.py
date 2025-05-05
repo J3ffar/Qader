@@ -1,10 +1,10 @@
-# qader_backend/apps/gamification/tests/factories.py
 import factory
 from factory.django import DjangoModelFactory
 from django.utils import timezone
 from django.conf import settings
 from django.utils.text import slugify
-from django.core.files.base import ContentFile  # Needed for ImageField
+from django.core.files.base import ContentFile
+from faker import Faker  # Needed for ImageField
 
 # Import necessary factories from other apps
 from apps.users.tests.factories import UserFactory
@@ -18,6 +18,8 @@ from ..models import (
     UserRewardPurchase,
     PointReason,
 )
+
+fake = Faker()
 
 
 class PointLogFactory(DjangoModelFactory):
@@ -50,8 +52,18 @@ class BadgeFactory(DjangoModelFactory):
     slug = factory.LazyAttribute(lambda o: slugify(o.name))
     description = factory.LazyAttribute(lambda o: f"Description for {o.name}")
 
-    # --- FIXED FIELD ---
-    # Use factory.django.ImageField for image uploads in tests
+    criteria_type = factory.Iterator(
+        Badge.BadgeCriteriaType.choices, getter=lambda c: c[0]
+    )
+
+    @factory.lazy_attribute
+    def target_value(self):
+        """Ensure target_value is None if criteria_type is OTHER."""
+        if self.criteria_type == Badge.BadgeCriteriaType.OTHER:
+            return None
+        # Provide a sensible default for other types
+        return fake.random_int(min=1, max=50)
+
     icon = factory.django.ImageField(
         filename=factory.LazyAttribute(lambda o: f"{o}.png"),
         color="blue",  # Simple placeholder image
@@ -60,7 +72,6 @@ class BadgeFactory(DjangoModelFactory):
             name=factory.LazyAttribute(lambda o: f"{o}.png"),
         ),
     )
-    # --- END FIXED FIELD ---
 
     criteria_description = "Earn this by being awesome."
     is_active = True
