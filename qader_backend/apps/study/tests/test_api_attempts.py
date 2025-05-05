@@ -1,5 +1,6 @@
 # qader_backend/apps/study/tests/test_api_attempts.py
 
+import random
 import pytest
 from django.urls import reverse
 from rest_framework import status
@@ -44,16 +45,51 @@ def started_practice_attempt(db, subscribed_user, setup_learning_content):
 
 @pytest.fixture
 def started_level_assessment(db, subscribed_user, setup_learning_content):
-    """Creates a STARTED level assessment attempt."""
-    attempt, questions = create_attempt_scenario(
+    """Creates a STARTED level assessment attempt with guaranteed mixed questions."""
+    # --- GET SUBSECTIONS WITH CORRECT PARENT SECTION SLUGS ---
+    try:
+        verbal_sub = setup_learning_content["reading_comp_sub"]  # Example verbal sub
+        quant_sub = setup_learning_content["algebra_sub"]  # Example quant sub
+
+        # Verify parent slugs (optional but good practice)
+        assert verbal_sub.section.slug == "verbal"
+        assert quant_sub.section.slug == "quantitative"
+    except KeyError as e:
+        pytest.fail(f"Fixture setup_learning_content missing expected key: {e}")
+    except AssertionError:
+        pytest.fail(
+            "Fixture setup_learning_content created subsections with incorrect parent section slugs ('verbal'/'quantitative' expected)."
+        )
+    # --- END VERIFICATION ---
+
+    # Create questions specifically for these subsections
+    num_verbal = 5
+    num_quant = 5
+    verbal_questions = QuestionFactory.create_batch(
+        num_verbal, subsection=verbal_sub, is_active=True
+    )
+    quant_questions = QuestionFactory.create_batch(
+        num_quant, subsection=quant_sub, is_active=True
+    )
+
+    all_questions = verbal_questions + quant_questions
+    random.shuffle(all_questions)  # Mix them up
+    question_ids = [q.id for q in all_questions]
+
+    attempt = UserTestAttemptFactory(
         user=subscribed_user,
-        num_questions=10,  # Different number for assessment
-        num_answered=0,
-        num_correct_answered=0,
         attempt_type=UserTestAttempt.AttemptType.LEVEL_ASSESSMENT,
         status=UserTestAttempt.Status.STARTED,
+        question_ids=question_ids,
+        test_configuration={  # Ensure config reflects reality
+            "test_type": UserTestAttempt.AttemptType.LEVEL_ASSESSMENT.value,
+            "sections_requested": ["verbal", "quantitative"],  # Example
+            "num_questions_requested": num_verbal + num_quant,
+            "actual_num_questions_selected": len(question_ids),
+        },
     )
-    return attempt, questions
+    # Return the actual questions used
+    return attempt, all_questions
 
 
 @pytest.fixture
@@ -657,7 +693,7 @@ class TestCompleteAttemptAPI:
         assert res_data["score_quantitative"] is not None
         assert res_data["answered_question_count"] == len(questions)
         assert res_data["total_questions"] == len(questions)
-
+        print(res_data)
         # Check profile update in response
         profile_resp = res_data["updated_profile"]
         assert profile_resp is not None  # Should not be None if successful

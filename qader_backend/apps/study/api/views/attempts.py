@@ -176,46 +176,44 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
         """Get the ongoing test attempt, ensuring ownership and STARTED status."""
         attempt_id = self.kwargs.get("attempt_id")
         user = self.request.user
+        # Prepare base queryset for checks
+        queryset = UserTestAttempt.objects.select_related("user")
+
         try:
-            # Ensure it belongs to the user and is started
+            # Directly try to get the object matching all criteria
             attempt = get_object_or_404(
-                UserTestAttempt.objects.select_related(
-                    "user"
-                ),  # Select user for logging/potential use
+                queryset,
                 pk=attempt_id,
                 user=user,
                 status=UserTestAttempt.Status.STARTED,
             )
             return attempt
         except Http404:
-            # Check if exists but wrong status/owner for better error message
-            try:
-                # Check existence and ownership first
-                attempt_check = UserTestAttempt.objects.get(pk=attempt_id, user=user)
-                # If found, but get_object_or_404 failed, it must be the status mismatch
+            # If the above failed, the object either doesn't exist,
+            # doesn't belong to the user, or isn't in the STARTED state.
+            # Check if it exists at all for this user.
+            attempt_exists = queryset.filter(pk=attempt_id, user=user).exists()
+            if attempt_exists:
+                # It exists but wasn't STARTED
                 logger.warning(
-                    f"Attempt {attempt_id} found for user {user.id} but status is not STARTED in {self.__class__.__name__}."
+                    f"Attempt {attempt_id} found for user {user.id} but failed criteria "
+                    f"(likely not STARTED) in {self.__class__.__name__}."
                 )
-                # Raise NotFound because the *active* attempt wasn't found
+                # Raise NotFound, which DRF maps to 404
                 raise NotFound(
                     _("The specified test attempt is not currently active or ongoing.")
                 )
-            except UserTestAttempt.DoesNotExist:
-                # Attempt doesn't exist at all, or doesn't belong to the user
+            else:
+                # Attempt doesn't exist at all or doesn't belong to the user
                 logger.warning(
                     f"Attempt {attempt_id} not found for user {user.id} in {self.__class__.__name__}."
                 )
                 # Keep raising NotFound
                 raise NotFound(_("Test attempt not found."))
-            except Exception as e_inner:  # Catch potential errors in the inner check
-                logger.exception(
-                    f"Error during existence check in {self.__class__.__name__} get_object for attempt {attempt_id}: {e_inner}"
-                )
-                raise APIException(
-                    _("An error occurred checking the test attempt state.")
-                )
         except Exception as e:
-            logger.exception(f"Error fetching attempt {attempt_id} in AnswerView: {e}")
+            logger.exception(
+                f"Error fetching attempt {attempt_id} in {self.__class__.__name__}: {e}"
+            )
             raise APIException(
                 _("An error occurred while retrieving the test attempt.")
             )
@@ -297,40 +295,39 @@ class UserTestAttemptCompleteView(generics.GenericAPIView):
         """Get the ongoing test attempt, ensuring ownership and STARTED status."""
         attempt_id = self.kwargs.get("attempt_id")
         user = self.request.user
+        # Prepare base queryset, including profile for potential use in service
+        queryset = UserTestAttempt.objects.select_related("user", "user__profile")
+
         try:
-            # Eager load profile for potential level assessment update service call
+            # Directly try to get the object matching all criteria
             attempt = get_object_or_404(
-                UserTestAttempt.objects.select_related("user", "user__profile"),
+                queryset,
                 pk=attempt_id,
                 user=user,
                 status=UserTestAttempt.Status.STARTED,  # Must be ongoing
             )
             return attempt
         except Http404:
-            # Check if exists but wrong status/owner for better error message
-            try:
-                attempt_check = UserTestAttempt.objects.get(pk=attempt_id, user=user)
+            # If the above failed, check if it exists for the user but has wrong status
+            attempt_exists = queryset.filter(pk=attempt_id, user=user).exists()
+            if attempt_exists:
+                # It exists but wasn't STARTED
                 logger.warning(
-                    f"Attempt {attempt_id} found for user {user.id} but status is not STARTED in {self.__class__.__name__}."
+                    f"Attempt {attempt_id} found for user {user.id} but failed criteria "
+                    f"(likely not STARTED) in {self.__class__.__name__}."
                 )
                 raise NotFound(
                     _("The specified test attempt is not currently active or ongoing.")
                 )
-            except UserTestAttempt.DoesNotExist:
+            else:
+                # Attempt doesn't exist at all or doesn't belong to the user
                 logger.warning(
                     f"Attempt {attempt_id} not found for user {user.id} in {self.__class__.__name__}."
                 )
                 raise NotFound(_("Test attempt not found."))
-            except Exception as e_inner:
-                logger.exception(
-                    f"Error during existence check in {self.__class__.__name__} get_object for attempt {attempt_id}: {e_inner}"
-                )
-                raise APIException(
-                    _("An error occurred checking the test attempt state.")
-                )
         except Exception as e:
             logger.exception(
-                f"Error fetching attempt {attempt_id} in CompleteView: {e}"
+                f"Error fetching attempt {attempt_id} in {self.__class__.__name__}: {e}"
             )
             raise APIException(
                 _("An error occurred while retrieving the test attempt.")
@@ -411,37 +408,39 @@ class UserTestAttemptCancelView(generics.GenericAPIView):
         """Get the ongoing test attempt, ensuring ownership and STARTED status."""
         attempt_id = self.kwargs.get("attempt_id")
         user = self.request.user
+        queryset = UserTestAttempt.objects.select_related("user")
+
         try:
+            # Directly try to get the object matching all criteria
             attempt = get_object_or_404(
-                UserTestAttempt.objects.select_related("user"),
+                queryset,
                 pk=attempt_id,
                 user=user,
                 status=UserTestAttempt.Status.STARTED,  # Must be ongoing
             )
             return attempt
         except Http404:
-            try:
-                attempt_check = UserTestAttempt.objects.get(pk=attempt_id, user=user)
+            # If the above failed, check if it exists for the user but has wrong status
+            attempt_exists = queryset.filter(pk=attempt_id, user=user).exists()
+            if attempt_exists:
+                # It exists but wasn't STARTED
                 logger.warning(
-                    f"Attempt {attempt_id} found for user {user.id} but status is not STARTED in {self.__class__.__name__}."
+                    f"Attempt {attempt_id} found for user {user.id} but failed criteria "
+                    f"(likely not STARTED) in {self.__class__.__name__}."
                 )
                 raise NotFound(
                     _("The specified test attempt is not currently active or ongoing.")
                 )
-            except UserTestAttempt.DoesNotExist:
+            else:
+                # Attempt doesn't exist at all or doesn't belong to the user
                 logger.warning(
                     f"Attempt {attempt_id} not found for user {user.id} in {self.__class__.__name__}."
                 )
                 raise NotFound(_("Test attempt not found."))
-            except Exception as e_inner:
-                logger.exception(
-                    f"Error during existence check in {self.__class__.__name__} get_object for attempt {attempt_id}: {e_inner}"
-                )
-                raise APIException(
-                    _("An error occurred checking the test attempt state.")
-                )
         except Exception as e:
-            logger.exception(f"Error fetching attempt {attempt_id} in CancelView: {e}")
+            logger.exception(
+                f"Error fetching attempt {attempt_id} in {self.__class__.__name__}: {e}"
+            )
             raise APIException(
                 _("An error occurred while retrieving the test attempt.")
             )
@@ -510,37 +509,43 @@ class UserTestAttemptReviewView(generics.GenericAPIView):
 
     def get_object(self) -> UserTestAttempt:
         """Get the test attempt, ensuring ownership and COMPLETED status."""
-        user = self.request.user
         attempt_id = self.kwargs.get("attempt_id")
+        user = self.request.user
+        # Include prefetch here as it's always needed for the 'get' method in this view
+        queryset = UserTestAttempt.objects.select_related("user").prefetch_related(
+            "question_attempts"  # Prefetch answers for review context
+        )
+
         try:
-            # Ensure completed status for review
+            # Directly try to get the object matching all criteria
             attempt = get_object_or_404(
-                UserTestAttempt.objects.select_related("user").prefetch_related(
-                    "question_attempts"
-                ),  # Prefetch answers here
+                queryset,
                 pk=attempt_id,
                 user=user,
                 status=UserTestAttempt.Status.COMPLETED,  # Must be completed
             )
             return attempt
         except Http404:
-            # Check if it exists but has wrong status to give better error
-            attempt_exists = UserTestAttempt.objects.filter(
-                pk=attempt_id, user=user
-            ).first()
-            if attempt_exists:
+            # If the above failed, check if it exists for the user but has wrong status
+            attempt_check = queryset.filter(pk=attempt_id, user=user).first()
+            if attempt_check:
+                # It exists but wasn't COMPLETED
                 logger.warning(
-                    f"User {user.id} attempted review on non-completed test {attempt_id} (Status: {attempt_exists.status})."
+                    f"User {user.id} attempted review on non-completed test {attempt_id} "
+                    f"(Status: {attempt_check.status}). Raising 400."
                 )
-                # Raise 400 Bad Request if not completed
+                # Raise 400 Bad Request as the attempt exists but is not in a reviewable state
                 raise DRFValidationError(
                     {"detail": _("Cannot review a test attempt that is not completed.")}
                 )
             else:
+                # Attempt doesn't exist at all or doesn't belong to the user
                 logger.info(
                     f"Completed test attempt {attempt_id} not found for user {user.id} during review."
                 )
-                raise NotFound(_("Completed test attempt not found."))
+                raise NotFound(
+                    _("Completed test attempt not found.")
+                )  # Correctly raise 404
         except Exception as e:
             logger.exception(
                 f"Unexpected error fetching completed test attempt {attempt_id} for review by user {user.id}: {e}"
@@ -646,18 +651,23 @@ class UserTestAttemptRetakeView(generics.GenericAPIView):
     )  # Output matches start response
 
     def get_object(self) -> UserTestAttempt:
-        """Get the original test attempt, ensuring ownership."""
-        user = self.request.user
+        """Get the original test attempt, ensuring ownership. Status doesn't matter."""
         attempt_id = self.kwargs.get("attempt_id")
+        user = self.request.user
+        queryset = UserTestAttempt.objects.select_related("user")
+
         try:
-            # Allow retake from any status (completed, abandoned etc.)
+            # No status filter needed here; just check pk and user
             original_attempt = get_object_or_404(
-                UserTestAttempt.objects.select_related("user"), pk=attempt_id, user=user
+                queryset,
+                pk=attempt_id,
+                user=user,
             )
             return original_attempt
         except Http404:
+            # If get_object_or_404 fails, it means attempt doesn't exist OR doesn't belong to user.
             logger.warning(
-                f"Original attempt {attempt_id} not found for user {user.id} during retake."
+                f"Original attempt {attempt_id} not found for user {user.id} during retake request."
             )
             raise NotFound(_("Original test attempt not found or not accessible."))
         except Exception as e:

@@ -20,8 +20,7 @@ from django.db.models.functions import Coalesce
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.core.exceptions import ValidationError as CoreValidationError
-from django.core.exceptions import (
-    ObjectDoesNotExist,
+from rest_framework.exceptions import (
     ValidationError as DRFValidationError,
 )
 from django.db import transaction
