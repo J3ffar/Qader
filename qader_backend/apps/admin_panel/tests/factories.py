@@ -13,6 +13,10 @@ from apps.blog.models import (
     BlogAdviceRequest,
     BlogPost,
     PostStatusChoices,
+)
+from apps.gamification.models import (
+    Badge,
+    RewardStoreItem,
 )  # Assuming UserFactory is here or adjust path
 
 fake = Faker()
@@ -156,3 +160,55 @@ class BlogAdviceRequestFactory(DjangoModelFactory):
     #     status = AdviceRequestStatusChoices.PUBLISHED_AS_POST
     #     response_via = AdviceResponseViaChoices.BLOG_POST
     #     related_blog_post = factory.SubFactory(BlogPostFactory, status=PostStatusChoices.PUBLISHED)
+
+
+class BadgeFactory(DjangoModelFactory):
+    class Meta:
+        model = Badge
+        django_get_or_create = ("slug",)  # Avoid duplicate slugs
+
+    name = factory.Faker("catch_phrase")
+    slug = factory.LazyAttribute(
+        lambda o: slugify(o.name)[:110]
+    )  # Generate slug from name
+    description = factory.Faker("paragraph", nb_sentences=3)
+    criteria_description = factory.Faker("sentence", nb_words=6)
+    # Default to a common type, override in tests as needed
+    criteria_type = factory.Iterator(
+        Badge.BadgeCriteriaType.choices, getter=lambda c: c[0]
+    )
+    # Provide a default target_value, handle OTHER case below
+    target_value = factory.LazyAttribute(
+        lambda o: (
+            fake.random_int(min=1, max=100)
+            if o.criteria_type != Badge.BadgeCriteriaType.OTHER
+            else None
+        )
+    )
+    is_active = factory.Faker("boolean", chance_of_getting_true=85)
+    # icon = factory.django.ImageField() # Add if testing icon uploads
+
+    @factory.lazy_attribute
+    def target_value(self):
+        """Ensure target_value is None if criteria_type is OTHER."""
+        if self.criteria_type == Badge.BadgeCriteriaType.OTHER:
+            return None
+        # Provide a default value for other types if not set explicitly
+        # You might want a more specific default depending on the type
+        return fake.random_int(min=1, max=50)
+
+
+class RewardStoreItemFactory(DjangoModelFactory):
+    class Meta:
+        model = RewardStoreItem
+        django_get_or_create = ("name",)  # Avoid duplicate names
+
+    name = factory.Faker("ecommerce_name")
+    description = factory.Faker("paragraph", nb_sentences=2)
+    item_type = factory.Iterator(
+        RewardStoreItem.ItemType.choices, getter=lambda c: c[0]
+    )
+    cost_points = factory.Faker("random_int", min=50, max=1000, step=10)
+    is_active = factory.Faker("boolean", chance_of_getting_true=90)
+    # image = factory.django.ImageField() # Add if testing image uploads
+    # asset_file = factory.django.FileField() # Add if testing file uploads

@@ -145,8 +145,6 @@ class Badge(models.Model):
         verbose_name=_("Criteria Type"),
         help_text=_("The type of condition required to earn this badge."),
         db_index=True,
-        null=True,  # Allow null initially or for types not needing it
-        blank=True,  # Allow blank in admin
     )
     target_value = models.PositiveIntegerField(
         verbose_name=_("Target Value"),

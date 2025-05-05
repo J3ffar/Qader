@@ -12,7 +12,19 @@ class BadgeAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
     readonly_fields = ("icon_preview",)  # Show preview in detail view as well
     fieldsets = (
-        (None, {"fields": ("name", "slug", "description", "criteria_description")}),
+        (
+            None,
+            {
+                "fields": (
+                    "name",
+                    "slug",
+                    "description",
+                    "criteria_description",
+                    "criteria_type",
+                    "target_value",
+                )
+            },
+        ),
         (
             _("Icon"),
             {"fields": ("icon", "icon_preview")},  # Show preview next to upload
