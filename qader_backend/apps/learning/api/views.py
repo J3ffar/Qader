@@ -105,7 +105,8 @@ class LearningSubSectionViewSet(viewsets.ReadOnlyModelViewSet):
     """
 
     queryset = (
-        LearningSubSection.objects.select_related("section")
+        LearningSubSection.objects.filter(is_active=True)
+        .select_related("section")
         .all()
         .order_by("section__order", "order")
     )

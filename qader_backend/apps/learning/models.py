@@ -110,6 +110,14 @@ class LearningSubSection(TimeStampedModel):
             "Determines the display order within its parent section (lower numbers first)."
         ),
     )
+    is_active: bool = models.BooleanField(
+        _("Active Status"),
+        default=True,
+        db_index=True,
+        help_text=_(
+            "Designates whether this sub-section is active and should be used in question selections, filters, etc."
+        ),
+    )
 
     class Meta:
         verbose_name = _("Learning Sub-Section")
@@ -118,7 +126,8 @@ class LearningSubSection(TimeStampedModel):
         unique_together = ("section", "name")  # Name must be unique within a section
 
     def __str__(self) -> str:
-        return f"{self.section.name} - {self.name}"
+        status = "" if self.is_active else " (Inactive)"
+        return f"{self.section.name} - {self.name}{status}"
 
     def save(self, *args, **kwargs) -> None:
         """Overrides save method to auto-generate slug if blank."""

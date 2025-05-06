@@ -35,6 +35,7 @@ class LearningSubSectionSerializer(serializers.ModelSerializer):
             "slug",
             "description",
             "order",
+            "is_active",
             # "skills",  # Uncomment if nested skills are desired in Subsection list/detail views
         ]
         read_only_fields = fields
