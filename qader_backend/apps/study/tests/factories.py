@@ -1,5 +1,3 @@
-# qader_backend/apps/study/tests/factories.py
-
 import factory
 from factory.django import DjangoModelFactory
 from django.utils import timezone
@@ -279,9 +277,34 @@ class EmergencyModeSessionFactory(DjangoModelFactory):
     # Provide a default valid plan structure
     suggested_plan = factory.LazyFunction(
         lambda: {
-            "focus_skills": ["skill-slug-1", "skill-slug-2"],
-            "recommended_questions": 15,
-            "quick_review_topics": ["Topic A", "Topic B"],
+            "focus_area_names": ["Quantitative"],  # Plain string
+            "estimated_duration_minutes": 30,
+            "target_skills": [
+                {
+                    "slug": "skill-slug-1",
+                    "name": "Skill Name 1",
+                    "reason": "Low score",
+                    "current_proficiency": 0.2,
+                    "subsection_name": "Sub Name 1",
+                },
+                {
+                    "slug": "skill-slug-2",
+                    "name": "Skill Name 2",
+                    "reason": "Not attempted",
+                    "current_proficiency": None,
+                    "subsection_name": "Sub Name 2",
+                },
+            ],
+            "recommended_question_count": 15,
+            "quick_review_topics": [
+                {
+                    "slug": "topic-a",
+                    "name": "Topic A",
+                    "description": "Desc A",
+                },  # Plain strings
+                {"slug": "topic-b", "name": "Topic B", "description": "Desc B"},
+            ],
+            "motivational_tips": ["Default Tip 1", "Default Tip 2"],  # Plain strings
         }
     )
     calm_mode_active = False

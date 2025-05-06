@@ -94,3 +94,4 @@ class EmergencyModeAnswerResponseSerializer(serializers.Serializer):
     )
     explanation = serializers.CharField(allow_blank=True, allow_null=True)
     points_earned = serializers.IntegerField(default=0)  # Typically 0 in emergency mode
+    feedback = serializers.JSONField()
