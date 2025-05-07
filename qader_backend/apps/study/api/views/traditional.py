@@ -6,7 +6,7 @@ from rest_framework.exceptions import (
     PermissionDenied,
     NotFound,
     APIException,
-    ValidationError,
+    ValidationError as DRFValidationError,
 )
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import (
@@ -130,7 +130,7 @@ class TraditionalPracticeStartView(generics.GenericAPIView):
                 not_mastered=validated_data.get("not_mastered", False),
             )
 
-        except (ValidationError, UsageLimitExceeded) as e:
+        except (DRFValidationError, UsageLimitExceeded) as e:
             status_code = (
                 status.HTTP_403_FORBIDDEN
                 if isinstance(e, UsageLimitExceeded)
@@ -231,14 +231,30 @@ class TraditionalQuestionListView(generics.ListAPIView):
 
     def _parse_int_list_param(self, param_name: str) -> Optional[List[int]]:
         val_str = self.request.query_params.get(param_name)
-        ids = []
         if not val_str:
             return None
-        try:
-            ids = [int(s.strip()) for s in val_str.split(",") if s.strip().isdigit()]
-            return ids
-        except ValueError:
-            raise ValidationError({param_name: [_("Invalid integer list format.")]})
+
+        ids = []
+        # Split and strip parts first
+        parts = [s.strip() for s in val_str.split(",") if s.strip()]
+        if not parts:  # Handles cases like val_str = "," or " , , "
+            return None
+
+        for part in parts:
+            if not part.isdigit():  # Check if the part consists only of digits
+                # Raise a validation error specific to this parameter
+                raise DRFValidationError(
+                    {param_name: [f"Invalid value '{part}'. All IDs must be integers."]}
+                )
+            try:
+                ids.append(int(part))
+            except (
+                ValueError
+            ):  # Should ideally be caught by isdigit, but as a safeguard
+                raise DRFValidationError(
+                    {param_name: [f"Could not convert '{part}' to an integer."]}
+                )
+        return ids
 
     def get_queryset(self):
         user = self.request.user
@@ -255,13 +271,8 @@ class TraditionalQuestionListView(generics.ListAPIView):
             starred = self._parse_bool_param("starred")
             not_mastered = self._parse_bool_param("not_mastered")
             exclude_ids = self._parse_int_list_param("exclude_ids")
-        except ValidationError as e:
-            # Re-raise validation error for DRF to handle
-            raise e
 
-        # Use the central service function to get questions
-        try:
-            # Pass proficiency threshold from settings if needed by service
+            # Use the central service function to get questions
             return study_services.get_filtered_questions(
                 user=user,
                 limit=limit,
@@ -270,12 +281,23 @@ class TraditionalQuestionListView(generics.ListAPIView):
                 starred=starred,
                 not_mastered=not_mastered,
                 exclude_ids=exclude_ids,
-                # proficiency_threshold=settings.DEFAULT_PROFICIENCY_THRESHOLD # Example
             )
-        except Exception as e:
+        except (
+            DRFValidationError
+        ) as e:  # Catch DRF's DRFValidationError (from _parse_ methods or service)
+            # Let DRF's main exception handler convert this to a 400 response
+            raise e
+        except APIException as e:  # Catch other specific APIExceptions
+            logger.error(
+                f"APIException fetching traditional questions for user {user.id}: {e}",
+                exc_info=True,
+            )
+            raise e
+        except Exception as e:  # Catch any other unexpected errors
             logger.exception(
-                f"Error fetching traditional questions for user {user.id}: {e}"
+                f"Unexpected error fetching traditional questions for user {user.id}: {e}"
             )
+            # Convert to a generic APIException for a 500 response
             raise APIException(_("An error occurred while fetching questions."))
 
 
