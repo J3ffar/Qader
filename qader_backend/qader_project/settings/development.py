@@ -25,15 +25,16 @@ REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"].append(
 )
 
 # Use console email backend for development
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
 # Use SQLite for simpler local dev if needed (but Postgres parity is better)
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+if not config("DATABASE_URL"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
 
 # Less strict password hashing for faster tests/dev
 PASSWORD_HASHERS = [
