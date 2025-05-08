@@ -31,7 +31,8 @@ const advantages = [
 
 const AdvantageSection = () => {
   return (
-    <div className="h-full flex justify-center items-center max-md:flex-col-reverse p-6 gap-9">
+    <div className=" bg-[#FDFDFD] dark:bg-[#081028]">
+    <div className="h-full flex justify-center items-center max-md:flex-col-reverse py-6 container mx-auto px-0 gap-9">
       {/* Text Content Section */}
       <div className="w-full flex-1/2">
         {" "}
@@ -39,18 +40,16 @@ const AdvantageSection = () => {
         <h3 className="text-4xl font-bold">
           لماذا يجب على العملاء أن يختارونا؟
         </h3>
-        <p className="text-xl text-gray-600">
+        <p className="text-xl text-gray-600 dark:text-[#D9E1FA]">
           ما الذى يجعلنا نتميز عن المنافسين.
         </p>
         <div className="flex flex-col gap-3 mt-6">
           {advantages.map((advantage) => (
             <p
               key={advantage.id}
-              className={`p-4 rounded-3xl transition delay-150 duration-300 ease-in-out ${
-                advantage.initialBg
-              } ${advantage.initialText} ${
-                advantage.id !== 1 ? "hover:bg-[#074182] hover:text-white" : "" // Apply hover only if not the first item
-              }`}
+              className={`p-4 rounded-3xl transition delay-150 duration-300 ease-in-out font-heading dark:bg-[#0B1739] bg-[#E7F1FE] hover:dark:bg-[#053061]
+                 hover:bg-[#074182] hover:text-[#FDFDFD]   hover:dark:font-[600] hover:dark:text-[#FDFDFD] text-[22px]
+              `}
             >
               {`${advantage.id} ${advantage.text}`} {/* Use template literal */}
             </p>
@@ -68,6 +67,7 @@ const AdvantageSection = () => {
           height={600}
         />
       </div>
+    </div>
     </div>
   );
 };
