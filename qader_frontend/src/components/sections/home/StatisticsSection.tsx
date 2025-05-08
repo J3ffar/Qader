@@ -9,7 +9,8 @@ const statsData = [
 
 const StatisticsSection = () => {
   return (
-    <div className="flex flex-col justify-center items-center p-9 bg-muted/50 dark:bg-slate-800/50 rounded-lg my-8">
+    <div className=" bg-[#F9F9FA] dark:bg-[#0B1739]">
+    <div className="flex flex-col justify-center items-center py-9 container mx-auto px-0">
       {" "}
       {/* Added background, margin, rounding */}
       {/* Section Header */}
@@ -17,25 +18,26 @@ const StatisticsSection = () => {
         تعرف على إحصائياتنا
       </h2>{" "}
       {/* Use إ not أ */}
-      <p className="text-xl text-muted-foreground mb-8 text-center">
+      <p className="text-xl mb-8 text-center dark:text-[#D9E1FA]">
         {" "}
         {/* Use muted foreground, added margin */}
         أرقام نفخر بها وتعكس نجاحنا مع طلابنا. {/* Example text */}
       </p>
       {/* Statistics Cards */}
-      <div className="flex justify-center items-center gap-6 md:gap-9 flex-wrap">
+      <div className="flex justify-between items-center  flex-wrap w-full">
         {statsData.map((stat) => (
           <div
             key={stat.id}
-            className="p-8 sm:p-10 bg-card rounded-lg text-2xl font-bold flex justify-center items-center flex-col border-2 border-[#cfe4fc] shadow-md" // Use theme colors
+            className="py-5 px-2 bg-card rounded-lg text-2xl font-bold flex justify-center items-center flex-col border-2 border-[#cfe4fc] shadow-md w-[330px] min-w-[250px]" // Use theme colors
           >
-            <h3 className="text-primary text-3xl mb-1">{stat.value}</h3>{" "}
+            <h3 className="text-primary lg:text-4xl md:text-3xl text-2xl mb-1">{stat.value}</h3>{" "}
             {/* Use theme primary color */}
-            <h3 className="text-foreground text-xl">{stat.label}</h3>{" "}
+            <h3 className="text-foreground lg:text-3xl md:text-2xl text-xl">{stat.label}</h3>{" "}
             {/* Use theme foreground color */}
           </div>
         ))}
       </div>
+    </div>
     </div>
   );
 };
