@@ -146,3 +146,11 @@ h6 {
 .animate-fade-in-scale {
   animation: fade-in-scale 0.3s ease-out forwards;
 }
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
