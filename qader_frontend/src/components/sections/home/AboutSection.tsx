@@ -2,10 +2,12 @@ import React from "react";
 import Image from "next/image";
 import { ArrowUpLeft } from "lucide-react";
 import { Button } from "@/components/ui/button"; // Assuming ui is directly under components
+import { div } from "framer-motion/client";
 
 const AboutSection = () => {
   return (
-    <div className="flex justify-center items-center p-6 gap-7 max-md:flex-col-reverse h-full">
+    <div className=" bg-[#FDFDFD] dark:bg-[#081028]">
+    <div className="flex justify-center items-center py-6 gap-7 max-md:flex-col-reverse h-full container mx-auto px-0 ">
       {/* Image Section */}
       <div>
         <Image
@@ -19,7 +21,7 @@ const AboutSection = () => {
       {/* Text Content Section */}
       <div>
         <h2 className="text-4xl font-bold">من نحن؟</h2>
-        <p className="text-xl mt-4 text-gray-600 max-w-xl">
+        <p className="text-xl mt-4 text-gray-600 max-w-xl dark:text-[#D9E1FA]">
           هنا يمكنك تقديم نفسك و من انت و ما القصة التى تريد ان ترويها عن علامتك
           التجارية او عملك
         </p>
@@ -29,6 +31,7 @@ const AboutSection = () => {
           {/* Added margin for spacing */}
         </Button>
       </div>
+    </div>
     </div>
   );
 };
