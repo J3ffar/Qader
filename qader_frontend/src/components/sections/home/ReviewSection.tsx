@@ -9,11 +9,11 @@ const reviewsData = [
     title: "طالب", // Example Title
     quote:
       "منصة قادر ساعدتني كثيراً في التحضير لاختبار القدرات، شرح واضح وتمارين مفيدة.", // Example Quote
-    borderColor: "border-r-[#074182]",
-    initialScale: "scale-105",
-    hoverBorder: "", // No hover change for the first one if intended
-    hoverShadow: "", // No hover change for the first one if intended
-    hoverScale: "", // No hover change for the first one if intended
+      borderColor: "border-r-[#e78b48]",
+      initialScale: "",
+      hoverBorder: "hover:border-r-[#074182]",
+      hoverShadow: "hover:shadow-2xl",
+      hoverScale: "hover:scale-105",
   },
   {
     id: 2,
@@ -57,7 +57,8 @@ const ReviewCard = ({ review }: { review: (typeof reviewsData)[0] }) => (
 
 const ReviewSection = () => {
   return (
-    <div className="p-6 sm:p-8 md:p-10">
+    <div className=" bg-[#F9F9FA] dark:bg-[#0B1739]">
+    <div className="py-6 sm:py-8 md:py-10 container mx-auto px-0">
       {" "}
       {/* Adjusted padding */}
       {/* Section Header */}
@@ -67,12 +68,12 @@ const ReviewSection = () => {
         <h2 className="text-4xl font-bold mb-2">
           {" "}
           {/* Added margin */}
-          ماذا قالوا <span className="text-[#074182]">عنا؟</span>
+          ماذا قالوا <span className="text-[#074182] dark:text-[#3D93F5]">عنا؟</span>
         </h2>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-lg text-muted-foreground dark:text-[#D9E1FA]">
           {" "}
           {/* Use muted foreground, adjusted size */}
-          آراء طلابنا وتجاربهم مع منصة قادر. {/* Example text */}
+          ذكر شرح مختصر لعنوان المدح. {/* Example text */}
         </p>
       </div>
       {/* Reviews Grid */}
@@ -83,6 +84,7 @@ const ReviewSection = () => {
           <ReviewCard key={review.id} review={review} />
         ))}
       </div>
+    </div>
     </div>
   );
 };
