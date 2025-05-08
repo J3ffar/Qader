@@ -48,7 +48,7 @@ const Footer = () => {
       {" "}
       {/* Use footer tag and let parent handle width */}
       {/* Main Footer Content */}
-      <div className="bg-[#074182] p-6 flex justify-center max-md:flex-col gap-10 text-white w-full">
+      <div className="bg-[#074182] dark:bg-[#081028] p-6 flex justify-center max-md:flex-col gap-10 text-white w-full">
         {/* Left Section (Logo, About, Social) */}
         <div className="flex-1">
           {" "}
@@ -149,7 +149,7 @@ const Footer = () => {
         </div>
       </div>
       {/* Copyright Bar */}
-      <div className="bg-[#053061] text-white font-medium text-center py-3 w-full">
+      <div className="bg-[#053061] dark:bg-[#031830] text-white font-medium text-center py-3 w-full">
         {" "}
         {/* Added padding */}
         <p>© جميع الحقوق محفوظة {new Date().getFullYear()}</p>{" "}
