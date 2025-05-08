@@ -19,12 +19,13 @@ import {
   QuestionMarkCircleIcon,
   ChatBubbleOvalLeftEllipsisIcon,
 } from "@heroicons/react/24/solid";
+import { useTheme } from "next-themes";
 
 const navLinks = [
   { name: "الرئيسية", ref: "/", icon: HomeIcon },
   { name: "قصتنا", ref: "/about", icon: BookOpenIcon },
   { name: "شركاء النجاح", ref: "/partners", icon: UsersIcon },
-  { name: "صفحة المذكرة", ref: "/study", icon: PencilIcon },
+  { name: "صفحة المذاكرة", ref: "/study", icon: PencilIcon },
   { name: "الأسئلة الشائعة", ref: "/questions", icon: QuestionMarkCircleIcon },
   { name: "تواصل معنا", ref: "/contact", icon: ChatBubbleOvalLeftEllipsisIcon },
 ];
@@ -34,6 +35,12 @@ const Navbar = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const pathname = usePathname();
+
+  const { theme, setTheme } = useTheme();
+
+
+
+  const isDark = theme === "dark";
 
   const handleNav = () => setShowNav(!showNav);
   const closeNav = () => setShowNav(false);
@@ -65,8 +72,8 @@ const Navbar = () => {
   return (
     <>
       <div className="relative z-50">
-        <nav className="flex justify-between items-center shadow-lg px-4 sm:px-8 md:px-16 py-4 w-full bg-background max-md:bg-[#074182] max-md:flex-row-reverse max-md:gap-6">
-          {/* Hamburger Icon */}
+        <nav className="flex justify-between items-center shadow-lg px-4 sm:px-8 md:px-16 py-4 w-full bg-background max-md:bg-[#074182] dark:max-md:bg-[#081028] md:bg-[#FDFDFD] dark:md:bg-[#081028] max-md:flex-row-reverse max-md:gap-6">
+          {/* Hamburger Icon 'we will back to her later' */}
           <div className="hidden max-md:flex">
             <button
               onClick={handleNav}
@@ -85,17 +92,18 @@ const Navbar = () => {
             <Link href="/">
               <Image
                 alt="Qader Logo"
-                src="/images/logo.svg"
+                src={isDark ? "/images/logodrk.png" : "/images/logo.svg"}
                 width={100}
                 height={40}
                 className="max-md:hidden"
               />
+             
               <Image
                 alt="Qader Logo"
                 src="/images/logo.png"
                 width={100}
                 height={40}
-                className="max-md:flex hidden"
+                className="max-md:flex hidden "
               />
             </Link>
           </div>
@@ -106,29 +114,31 @@ const Navbar = () => {
               <li key={item.name}>
                 <Link
                   href={item.ref}
-                  className={`font-bold transition-colors hover:text-[#074182] ${
+                  className={` max-[1190px]:text-[13px] transition-colors hover:text-[#074182] text-[#074182] dark:text-[#3D93F5] dark:hover:text-[#3D93F5] ${
                     pathname === item.ref
-                      ? "text-[#074182]"
-                      : "text-muted-foreground"
+                      ? " font-[600] "
+                      : "text-black dark:text-[#FDFDFD]"
                   }`}
                 >
                   {item.name}
                 </Link>
               </li>
             ))}
+            <ThemeToggle />
           </ul>
 
           {/* Desktop Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="outline" onClick={openSignup}>
+          
+            <Button variant="outline" className=" border-[2px] hover:border-[2px] font-[700] hover:border-[#074182] dark:hover:border-[#3D93F5] dark:border-[#3D93F5] dark:bg-[#3D93F5] hover:dark:bg-white " onClick={openSignup}>
               <UserPlusIcon className="w-5 h-5 ml-1" />
-              <span className="hidden xl:inline"> اشتراك</span>
+              <span className="hidden lg:inline "> اشتراك</span>
             </Button>
-            <Button variant="default" onClick={openLogin}>
+            <Button variant="default" className="  border-[2px] font-[700] hover:border-[#074182] dark:hover:border-[#3D93F5] dark:border-[#3D93F5]" onClick={openLogin}>
               <UserIcon className="w-5 h-5 ml-1" />
-              <span className="hidden xl:inline">تسجيل الدخول</span>
+              <span className="hidden lg:inline">تسجيل الدخول</span>
             </Button>
-            <ThemeToggle />
+            
           </div>
         </nav>
 
