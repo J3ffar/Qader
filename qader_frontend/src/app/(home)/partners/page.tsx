@@ -9,19 +9,19 @@ const Partners: React.FC = () => {
   const [showPopup, setShowPopup] = useState(false);
 
   return (
-    <div className='p-8'>
+    <div className='p-8 dark:bg-[#0B1739]'>
       <div className='flex justify-center items-center flex-col'>
         <h2 className='text-4xl font-bold'>شركاء النجاح</h2>
-        <p className='text-gray-800 text-lg max-w-xl mt-4'>لديك سؤال؟ لديناالاجابة, ابحث عن سؤالك هنا...</p>
+        <p className='text-gray-800 text-lg max-w-xl mt-4 dark:text-[#D9E1FA]'>لديك سؤال؟ لديناالاجابة, ابحث عن سؤالك هنا...</p>
       </div>
 
       <div className='flex justify-center items-center gap-4 mt-10 max-md:flex-wrap max-sm:flex-col'>
         {[1, 2, 3].map((_, i) => (
-          <div key={i} className='flex flex-col gap-4 justify-center items-center p-4 bg-[#f7fafe] rounded-3xl border border-[#074182] hover:border-[#56769b] hover:scale-105 transition delay-150 duration-300 ease-in-out'>
+          <div key={i} className='flex flex-col gap-4 justify-center items-center p-4 bg-[#f7fafe] rounded-3xl border border-[#074182] hover:border-[#56769b] dark:bg-[#074182] hover:scale-105 transition delay-150 duration-300 ease-in-out'>
             <Image src={`/images/partner${i + 1}.png`} width={70} height={70} alt='' />
             <h3 className='text-2xl font-bold'>{`شراكة ${['الطلاب', 'المدارس', 'الدورات'][i]}`}</h3>
             <p className='text-center'>النص هنا النص هنا النص هنا النص هنا النص هنا النص هنا</p>
-            <Button variant='outline' onClick={() => setShowPopup(true)}>
+            <Button variant='outline' className=" border-[2px] hover:border-[2px] font-[700] hover:border-[#074182] dark:hover:border-[#3D93F5] dark:border-[#3D93F5] dark:bg-[#3D93F5] hover:dark:bg-transparent " onClick={() => setShowPopup(true)}>
               قدم طلب شراكة <PaperAirplaneIcon className='w-5 h-5' />
             </Button>
           </div>
@@ -30,7 +30,7 @@ const Partners: React.FC = () => {
 
       <div className='flex justify-center items-center gap-7 mt-14 max-md:flex-col-reverse'>
         <div className='flex-1/2'>
-          <h3 className='text-3xl font-bold text-[#074182]'>لماذا الشراكه معنا؟</h3>
+          <h3 className='text-3xl font-bold text-[#074182] dark:text-[#3D93F5]'>لماذا الشراكه معنا؟</h3>
           <p>النص هنا النص هنا النص هنا النص هنا النص هنا النص هنا النص هنا النص هنا...</p>
         </div>
         <div className='flex-1/2 flex justify-center'>
