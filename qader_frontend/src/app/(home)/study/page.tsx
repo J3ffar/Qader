@@ -46,10 +46,10 @@ const StudyPage = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-100 text-white">
+    <div className="flex min-h-screen dark:bg-[#081028] text-white">
       {/* Sidebar */}
       <div
-        className="flex flex-col bg-[#074182] relative transition-all duration-300 ease-in-out"
+        className="flex flex-col bg-[#074182] dark:bg-[#081028]  relative transition-all duration-300 ease-in-out border-l-[1px] border-gray-300"
         style={{ width: isOpen ? 220 : 100 }}
       >
         {/* زر الفتح/الإغلاق */}
@@ -182,9 +182,9 @@ const StudyPage = () => {
       {/* Main content */}
       <div className="flex-1 flex items-center justify-center flex-col">
         <Image src={"/images/open-folder.png"} width={100} height={100} alt="" />
-        <p className="font-semibold text-xl text-black">لا توجد ملفات لعرضها</p>
-        <p className="text-gray-500 w-[180px] text-center">قم بإنشاء حساب لتستفيد من ميزات قادر</p>
-        <Button variant="outline" className="w-48 gap-2 mt-4">
+        <p className="font-semibold text-xl text-black dark:text-white">لا توجد ملفات لعرضها</p>
+        <p className="text-gray-500 w-[180px] text-center dark:text-[#D9E1FA]">قم بإنشاء حساب لتستفيد من ميزات قادر</p>
+        <Button variant="outline" className="w-48 gap-2 mt-4 border-[2px] hover:border-[2px] font-[700] hover:border-[#074182] dark:hover:border-[#3D93F5] dark:border-[#3D93F5] dark:bg-[#3D93F5] hover:dark:bg-transparent ">
           <UserPlusIcon className="w-5 h-5" />
           <span> اشتراك</span>
         </Button>
