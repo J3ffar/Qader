@@ -36,11 +36,11 @@ const ContactUs = () => {
           <Image src={"/images/send-2.png"} width={40} height={40} className='w-10 h-10 p-2 rounded-full bg-gray-200 transition delay-150 duration-300 ease-in-out hover:bg-gray-300' alt='' /> 
         </div>
       </div>
-      <div className="max-w-lg mx-auto p-6 bg-white shadow-xl rounded-lg flex-1/2">
+      <div className="max-w-lg mx-auto p-6 bg-white dark:bg-[#0B1739] shadow-xl rounded-lg flex-1/2">
       <div className="space-y-4">
         {/* Full Name */}
        <div className="space-y-2">
-  <label htmlFor="username" className="block text-gray-700 font-bold">الاسم بالكامل</label>
+  <label htmlFor="username" className="block text-gray-700 font-bold dark:text-[#FDFDFD]">الاسم بالكامل</label>
 
   <div className="relative">
     <span className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -55,7 +55,7 @@ const ContactUs = () => {
       onChange={(e) => setUsername(e.target.value)} 
       onFocus={() => setIsUsernameFocused(true)}
       onBlur={() => setIsUsernameFocused(false)}
-      className="w-full pl-4 pr-10 py-2 bg-gray-100 rounded-md focus:outline-none focus:border focus:border-[#F34B4B] focus:placeholder:text-[#F34B4B]"
+      className="w-full pl-4 pr-10 py-2 bg-gray-100 dark:bg-transparent rounded-md focus:outline-none focus:border focus:border-[#F34B4B] focus:placeholder:text-[#F34B4B]"
     />
   </div>
 
@@ -66,7 +66,7 @@ const ContactUs = () => {
 
         {/* Email */}
  <div className="space-y-2">
-  <label htmlFor="email" className="block text-gray-700 font-bold">البريد الإلكتروني</label>
+  <label htmlFor="email" className="block text-gray-700 font-bold dark:text-[#FDFDFD]">البريد الإلكتروني</label>
 
   <div className="relative">
     <span className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -81,7 +81,7 @@ const ContactUs = () => {
       onChange={(e) => setEmail(e.target.value)} 
       onFocus={() => setIsEmailFocused(true)}
       onBlur={() => setIsEmailFocused(false)}
-      className="w-full pl-4 pr-10 py-2 bg-gray-100 rounded-md focus:outline-none focus:border focus:border-[#F34B4B] focus:placeholder:text-[#F34B4B]"
+      className="w-full pl-4 pr-10 py-2 bg-gray-100 dark:bg-transparent rounded-md focus:outline-none focus:border focus:border-[#F34B4B] focus:placeholder:text-[#F34B4B]"
     />
   </div>
 
@@ -92,36 +92,36 @@ const ContactUs = () => {
 
         {/* Subject */}
         <div className="space-y-2">
-          <label htmlFor="subject" className="block text-gray-700 font-bold">عنوان الموضوع</label>
+          <label htmlFor="subject" className="block text-gray-700 font-bold dark:text-[#FDFDFD]">عنوان الموضوع</label>
           <input 
             id="subject" 
             type="text" 
             placeholder="ادخل عنوان الموضوع" 
             value={subject} 
             onChange={(e) => setSubject(e.target.value)} 
-            className="w-full px-4 py-2 bg-gray-100 rounded-md focus:outline-none focus:border"
+            className="w-full px-4 py-2 bg-gray-100 dark:bg-transparent rounded-md focus:outline-none focus:border"
           />
         </div>
 
         {/* Message */}
         <div className="space-y-2">
-          <label htmlFor="message" className="block text-gray-700 font-bold">الرسالة</label>
+          <label htmlFor="message" className="block text-gray-700 font-bold dark:text-[#FDFDFD]">الرسالة</label>
           <textarea 
             id="message" 
             placeholder="اكتب رسالتك هنا" 
             value={message} 
             onChange={(e) => setMessage(e.target.value)} 
-            className="w-full px-4 py-2 bg-gray-100 rounded-md focus:outline-none focus:border"
+            className="w-full px-4 py-2 bg-gray-100 dark:bg-transparent rounded-md focus:outline-none focus:border"
           />
         </div>
 
         {/* File Upload */}
         <div className="space-y-2">
-  <label htmlFor="file" className="block text-gray-700 font-bold">ارفاق ملف</label>
+  <label htmlFor="file" className="block text-gray-700 font-bold dark:text-[#FDFDFD]">ارفاق ملف</label>
   
   <label
     htmlFor="file"
-    className="flex items-center justify-center gap-2 w-full h-32 px-4 py-6 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-blue-400 bg-gray-100 transition"
+    className="flex items-center justify-center  gap-2 dark:bg-transparent w-full h-32 px-4 py-6 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-blue-400 bg-gray-100 transition"
   >
     <FolderOpenIcon className="h-6 w-6 text-gray-500" />
     <span className="text-gray-600">ارفاق ملف</span>
@@ -131,7 +131,7 @@ const ContactUs = () => {
     id="file"
     type="file"
     onChange={handleFileChange}
-    className="hidden"
+    className="hidden dark:bg-transparent"
   />
 </div>
 
