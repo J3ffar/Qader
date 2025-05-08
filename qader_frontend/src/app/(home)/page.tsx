@@ -7,13 +7,17 @@ import CallToActionSection from "@/components/sections/home/CallToActionSection"
 
 export default function Home() {
   return (
-    <div className="container mx-auto px-4">
+    <div className="">
       <HeroSection />
       <AboutSection />
+      
       <ReviewSection />
+      
       <AdvantageSection />
+      
       <StatisticsSection />
-      <CallToActionSection />
+      
+      <CallToActionSection /> 
     </div>
   );
 }
