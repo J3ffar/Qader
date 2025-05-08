@@ -31,7 +31,7 @@ const ConditionPage: React.FC = () => {
         </ul>
       ),
       text: (
-        <div className="space-y-6 text-base text-gray-900 leading-loose">
+        <div className="space-y-6 text-base text-gray-900 leading-loose dark:text-gray-100">
           <p><strong>أولاً: تاريخ السريان</strong><br />تسري هذه الشروط اعتبارا من: (تاريخ يحدد لاحقا)</p>
           <p><strong>ثانيًا:</strong><br />تمثل هذه الاتفاقية عقدًا قانونيًّا بينكم كطرف أول وبين (اسم) المالك لموقع 'قادر' كطرف ثانٍ.</p>
           <p><strong>1. الموافقة على الشروط</strong><br />باستخدامك لموقع "قادر"، فإنك توافق على الالتزام بهذه الشروط.</p>
@@ -49,7 +49,7 @@ const ConditionPage: React.FC = () => {
     privacy: {
       title: 'سياسة الخصوصية',
       content: (
-        <ul className="space-y-3 text-lg text-gray-800">
+        <ul className="space-y-3 text-lg text-gray-800 dark:text-gray-200">
           <li className="text-[#2F80ED] cursor-pointer">1. سياسة الخصوصية</li>
           <li className="text-[#2F80ED] cursor-pointer">2. ملفات تعريف الأرتباط (Cookies)</li>
           <li className="text-[#2F80ED] cursor-pointer">3. التنصل من الضمانات</li>
@@ -60,7 +60,7 @@ const ConditionPage: React.FC = () => {
         </ul>
       ),
       text: (
-        <div className="space-y-6 text-gray-900 leading-loose">
+        <div className="space-y-6 text-gray-900 leading-loose dark:text-gray-100">
           <p><strong>1- سياسة الخصوصية</strong><br />نحن نحترم خصوصيتك ونتعهد بحماية بياناتك. باستخدامك للموقع، فإنك توافق على جمع واستخدام معلوماتك وفقًا لسياسة الخصوصية الخاصة بنا، والتي تشمل:</p>
           <p>• جمع بيانات مثل الاسم، البريد الإلكتروني، الموقع الجغرافي، وسجل الاستخدام.<br />• استخدام البيانات لتحسين تجربة المستخدم وتقديم محتوى مخصص.<br />• عدم مشاركة بياناتك مع أي طرف ثالث إلا في حالة الضرورة القانونية أو لتحسين خدماتنا.<br />• تأمين بياناتك عبر بروتوكولات حماية حديثة.</p>
           <p><strong>2- ملفات تعريف الارتباط (Cookies)</strong><br />• يستخدم موقعنا ملفات تعريف الارتباط لتحسين تجربة المستخدم.<br />• باستخدامك للموقع، فإنك توافق على استخدام ملفات الكوكيز بما يتماشى مع سياسة الخصوصية الخاصة بنا.</p>
@@ -78,14 +78,14 @@ const ConditionPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row p-6 md:p-10 gap-8 text-right">
+    <div className="flex flex-col md:flex-row p-6 md:p-10 gap-8 text-right dark:bg-[#081028]">
       {/* Sidebar */}
-      <div className="md:w-1/3 bg-white p-4 rounded-xl shadow">
+      <div className="md:w-1/3 bg-white dark:bg-[#0B1739] p-4 rounded-xl shadow">
         <div className="flex justify-between border-b mb-4 px-2">
           <button
             onClick={() => setActiveTab('terms')}
             className={`text-xl font-bold pb-1 cursor-pointer ${
-              activeTab === 'terms' ? 'text-[#074182] border-b-2 border-[#074182]' : 'text-gray-700'
+              activeTab === 'terms' ? 'text-[#074182] dark:text-[#3D93F5] border-b-2 border-[#074182] dark:border-[#3D93F5]' : 'text-gray-700 dark:text-[#D9E1FA]'
             }`}
           >
             الشروط والأحكام
@@ -93,18 +93,18 @@ const ConditionPage: React.FC = () => {
           <button
             onClick={() => setActiveTab('privacy')}
             className={`text-lg font-bold pb-1 cursor-pointer ${
-              activeTab === 'privacy' ? 'text-[#074182] border-b-2 border-[#074182]' : 'text-gray-700'
+              activeTab === 'privacy' ? 'text-[#074182] dark:text-[#3D93F5] border-b-2 border-[#074182] dark:border-[#3D93F5]' : 'text-gray-700 dark:text-[#D9E1FA]'
             }`}
           >
             سياسة الخصوصية
           </button>
         </div>
-        <p className="text-lg font-bold text-gray-800 mb-4 text-center">جدول المحتويات</p>
+        <p className="text-lg font-bold text-gray-800 dark:text-[#D9E1FA] mb-4 text-center">جدول المحتويات</p>
         {tabs[activeTab].content}
       </div>
 
       {/* Content */}
-      <div className="md:w-2/3 bg-gray-100 p-6 rounded-xl shadow">
+      <div className="md:w-2/3 bg-gray-100 p-6 rounded-xl shadow dark:bg-[#0B1739]">
         {tabs[activeTab].text}
       </div>
     </div>
