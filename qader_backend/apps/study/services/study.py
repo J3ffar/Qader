@@ -55,33 +55,6 @@ from apps.study.services.ai_manager import get_ai_manager
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-# --- Import AI utilities from the conversation service ---
-# Note: Ideally, AI utilities would be in a separate shared app/service.
-# For now, we import directly, assuming they are within the same 'study' app context.
-try:
-    from .conversation import (
-        client as ai_client,  # Rename to avoid potential conflicts if 'client' is used elsewhere
-        AI_MODEL,
-        DEFAULT_AI_ERROR_MSG,
-        DEFAULT_AI_RESPONSE_ERROR_MSG,
-        DEFAULT_AI_SPEECHLESS_MSG,
-        openai_init_error,  # Check if client initialized correctly
-    )
-
-    AI_AVAILABLE = ai_client is not None
-except ImportError:
-    logger.warning(
-        "Could not import AI utilities from conversation service. AI features in study service will be disabled."
-    )
-    ai_client = None
-    AI_MODEL = "N/A"
-    DEFAULT_AI_ERROR_MSG = _("AI Assistant is unavailable.")
-    DEFAULT_AI_RESPONSE_ERROR_MSG = _("AI Assistant response error.")
-    DEFAULT_AI_SPEECHLESS_MSG = _("AI Assistant is speechless.")
-    openai_init_error = "Import Error"
-    AI_AVAILABLE = False
-
-
 # --- Constants ---
 DEFAULT_PROFICIENCY_THRESHOLD = getattr(settings, "DEFAULT_PROFICIENCY_THRESHOLD", 0.7)
 EMERGENCY_MODE_DEFAULT_QUESTIONS = getattr(
