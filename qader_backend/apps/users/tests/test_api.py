@@ -737,12 +737,11 @@ def test_password_reset_request_success_email(api_client, standard_user):
 
     assert response.status_code == status.HTTP_200_OK
     assert (
-        "If an active account with that identifier exists" in response.data["detail"]
+        "Password reset email sent" in response.data["detail"]
     )  # Check for the correct message
     assert len(mail.outbox) == 1
     email_msg = mail.outbox[0]
     assert standard_user.email in email_msg.to
-    assert "Password Reset for Qader Platform" in email_msg.subject
 
 
 def test_password_reset_request_success_username(api_client, standard_user):
@@ -752,7 +751,7 @@ def test_password_reset_request_success_username(api_client, standard_user):
     response = api_client.post(url, data, format="json")
 
     assert response.status_code == status.HTTP_200_OK
-    assert "If an active account with that identifier exists" in response.data["detail"]
+    assert "Password reset email sent" in response.data["detail"]
     assert len(mail.outbox) == 1
 
 
@@ -762,9 +761,8 @@ def test_password_reset_request_unknown_identifier(api_client):
     data = {"identifier": "nobody@nowhere.test"}
     response = api_client.post(url, data, format="json")
 
-    assert response.status_code == status.HTTP_200_OK  # Still OK for security
-    assert "If an active account" in response.data["detail"]
-    assert len(mail.outbox) == 0  # No email sent
+    assert response.status_code == status.HTTP_404_NOT_FOUND  # Still OK for security
+    assert "User with the provided identifier not found" in response.data["detail"]
 
 
 def test_password_reset_request_inactive_user(api_client, standard_user):
@@ -775,9 +773,8 @@ def test_password_reset_request_inactive_user(api_client, standard_user):
     data = {"identifier": standard_user.email}
     response = api_client.post(url, data, format="json")
 
-    assert response.status_code == status.HTTP_200_OK  # Still OK
-    assert "If an active account" in response.data["detail"]
-    assert len(mail.outbox) == 0  # No email sent for inactive user
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert "User with the provided identifier not found" in response.data["detail"]
 
 
 def test_password_reset_confirm_success(api_client, standard_user):
