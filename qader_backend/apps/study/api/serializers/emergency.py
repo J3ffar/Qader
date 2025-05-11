@@ -26,7 +26,6 @@ class EmergencyModeStartResponseSerializer(serializers.Serializer):
     suggested_plan = (
         serializers.JSONField()
     )  # Contains focus_skills, recommended_questions, quick_review_topics
-    tips = serializers.ListField(child=serializers.CharField())
 
 
 # --- Serializer for Updating Emergency Mode Session ---

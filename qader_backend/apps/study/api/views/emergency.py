@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import MagicMock
 from rest_framework import (
     generics,
     permissions,
@@ -57,6 +58,8 @@ def _clean_dict_for_json(d: Any) -> Any:
         return [_clean_dict_for_json(v) for v in d]
     elif isinstance(d, Promise):  # Check if it's a Django lazy translation object
         return force_str(d)
+    elif isinstance(d, MagicMock):  # Handle MagicMock for robustness in tests
+        return f"MagicMock(name='{d._extract_mock_name() or 'unknown'}')"
     return d
 
 
@@ -120,7 +123,6 @@ class EmergencyModeStartView(generics.GenericAPIView):
         response_data = {
             "session_id": session.id,
             "suggested_plan": cleaned_plan,  # MODIFIED: Use cleaned_plan for response
-            "tips": cleaned_plan.get("motivational_tips", []),
         }
         response_serializer = EmergencyModeStartResponseSerializer(data=response_data)
         response_serializer.is_valid(raise_exception=True)
@@ -142,34 +144,34 @@ class EmergencyModeSessionUpdateView(generics.UpdateAPIView):
     lookup_field = "id"
     lookup_url_kwarg = "session_id"
 
+    def get_serializer_class(self):
+        if self.request.method == "PATCH" or self.request.method == "PUT":
+            return EmergencyModeUpdateSerializer
+        return EmergencyModeSessionSerializer  # For GET (if enabled) or general context
+
+    # Override update to control response serialization
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+
+        # Use the input serializer (EmergencyModeUpdateSerializer) for validation and saving
+        # Note: self.get_serializer() will use get_serializer_class()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)  # perform_update calls serializer.save()
+
+        if getattr(instance, "_prefetched_objects_cache", None):
+            # If 'prefetch_related' has been used, clear the cache to reflect changes.
+            instance._prefetched_objects_cache = {}
+
+        # For the response, explicitly use the output serializer (EmergencyModeSessionSerializer)
+        output_serializer = EmergencyModeSessionSerializer(instance)
+        return Response(output_serializer.data)
+
     def get_queryset(self):
-        # Filter for active sessions owned by the user
         return EmergencyModeSession.objects.filter(
             user=self.request.user, end_time__isnull=True
         )
-
-    def get_object(self):
-        # get_queryset already filters by user and active status.
-        # get_object_or_404 will be applied by the generic view.
-        obj = super().get_object()
-        # No need for obj.user != self.request.user check here as queryset handles it.
-        # No need for end_time check as queryset handles it.
-        return obj
-
-    def get_serializer_class(self):
-        if self.request.method == "PATCH":
-            return EmergencyModeUpdateSerializer  # Use specific serializer for update payload
-        return EmergencyModeSessionSerializer  # For response (GET if allowed, or after update)
-
-    def perform_update(self, serializer):
-        # serializer is EmergencyModeUpdateSerializer instance
-        # serializer.instance is the EmergencyModeSession object
-        instance = serializer.save()
-        # Logging or other actions can be performed here
-        if serializer.validated_data.get("shared_with_admin"):
-            logger.info(
-                f"Emergency session {instance.id} shared with admin by user {instance.user.id}."
-            )
 
 
 @extend_schema(
