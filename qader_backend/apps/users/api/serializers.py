@@ -67,13 +67,9 @@ class SubscriptionDetailSerializer(serializers.Serializer):
         source="get_account_type_display",  # Assumes model method returns display string
         help_text="Display name of the user's current account type (e.g., 'Free Trial', 'Subscribed').",
     )
-    # serial_code = serializers.CharField(read_only=True, source="serial_code_used.code", allow_null=True) # Alternative direct source
-
-    # Using SerializerMethodField gives more control if needed
 
     def get_serial_code(self, profile: UserProfile) -> Optional[str]:
         """Safely return the code of the last used serial."""
-        # Check if serial_code_used exists and has a code attribute
         if profile.serial_code_used and hasattr(profile.serial_code_used, "code"):
             return profile.serial_code_used.code
         return None
@@ -99,17 +95,12 @@ class ReferralDetailSerializer(serializers.Serializer):
 
     def get_referrals_count(self, profile: UserProfile) -> int:
         """Calculate the number of users referred by this profile's user."""
-        # Assumes related_name='referrals_made' on UserProfile.referred_by
-        # Ensure the related user exists
         if hasattr(profile, "user") and profile.user:
-            return (
-                profile.user.referrals_made.count()
-            )  # Counts UserProfile objects where referred_by is this user
+            return profile.user.referrals_made.count()
         return 0
 
     def get_earned_free_days(self, profile: UserProfile) -> int:
         """Calculate free days earned from referrals. (Logic needs defining)."""
-        # Example: 3 free days per referral
         referral_count = self.get_referrals_count(profile)
         days_per_referral = getattr(settings, "REFERRAL_BONUS_DAYS", 3)
         return referral_count * days_per_referral
@@ -138,21 +129,16 @@ class InitialSignupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        # Use email as username if username field is not explicitly required
         fields = ("email", "full_name", "password", "password_confirm")
         extra_kwargs = {
-            "email": {
-                "validators": []
-            },  # Remove default uniqueness validator temporarily
+            "email": {"validators": []},
         }
 
     def validate_email(self, value: str) -> str:
         """Ensure email is unique (case-insensitive) among active or inactive users."""
         if User.objects.filter(email__iexact=value).exists():
-            # Check if the existing user is inactive and potentially pending confirmation
             existing_user = User.objects.filter(email__iexact=value).first()
             if existing_user and not existing_user.is_active:
-                # Optional: Allow re-sending confirmation? Or just block?
                 raise serializers.ValidationError(
                     _(
                         "This email address is pending confirmation or already registered."
@@ -161,7 +147,7 @@ class InitialSignupSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 _("A user with this email already exists.")
             )
-        return value.lower()  # Standardize email to lowercase
+        return value.lower()
 
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """Validate password confirmation."""
@@ -169,7 +155,6 @@ class InitialSignupSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"password_confirm": _("Password fields didn't match.")}
             )
-        # Trigger Django's password validation
         try:
             validate_password(attrs["password"], user=None)
         except DjangoValidationError as e:
@@ -184,26 +169,20 @@ class InitialSignupSerializer(serializers.ModelSerializer):
         full_name = validated_data["full_name"]
 
         try:
-            # Use email as username if username field is not present/required
             username = validated_data.get("username", email)
-
             user = User.objects.create_user(
-                username=username,  # Use email or provided username
+                username=username,
                 email=email,
                 password=password,
-                is_active=False,  # User starts as inactive
+                is_active=False,
             )
-
-            # Access profile created by signal and set full_name
-            profile = user.profile  # Profile exists due to signal
+            profile = user.profile
             profile.full_name = full_name
             profile.save(update_fields=["full_name"])
-
             logger.info(
                 f"Inactive user '{user.username}' created, pending email confirmation."
             )
             return user
-
         except IntegrityError as e:
             logger.warning(f"IntegrityError during initial signup for {email}: {e}")
             error_msg = str(e).lower()
@@ -227,7 +206,6 @@ class InitialSignupSerializer(serializers.ModelSerializer):
 class CompleteProfileSerializer(serializers.ModelSerializer):
     """Serializer for completing the user profile after email confirmation."""
 
-    # Fields required for completion
     gender = serializers.ChoiceField(
         choices=GenderChoices.choices, required=True, help_text="User's gender."
     )
@@ -269,46 +247,36 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
         write_only=True,
     )
 
-    # Explicitly defined fields for response (nested/method)
-    # These are automatically included, DO NOT list in Meta.fields
     profile_picture_url = serializers.SerializerMethodField(
         read_only=True, help_text="URL of the user's profile picture, if uploaded."
     )
     subscription = SubscriptionDetailSerializer(read_only=True, source="*")
     referral = ReferralDetailSerializer(read_only=True, source="*")
 
-    # Read-only representation of model fields also included in the response
-    # Define them here if needed, or rely on them being in read_only_fields
-    full_name = serializers.CharField(read_only=True)  # Read-only model field
-    points = serializers.IntegerField(read_only=True)  # Read-only model field
-    level_determined = serializers.BooleanField(read_only=True)  # Read-only property
+    full_name = serializers.CharField(read_only=True)
+    points = serializers.IntegerField(read_only=True)
+    level_determined = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = UserProfile
         fields = (
-            # ---- Writable Model Fields ----
-            "gender",  # Required Writeable
-            "grade",  # Required Writeable
-            "has_taken_qiyas_before",  # Required Writeable
-            "preferred_name",  # Optional Writeable
-            "profile_picture",  # Optional Writeable
-            # ---- Write-Only Fields (Defined Above) ----
+            "gender",
+            "grade",
+            "has_taken_qiyas_before",
+            "preferred_name",
+            "profile_picture",
             "serial_code",
             "referral_code_used",
-            # ---- Read-Only Fields (Explicitly defined above or listed in read_only_fields) ----
-            # These are included in the response automatically or via read_only_fields
             "full_name",
             "language",
             "points",
             "level_determined",
-            "profile_picture_url",  # From SerializerMethodField definition
-            "subscription",  # From nested serializer definition
-            "referral",  # From nested serializer definition
-            # Add other model fields if needed for response, ensure they are read-only below
+            "profile_picture_url",
+            "subscription",
+            "referral",
             "current_streak_days",
             "longest_streak_days",
         )
-        # List ONLY model fields that should be read-only *through this serializer*
         read_only_fields = (
             "full_name",
             "points",
@@ -318,46 +286,26 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
-        """Ensure all required fields for completion are provided if profile is not yet complete."""
         instance: Optional[UserProfile] = getattr(self, "instance", None)
-
-        # Only run this check if we have an instance (i.e., during update)
-        # and the profile is not already considered complete based on its current state
-        # NOTE: We check the instance *before* potential updates from attrs
         if instance and not instance.is_profile_complete:
-            # Check if required fields are present in the incoming data (attrs) OR already exist on the instance
             required_completion_fields = ["gender", "grade", "has_taken_qiyas_before"]
             missing_fields = []
-
             for field_name in required_completion_fields:
-                # Check if field is in incoming data OR already has a valid value on the instance
                 is_present_in_attrs = field_name in attrs
                 instance_value = getattr(instance, field_name, None)
-
-                # Special check for boolean field (None means not set)
                 if field_name == "has_taken_qiyas_before":
                     has_instance_value = instance_value is not None
-                    is_present_in_attrs = (
-                        attrs.get(field_name) is not None
-                    )  # Check bool presence
-                else:  # For CharField, ChoiceField etc.
-                    has_instance_value = bool(
-                        instance_value
-                    )  # Check if not None or empty string
-
+                    is_present_in_attrs = attrs.get(field_name) is not None
+                else:
+                    has_instance_value = bool(instance_value)
                 if not is_present_in_attrs and not has_instance_value:
                     missing_fields.append(field_name)
-
             if missing_fields:
                 errors = {
                     field: [_("This field is required to complete your profile.")]
                     for field in missing_fields
                 }
                 raise serializers.ValidationError(errors)
-
-        # Validate referral code against self if needed (though should be handled by validate_referral_code_used)
-        # ...
-
         return attrs
 
     def get_profile_picture_url(self, profile: UserProfile) -> Optional[str]:
@@ -370,7 +318,6 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
         return None
 
     def validate_serial_code(self, value: Optional[str]) -> Optional[SerialCode]:
-        """Validate the serial code if provided."""
         if not value:
             return None
         try:
@@ -385,10 +332,9 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("Error validating serial code."))
 
     def validate_referral_code_used(self, value: Optional[str]) -> Optional[User]:
-        """Validate the referral code if provided and return the referring user."""
         if not value:
             return None
-        user = self.context["request"].user  # User completing profile
+        user = self.context["request"].user
         try:
             profile = UserProfile.objects.select_related("user").get(
                 referral_code__iexact=value
@@ -405,7 +351,6 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("Error validating referral code."))
 
     def validate_profile_picture(self, image):
-        # Basic size validation example
         if image:
             max_upload_size = (
                 getattr(settings, "MAX_PROFILE_PIC_SIZE_MB", 5) * 1024 * 1024
@@ -418,8 +363,6 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
                 )
         return image
 
-    # No create method needed, this is for updating via PATCH
-
 
 # --- Update AuthUserResponseSerializer ---
 class AuthUserResponseSerializer(serializers.ModelSerializer):
@@ -428,15 +371,38 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
-    full_name = serializers.CharField(read_only=True)
-    preferred_name = serializers.CharField(read_only=True, allow_null=True)
-    role = serializers.CharField(read_only=True)
+    full_name = serializers.CharField(read_only=True)  # Sourced from profile.full_name
+    preferred_name = serializers.CharField(
+        read_only=True, allow_null=True
+    )  # Sourced from profile.preferred_name
+    role = serializers.CharField(read_only=True)  # Sourced from profile.role
     subscription = SubscriptionDetailSerializer(source="*", read_only=True)
     profile_picture_url = serializers.SerializerMethodField()
-    level_determined = serializers.BooleanField(read_only=True)
+    level_determined = serializers.BooleanField(
+        read_only=True
+    )  # Sourced from profile.level_determined (property)
     profile_complete = serializers.BooleanField(
-        source="is_profile_complete", read_only=True
-    )  # <-- ADDED
+        source="is_profile_complete",
+        read_only=True,  # Sourced from profile.is_profile_complete (property)
+    )
+
+    # --- Added fields as per request ---
+    is_super = serializers.BooleanField(
+        source="user.is_superuser",
+        read_only=True,
+        help_text="Indicates if the user is a superuser.",
+    )
+    is_staff = serializers.BooleanField(
+        source="user.is_staff",
+        read_only=True,
+        help_text="Indicates if the user has staff permissions.",
+    )
+    points = serializers.IntegerField(
+        read_only=True, help_text="User's current gamification points."
+    )  # Sourced from profile.points
+    current_streak_days = serializers.IntegerField(
+        read_only=True, help_text="User's current study streak in days."
+    )  # Sourced from profile.current_streak_days
 
     class Meta:
         model = UserProfile
@@ -450,9 +416,14 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
             "subscription",
             "profile_picture_url",
             "level_determined",
-            "profile_complete",  # <-- ADDED
+            "profile_complete",
+            # --- Added fields to Meta.fields ---
+            "is_super",
+            "is_staff",
+            "points",
+            "current_streak_days",
         )
-        read_only_fields = fields
+        read_only_fields = fields  # This ensures all fields listed above are read-only
 
     def get_profile_picture_url(self, profile: UserProfile) -> Optional[str]:
         request: Optional[Request] = self.context.get("request")
@@ -483,7 +454,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = (
             "user",
-            # Basic Info
             "full_name",
             "preferred_name",
             "gender",
@@ -491,17 +461,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "has_taken_qiyas_before",
             "profile_picture_url",
             "role",
-            # Gamification/Progress
             "points",
             "current_streak_days",
             "longest_streak_days",
             "last_study_activity_at",
-            # Learning Level
             "current_level_verbal",
             "current_level_quantitative",
             "level_determined",
             "profile_complete",
-            # Settings
             "language",
             "language_code",
             "last_visited_study_option",
@@ -512,7 +479,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "notify_reminders_enabled",
             "upcoming_test_date",
             "study_reminder_time",
-            # Timestamps & Relations
             "created_at",
             "updated_at",
             "subscription",
@@ -521,7 +487,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_profile_picture_url(self, profile: UserProfile) -> Optional[str]:
-        # ... (implementation remains the same) ...
         request: Optional[Request] = self.context.get("request")
         if profile.profile_picture and hasattr(profile.profile_picture, "url"):
             url = profile.profile_picture.url
@@ -534,7 +499,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating allowed user profile fields via PATCH /me/."""
 
-    # Explicitly list allowed fields and make them optional for PATCH
     full_name = serializers.CharField(required=False, max_length=255)
     language = serializers.ChoiceField(choices=settings.LANGUAGES, required=False)
     preferred_name = serializers.CharField(
@@ -542,14 +506,12 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     )
     gender = serializers.ChoiceField(
         required=False, allow_blank=True, allow_null=True, choices=GenderChoices.choices
-    )  # Allow blank
+    )
     grade = serializers.CharField(
         required=False, allow_blank=True, allow_null=True, max_length=100
     )
     has_taken_qiyas_before = serializers.BooleanField(required=False, allow_null=True)
-    profile_picture = serializers.ImageField(
-        required=False, allow_null=True
-    )  # Handles image upload
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
     last_visited_study_option = serializers.CharField(
         required=False, allow_blank=True, allow_null=True, max_length=100
     )
@@ -562,9 +524,6 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     notify_reminders_enabled = serializers.BooleanField(required=False)
     upcoming_test_date = serializers.DateField(required=False, allow_null=True)
     study_reminder_time = serializers.TimeField(required=False, allow_null=True)
-
-    # Exclude fields user shouldn't update directly
-    # e.g., role, points, streak, levels, subscription, referral code
 
     class Meta:
         model = UserProfile
@@ -630,7 +589,6 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """Cross-field validation for update."""
         attrs = self.validate_dark_mode_auto_times(attrs)
-        # Add other cross-field validations if needed
         return attrs
 
 
@@ -673,7 +631,6 @@ class PasswordChangeSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"new_password_confirm": _("New password fields didn't match.")}
             )
-        # Check if new password is the same as the old one
         if self.context["request"].user.check_password(attrs["new_password"]):
             raise serializers.ValidationError(
                 {
@@ -693,25 +650,22 @@ class PasswordResetRequestSerializer(serializers.Serializer):
     def validate_identifier(self, value: str) -> Optional[User]:
         """Check if a user exists with the given email/username (case-insensitive). Returns user or None."""
         try:
-            # Case-insensitive lookup using Q objects
             user = User.objects.get(Q(email__iexact=value) | Q(username__iexact=value))
             if not user.is_active:
                 logger.warning(f"Password reset requested for inactive user: {value}")
-                return None  # Treat inactive user as non-existent for reset purpose
-            return user  # Return the user object for the view
+                return None
+            return user
         except User.DoesNotExist:
-            # Don't reveal user existence in error message
             logger.info(f"Password reset request for non-existent identifier: {value}")
-            return None  # Validation technically passes, user just not found
+            return None
         except User.MultipleObjectsReturned:
-            # Should not happen with unique constraints, but handle defensively
             logger.error(f"Multiple users found for identifier: {value}")
-            return None  # Treat as non-existent for security
+            return None
         except Exception as e:
             logger.exception(f"Error validating password reset identifier {value}: {e}")
             raise serializers.ValidationError(
                 _("An error occurred while validating the identifier.")
-            )  # User-facing generic error
+            )
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
@@ -739,7 +693,6 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"new_password_confirm": _("New password fields didn't match.")}
             )
-        # uidb64 and token validity are checked in the view using Django's tools
         return attrs
 
 
@@ -756,11 +709,10 @@ class ApplySerialCodeSerializer(serializers.Serializer):
     def validate_serial_code(self, value: str) -> SerialCode:
         """Validate the serial code is active and unused, return the instance."""
         try:
-            # Use __iexact for case-insensitivity matching user input behavior
             code_instance = SerialCode.objects.get(
                 code__iexact=value, is_active=True, is_used=False
             )
-            return code_instance  # Return the object for use in the view's logic
+            return code_instance
         except SerialCode.DoesNotExist:
             raise serializers.ValidationError(_("Invalid or already used serial code."))
         except Exception as e:
@@ -768,9 +720,6 @@ class ApplySerialCodeSerializer(serializers.Serializer):
                 f"Unexpected error validating serial code {value} for application: {e}"
             )
             raise serializers.ValidationError(_("Error validating serial code."))
-
-    # Note: The actual application logic (marking used, updating profile) happens in the View
-    # to ensure atomicity and access to the request.user.
 
 
 class UserRedeemedSerialCodeSerializer(serializers.ModelSerializer):
@@ -783,10 +732,8 @@ class UserRedeemedSerialCodeSerializer(serializers.ModelSerializer):
         source="get_subscription_type_display", read_only=True, label=_("Plan Type")
     )
     used_at = serializers.DateTimeField(read_only=True, label=_("Redeemed On"))
-    code = serializers.CharField(read_only=True, label=_("Serial Code"))  # Added label
-    duration_days = serializers.IntegerField(
-        read_only=True, label=_("Duration (Days)")
-    )  # Added label
+    code = serializers.CharField(read_only=True, label=_("Serial Code"))
+    duration_days = serializers.IntegerField(read_only=True, label=_("Duration (Days)"))
 
     class Meta:
         model = SerialCode
