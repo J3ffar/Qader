@@ -37,6 +37,7 @@ from .serializers import (
     PointLogSerializer,
     RewardPurchaseResponseSerializer,
     StudyDayLogSerializer,
+    UserEarnedBadgeSerializer,
 )
 from ..services import purchase_reward, PurchaseError  # Import error classes
 
@@ -116,6 +117,43 @@ class BadgeListView(generics.ListAPIView):
         return queryset
 
     # No need for get_serializer_context if serializer doesn't need request directly
+
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="List My Earned Badges",
+        description="Retrieve all badges earned by the current authenticated user, ordered by most recently earned.",
+        responses={200: UserEarnedBadgeSerializer(many=True)},
+        tags=["Gamification"],
+    )
+)
+class UserEarnedBadgesListView(generics.ListAPIView):
+    """
+    Lists all badges earned by the authenticated user.
+    The response includes details of each badge and the timestamp it was earned.
+    Results are ordered by the date earned, with the most recent first.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserEarnedBadgeSerializer
+    # Pagination will use global DRF settings if configured, otherwise no pagination.
+    # If you want to explicitly disable pagination for this view:
+    # pagination_class = None
+
+    def get_queryset(self):
+        """
+        Returns a queryset of UserBadge instances for the current authenticated user.
+        It pre-fetches related Badge data to optimize database queries.
+        """
+        user = self.request.user
+        # Query UserBadge entries for the current user
+        # select_related('badge') to efficiently fetch badge details in the same query
+        # order_by('-earned_at') to show most recently earned badges first
+        return (
+            UserBadge.objects.filter(user=user)
+            .select_related("badge")
+            .order_by("-earned_at")
+        )
 
 
 @extend_schema_view(

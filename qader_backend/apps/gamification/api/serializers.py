@@ -91,6 +91,57 @@ class BadgeSerializer(serializers.ModelSerializer):
         return getattr(obj, "user_earned_at", None) is not None
 
 
+class NestedBadgeSerializer(serializers.ModelSerializer):
+    """
+    A serializer for Badge details, intended for nesting within other serializers
+    like UserEarnedBadgeSerializer. Excludes user-specific earning status from BadgeSerializer.
+    """
+
+    icon_url = serializers.ImageField(
+        source="icon",  # Get data from the 'icon' model field
+        read_only=True,
+        use_url=True,  # Ensure it outputs the URL
+        help_text=_("URL of the badge icon image."),
+    )
+
+    class Meta:
+        model = Badge
+        fields = (
+            "id",
+            "name",
+            "slug",
+            "description",
+            "icon_url",
+            "criteria_description",
+        )
+        # Badge definitions are generally read-only in this context for users
+        read_only_fields = fields
+
+
+class UserEarnedBadgeSerializer(serializers.ModelSerializer):
+    """
+    Serializer for UserBadge, showing details of the earned badge and when it was earned.
+    """
+
+    # The 'badge' field implicitly uses the ForeignKey 'badge' on UserBadge model
+    badge = NestedBadgeSerializer(
+        read_only=True, help_text=_("Details of the earned badge.")
+    )
+    earned_at = serializers.DateTimeField(
+        read_only=True, help_text=_("Timestamp when the user earned this badge.")
+    )
+
+    class Meta:
+        model = UserBadge
+        fields = (
+            "id",  # ID of the UserBadge entry (the specific instance of earning)
+            "badge",  # Nested badge information using NestedBadgeSerializer
+            "earned_at",
+        )
+        # UserBadge entries are typically created by the system, not by direct user input via API
+        read_only_fields = ("id", "badge", "earned_at")
+
+
 class RewardStoreItemSerializer(serializers.ModelSerializer):
     """Serializer for items available in the reward store."""
 

@@ -13,6 +13,11 @@ urlpatterns = [
     path("summary/", views.GamificationSummaryView.as_view(), name="summary"),
     path("badges/", views.BadgeListView.as_view(), name="badge-list"),
     path(
+        "my-badges/",
+        views.UserEarnedBadgesListView.as_view(),
+        name="user-earned-badge-list",
+    ),
+    path(
         "reward-store/purchase/<int:item_id>/",
         views.RewardPurchaseView.as_view(),
         name="reward-purchase",
