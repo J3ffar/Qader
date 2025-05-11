@@ -41,6 +41,7 @@ from apps.learning.models import (
 )
 from apps.users.models import UserProfile
 from apps.study.models import (
+    ConversationSession,
     UserSkillProficiency,
     UserTestAttempt,
     UserQuestionAttempt,
@@ -49,6 +50,7 @@ from django.contrib.auth import get_user_model
 
 from apps.api.exceptions import UsageLimitExceeded
 from apps.users.services import UsageLimiter
+from apps.study.services.ai_manager import get_ai_manager
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -1246,7 +1248,7 @@ def record_traditional_action_and_get_data(
         )
 
 
-DEFAULT_EMERGENCY_TIPS = [
+DEFAULT_EMERGENCY_TIPS = [  # Ensure this is defined
     _("Take deep breaths before starting."),
     _("Focus on one question at a time."),
     _("Read questions carefully."),
@@ -1261,117 +1263,104 @@ def _generate_ai_emergency_tips(
     focus_area_names: List[str],
     available_time_hours: Optional[float] = None,
 ) -> List[str]:
-    """Generates personalized emergency tips using AI based on user context. Includes robust fallbacks."""
-    if not AI_AVAILABLE:
-        logger.warning(
-            f"AI client not available, using default tips for user {user.id}. Reason: {openai_init_error}"
-        )
-        return random.sample(
-            DEFAULT_EMERGENCY_TIPS, k=min(len(DEFAULT_EMERGENCY_TIPS), 3)
-        )
+    ai_manager = get_ai_manager()
+    # Define fallback tips here, ensuring it's always a list of 2-3 strings
+    num_fallback_tips = min(
+        len(DEFAULT_EMERGENCY_TIPS),
+        (
+            random.randint(2, 3)
+            if len(DEFAULT_EMERGENCY_TIPS) >= 2
+            else len(DEFAULT_EMERGENCY_TIPS)
+        ),
+    )
+    fallback_tips = (
+        random.sample(DEFAULT_EMERGENCY_TIPS, k=num_fallback_tips)
+        if DEFAULT_EMERGENCY_TIPS
+        else ["Stay calm and focus!"]
+    )
 
-    weak_skills_summary = [
+    if not ai_manager.is_available():
+        logger.warning(
+            f"AI manager not available for emergency tips (User {user.id}). Reason: {ai_manager.init_error}. Using default tips."
+        )
+        return fallback_tips
+
+    weak_skills_summary_list = [
         f"- {s['name']} ({s.get('reason', 'Needs practice')})"
-        for s in target_skills_data[:3]  # Use .get for reason
+        for s in target_skills_data[:3]  # Take top 3
     ]
+    weak_skills_summary_str = (
+        "\n".join(weak_skills_summary_list)
+        if weak_skills_summary_list
+        else _("  (General review recommended or user is new)")
+    )
+
     focus_areas_str = (
         ", ".join(focus_area_names)
         if focus_area_names
         else _("Verbal and Quantitative sections")
     )
+
     time_context = (
-        f"The user has approximately {available_time_hours} hours available."
+        f"The user has approximately {available_time_hours:.1f} hours available."
         if available_time_hours and available_time_hours > 0
         else "Time is limited."
     )
 
-    system_prompt = _(
-        "You are an encouraging AI assistant helping a student in 'Emergency Mode' prepare for the Qudurat test."
+    context_params_for_tips = {
+        "focus_areas_str": focus_areas_str,
+        "weak_skills_summary_str": weak_skills_summary_str,
+        "time_context": time_context,
+        # "weak_skill_example" is used in the template's example, not a direct param here
+    }
+
+    # Emergency tips usually have a specific, direct tone.
+    # The `CONTEXTUAL_INSTRUCTIONS` for `generate_emergency_tips` already sets this context.
+    # The `ai_tone_value` for `_construct_system_prompt` can be a default or specific for emergency.
+    system_prompt_for_tips = ai_manager._construct_system_prompt(
+        ai_tone_value=ConversationSession.AiTone.SERIOUS,  # e.g., emergency mode uses a serious, direct tone
+        context_key="generate_emergency_tips",
+        context_params=context_params_for_tips,
     )
-    prompt = f"""
-    The user needs quick, actionable tips for an emergency study session.
-    Context:
-    - Focus Areas: {focus_areas_str}
-    - Identified Weak Skills/Areas for Improvement:
-      {chr(10).join(weak_skills_summary) if weak_skills_summary else _('  (None specifically highlighted or user is new)')}
-    - Available Time: {time_context}
 
-    Task: Generate 2-3 concise, positive, and actionable tips tailored to this context.
-    Focus on:
-    - Stress management / staying calm.
-    - Quick strategies relevant to identified weak areas (if any).
-    - General test-taking advice for time pressure.
+    parsed_json_response, error_msg = ai_manager.get_chat_completion(
+        system_prompt_content=system_prompt_for_tips,
+        messages_for_api=[
+            {"role": "user", "content": "Please generate the emergency study tips now."}
+        ],  # Trigger
+        temperature=0.8,
+        max_tokens=1000,
+        response_format={"type": "json_object"},
+        user_id_for_tracking=str(user.id),
+    )
 
-    Your response MUST be a valid JSON object containing EXACTLY ONE key:
-      `tips`: List[str] (A list containing 2 or 3 string tips).
-
-    Example JSON Output:
-    {{
-      "tips": [
-        "Take a moment to breathe deeply before you begin. You've got this!",
-        "For '{{weak_skill_example}}', focus on [quick strategy, e.g., keyword spotting/formula recall].",
-        "Read each question carefully, but trust your first instinct if short on time."
-      ]
-    }}
-
-    Output ONLY the JSON object.
-    """
-
-    try:
-        logger.info(
-            f"Calling OpenAI ({AI_MODEL}) for emergency tips for user {user.id}"
-        )
-        if ai_client is None:  # Should be caught by AI_AVAILABLE, but defensive check
-            raise OpenAIError("AI Client not initialized")
-
-        response = ai_client.chat.completions.create(
-            model=AI_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.7,
-            max_tokens=500,
-            response_format={"type": "json_object"},
-        )
-        ai_response_content = response.choices[0].message.content
-
-        if ai_response_content:
-            try:
-                parsed_json = json.loads(ai_response_content)
-                generated_tips = parsed_json.get("tips")
-
-                if (
-                    isinstance(generated_tips, list)
-                    and all(isinstance(tip, str) for tip in generated_tips)
-                    and 1 < len(generated_tips) <= 3  # Allow 2 or 3 tips
-                ):
-                    logger.info(
-                        f"Successfully generated {len(generated_tips)} AI emergency tips for user {user.id}."
-                    )
-                    return generated_tips
-                else:
-                    logger.warning(
-                        f"AI returned invalid 'tips' structure or count for user {user.id}. JSON: {ai_response_content}."
-                    )
-            except (json.JSONDecodeError, ValueError, KeyError) as json_err:
-                logger.error(
-                    f"Failed to parse or validate AI JSON tips response for user {user.id}. Error: {json_err}. Response: '{ai_response_content}'",
-                    exc_info=True,
-                )
-        else:
-            logger.warning(f"AI returned empty response for user {user.id}.")
-
-    except OpenAIError as e:
+    if error_msg:  # Includes JSON parsing errors
         logger.error(
-            f"OpenAI API error generating tips for user {user.id}: {e}",
-            exc_info=True,
+            f"AI Manager error generating emergency tips for user {user.id}: {error_msg}. Using default tips."
         )
-    except Exception as e:
-        logger.exception(f"Unexpected error generating AI tips for user {user.id}: {e}")
+        return fallback_tips
 
-    # Ultimate fallback if any error or invalid structure
-    return random.sample(DEFAULT_EMERGENCY_TIPS, k=min(len(DEFAULT_EMERGENCY_TIPS), 3))
+    if isinstance(parsed_json_response, dict) and "tips" in parsed_json_response:
+        generated_tips = parsed_json_response["tips"]
+        if (
+            isinstance(generated_tips, list)
+            and all(isinstance(tip, str) for tip in generated_tips)
+            and 1 < len(generated_tips) <= 3
+        ):  # Expect 2 or 3 tips
+            logger.info(
+                f"Successfully generated {len(generated_tips)} AI emergency tips for user {user.id}."
+            )
+            return generated_tips
+        else:
+            logger.warning(
+                f"AI returned invalid 'tips' structure or count for user {user.id}. JSON: {parsed_json_response}. Using default tips."
+            )
+    else:
+        logger.warning(
+            f"AI returned non-dict or 'tips' key missing for user {user.id} emergency tips. Response: {parsed_json_response}. Using default tips."
+        )
+
+    return fallback_tips  # Ultimate fallback
 
 
 # --- Emergency Mode Plan Generation ---

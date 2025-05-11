@@ -14,7 +14,7 @@ SECRET_KEY = config("SECRET_KEY")
 OPENAI_API_KEY = config("OPENAI_API_KEY", default=None)
 
 OPENAI_API_BASE_URL = config("OPENAI_API_BASE_URL", default=None)
-AI_MODEL = config("AI_MODEL", default="gpt-3.5-turbo")
+AI_MODEL = config("AI_MODEL", default="gpt-4o-mini")
 MAX_HISTORY_MESSAGES = config("MAX_HISTORY_MESSAGES", default=10, cast=int)
 
 # SECURITY WARNING: don't run with debug turned on in production!
