@@ -94,12 +94,16 @@ class AdminLearningSubSectionViewSet(viewsets.ModelViewSet):
         try:
             instance.delete()
         except ProtectedError as e:
-            # Raise an APIException with 409 status code
-            raise exceptions.APIException(  # Use APIException
-                detail=f"Cannot delete subsection '{instance.name}'. "
-                f"It is protected because related items exist (e.g., Questions).",
-                code=status.HTTP_409_CONFLICT,  # Set the desired status code
+            # Construct the APIException and set its status_code explicitly
+            error_message = (
+                f"Cannot delete subsection '{instance.name}'. "
+                f"It is protected because related items exist (e.g., Questions)."
             )
+            # You can optionally add a machine-readable code if desired
+            # exc = exceptions.APIException(detail=error_message, code='protected_deletion_conflict')
+            exc = exceptions.APIException(detail=error_message)
+            exc.status_code = status.HTTP_409_CONFLICT
+            raise exc
 
 
 @extend_schema_view(
