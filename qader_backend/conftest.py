@@ -6,8 +6,9 @@ from datetime import timedelta
 
 
 # Use the specific factory path
-from apps.users.tests.factories import UserFactory
+from apps.users.tests.factories import SerialCodeFactory, UserFactory
 from apps.users.models import (
+    SerialCode,
     UserProfile,
     GenderChoices,
     RoleChoices,
@@ -146,3 +147,29 @@ def admin_client(db, api_client: APIClient, admin_user: User) -> APIClient:
     api_client.user = admin_user
     yield api_client
     api_client.logout()
+
+
+# --- Serial Code Fixtures ---
+
+
+@pytest.fixture
+def active_serial_code(db) -> SerialCode:
+    """Provides an active, unused SerialCode instance."""
+    return SerialCodeFactory(is_active=True, is_used=False, duration_days=30)
+
+
+@pytest.fixture
+def used_serial_code(db, standard_user: User) -> SerialCode:
+    """Provides a used SerialCode instance linked to a user."""
+    return SerialCodeFactory(
+        is_active=True,  # Can be active but still used
+        is_used=True,
+        used_by=standard_user,
+        used_at=timezone.now() - timedelta(days=10),  # Used some time ago
+    )
+
+
+@pytest.fixture
+def inactive_serial_code(db) -> SerialCode:
+    """Provides an inactive, unused SerialCode instance."""
+    return SerialCodeFactory(is_active=False, is_used=False)

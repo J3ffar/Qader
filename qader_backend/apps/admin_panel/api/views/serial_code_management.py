@@ -273,80 +273,59 @@ class SerialCodeAdminViewSet(viewsets.ModelViewSet):
         """
         Generates a batch of unique serial codes using SUBSCRIPTION_PLANS_CONFIG.
         """
-        serializer = self.get_serializer(
-            data=request.data
-        )  # Uses SerialCodeGenerateSerializer
+        serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
             validated_data = serializer.validated_data
-            # Note: The serializer field is 'subscription_type' in SerialCodeGenerateSerializer
-            # Let's assume it uses the correct enum choices based on SubscriptionTypeChoices
-            # If the serializer field was 'plan_type', we'd use that here.
-            # Double-check SerialCodeGenerateSerializer definition if needed.
+
             plan_enum_value = validated_data[
-                "subscription_type"
-            ]  # Get the selected enum value (e.g., "1_month")
+                "plan_type"
+            ]  # CHANGED: Use plan_type from serializer
             count = validated_data["count"]
             notes = validated_data.get("notes")
             creator = request.user
 
-            # Get config using the enum value
             config = SUBSCRIPTION_PLANS_CONFIG.get(plan_enum_value)
 
-            # --- Validation specific to this endpoint ---
-            if not config:
-                raise serializers.ValidationError(
-                    {
-                        "subscription_type": _(
-                            "Invalid plan type selected or configuration missing."
-                        )
-                    }
-                )
+            # --- Validation (already handled by serializer's validate_plan_type) ---
+            # No need for config or CUSTOM type check here if serializer handles it.
+            # The serializer's validate_plan_type ensures 'config' will exist and 'duration_days' is present.
 
-            # Disallow generating 'custom' type via batch here
-            if plan_enum_value == SubscriptionTypeChoices.CUSTOM:
-                raise serializers.ValidationError(
-                    {
-                        "subscription_type": _(
-                            "Generating 'Custom' type codes via batch is not supported."
-                        )
-                    }
-                )
-
-            # Check if duration exists in config (essential for standard plans)
-            duration_days = config.get("duration_days")
-            if duration_days is None:
-                raise serializers.ValidationError(
-                    {
-                        "subscription_type": _(
-                            "Selected plan type configuration is missing 'duration_days'."
-                        )
-                    }
-                )
-
-            # Get prefix from config, provide a fallback just in case
+            duration_days = config["duration_days"]  # Now safe to access
             prefix = config.get("prefix", "QDRAPI")
             # --- End Validation ---
 
             new_codes = []
-            generated_code_strings = set()
+            generated_code_strings = (
+                set()
+            )  # To check uniqueness within the current batch
 
             with transaction.atomic():
                 for i in range(count):
+                    # Loop to ensure unique code generation, especially if generate_unique_serial_code
+                    # might produce a duplicate already in generated_code_strings for this batch
                     while True:
-                        # Generate code using the prefix from config
                         code_str = generate_unique_serial_code(prefix=prefix)
+                        # SerialCode model's clean method (if called by save) will uppercase.
+                        # Or ensure generate_unique_serial_code returns uppercase.
+                        # For batch check, ensure consistency.
                         code_upper = code_str.upper()
-                        # Check uniqueness in DB (via util) and current batch
-                        if code_upper not in generated_code_strings:
+                        if (
+                            not SerialCode.objects.filter(
+                                code__iexact=code_upper
+                            ).exists()
+                            and code_upper not in generated_code_strings
+                        ):
                             generated_code_strings.add(code_upper)
                             break
+                        # Optional: Add a safety break if too many attempts to find unique code
+                        # if attempts > MAX_ATTEMPS: raise Exception("...")
 
                     new_codes.append(
                         SerialCode(
-                            code=code_str,  # Store the generated case, or force upper: code_upper
+                            code=code_upper,  # Store uppercase for consistency
                             duration_days=duration_days,
-                            subscription_type=plan_enum_value,  # Store the enum value
+                            subscription_type=plan_enum_value,  # This is correct: model's type is the plan enum
                             notes=notes,
                             created_by=creator,
                             is_active=True,
@@ -362,8 +341,8 @@ class SerialCodeAdminViewSet(viewsets.ModelViewSet):
                 return Response(
                     {
                         "detail": _(
-                            f"{len(created_instances)} serial codes generated successfully for plan '{plan_enum_value}'."
-                        )
+                            f"{len(created_instances)} serial codes generated successfully for plan '{SUBSCRIPTION_PLANS_CONFIG[plan_enum_value]['name']}'."
+                        )  # Using plan name for better message
                     },
                     status=status.HTTP_201_CREATED,
                 )
@@ -377,10 +356,12 @@ class SerialCodeAdminViewSet(viewsets.ModelViewSet):
             logger.error(
                 f"Database integrity error during serial code batch generation (API) by '{request.user.username}': {e}"
             )
+            # This could happen if generate_unique_serial_code is not robust enough
+            # and bulk_create hits a unique constraint for 'code'
             return Response(
                 {
                     "detail": _(
-                        "A database conflict occurred during code generation. Please try again."
+                        "A database conflict occurred during code generation. This might be due to a code collision. Please try again."
                     )
                 },
                 status=status.HTTP_409_CONFLICT,

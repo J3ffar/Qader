@@ -42,9 +42,6 @@ def pending_profile_client(
     api_client.force_authenticate(user=None)
 
 
-# --- Serial Code Fixtures ---
-
-
 @pytest.fixture
 def inactive_user(db) -> User:
     """Creates an inactive user instance (e.g., after initial signup)."""
@@ -86,29 +83,6 @@ def pending_profile_user(db) -> User:
     user.refresh_from_db()
     assert not user.profile.is_profile_complete  # Verify state
     return user
-
-
-@pytest.fixture
-def active_serial_code(db) -> SerialCode:
-    """Provides an active, unused SerialCode instance."""
-    return SerialCodeFactory(is_active=True, is_used=False, duration_days=30)
-
-
-@pytest.fixture
-def used_serial_code(db, standard_user: User) -> SerialCode:
-    """Provides a used SerialCode instance linked to a user."""
-    return SerialCodeFactory(
-        is_active=True,  # Can be active but still used
-        is_used=True,
-        used_by=standard_user,
-        used_at=timezone.now() - timedelta(days=10),  # Used some time ago
-    )
-
-
-@pytest.fixture
-def inactive_serial_code(db) -> SerialCode:
-    """Provides an inactive, unused SerialCode instance."""
-    return SerialCodeFactory(is_active=False, is_used=False)
 
 
 @pytest.fixture

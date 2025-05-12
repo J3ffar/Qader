@@ -1,5 +1,3 @@
-# qader_backend/apps/admin_panel/tests/test_serial_code_management.py
-
 import pytest
 from django.urls import reverse
 from rest_framework import status
@@ -127,51 +125,81 @@ class TestSerialCodeAdminViewSet:
         "plan_type_enum",
         [
             SubscriptionTypeChoices.MONTH_1,
-            SubscriptionTypeChoices.MONTH_3,  # Changed from MONTH_6
+            SubscriptionTypeChoices.MONTH_3,
             SubscriptionTypeChoices.MONTH_12,
         ],
     )
     def test_generate_codes_admin(self, admin_client, admin_user, plan_type_enum):
         """Verify admin can generate a batch of codes for standard plan types."""
-        url = reverse(f"{SERIAL_CODE_BASE_URL}-generate-codes")
+        url = reverse(
+            f"{SERIAL_CODE_BASE_URL}-generate-codes"
+        )  # This should correctly point to the generate-batch path due to router naming
         count = 5
         notes = f"Test batch for {plan_type_enum.label}"
-        # Use the enum's value for the request payload
+
         data = {
-            "subscription_type": plan_type_enum.value,
+            "plan_type": plan_type_enum.value,  # CHANGED: Send plan_type
             "count": count,
             "notes": notes,
         }
-        initial_count = SerialCode.objects.count()
+        initial_code_count = SerialCode.objects.count()  # Renamed for clarity
         response = admin_client.post(url, data=data, format="json")
 
-        assert response.status_code == status.HTTP_201_CREATED
-        assert SerialCode.objects.count() == initial_count + count
+        assert (
+            response.status_code == status.HTTP_201_CREATED
+        ), response.data  # Include response.data for easier debugging
+        assert SerialCode.objects.count() == initial_code_count + count
+        # The response detail now includes the plan name, adjust assertion if needed or keep more generic
         assert f"{count} serial codes generated successfully" in response.data["detail"]
 
-        last_code = SerialCode.objects.order_by("-created_at").first()
-        assert last_code.subscription_type == plan_type_enum.value
+        # Verify one of the created codes
+        last_code = (
+            SerialCode.objects.filter(notes=notes).order_by("-created_at").first()
+        )
+        assert last_code is not None
+        assert (
+            last_code.subscription_type == plan_type_enum.value
+        )  # Model field is subscription_type
         assert last_code.notes == notes
         assert last_code.created_by == admin_user
-        # Check duration matches config
         expected_duration = SUBSCRIPTION_PLANS_CONFIG[plan_type_enum]["duration_days"]
         assert last_code.duration_days == expected_duration
 
     def test_generate_codes_invalid_plan_admin(self, admin_client):
-        """Verify error when trying to generate batch with invalid/custom plan type."""
+        """Verify error when trying to generate batch with invalid plan type."""
         url = reverse(f"{SERIAL_CODE_BASE_URL}-generate-codes")
-        data = {"subscription_type": "invalid-plan", "count": 10}
-        response = admin_client.post(url, data=data, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "subscription_type" in response.data
 
-        data_custom = {
-            "subscription_type": SubscriptionTypeChoices.CUSTOM.value,
+        # Test with an invalid plan string
+        data_invalid_string = {
+            "plan_type": "invalid-plan-string",
             "count": 10,
         }
-        response_custom = admin_client.post(url, data=data_custom, format="json")
+        response_invalid = admin_client.post(  # <<< CORRECTED LINE
+            url, data=data_invalid_string, format="json"  # Pass data only once
+        )
+        assert response_invalid.status_code == status.HTTP_400_BAD_REQUEST
+        assert "plan_type" in response_invalid.data
+        assert (
+            '"invalid-plan-string" is not a valid choice.'
+            in response_invalid.data["plan_type"][0]
+        )
+
+        # Test with 'custom' plan type which should be rejected by the serializer
+        data_custom = {
+            "plan_type": SubscriptionTypeChoices.CUSTOM.value,
+            "count": 10,
+        }
+        response_custom = admin_client.post(
+            url, data=data_custom, format="json"
+        )  # Pass data only once
         assert response_custom.status_code == status.HTTP_400_BAD_REQUEST
-        assert "subscription_type" in response_custom.data  # Check view rejects custom
+        assert "plan_type" in response_custom.data
+        # The error message might come from choices validation or custom validate_plan_type
+        error_messages = response_custom.data["plan_type"]
+        assert any(
+            "not a valid choice" in msg or "not supported" in msg
+            for msg in error_messages
+        )
 
     def test_generate_codes_invalid_count_admin(self, admin_client):
         """Verify error when count is invalid during batch generation."""

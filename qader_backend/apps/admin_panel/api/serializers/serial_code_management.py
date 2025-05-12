@@ -5,7 +5,8 @@ from django.contrib.auth import get_user_model
 from apps.users.models import SerialCode, SubscriptionTypeChoices
 from apps.users.api.serializers import (
     SimpleUserSerializer,
-)  # Reuse for nested user info
+)
+from apps.users.constants import SUBSCRIPTION_PLANS_CONFIG
 
 User = get_user_model()
 
@@ -83,11 +84,17 @@ class SerialCodeUpdateSerializer(serializers.ModelSerializer):
 class SerialCodeGenerateSerializer(serializers.Serializer):
     """Serializer for validating input for generating a batch of serial codes."""
 
-    plan_type = serializers.ChoiceField(
-        choices=SubscriptionTypeChoices.choices,
+    plan_type = serializers.ChoiceField(  # This is the primary field for selecting plan config
+        choices=[
+            choice
+            for choice in SubscriptionTypeChoices.choices
+            if choice[0] != SubscriptionTypeChoices.CUSTOM.value
+        ],  # Exclude CUSTOM from batch generation choices here
         required=True,
         label=_("Subscription Plan Type"),
-        help_text=_("Select the plan type (e.g., 1 Month, 6 Months) for the codes."),
+        help_text=_(
+            "Select the plan type (e.g., 1 Month, 3 Months) for the codes. 'Custom' type cannot be batch generated here."
+        ),
     )
     count = serializers.IntegerField(
         min_value=1,
@@ -95,12 +102,6 @@ class SerialCodeGenerateSerializer(serializers.Serializer):
         required=True,
         label=_("Number of Codes"),
         help_text=_("How many codes to generate in this batch (1-1000)."),
-    )
-    subscription_type = serializers.ChoiceField(
-        choices=SubscriptionTypeChoices.choices,
-        required=True,
-        label=_("Subscription Type"),
-        help_text=_("Categorizes the intended duration or type of the code."),
     )
     notes = serializers.CharField(
         required=False,
@@ -110,13 +111,28 @@ class SerialCodeGenerateSerializer(serializers.Serializer):
         help_text=_("Optional notes for this batch (e.g., 'For School X Campaign')."),
     )
 
+    # Removed the redundant 'subscription_type' field.
+    # 'plan_type' will dictate which configuration from SUBSCRIPTION_PLANS_CONFIG is used,
+    # which in turn provides the 'subscription_type' for the SerialCode model instance.
+
     def validate_plan_type(self, value):
-        """Optionally prevent generating 'Custom' type via batch."""
+        """Ensure the selected plan_type is not 'Custom' for batch generation."""
+        # This validation is now more critical as 'plan_type' is the sole plan selector.
+        # The choices in the field definition already exclude CUSTOM, but this is a safeguard.
         if value == SubscriptionTypeChoices.CUSTOM:
             raise serializers.ValidationError(
                 _(
-                    "Generating 'Custom' type codes via this batch endpoint is not supported. Use the standard POST method to create individual custom codes."
+                    "Generating 'Custom' type codes via this batch endpoint is not supported. "
+                    "Use the standard POST method to create individual custom codes."
                 )
+            )
+        if value not in SUBSCRIPTION_PLANS_CONFIG:
+            raise serializers.ValidationError(
+                _("Invalid plan type selected or configuration missing.")
+            )
+        if not SUBSCRIPTION_PLANS_CONFIG[value].get("duration_days"):
+            raise serializers.ValidationError(
+                _("Selected plan type configuration is missing 'duration_days'.")
             )
         return value
 
