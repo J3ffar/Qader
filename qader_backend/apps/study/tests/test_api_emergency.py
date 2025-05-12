@@ -68,7 +68,7 @@ class TestEmergencyModeStart:
 
     @patch("apps.study.services.study._generate_ai_emergency_tips")
     @patch(
-        "apps.study.services.study.generate_emergency_plan"
+        "apps.study.api.views.emergency.generate_emergency_plan"
     )  # Full mock for this test (targets the source, as view imports it from there)
     def test_start_emergency_success_with_ai_tips(
         self,
@@ -115,11 +115,6 @@ class TestEmergencyModeStart:
             "motivational_tips": tips_list_for_plan,  # Local list
         }
 
-        # DEBUG: Print the plan that the mock will return
-        print(
-            f"\nDEBUG_TEST: plan_to_return_from_mock['target_skills'] (before mock assignment):\n{plan_to_return_from_mock['target_skills']}\n"
-        )
-
         mock_generate_plan.return_value = plan_to_return_from_mock
 
         payload = {
@@ -128,11 +123,6 @@ class TestEmergencyModeStart:
             "focus_areas": ["quantitative"],
         }
         response = subscribed_client.post(self.url, data=payload, format="json")
-
-        if response.status_code != status.HTTP_201_CREATED:
-            print(
-                f"DEBUG_TEST: response data (status {response.status_code}): {response.data}"
-            )
 
         assert response.status_code == status.HTTP_201_CREATED
         assert "session_id" in response.data
@@ -150,11 +140,7 @@ class TestEmergencyModeStart:
         session = EmergencyModeSession.objects.get(user=user)
         assert session.suggested_plan["motivational_tips"] == tips_list_for_plan
 
-        # DEBUG: Inspect the raw data from DB before sorting
         raw_db_target_skills = session.suggested_plan["target_skills"]
-        print(
-            f"DEBUG_TEST: Raw DB target_skills (from session.suggested_plan['target_skills']):\n{raw_db_target_skills}\n"
-        )
 
         db_target_skills = sorted(
             raw_db_target_skills,
@@ -167,32 +153,6 @@ class TestEmergencyModeStart:
         expected_target_skills = sorted(
             copy.deepcopy(explicit_target_skills_for_mock), key=lambda x: x["slug"]
         )
-
-        print(f"DEBUG_TEST: Sorted DB target_skills:\n{db_target_skills}\n")
-        print(
-            f"DEBUG_TEST: Expected target_skills (from explicit_target_skills_for_mock):\n{expected_target_skills}\n"
-        )
-
-        # Adding a more detailed comparison if the main assert fails
-        if db_target_skills != expected_target_skills:
-            for i, (db_item, exp_item) in enumerate(
-                zip(db_target_skills, expected_target_skills)
-            ):
-                if db_item != exp_item:
-                    print(f"DEBUG_TEST: Difference at index {i}:")
-                    print(f"  DB Item:  {db_item}")
-                    print(f"  Exp Item: {exp_item}")
-                    # Compare field by field
-                    for key in exp_item.keys():
-                        if db_item.get(key) != exp_item.get(key):
-                            print(
-                                f"    Field '{key}': DB='{db_item.get(key)}', Exp='{exp_item.get(key)}'"
-                            )
-            # If lengths are different
-            if len(db_target_skills) != len(expected_target_skills):
-                print(
-                    f"DEBUG_TEST: Length mismatch: DB={len(db_target_skills)}, Exp={len(expected_target_skills)}"
-                )
 
         assert db_target_skills == expected_target_skills
 
