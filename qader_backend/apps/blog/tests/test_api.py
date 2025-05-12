@@ -113,10 +113,6 @@ class TestBlogPostAPI:
 
     def test_list_posts_filter_by_tag(self, api_client):
         """Verify filtering posts by tag slug."""
-        # Ensure tags exist
-        Tag.objects.create(name="tech")
-        Tag.objects.create(name="python")
-
         url = reverse("api:v1:blog:blogpost-list")
         # Filter by 'python' tag
         response = api_client.get(url, {"tag": "python"})
