@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 
 from apps.study.models import UserQuestionAttempt
+from apps.gamification.models import Badge
 
 from .factories import (
     UserFactory,
@@ -573,7 +574,15 @@ def test_finalize_challenge_challenger_wins(
         related_object=challenge,
     )
     # Check badge check called for winner
-    mock_check_badge.assert_called_once_with(challenger, "challenge-winner-badge")
+    challenge_badge_slugs = list(
+        Badge.objects.filter(
+            is_active=True,
+            criteria_type=Badge.BadgeCriteriaType.CHALLENGES_WON,
+        ).values_list("slug", flat=True)
+    )
+    for slug in challenge_badge_slugs:
+        mock_check_badge.assert_called_once_with(challenger, slug)
+
     # Assert end broadcast call
     mock_broadcast_end.assert_called_once_with(challenge)
 
