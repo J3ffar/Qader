@@ -24,134 +24,132 @@ from apps.study.api.serializers.statistics import RECENT_TESTS_LIMIT
 pytestmark = pytest.mark.django_db
 
 
-@pytest.fixture
-def statistics_url():
-    """Fixture for the statistics endpoint URL."""
-    return reverse("api:v1:study:user-statistics")  # No change to URL name
-
-
-@pytest.fixture
-def setup_stats_data(subscribed_user, setup_learning_content):
-    """Fixture to create comprehensive data for statistics testing."""
-    user = subscribed_user
-    profile = user.profile
-
-    # 1. Update Profile Data (Remains same)
-    profile.current_level_verbal = 75.5
-    profile.current_level_quantitative = 60.0
-    profile.current_streak_days = 5
-    profile.longest_streak_days = 10
-    profile.save()
-
-    # 2. Create User Question Attempts (Remains same - stats reads these attempts)
-    reading_comp_sub = setup_learning_content["reading_comp_sub"]
-    reading_skill = setup_learning_content["reading_skill"]
-    reading_questions = list(reading_comp_sub.questions.filter(is_active=True)[:5])
-    UserQuestionAttemptFactory.create_batch(
-        3,
-        user=user,
-        question=factory.Iterator(reading_questions),
-        mode=UserQuestionAttempt.Mode.TRADITIONAL,
-        correct=True,
-    )
-    UserQuestionAttemptFactory.create_batch(
-        2,
-        user=user,
-        question=factory.Iterator(reading_questions[3:]),
-        mode=UserQuestionAttempt.Mode.TRADITIONAL,
-        correct=False,
-    )
-
-    algebra_sub = setup_learning_content["algebra_sub"]
-    algebra_skill = setup_learning_content["algebra_skill"]
-    algebra_questions = list(algebra_sub.questions.filter(is_active=True)[:3])
-    UserQuestionAttemptFactory.create_batch(
-        2,
-        user=user,
-        question=factory.Iterator(algebra_questions),
-        mode=UserQuestionAttempt.Mode.TRADITIONAL,
-        correct=True,
-    )
-    UserQuestionAttemptFactory.create_batch(
-        1,
-        user=user,
-        question=algebra_questions[2],
-        mode=UserQuestionAttempt.Mode.TRADITIONAL,
-        correct=False,
-    )
-
-    # 3. Create User Skill Proficiency (Remains same)
-    UserSkillProficiencyFactory(
-        user=user,
-        skill=reading_skill,
-        attempts_count=5,
-        correct_count=3,
-        proficiency_score=0.6,
-    )
-    UserSkillProficiencyFactory(
-        user=user,
-        skill=algebra_skill,
-        attempts_count=3,
-        correct_count=2,
-        proficiency_score=0.6667,
-    )
-    geometry_skill = setup_learning_content["geometry_skill"]
-    UserSkillProficiencyFactory(
-        user=user,
-        skill=geometry_skill,
-        attempts_count=0,
-        correct_count=0,
-        proficiency_score=0.0,
-    )
-
-    # 4. Create Completed Test Attempts (Using updated helper)
-    completed_tests = []
-    for i in range(RECENT_TESTS_LIMIT + 2):
-        # Use the scenario helper, ensuring it's completed
-        attempt, _ = create_attempt_scenario(
-            user=user,
-            num_questions=5,
-            num_answered=5,  # Ensure all are answered for completed state
-            num_correct_answered=random.randint(2, 5),
-            attempt_type=random.choice(
-                [
-                    UserTestAttempt.AttemptType.PRACTICE,
-                    UserTestAttempt.AttemptType.SIMULATION,
-                ]
-            ),
-            status=UserTestAttempt.Status.COMPLETED,  # Explicitly set status
-        )
-        # Manually set end_time and scores for history test variation
-        attempt.end_time = timezone.now() - timezone.timedelta(days=i)
-        # Assign scores based on structure (assuming calc_and_save updated them)
-        attempt.score_verbal = (
-            round(random.uniform(40, 90), 1) if random.random() > 0.3 else None
-        )
-        attempt.score_quantitative = (
-            round(random.uniform(40, 90), 1) if random.random() > 0.3 else None
-        )
-        attempt.save()
-        completed_tests.append(attempt)
-
-    # Create one non-completed attempt (should NOT appear in history)
-    create_attempt_scenario(user=user, status=UserTestAttempt.Status.STARTED)
-
-    return {
-        "user": user,
-        "profile": profile,
-        "verbal_section": setup_learning_content["verbal_section"],
-        "quant_section": setup_learning_content["quant_section"],
-        "reading_comp_sub": reading_comp_sub,
-        "algebra_sub": algebra_sub,
-        "reading_skill": reading_skill,
-        "algebra_skill": algebra_skill,
-        "geometry_skill": geometry_skill,
-        "completed_tests": completed_tests,
-    }
-
-
 class TestUserStatisticsAPI:
     """Tests for the User Statistics API Endpoint"""
+
+    @pytest.fixture
+    def statistics_url(self):
+        """Fixture for the statistics endpoint URL."""
+        return reverse("api:v1:study:user-statistics")  # No change to URL name
+
+    @pytest.fixture
+    def setup_stats_data(self, subscribed_user, setup_learning_content):
+        """Fixture to create comprehensive data for statistics testing."""
+        user = subscribed_user
+        profile = user.profile
+
+        # 1. Update Profile Data (Remains same)
+        profile.current_level_verbal = 75.5
+        profile.current_level_quantitative = 60.0
+        profile.current_streak_days = 5
+        profile.longest_streak_days = 10
+        profile.save()
+
+        # 2. Create User Question Attempts (Remains same - stats reads these attempts)
+        reading_comp_sub = setup_learning_content["reading_comp_sub"]
+        reading_skill = setup_learning_content["reading_skill"]
+        reading_questions = list(reading_comp_sub.questions.filter(is_active=True)[:5])
+        UserQuestionAttemptFactory.create_batch(
+            3,
+            user=user,
+            question=factory.Iterator(reading_questions),
+            mode=UserQuestionAttempt.Mode.TRADITIONAL,
+            correct=True,
+        )
+        UserQuestionAttemptFactory.create_batch(
+            2,
+            user=user,
+            question=factory.Iterator(reading_questions[3:]),
+            mode=UserQuestionAttempt.Mode.TRADITIONAL,
+            correct=False,
+        )
+
+        algebra_sub = setup_learning_content["algebra_sub"]
+        algebra_skill = setup_learning_content["algebra_skill"]
+        algebra_questions = list(algebra_sub.questions.filter(is_active=True)[:3])
+        UserQuestionAttemptFactory.create_batch(
+            2,
+            user=user,
+            question=factory.Iterator(algebra_questions),
+            mode=UserQuestionAttempt.Mode.TRADITIONAL,
+            correct=True,
+        )
+        UserQuestionAttemptFactory.create_batch(
+            1,
+            user=user,
+            question=algebra_questions[2],
+            mode=UserQuestionAttempt.Mode.TRADITIONAL,
+            correct=False,
+        )
+
+        # 3. Create User Skill Proficiency (Remains same)
+        UserSkillProficiencyFactory(
+            user=user,
+            skill=reading_skill,
+            attempts_count=5,
+            correct_count=3,
+            proficiency_score=0.6,
+        )
+        UserSkillProficiencyFactory(
+            user=user,
+            skill=algebra_skill,
+            attempts_count=3,
+            correct_count=2,
+            proficiency_score=0.6667,
+        )
+        geometry_skill = setup_learning_content["geometry_skill"]
+        UserSkillProficiencyFactory(
+            user=user,
+            skill=geometry_skill,
+            attempts_count=0,
+            correct_count=0,
+            proficiency_score=0.0,
+        )
+
+        # 4. Create Completed Test Attempts (Using updated helper)
+        completed_tests = []
+        for i in range(RECENT_TESTS_LIMIT + 2):
+            # Use the scenario helper, ensuring it's completed
+            attempt, _ = create_attempt_scenario(
+                user=user,
+                num_questions=5,
+                num_answered=5,  # Ensure all are answered for completed state
+                num_correct_answered=random.randint(2, 5),
+                attempt_type=random.choice(
+                    [
+                        UserTestAttempt.AttemptType.PRACTICE,
+                        UserTestAttempt.AttemptType.SIMULATION,
+                    ]
+                ),
+                status=UserTestAttempt.Status.COMPLETED,  # Explicitly set status
+            )
+            # Manually set end_time and scores for history test variation
+            attempt.end_time = timezone.now() - timezone.timedelta(days=i)
+            # Assign scores based on structure (assuming calc_and_save updated them)
+            attempt.score_verbal = (
+                round(random.uniform(40, 90), 1) if random.random() > 0.3 else None
+            )
+            attempt.score_quantitative = (
+                round(random.uniform(40, 90), 1) if random.random() > 0.3 else None
+            )
+            attempt.save()
+            completed_tests.append(attempt)
+
+        # Create one non-completed attempt (should NOT appear in history)
+        create_attempt_scenario(user=user, status=UserTestAttempt.Status.STARTED)
+
+        return {
+            "user": user,
+            "profile": profile,
+            "verbal_section": setup_learning_content["verbal_section"],
+            "quant_section": setup_learning_content["quant_section"],
+            "reading_comp_sub": reading_comp_sub,
+            "algebra_sub": algebra_sub,
+            "reading_skill": reading_skill,
+            "algebra_skill": algebra_skill,
+            "geometry_skill": geometry_skill,
+            "completed_tests": completed_tests,
+        }
 
     # Authentication and Subscription tests remain the same
     def test_statistics_requires_authentication(self, api_client, statistics_url):
