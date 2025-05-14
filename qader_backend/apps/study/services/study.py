@@ -445,33 +445,16 @@ def record_single_answer(
     return feedback
 
 
-# --- Test Attempt Completion Logic ---
 @transaction.atomic
 def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
     """
     Finalizes a test attempt, calculates scores (except for Traditional mode),
     updates user profile for Level Assessments, updates status, and returns results.
-
-    Args:
-        test_attempt: The UserTestAttempt instance to complete.
-
-    Returns:
-        A dictionary containing the final results and status. Structure varies slightly
-        for Traditional mode vs. others.
-        Example (Non-Traditional):
-            {
-                "attempt_id": int, "status": str, "score_percentage": float, ...,
-                "smart_analysis": str, "message": str, "updated_profile": Optional[dict]
-            }
-        Example (Traditional):
-            {'detail': str}
-
-    Raises:
-        serializers.ValidationError: If the attempt is not active or cannot be completed.
+    The response structure for non-traditional attempts is modified to nest scores.
     """
     user = test_attempt.user
     if not user or not user.is_authenticated:
-        raise serializers.ValidationError(
+        raise DRFValidationError(
             _("Authentication required to complete a test attempt.")
         )
 
@@ -479,7 +462,7 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
         logger.warning(
             f"Attempt to complete non-active or already finished test attempt {test_attempt.id} (Status: {test_attempt.status}) by user {user.id}."
         )
-        raise serializers.ValidationError(
+        raise DRFValidationError(
             {
                 "non_field_errors": [
                     _("This test attempt is not active or has already been completed.")
@@ -487,7 +470,6 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             }
         )
 
-    # --- Handle Traditional Attempt Completion (Simpler) ---
     if test_attempt.attempt_type == UserTestAttempt.AttemptType.TRADITIONAL:
         test_attempt.status = UserTestAttempt.Status.COMPLETED
         test_attempt.end_time = timezone.now()
@@ -495,21 +477,14 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
         logger.info(
             f"Traditional practice session {test_attempt.id} marked as completed for user {user.id}."
         )
-        # Return a simple confirmation message
         return {"detail": _("Traditional practice session ended successfully.")}
-
-    # --- Handle Non-Traditional Attempt Completion (Requires Scoring, etc.) ---
     else:
-        # Efficiently fetch related question attempts needed for scoring
         question_attempts_qs = test_attempt.question_attempts.select_related(
-            "question__subsection__section",  # For score breakdown by section
-            "question__skill",  # Potentially useful for analysis
+            "question__subsection__section",
+            "question__skill",
         ).all()
-
         answered_count = question_attempts_qs.count()
-        total_questions = (
-            test_attempt.num_questions
-        )  # Assumes this was set correctly on creation
+        total_questions = test_attempt.num_questions
 
         if answered_count < total_questions:
             logger.warning(
@@ -520,50 +495,41 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                 f"Data inconsistency: Test attempt {test_attempt.id} has {answered_count} answers recorded but expected {total_questions}. Scoring based on recorded answers."
             )
 
-        # Calculate and save scores using the model method (encapsulation)
         try:
             test_attempt.calculate_and_save_scores(
                 question_attempts_qs=question_attempts_qs
             )
-            test_attempt.refresh_from_db()  # Ensure we have the latest scores stored in the instance
+            test_attempt.refresh_from_db()
         except Exception as e:
             logger.exception(
                 f"Error calculating or saving scores for test attempt {test_attempt.id}, user {user.id}: {e}"
             )
-            # Decide how to proceed: raise error, or mark complete without score?
-            # Let's mark complete but log the failure prominently. Score fields might remain null.
-            test_attempt.status = UserTestAttempt.Status.ERROR  # Or a custom status?
+            test_attempt.status = UserTestAttempt.Status.ERROR  # Or a custom status
             test_attempt.end_time = timezone.now()
             test_attempt.save(update_fields=["status", "end_time", "updated_at"])
-            raise serializers.ValidationError(
+            raise DRFValidationError(
                 _("An error occurred while calculating scores. Please contact support.")
             ) from e
 
-        # Mark Test Attempt as Completed
         test_attempt.status = UserTestAttempt.Status.COMPLETED
         test_attempt.end_time = timezone.now()
-        test_attempt.save(
-            update_fields=["status", "end_time", "updated_at"]
-        )  # Save status/time after scores
+        test_attempt.save(update_fields=["status", "end_time", "updated_at"])
         logger.info(
             f"Test attempt {test_attempt.id} (Type: {test_attempt.attempt_type}) completed for user {user.id}. Final Score: {test_attempt.score_percentage}%"
         )
 
-        # --- Update User Profile (Only for Level Assessment) ---
-        updated_profile_data = None
+        # User profile update logic remains for Level Assessment, but `updated_profile_data`
+        # will not be included in the API response dictionary.
         if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
             try:
-                # Use select_for_update for pessimistic locking to prevent race conditions
                 profile = UserProfile.objects.select_for_update().get(user=user)
-
-                # Only update if scores are valid
                 if (
                     test_attempt.score_verbal is not None
                     and test_attempt.score_quantitative is not None
                 ):
                     profile.current_level_verbal = test_attempt.score_verbal
                     profile.current_level_quantitative = test_attempt.score_quantitative
-                    profile.is_level_determined = True  # Mark assessment as completed
+                    profile.is_level_determined = True
                     profile.save(
                         update_fields=[
                             "current_level_verbal",
@@ -572,10 +538,6 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                             "updated_at",
                         ]
                     )
-                    # Import serializer locally to avoid circular dependency issues
-                    from apps.users.api.serializers import UserProfileSerializer
-
-                    updated_profile_data = UserProfileSerializer(profile).data
                     logger.info(
                         f"User profile levels updated for user {user.id} after Level Assessment {test_attempt.id}. Verbal: {profile.current_level_verbal}, Quant: {profile.current_level_quantitative}"
                     )
@@ -583,12 +545,10 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                     logger.error(
                         f"Skipping profile update for user {user.id} after assessment {test_attempt.id} because scores were invalid/null."
                     )
-
             except UserProfile.DoesNotExist:
                 logger.error(
                     f"UserProfile not found for user {user.id} when trying to update levels after assessment {test_attempt.id}."
                 )
-                # Should not happen for logged-in users, indicates data integrity issue
             except Exception as e:
                 logger.exception(
                     f"Error updating profile levels for user {user.id} after assessment {test_attempt.id}: {e}"
@@ -635,27 +595,27 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                 smart_analysis = _(
                     "Test completed! Keep practicing to improve further."
                 )
-
         except Exception as e:
             logger.error(
                 f"Error generating smart analysis for attempt {test_attempt.id}: {e}",
                 exc_info=True,
             )
-            # Use default message in case of error
 
-        # --- Prepare Response Data for Serializer ---
+        # --- Prepare Response Data with new score structure ---
+        score_data = {
+            "overall": test_attempt.score_percentage,
+            "verbal": test_attempt.score_verbal,
+            "quantitative": test_attempt.score_quantitative,
+        }
+
         return {
             "attempt_id": test_attempt.id,
             "status": test_attempt.get_status_display(),
-            "score_percentage": test_attempt.score_percentage,
-            "score_verbal": test_attempt.score_verbal,
-            "score_quantitative": test_attempt.score_quantitative,
-            "results_summary": results_summary,  # Include detailed breakdown
+            "score": score_data,
+            "results_summary": results_summary,
             "answered_question_count": answered_count,
             "total_questions": total_questions,
             "smart_analysis": smart_analysis,
-            "message": _("Test completed successfully. Results calculated."),
-            "updated_profile": updated_profile_data,  # Include updated profile if applicable
         }
 
 
