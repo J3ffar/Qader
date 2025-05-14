@@ -91,26 +91,14 @@ class TestChallengeConsumer:
             user,
             url_kwargs={"challenge_pk": challenge.pk},
         )
-        # Set a longer timeout for connect itself, as consumer logic runs here
-        connected, _ = await communicator.connect(timeout=5)
+        # connect() returns (accepted, close_code_or_subprotocol)
+        connected, close_code = await communicator.connect(timeout=5)
         assert not connected, "Connection should have failed for non-participant"
-
-        try:
-            # If connect() returned False, the server denied the connection.
-            # The communicator should make the close event available.
-            # Increase sleep slightly more to ensure event processing on Windows.
-            await asyncio.sleep(
-                0.2
-            )  # Longer sleep before trying to receive the close frame
-            close_event = await communicator.receive_output(timeout=3)
-            assert (
-                close_event["type"] == "websocket.close"
-            ), f"Expected websocket.close, got {close_event.get('type')}"
-            assert close_event["code"] == 4003
-        except asyncio.TimeoutError:
-            pytest.fail(
-                f"Timeout: Close frame (4003) not received after connection denied. Connected status: {connected}"
-            )
+        # The close_code is returned directly by connect() if rejected
+        assert close_code == 4003, f"Expected close code 4003, got {close_code}"
+        # No need to call receive_output for the close frame here
+        # Ensure the communicator is cleaned up if necessary, though usually handled by pytest fixtures or test teardown
+        await communicator.disconnect()
 
     @pytest.mark.asyncio
     async def test_connect_fail_unauthenticated(self):
@@ -119,20 +107,15 @@ class TestChallengeConsumer:
             ChallengeConsumer.as_asgi(), f"/ws/challenges/{challenge.pk}/"
         )
         communicator.scope["url_route"] = {"kwargs": {"challenge_pk": challenge.pk}}
+        # For unauthenticated, scope["user"] will be AnonymousUser or similar
+        # by default if not explicitly set, or middleware handles it.
+        # Ensure headers are present for routing/middleware if required.
         communicator.scope["headers"] = []
-        connected, _ = await communicator.connect(timeout=5)
+
+        connected, close_code = await communicator.connect(timeout=5)
         assert not connected, "Connection should have failed for unauthenticated user"
-        try:
-            await asyncio.sleep(0.2)
-            close_event = await communicator.receive_output(timeout=3)
-            assert (
-                close_event["type"] == "websocket.close"
-            ), f"Expected websocket.close, got {close_event.get('type')}"
-            assert close_event["code"] == 4001
-        except asyncio.TimeoutError:
-            pytest.fail(
-                f"Timeout: Close frame (4001) not received. Connected status: {connected}"
-            )
+        assert close_code == 4001, f"Expected close code 4001, got {close_code}"
+        await communicator.disconnect()
 
     @pytest.mark.asyncio
     async def test_connect_fail_challenge_not_found(self):
@@ -144,19 +127,10 @@ class TestChallengeConsumer:
             user,
             url_kwargs={"challenge_pk": non_existent_pk},
         )
-        connected, _ = await communicator.connect(timeout=5)
+        connected, close_code = await communicator.connect(timeout=5)
         assert not connected, "Connection should have failed for non-existent challenge"
-        try:
-            await asyncio.sleep(0.2)
-            close_event = await communicator.receive_output(timeout=3)
-            assert (
-                close_event["type"] == "websocket.close"
-            ), f"Expected websocket.close, got {close_event.get('type')}"
-            assert close_event["code"] == 4004
-        except asyncio.TimeoutError:
-            pytest.fail(
-                f"Timeout: Close frame (4004) not received. Connected status: {connected}"
-            )
+        assert close_code == 4004, f"Expected close code 4004, got {close_code}"
+        await communicator.disconnect()
 
     @pytest.mark.asyncio
     async def test_disconnect_cleans_group(self):
@@ -452,22 +426,15 @@ class TestChallengeNotificationConsumer:
         communicator = WebsocketCommunicator(
             ChallengeNotificationConsumer.as_asgi(), "/ws/challenges/notifications/"
         )
+        # Ensure headers are present if any middleware depends on them.
         communicator.scope["headers"] = []
-        connected, _ = await communicator.connect(timeout=5)
+
+        connected, close_code = await communicator.connect(timeout=5)
         assert (
             not connected
         ), "Notification connection should have failed for unauthenticated"
-        try:
-            await asyncio.sleep(0.2)
-            close_event = await communicator.receive_output(timeout=3)
-            assert (
-                close_event["type"] == "websocket.close"
-            ), f"Expected websocket.close, got {close_event.get('type')}"
-            assert close_event["code"] == 4001
-        except asyncio.TimeoutError:
-            pytest.fail(
-                f"Timeout: Close frame (4001) not received for unauth notification. Conn: {connected}"
-            )
+        assert close_code == 4001, f"Expected close code 4001, got {close_code}"
+        await communicator.disconnect()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
