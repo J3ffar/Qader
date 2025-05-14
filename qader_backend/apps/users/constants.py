@@ -79,6 +79,8 @@ class GenderChoices(models.TextChoices):
 
 class RoleChoices(models.TextChoices):
     STUDENT = "student", _("Student")
+    TEACHER = "teacher", _("Teacher")
+    TRAINER = "trainer", _("Trainer")
     ADMIN = "admin", _("Admin")
     SUB_ADMIN = "sub_admin", _("Sub-Admin")
 

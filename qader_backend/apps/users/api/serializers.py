@@ -364,6 +364,26 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
         return image
 
 
+class MentorInfoSerializer(serializers.ModelSerializer):
+    """Basic info for an assigned mentor."""
+
+    id = serializers.IntegerField(source="user.id", read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    # full_name is on UserProfile directly
+
+    class Meta:
+        model = UserProfile  # The mentor's UserProfile
+        fields = (
+            "id",
+            "username",
+            "email",
+            "full_name",
+            "role",
+        )  # Add role for clarity
+        read_only_fields = fields
+
+
 # --- Update AuthUserResponseSerializer ---
 class AuthUserResponseSerializer(serializers.ModelSerializer):
     """Serializer for the 'user' object in Login/ConfirmEmail responses."""
@@ -403,6 +423,12 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
     current_streak_days = serializers.IntegerField(
         read_only=True, help_text="User's current study streak in days."
     )  # Sourced from profile.current_streak_days
+    assigned_mentor = serializers.SerializerMethodField(
+        help_text="Information about the student's assigned mentor (if any)."
+    )
+    mentees_count = serializers.SerializerMethodField(
+        help_text="Number of students assigned to this teacher/trainer (if applicable)."
+    )
 
     class Meta:
         model = UserProfile
@@ -422,6 +448,8 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
             "is_staff",
             "points",
             "current_streak_days",
+            "assigned_mentor",
+            "mentees_count",
         )
         read_only_fields = fields  # This ensures all fields listed above are read-only
 
@@ -432,6 +460,19 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(url)
             return url
+        return None
+
+    def get_assigned_mentor(self, profile: UserProfile) -> Optional[Dict[str, Any]]:
+        if profile.role == RoleChoices.STUDENT and profile.assigned_mentor:
+            # Pass context (like request) if MentorInfoSerializer needs it
+            return MentorInfoSerializer(
+                profile.assigned_mentor, context=self.context
+            ).data
+        return None
+
+    def get_mentees_count(self, profile: UserProfile) -> Optional[int]:
+        if profile.role in [RoleChoices.TEACHER, RoleChoices.TRAINER]:
+            return profile.mentees.count()  # Uses related_name='mentees'
         return None
 
 
@@ -449,6 +490,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
     subscription = SubscriptionDetailSerializer(read_only=True, source="*")
     referral = ReferralDetailSerializer(read_only=True, source="*")
     profile_picture_url = serializers.SerializerMethodField()
+    assigned_mentor = serializers.SerializerMethodField(
+        help_text="Information about the student's assigned mentor (if any)."
+    )
+    mentees_count = serializers.SerializerMethodField(
+        help_text="Number of students assigned to this teacher/trainer (if applicable)."
+    )
 
     class Meta:
         model = UserProfile
@@ -483,6 +530,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "updated_at",
             "subscription",
             "referral",
+            "assigned_mentor",
+            "mentees_count",
         )
         read_only_fields = fields
 
@@ -493,6 +542,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(url)
             return url
+        return None
+
+    def get_assigned_mentor(self, profile: UserProfile) -> Optional[Dict[str, Any]]:
+        if profile.role == RoleChoices.STUDENT and profile.assigned_mentor:
+            # Pass context (like request) if MentorInfoSerializer needs it
+            return MentorInfoSerializer(
+                profile.assigned_mentor, context=self.context
+            ).data
+        return None
+
+    def get_mentees_count(self, profile: UserProfile) -> Optional[int]:
+        if profile.role in [RoleChoices.TEACHER, RoleChoices.TRAINER]:
+            return profile.mentees.count()  # Uses related_name='mentees'
         return None
 
 

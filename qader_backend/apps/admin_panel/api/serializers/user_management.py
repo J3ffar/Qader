@@ -119,6 +119,13 @@ class AdminUserProfileSerializer(serializers.ModelSerializer):
     )  # User ID of referrer
     referrals_count = serializers.SerializerMethodField(read_only=True)
     earned_free_days = serializers.SerializerMethodField(read_only=True)
+    assigned_mentor = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.filter(
+            role__in=[RoleChoices.TEACHER, RoleChoices.TRAINER]
+        ),
+        allow_null=True,
+        required=False,
+    )
 
     class Meta:
         model = UserProfile
@@ -152,6 +159,7 @@ class AdminUserProfileSerializer(serializers.ModelSerializer):
             "referred_by",  # Read-only (shows user ID) - Admin could theoretically change this, but requires specific endpoint/logic. Keep read-only for now.
             "referrals_count",  # Read-only
             "earned_free_days",  # Read-only
+            "assigned_mentor",
             "created_at",
             "updated_at",
         ]

@@ -323,6 +323,18 @@ class UserProfile(models.Model):
         related_name="sub_admins",
         help_text=_("Specific permissions granted to this sub-admin user."),
     )
+    assigned_mentor = models.ForeignKey(
+        "self",  # Links to another UserProfile instance
+        verbose_name=_("Assigned Mentor (Teacher/Trainer)"),
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="mentees",  # Allows mentor.mentees.all()
+        limit_choices_to={"role__in": [RoleChoices.TEACHER, RoleChoices.TRAINER]},
+        help_text=_(
+            "The Teacher or Trainer assigned to this student. Only applicable if role is Student."
+        ),
+    )
 
     # Timestamps
     created_at = models.DateTimeField(_("Profile Created At"), auto_now_add=True)
@@ -457,8 +469,18 @@ class UserProfile(models.Model):
             return self.admin_permissions.filter(slug=perm_slug).exists()
         return False
 
+    def has_permission(self, perm_slug: str) -> bool:
+        if (
+            self.user.is_superuser
+            or self.user.is_staff
+            and self.role == RoleChoices.ADMIN
+        ):
+            return True
+        if self.role == RoleChoices.SUB_ADMIN and self.user.is_staff:
+            return self.admin_permissions.filter(slug=perm_slug).exists()
+        return False
+
     def save(self, *args, **kwargs):
-        # Generate referral code on first save if it doesn't exist, using the utility function
         if not self.referral_code:
             if hasattr(self, "user") and self.user and self.user.username:
                 self.referral_code = generate_unique_referral_code(self.user.username)
@@ -470,18 +492,20 @@ class UserProfile(models.Model):
                     "Could not generate referral code during profile save: User or username not available."
                 )
 
-        # Ensure is_staff is True for ADMIN and SUB_ADMIN roles
-        if (
-            self.role in [RoleChoices.ADMIN, RoleChoices.SUB_ADMIN]
-            and not self.user.is_staff
-        ):
+        # Ensure is_staff is True for ADMIN, SUB_ADMIN, TEACHER, TRAINER roles
+        staff_roles = [
+            RoleChoices.ADMIN,
+            RoleChoices.SUB_ADMIN,
+            RoleChoices.TEACHER,
+            RoleChoices.TRAINER,
+        ]
+        if self.role in staff_roles and not self.user.is_staff:
             self.user.is_staff = True
-            # Save the related user if is_staff was changed
-            if self.user.pk:  # Ensure user exists before trying to save it
-                self.user.save(
-                    update_fields=["is_staff", "last_login"]
-                )  # Added last_login to update_fields to avoid potential issues
-            # Note: This save *might* need to be done within a transaction if User and Profile saves are separate.
-            # However, given OneToOneField and signals, it's often handled. Be mindful in `create`.
+            if self.user.pk:
+                self.user.save(update_fields=["is_staff", "last_login"])
+
+        # If role is not Student, ensure assigned_mentor is cleared
+        if self.role != RoleChoices.STUDENT and self.assigned_mentor is not None:
+            self.assigned_mentor = None  # Mentors cannot have mentors
 
         super().save(*args, **kwargs)
