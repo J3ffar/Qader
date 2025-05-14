@@ -542,12 +542,10 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             ):
                 profile.current_level_verbal = test_attempt.score_verbal
                 profile.current_level_quantitative = test_attempt.score_quantitative
-                profile.is_level_determined = True
                 profile.save(
                     update_fields=[
                         "current_level_verbal",
                         "current_level_quantitative",
-                        "is_level_determined",
                         "updated_at",
                     ]
                 )
