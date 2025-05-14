@@ -1,16 +1,15 @@
 import datetime
 import logging
 from datetime import timedelta
-from typing import Optional, Any, Callable, Dict  # Added Callable, Dict
+from typing import Optional, Any, Callable, Dict, List  # Added List
 from django.db import transaction, models
 from django.db.models import F
 from django.utils import timezone
 
-# from django.contrib.auth import get_user_model # Use settings instead
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.conf import settings  # Import settings
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 
 from apps.users.models import UserProfile
@@ -24,53 +23,37 @@ from .models import (
     UserRewardPurchase,
     PointReason,
 )
-from apps.study.models import UserQuestionAttempt, UserTestAttempt  # For badge checks
+from apps.study.models import UserQuestionAttempt, UserTestAttempt
 
-# User = get_user_model() # Use settings.AUTH_USER_MODEL
-DjangoUser = settings.AUTH_USER_MODEL  # Alias for clarity if needed
-
+DjangoUser = settings.AUTH_USER_MODEL
 logger = logging.getLogger(__name__)
-
-# Type alias for badge checker functions
 BadgeChecker = Callable[[DjangoUser, UserProfile], bool]
 
+
 # --- Point Management ---
-
-
 def award_points(
     user: DjangoUser,
     points_change: int,
-    reason_code: PointReason,  # Use Enum
+    reason_code: PointReason,
     description: str,
-    related_object: Optional[models.Model] = None,  # Type hint Model
-) -> bool:
+    related_object: Optional[models.Model] = None,
+) -> int:  # Changed return type
     """
     Atomically awards points to a user, logs the transaction, and updates the profile.
-
-    Args:
-        user: The user receiving points.
-        points_change: The number of points to add (positive) or subtract (negative).
-        reason_code: The standardized reason from PointReason enum.
-        description: A human-readable description for the log.
-        related_object: Optional Django model instance that triggered the points.
-
-    Returns:
-        True if points were awarded successfully, False otherwise.
+    Returns the actual number of points changed (0 if no change or error).
     """
-    if not user or not hasattr(user, "pk"):  # Check for valid user object
+    if not user or not hasattr(user, "pk"):
         logger.error(f"Attempted to award points to invalid user object: {user}")
-        return False
+        return 0  # Return 0 for failure
 
     if points_change == 0:
-        return True  # No change needed
+        return 0  # No change
 
-    username = getattr(user, "username", f"UserID_{user.pk}")  # Safe username access
+    username = getattr(user, "username", f"UserID_{user.pk}")
 
     try:
         with transaction.atomic():
-            # Lock the profile row for the duration of the transaction
             profile = UserProfile.objects.select_for_update().get(user=user)
-
             content_type = None
             object_id = None
             if related_object:
@@ -80,114 +63,43 @@ def award_points(
             PointLog.objects.create(
                 user=user,
                 points_change=points_change,
-                reason_code=reason_code,  # Store enum value
+                reason_code=reason_code,
                 description=description,
                 content_type=content_type,
                 object_id=object_id,
             )
-
-            # Use F() expression for atomic update, avoids race conditions
             profile.points = F("points") + points_change
             profile.save(update_fields=["points", "updated_at"])
-
-            # Refresh is needed AFTER save to get the updated value from F()
             profile.refresh_from_db(fields=["points"])
             logger.info(
                 f"Awarded {points_change} points to {username} for {reason_code.label}. "
                 f"New balance: {profile.points}"
             )
-            return True
-
+            return points_change  # Return actual points changed
     except UserProfile.DoesNotExist:
         logger.error(
             f"UserProfile not found for user {username} during point award for {reason_code.label}."
         )
-        return False
+        return 0
     except Exception as e:
-        logger.exception(  # Use logger.exception to include traceback
+        logger.exception(
             f"Error awarding points to {username} for {reason_code.label}: {e}"
         )
-        return False
+        return 0
 
 
 # --- Badge Management ---
-
-# --- Badge Checker Functions ---
-# These functions contain the *actual logic* to determine if a user qualifies for a badge.
-# They MUST be implemented based on the specific requirements.
-
-
-def _check_50_questions_solved(user: DjangoUser, profile: UserProfile) -> bool:
-    """Checks if the user has solved at least 50 questions."""
-    # !! IMPORTANT: Implement the actual logic here !!
-    # This might involve querying UserQuestionAttempt or a counter on UserProfile
-    # Example (potentially inefficient, consider optimization/denormalization):
-    # return UserQuestionAttempt.objects.filter(user=user, is_correct=True).count() >= 50
-    logger.warning(
-        f"Badge check logic for '{settings.BADGE_SLUG_50_QUESTIONS}' is not implemented."
-    )
-    return False  # Placeholder
-
-
-def _check_first_full_test(user: DjangoUser, profile: UserProfile) -> bool:
-    """Checks if the user has completed their first full simulation test."""
-    # !! IMPORTANT: Implement the actual logic here !!
-    # return UserTestAttempt.objects.filter(
-    #     user=user,
-    #     status=UserTestAttempt.Status.COMPLETED,
-    #     attempt_type=UserTestAttempt.AttemptType.SIMULATION # Ensure this type exists
-    # ).exists()
-    logger.warning(
-        f"Badge check logic for '{settings.BADGE_SLUG_FIRST_FULL_TEST}' is not implemented."
-    )
-    return False  # Placeholder
-
-
-def _check_streak_badge(
-    user: DjangoUser, profile: UserProfile, required_streak: int
-) -> bool:
-    """Checks if the user's current streak meets the required number of days."""
-    # This logic is straightforward based on the profile field
-    return profile.current_streak_days >= required_streak
-
-
-# --- Badge Dispatcher ---
-# Maps badge slugs (from settings) to their respective checker functions.
-# This makes adding new badges much easier (Open/Closed Principle).
-BADGE_CHECKERS: Dict[str, BadgeChecker] = {
-    # Use actual slugs from settings
-    getattr(
-        settings, "BADGE_SLUG_50_QUESTIONS", "50-questions-solved"
-    ): _check_50_questions_solved,
-    getattr(
-        settings, "BADGE_SLUG_FIRST_FULL_TEST", "first-full-test"
-    ): _check_first_full_test,
-    getattr(
-        settings, "BADGE_SLUG_5_DAY_STREAK", "5-day-streak"
-    ): lambda u, p: _check_streak_badge(u, p, 5),
-    getattr(
-        settings, "BADGE_SLUG_10_DAY_STREAK", "10-day-streak"
-    ): lambda u, p: _check_streak_badge(u, p, 10),
-    # Add entries for ALL other badge slugs defined in settings here
-    # "another-badge-slug": _check_another_badge_logic,
-}
-
-
-def check_and_award_badge(user: DjangoUser, badge_slug: str) -> bool:
+def check_and_award_badge(
+    user: DjangoUser, badge_slug: str
+) -> Optional[Dict[str, Any]]:  # Changed return type
     """
-    Checks if a user qualifies for a specific badge based on its defined
-    criteria_type and target_value, and awards it if not already earned.
-
-    Args:
-        user: The user to check.
-        badge_slug: The unique slug of the badge to check.
-
-    Returns:
-        True if the badge was newly awarded in this call, False otherwise.
+    Checks if a user qualifies for a specific badge and awards it.
+    Returns a dict with badge details and points awarded if newly earned, else None.
+    Badge details: {'slug': str, 'name': str, 'description': str, 'points_awarded': int}
     """
     if not user or not hasattr(user, "pk"):
         logger.warning(f"Badge check skipped for invalid user object: {user}")
-        return False
+        return None
 
     username = getattr(user, "username", f"UserID_{user.pk}")
 
@@ -195,138 +107,132 @@ def check_and_award_badge(user: DjangoUser, badge_slug: str) -> bool:
         badge = Badge.objects.get(slug=badge_slug, is_active=True)
         profile = UserProfile.objects.get(user=user)
 
-        # 1. Check if already earned
         if UserBadge.objects.filter(user=user, badge=badge).exists():
-            # logger.debug(f"User {username} already has badge '{badge_slug}'.")
-            return False  # Not newly awarded
+            return None
 
-        # 2. Check if criteria type requires automatic check
         if badge.criteria_type == Badge.BadgeCriteriaType.OTHER:
-            logger.debug(
-                f"Badge '{badge_slug}' is type OTHER, skipping automatic check."
-            )
-            return False  # Cannot be auto-awarded by this function
+            return None
 
-        # 3. Validate target_value (should be caught by model clean, but double-check)
-        if badge.target_value is None:
+        if (
+            badge.target_value is None
+            and badge.criteria_type != Badge.BadgeCriteriaType.OTHER
+        ):  # Ensure target_value exists where needed
             logger.error(
                 f"Badge '{badge_slug}' (type: {badge.criteria_type}) is missing target_value."
             )
-            return False
+            return None
 
-        # 4. Get current progress based on criteria type
         current_value = None
         if badge.criteria_type == Badge.BadgeCriteriaType.STUDY_STREAK:
             current_value = profile.current_streak_days
         elif badge.criteria_type == Badge.BadgeCriteriaType.QUESTIONS_SOLVED_CORRECTLY:
-            # Potential Performance Bottleneck: Consider denormalizing this count onto UserProfile
-            # if this query becomes slow under load.
             current_value = UserQuestionAttempt.objects.filter(
                 user=user, is_correct=True
             ).count()
-            # logger.debug(f"User {username} solved questions count: {current_value} for badge {badge_slug}")
         elif badge.criteria_type == Badge.BadgeCriteriaType.TESTS_COMPLETED:
-            # Potential Performance Bottleneck: Consider denormalizing.
             current_value = UserTestAttempt.objects.filter(
                 user=user, status=UserTestAttempt.Status.COMPLETED
             ).count()
-            # logger.debug(f"User {username} completed tests count: {current_value} for badge {badge_slug}")
         elif badge.criteria_type == Badge.BadgeCriteriaType.CHALLENGES_WON:
-            # Query completed challenges where the user is the winner
             current_value = Challenge.objects.filter(
-                winner=user, status=ChallengeStatus.COMPLETED  # Ensure it's completed
+                winner=user, status=ChallengeStatus.COMPLETED
             ).count()
-            logger.debug(
-                f"User {username} challenge wins count: {current_value} for badge {badge_slug}"
-            )
         else:
             logger.warning(
                 f"Unhandled criteria type '{badge.criteria_type}' for badge '{badge_slug}'."
             )
-            return False  # Cannot check this type
+            return None
 
-        # 5. Compare current progress with target value
         criteria_met = False
-        if current_value is not None and current_value >= badge.target_value:
-            criteria_met = True
-            # logger.debug(f"Criteria MET for badge '{badge_slug}' for user {username}. Current: {current_value}, Target: {badge.target_value}")
-        # else:
-        #     logger.debug(f"Criteria NOT MET for badge '{badge_slug}' for user {username}. Current: {current_value}, Target: {badge.target_value}")
+        if current_value is not None and (
+            badge.target_value is None or current_value >= badge.target_value
+        ):
+            # Handle cases where target_value might be None for certain auto-awarded badges not requiring a specific count
+            if badge.target_value is not None and current_value < badge.target_value:
+                criteria_met = False
+            else:
+                criteria_met = True
 
-        # 6. Award badge if criteria are met
         if criteria_met:
             with transaction.atomic():
                 user_badge, created = UserBadge.objects.get_or_create(
-                    user=user,
-                    badge=badge,
-                    # Defaults not needed here, creation timestamp is automatic
+                    user=user, badge=badge
                 )
-
-                if created:  # Ensure we only log/award points on actual creation
+                if created:
                     logger.info(
                         f"Awarded badge '{badge.name}' (slug: {badge_slug}) to user {username}"
                     )
-
-                    # Award points for earning the badge, using constant from settings
-                    points_badge_earned = getattr(settings, "POINTS_BADGE_EARNED", 0)
-                    if points_badge_earned > 0:
-                        award_points(
+                    points_for_this_badge = 0
+                    points_badge_earned_setting = getattr(
+                        settings, "POINTS_BADGE_EARNED", 0
+                    )
+                    if points_badge_earned_setting > 0:
+                        points_for_this_badge = award_points(
                             user=user,
-                            points_change=points_badge_earned,
+                            points_change=points_badge_earned_setting,
                             reason_code=PointReason.BADGE_EARNED,
                             description=f"Earned badge: {badge.name}",
-                            related_object=user_badge,  # Link points to the UserBadge record
+                            related_object=user_badge,
                         )
-                    return True  # Newly awarded
+                    return {
+                        "slug": badge.slug,
+                        "name": badge.name,
+                        "description": badge.description,  # Or criteria_description
+                        "points_awarded": points_for_this_badge,
+                    }
                 else:
-                    # This case should theoretically be caught by the initial check,
-                    # but get_or_create handles potential race conditions.
                     logger.warning(
-                        f"Badge '{badge_slug}' was already present for user {username} despite initial check (race condition?)."
+                        f"Badge '{badge_slug}' was already present for user {username} (race condition?)."
                     )
-                    return False  # Not newly awarded
-        else:
-            return False  # Criteria not met
-
+                    return None  # Not newly awarded
+        return None  # Criteria not met
     except Badge.DoesNotExist:
         logger.warning(
-            f"Badge with slug '{badge_slug}' not found or inactive during check for user {username}."
+            f"Badge with slug '{badge_slug}' not found or inactive for user {username}."
         )
-        return False
+        return None
     except UserProfile.DoesNotExist:
         logger.error(f"UserProfile not found for user {username} during badge check.")
-        return False
+        return None
     except Exception as e:
         logger.exception(
             f"Error checking/awarding badge '{badge_slug}' for {username}: {e}"
         )
-        return False
+        return None
 
 
 # --- Streak Management ---
-
-
-def update_streak(user: DjangoUser):
+def update_streak(user: DjangoUser) -> Dict[str, Any]:  # Changed return type
     """
-    Updates the user's study streak based on their last activity AND logs the study day.
-
-    Should be called after any significant study activity. Handles awarding
-    streak-related points and badges internally by calling check_and_award_badge.
-    Logs a StudyDayLog entry for the current day if activity occurs.
+    Updates user's study streak, logs study day, and handles streak-related points/badges.
+    Returns a dict with streak update details, points, and badges awarded due to streak.
     """
+    default_return = {
+        "streak_was_updated": False,
+        "current_streak_days": 0,
+        "longest_streak_days": 0,
+        "points_awarded_for_streak_bonus": 0,
+        "badges_awarded_during_streak_update": [],
+    }
     if not user or not hasattr(user, "pk"):
         logger.warning("Streak update skipped for invalid user object.")
-        return
+        return default_return
 
     username = getattr(user, "username", f"UserID_{user.pk}")
+    points_from_streak_bonus = 0
+    badges_from_streak_update_details: List[Dict[str, Any]] = (
+        []
+    )  # Store full badge dicts
 
     try:
-        now_utc = timezone.now()  # Use UTC for comparison consistency
-        today_utc = now_utc.date()  # Get the date part in UTC
+        now_utc = timezone.now()
+        today_utc = now_utc.date()
         yesterday_utc = today_utc - timedelta(days=1)
 
-        with transaction.atomic():  # Ensure profile lock and updates are atomic
+        with transaction.atomic():
             profile = UserProfile.objects.select_for_update().get(user=user)
+            default_return["current_streak_days"] = profile.current_streak_days
+            default_return["longest_streak_days"] = profile.longest_streak_days
 
             last_activity_date_utc = None
             if profile.last_study_activity_at:
@@ -334,113 +240,278 @@ def update_streak(user: DjangoUser):
                     datetime.timezone.utc
                 ).date()
 
-            # --- Log Study Day ---
-            # Log the activity day *before* checking streak logic if it happened today
-            # We only need to log if the last recorded activity was *not* today
-            study_day_logged = False
+            study_day_logged_this_call = False
             if last_activity_date_utc != today_utc:
-                # Use get_or_create to handle uniqueness constraint gracefully
-                log_entry, created = StudyDayLog.objects.get_or_create(
-                    user=user,
-                    study_date=today_utc,
-                    # Defaults can be added here if needed, but not necessary for creation check
+                _, created = StudyDayLog.objects.get_or_create(
+                    user=user, study_date=today_utc
                 )
                 if created:
-                    study_day_logged = True
+                    study_day_logged_this_call = True
                     logger.info(
                         f"Logged new study day {today_utc.isoformat()} for user {username}"
                     )
-                # else: log already exists for today, no action needed
 
-            # --- Streak Logic (largely unchanged) ---
-            # If last activity was today (UTC), only update timestamp if necessary
+            streak_value_changed = False
+            original_streak_for_comparison = profile.current_streak_days
+
             if last_activity_date_utc == today_utc:
-                # Still update timestamp if a later activity happened today
-                if profile.last_study_activity_at < now_utc:
+                if (
+                    profile.last_study_activity_at < now_utc
+                ):  # Later activity on same day
                     profile.last_study_activity_at = now_utc
                     profile.save(update_fields=["last_study_activity_at"])
-                # No streak update needed, but day logging might have happened above if first activity today
-                return
-
-            original_streak = profile.current_streak_days
-            streak_updated = False
-            new_streak_value = 1  # Default for new/reset streak
+                # No change to streak days itself, but day was logged if first activity
+                default_return["streak_was_updated"] = (
+                    study_day_logged_this_call  # True if new day log created
+                )
+                return default_return
 
             if last_activity_date_utc == yesterday_utc:
-                # Continued streak
                 profile.current_streak_days = F("current_streak_days") + 1
-                streak_updated = True
+                streak_value_changed = True
                 logger.info(f"User {username} continued streak.")
             elif (
                 last_activity_date_utc is None or last_activity_date_utc < yesterday_utc
             ):
-                # Started new streak or broke streak
                 profile.current_streak_days = 1
-                streak_updated = True
+                streak_value_changed = True
                 logger.info(f"User {username} started/reset streak to 1.")
 
-            # Always update the last activity timestamp
             profile.last_study_activity_at = now_utc
             update_fields = ["last_study_activity_at"]
-            if streak_updated:
+            if streak_value_changed:
                 update_fields.append("current_streak_days")
 
             profile.save(update_fields=update_fields)
+            profile.refresh_from_db(
+                fields=[
+                    "current_streak_days",
+                    "longest_streak_days",
+                    "last_study_activity_at",
+                ]
+            )  # Ensure all are fresh
 
-            # --- Post-Streak Update Actions (unchanged) ---
-            if streak_updated:
-                profile.refresh_from_db(
-                    fields=["current_streak_days", "longest_streak_days"]
+            current_streak_after_update = profile.current_streak_days
+            default_return["current_streak_days"] = current_streak_after_update
+            default_return["streak_was_updated"] = (
+                streak_value_changed or study_day_logged_this_call
+            )
+
+            if current_streak_after_update > profile.longest_streak_days:
+                profile.longest_streak_days = current_streak_after_update
+                profile.save(update_fields=["longest_streak_days"])
+                logger.info(
+                    f"User {username} updated longest streak to {current_streak_after_update} days."
                 )
-                current_streak = profile.current_streak_days
+            default_return["longest_streak_days"] = profile.longest_streak_days
 
-                if current_streak > profile.longest_streak_days:
-                    profile.longest_streak_days = current_streak
-                    profile.save(update_fields=["longest_streak_days"])
-                    logger.info(
-                        f"User {username} updated longest streak to {current_streak} days."
-                    )
-
-                points_to_award = settings.POINTS_STREAK_BONUS_MAP.get(current_streak)
-                if (
-                    points_to_award
-                    and points_to_award > 0
-                    and current_streak > original_streak
-                ):
-                    award_points(
+            # Award points and badges only if streak value actually increased
+            if (
+                streak_value_changed
+                and current_streak_after_update > original_streak_for_comparison
+            ):
+                points_for_current_streak = settings.POINTS_STREAK_BONUS_MAP.get(
+                    current_streak_after_update, 0
+                )
+                if points_for_current_streak > 0:
+                    points_from_streak_bonus = award_points(
                         user=user,
-                        points_change=points_to_award,
+                        points_change=points_for_current_streak,
                         reason_code=PointReason.STREAK_BONUS,
                         description=_("Reached {days}-day streak!").format(
-                            days=current_streak
+                            days=current_streak_after_update
                         ),
                         related_object=profile,
                     )
+                default_return["points_awarded_for_streak_bonus"] = (
+                    points_from_streak_bonus
+                )
 
-                active_streak_badges = Badge.objects.filter(
+                active_streak_badges_qs = Badge.objects.filter(
                     is_active=True, criteria_type=Badge.BadgeCriteriaType.STUDY_STREAK
                 ).only(
-                    "slug"
-                )  # Fetch only slugs for efficiency
+                    "slug", "name", "description"
+                )  # Fetch details needed
 
-                for badge in active_streak_badges:
-                    # Only check if the current streak meets or exceeds the badge's target
-                    # (The check_and_award function will handle the actual comparison and award)
-                    # No need to check original_streak here, let check_and_award handle it.
-                    check_and_award_badge(user, badge.slug)
+                for badge_def in active_streak_badges_qs:
+                    # check_and_award_badge will compare current_streak_after_update with badge_def.target_value
+                    badge_award_detail = check_and_award_badge(user, badge_def.slug)
+                    if badge_award_detail:
+                        badges_from_streak_update_details.append(badge_award_detail)
+                        # Points for earning the badge are handled within check_and_award_badge
+                        # and are already added to user's total. We collect them later if needed for summary.
+
+            default_return["badges_awarded_during_streak_update"] = (
+                badges_from_streak_update_details
+            )
+            return default_return
 
     except UserProfile.DoesNotExist:
         logger.error(f"UserProfile not found for user {username} during streak update.")
+        # Return initial default values
+        initial_default = {
+            "streak_was_updated": False,
+            "current_streak_days": 0,
+            "longest_streak_days": 0,
+            "points_awarded_for_streak_bonus": 0,
+            "badges_awarded_during_streak_update": [],
+        }
+        try:  # Attempt to get latest profile values if possible, otherwise use 0s
+            profile = UserProfile.objects.get(user=user)
+            initial_default["current_streak_days"] = profile.current_streak_days
+            initial_default["longest_streak_days"] = profile.longest_streak_days
+        except UserProfile.DoesNotExist:
+            pass  # Keep 0s
+        return initial_default
     except Exception as e:
         logger.exception(f"Error updating streak/logging study day for {username}: {e}")
+        # Return initial default values, potentially fetching current profile state if possible
+        initial_default = {
+            "streak_was_updated": False,
+            "current_streak_days": 0,
+            "longest_streak_days": 0,
+            "points_awarded_for_streak_bonus": 0,
+            "badges_awarded_during_streak_update": [],
+        }
+        try:
+            profile = UserProfile.objects.get(user=user)
+            initial_default["current_streak_days"] = profile.current_streak_days
+            initial_default["longest_streak_days"] = profile.longest_streak_days
+        except UserProfile.DoesNotExist:
+            pass  # Keep 0s
+        return initial_default
 
 
-# --- Rewards Store Management ---
+# --- New Consolidating Service ---
+@transaction.atomic  # Ensure all gamification for a test completion is one unit
+def process_test_completion_gamification(
+    user: DjangoUser, test_attempt: UserTestAttempt
+) -> Dict[str, Any]:
+    """
+    Processes all gamification aspects for a completed test attempt.
+    Awards points, updates streak, checks for badges.
+    Sets test_attempt.completion_points_awarded = True and saves it.
+    """
+    if test_attempt.completion_points_awarded:
+        logger.warning(
+            f"Gamification for test attempt {test_attempt.id} already processed. Skipping."
+        )
+        # Return what might have been if it was processed now, or simply indicate no new actions
+        profile = UserProfile.objects.get(user=user)  # Get current state
+        return {
+            "total_points_earned": 0,
+            "badges_won_details": [],
+            "streak_info": {
+                "was_updated": False,
+                "current_days": profile.current_streak_days,  # Current streak, not necessarily updated now
+            },
+        }
+
+    total_points_earned_this_event = 0
+    all_newly_awarded_badges_details: List[Dict[str, Any]] = []
+
+    # 1. Award points for the test type
+    points_for_test_type = 0
+    reason_for_test_points = PointReason.TEST_COMPLETED
+    description_for_test_points = _("Completed Test Attempt #{att_id} ({type})").format(
+        att_id=test_attempt.id, type=test_attempt.get_attempt_type_display()
+    )
+
+    if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
+        points_for_test_type = settings.POINTS_LEVEL_ASSESSMENT_COMPLETED
+        reason_for_test_points = PointReason.LEVEL_ASSESSMENT_COMPLETED
+        description_for_test_points = _("Completed Level Assessment #{att_id}").format(
+            att_id=test_attempt.id
+        )
+    elif test_attempt.attempt_type in [
+        UserTestAttempt.AttemptType.PRACTICE,
+        UserTestAttempt.AttemptType.SIMULATION,
+    ]:
+        points_for_test_type = settings.POINTS_TEST_COMPLETED
+    # For TRADITIONAL, points_for_test_type remains 0, which is fine.
+
+    if points_for_test_type > 0:
+        awarded_test_points = award_points(
+            user=user,
+            points_change=points_for_test_type,
+            reason_code=reason_for_test_points,
+            description=description_for_test_points,
+            related_object=test_attempt,
+        )
+        total_points_earned_this_event += awarded_test_points
+
+    # 2. Update streak (this also handles streak-specific points and badges)
+    streak_results = update_streak(user)
+    total_points_earned_this_event += streak_results.get(
+        "points_awarded_for_streak_bonus", 0
+    )
+
+    # Add badges from streak update, ensuring no duplicates if a badge could be awarded by multiple paths
+    for badge_detail in streak_results.get("badges_awarded_during_streak_update", []):
+        if not any(
+            b["slug"] == badge_detail["slug"] for b in all_newly_awarded_badges_details
+        ):
+            all_newly_awarded_badges_details.append(badge_detail)
+            total_points_earned_this_event += badge_detail.get("points_awarded", 0)
+
+    # 3. Check for other relevant badges (e.g., "N Tests Completed", "N Questions Solved")
+    # These checks use the user's current overall stats.
+    # Badges for "TESTS_COMPLETED"
+    test_count_badges_qs = Badge.objects.filter(
+        is_active=True, criteria_type=Badge.BadgeCriteriaType.TESTS_COMPLETED
+    ).only("slug", "name", "description")
+    for badge_def in test_count_badges_qs:
+        badge_award_detail = check_and_award_badge(user, badge_def.slug)
+        if badge_award_detail:
+            if not any(
+                b["slug"] == badge_award_detail["slug"]
+                for b in all_newly_awarded_badges_details
+            ):
+                all_newly_awarded_badges_details.append(badge_award_detail)
+                total_points_earned_this_event += badge_award_detail.get(
+                    "points_awarded", 0
+                )
+
+    # Badges for "QUESTIONS_SOLVED_CORRECTLY"
+    question_count_badges_qs = Badge.objects.filter(
+        is_active=True, criteria_type=Badge.BadgeCriteriaType.QUESTIONS_SOLVED_CORRECTLY
+    ).only("slug", "name", "description")
+    for badge_def in question_count_badges_qs:
+        badge_award_detail = check_and_award_badge(user, badge_def.slug)
+        if badge_award_detail:
+            if not any(
+                b["slug"] == badge_award_detail["slug"]
+                for b in all_newly_awarded_badges_details
+            ):
+                all_newly_awarded_badges_details.append(badge_award_detail)
+                total_points_earned_this_event += badge_award_detail.get(
+                    "points_awarded", 0
+                )
+
+    # 4. Mark test attempt as gamification processed and save
+    test_attempt.completion_points_awarded = (
+        True  # Using this flag universally for "gamification processed"
+    )
+    test_attempt.save(update_fields=["completion_points_awarded", "updated_at"])
+
+    logger.info(
+        f"Gamification processed for test attempt {test_attempt.id}. "
+        f"Points: {total_points_earned_this_event}, Badges: {len(all_newly_awarded_badges_details)}, "
+        f"Streak Updated: {streak_results.get('streak_was_updated', False)}, Current Streak: {streak_results.get('current_streak_days', 0)}"
+    )
+
+    return {
+        "total_points_earned": total_points_earned_this_event,
+        "badges_won_details": all_newly_awarded_badges_details,  # Contains full badge dicts
+        "streak_info": {
+            "was_updated": streak_results.get("streak_was_updated", False),
+            "current_days": streak_results.get("current_streak_days", 0),
+        },
+    }
 
 
+# --- Rewards Store Management (largely unchanged from original structure) ---
 class PurchaseError(Exception):
-    """Custom exception for reward purchase errors."""
-
     pass
 
 
@@ -461,70 +532,55 @@ def purchase_reward(user: DjangoUser, item_id: int) -> Dict[str, Any]:
     """
     if not user or not hasattr(user, "pk"):
         raise PurchaseError(_("Invalid user for reward purchase."))
-
     username = getattr(user, "username", f"UserID_{user.pk}")
-
     try:
         item = RewardStoreItem.objects.get(pk=item_id, is_active=True)
     except RewardStoreItem.DoesNotExist:
         logger.warning(
             f"Attempt to purchase non-existent/inactive reward item {item_id} by {username}"
         )
-        raise  # Re-raise for the view to handle
-
+        raise
     try:
         with transaction.atomic():
             profile = UserProfile.objects.select_for_update().get(user=user)
-
             if profile.points < item.cost_points:
                 raise PurchaseError(_("Insufficient points to purchase this item."))
 
-            # Deduct points using the central service (negative value)
-            point_deducted = award_points(
+            point_deducted_amount = award_points(  # award_points returns amount
                 user=user,
                 points_change=-item.cost_points,
                 reason_code=PointReason.REWARD_PURCHASE,
                 description=f"Purchased: {item.name} (ID: {item.id})",
                 related_object=item,
             )
-
-            if not point_deducted:
-                # award_points handles logging, raise specific error here
+            if (
+                point_deducted_amount == 0 and item.cost_points > 0
+            ):  # Check if deduction actually happened
                 raise PurchaseError(
                     _("Failed to update points balance during purchase.")
                 )
 
-            # Record the purchase AFTER points are successfully deducted
             UserRewardPurchase.objects.create(
                 user=user, item=item, points_spent=item.cost_points
             )
-
             logger.info(
                 f"User {username} purchased reward '{item.name}' (ID: {item.id})."
             )
-
-            # Refresh profile to get the final point count after deduction
             profile.refresh_from_db(fields=["points"])
-
             return {
                 "item_id": item.id,
                 "item_name": item.name,
                 "points_spent": item.cost_points,
                 "remaining_points": profile.points,
             }
-
     except UserProfile.DoesNotExist:
-        logger.error(
-            f"UserProfile not found for user {username} during reward purchase."
-        )
+        logger.error(f"UserProfile not found for {username} during reward purchase.")
         raise PurchaseError(_("User profile error during purchase."))
     except PurchaseError as pe:
-        # Re-raise specific purchase errors (like insufficient points)
         logger.warning(f"Purchase failed for user {username}, item {item.id}: {pe}")
         raise pe
     except Exception as e:
         logger.exception(
-            f"Unexpected error during reward purchase by {username} for item {item_id}: {e}"
+            f"Unexpected error purchasing item {item_id} by {username}: {e}"
         )
-        # Transaction automatically rolls back
         raise PurchaseError(_("An unexpected error occurred during purchase."))

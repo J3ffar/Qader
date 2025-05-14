@@ -213,9 +213,20 @@ class UserQuestionAttemptResponseSerializer(serializers.Serializer):
 class ScoreSerializer(serializers.Serializer):
     """Serializer for nested score object."""
 
-    overall = serializers.FloatField(allow_null=True)
-    verbal = serializers.FloatField(allow_null=True)
-    quantitative = serializers.FloatField(allow_null=True)
+    overall = serializers.FloatField(allow_null=True, required=False)
+    verbal = serializers.FloatField(allow_null=True, required=False)
+    quantitative = serializers.FloatField(allow_null=True, required=False)
+
+
+class BadgeWonSerializer(serializers.Serializer):
+    slug = serializers.SlugField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    description = serializers.CharField(read_only=True)
+
+
+class StreakInfoSerializer(serializers.Serializer):
+    updated = serializers.BooleanField(read_only=True)
+    current_days = serializers.IntegerField(read_only=True)
 
 
 class UserTestAttemptCompletionResponseSerializer(serializers.Serializer):
@@ -225,16 +236,17 @@ class UserTestAttemptCompletionResponseSerializer(serializers.Serializer):
     """
 
     attempt_id = serializers.IntegerField()
-    status = serializers.CharField()  # User-friendly status display name
-
-    score = ScoreSerializer(read_only=True, allow_null=True)
-
-    results_summary = serializers.JSONField()
+    status = serializers.CharField()
+    score = ScoreSerializer(read_only=True, allow_null=True, required=False)
+    results_summary = serializers.JSONField(required=False)
     answered_question_count = serializers.IntegerField()
     total_questions = serializers.IntegerField()
     smart_analysis = serializers.CharField(
         allow_blank=True, allow_null=True, required=False
     )
+    points_earned = serializers.IntegerField(read_only=True, default=0)
+    badges_won = BadgeWonSerializer(many=True, read_only=True, default=list)
+    streak_info = StreakInfoSerializer(read_only=True, required=False)
 
 
 # --- Review Serializers ---
