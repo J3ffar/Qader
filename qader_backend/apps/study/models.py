@@ -120,6 +120,7 @@ class UserTestAttempt(models.Model):
         STARTED = "started", _("Started")
         COMPLETED = "completed", _("Completed")
         ABANDONED = "abandoned", _("Abandoned")
+        ERROR = "error", _("Error")
 
     class AttemptType(models.TextChoices):
         LEVEL_ASSESSMENT = "level_assessment", _("Level Assessment")
