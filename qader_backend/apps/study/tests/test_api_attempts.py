@@ -495,6 +495,7 @@ class TestCompleteAttemptAPI:
         assert res_data["score"]["overall"] is not None
         assert res_data["score"]["verbal"] is not None
         assert res_data["score"]["quantitative"] is not None
+        assert res_data["status"] == UserTestAttempt.Status.COMPLETED.label
 
         # Check DB for profile update
         profile.refresh_from_db()
