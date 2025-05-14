@@ -448,9 +448,8 @@ def record_single_answer(
 @transaction.atomic
 def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
     """
-    Finalizes a test attempt, calculates scores (except for Traditional mode),
+    Finalizes a test attempt, calculates scores,
     updates user profile for Level Assessments, updates status, and returns results.
-    The response structure for non-traditional attempts is modified to nest scores.
     """
     user = test_attempt.user
     if not user or not user.is_authenticated:
@@ -470,27 +469,29 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             }
         )
 
-    if test_attempt.attempt_type == UserTestAttempt.AttemptType.TRADITIONAL:
-        test_attempt.status = UserTestAttempt.Status.COMPLETED
-        test_attempt.end_time = timezone.now()
-        test_attempt.save(update_fields=["status", "end_time", "updated_at"])
-        logger.info(
-            f"Traditional practice session {test_attempt.id} marked as completed for user {user.id}."
-        )
-        return {"detail": _("Traditional practice session ended successfully.")}
-    else:
+    # Set status and end time for all attempt types
+    test_attempt.status = UserTestAttempt.Status.COMPLETED
+    test_attempt.end_time = timezone.now()
+
+    answered_count = 0
+    total_questions = (
+        test_attempt.num_questions
+    )  # Based on len(test_attempt.question_ids)
+
+    # Score calculation and specific logging for non-traditional types
+    if test_attempt.attempt_type != UserTestAttempt.AttemptType.TRADITIONAL:
         question_attempts_qs = test_attempt.question_attempts.select_related(
-            "question__subsection__section",
-            "question__skill",
+            "question__subsection__section", "question__skill"
         ).all()
         answered_count = question_attempts_qs.count()
-        total_questions = test_attempt.num_questions
 
         if answered_count < total_questions:
             logger.warning(
                 f"Test attempt {test_attempt.id} (Type: {test_attempt.attempt_type}) completed by user {user.id} with only {answered_count}/{total_questions} questions answered."
             )
-        elif answered_count > total_questions:
+        elif (
+            answered_count > total_questions and total_questions > 0
+        ):  # Avoid warning if total_questions is 0
             logger.error(
                 f"Data inconsistency: Test attempt {test_attempt.id} has {answered_count} answers recorded but expected {total_questions}. Scoring based on recorded answers."
             )
@@ -499,76 +500,86 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             test_attempt.calculate_and_save_scores(
                 question_attempts_qs=question_attempts_qs
             )
-            test_attempt.refresh_from_db()
+            # calculate_and_save_scores saves score fields and refreshes the instance.
         except Exception as e:
             logger.exception(
                 f"Error calculating or saving scores for test attempt {test_attempt.id}, user {user.id}: {e}"
             )
-            test_attempt.status = UserTestAttempt.Status.ERROR  # Or a custom status
-            test_attempt.end_time = timezone.now()
-            test_attempt.save(update_fields=["status", "end_time", "updated_at"])
-            raise DRFValidationError(
-                _("An error occurred while calculating scores. Please contact support.")
-            ) from e
+            # Scores will remain null/default. The attempt is still marked completed.
+            # If this needs to be a hard failure, an exception should be raised here.
+            # For now, we log and proceed, test will complete with null/default scores.
 
-        test_attempt.status = UserTestAttempt.Status.COMPLETED
-        test_attempt.end_time = timezone.now()
-        test_attempt.save(update_fields=["status", "end_time", "updated_at"])
+        # Refresh instance to get latest scores if calculate_and_save_scores was called
+        test_attempt.refresh_from_db(
+            fields=[
+                "score_percentage",
+                "score_verbal",
+                "score_quantitative",
+                "results_summary",
+            ]
+        )
         logger.info(
             f"Test attempt {test_attempt.id} (Type: {test_attempt.attempt_type}) completed for user {user.id}. Final Score: {test_attempt.score_percentage}%"
         )
+    else:  # For Traditional type
+        # Get answered count for traditional type as well
+        answered_count = test_attempt.question_attempts.count()
+        # total_questions is already test_attempt.num_questions
+        logger.info(
+            f"Traditional practice session {test_attempt.id} marked as completed for user {user.id}."
+        )
 
-        # User profile update logic remains for Level Assessment, but `updated_profile_data`
-        # will not be included in the API response dictionary.
-        if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
-            try:
-                profile = UserProfile.objects.select_for_update().get(user=user)
-                if (
-                    test_attempt.score_verbal is not None
-                    and test_attempt.score_quantitative is not None
-                ):
-                    profile.current_level_verbal = test_attempt.score_verbal
-                    profile.current_level_quantitative = test_attempt.score_quantitative
-                    profile.is_level_determined = True
-                    profile.save(
-                        update_fields=[
-                            "current_level_verbal",
-                            "current_level_quantitative",
-                            "is_level_determined",
-                            "updated_at",
-                        ]
-                    )
-                    logger.info(
-                        f"User profile levels updated for user {user.id} after Level Assessment {test_attempt.id}. Verbal: {profile.current_level_verbal}, Quant: {profile.current_level_quantitative}"
-                    )
-                else:
-                    logger.error(
-                        f"Skipping profile update for user {user.id} after assessment {test_attempt.id} because scores were invalid/null."
-                    )
-            except UserProfile.DoesNotExist:
-                logger.error(
-                    f"UserProfile not found for user {user.id} when trying to update levels after assessment {test_attempt.id}."
-                )
-            except Exception as e:
-                logger.exception(
-                    f"Error updating profile levels for user {user.id} after assessment {test_attempt.id}: {e}"
-                )
-                # Log error but don't fail the entire completion process
+    # Save status and end_time. Score fields are saved by calculate_and_save_scores if called.
+    test_attempt.save(update_fields=["status", "end_time", "updated_at"])
 
-        # --- Placeholder: Trigger Gamification (e.g., via signals) ---
-        # Signals connected to UserTestAttempt post_save (when status becomes COMPLETED)
-        # could handle awarding points, badges, etc.
-
-        # --- Generate Simple Smart Analysis ---
-        # This could be expanded significantly or moved to a dedicated analysis service
-        smart_analysis = _("Test completed successfully!")  # Default message
-        results_summary = test_attempt.results_summary or {}
+    # Update User Profile (Only for Level Assessment)
+    if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
         try:
-            # Example: Find weakest section/subsection based on summary
-            weakest_area_name = None
-            min_score = 101  # Start above max percentage
+            profile = UserProfile.objects.select_for_update().get(user=user)
+            if (
+                test_attempt.score_verbal is not None
+                and test_attempt.score_quantitative is not None
+            ):
+                profile.current_level_verbal = test_attempt.score_verbal
+                profile.current_level_quantitative = test_attempt.score_quantitative
+                profile.is_level_determined = True
+                profile.save(
+                    update_fields=[
+                        "current_level_verbal",
+                        "current_level_quantitative",
+                        "is_level_determined",
+                        "updated_at",
+                    ]
+                )
+                logger.info(
+                    f"User profile levels updated for user {user.id} after Level Assessment {test_attempt.id}."
+                )
+            else:
+                logger.error(
+                    f"Skipping profile update for user {user.id} (Assessment {test_attempt.id}) due to invalid scores."
+                )
+        except UserProfile.DoesNotExist:
+            logger.error(
+                f"UserProfile not found for user {user.id} during assessment completion."
+            )
+        except Exception as e:
+            logger.exception(f"Error updating profile levels for user {user.id}: {e}")
+
+    # --- Placeholder: Trigger Gamification (e.g., via signals) ---
+    # Signals connected to UserTestAttempt post_save (when status becomes COMPLETED)
+    # could handle awarding points, badges, etc.
+
+    # --- Generate Simple Smart Analysis ---
+    # This could be expanded significantly or moved to a dedicated analysis service
+    smart_analysis = None
+    if test_attempt.attempt_type != UserTestAttempt.AttemptType.TRADITIONAL:
+
+        smart_analysis = _("Test completed successfully!")  # Default
+        results_summary = test_attempt.results_summary or {}
+        weakest_area_name = None
+        min_score = 101
+        try:
             for area_slug, data in results_summary.items():
-                # Check if data is a dict and contains a valid score
                 if (
                     isinstance(data, dict)
                     and isinstance(data.get("score"), (int, float))
@@ -576,10 +587,7 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                 ):
                     if data["score"] < min_score:
                         min_score = data["score"]
-                        # Prefer subsection name if available, else use section name
                         weakest_area_name = data.get("name") or area_slug
-
-            # Provide advice if a weak area below a threshold is found
             if weakest_area_name and min_score < LEVEL_ASSESSMENT_SCORE_THRESHOLD:
                 smart_analysis = _(
                     "Good effort! Your results suggest focusing more practice on '{area}' where your score was {score}%."
@@ -591,32 +599,31 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                 smart_analysis = _(
                     "Excellent work! You demonstrated strong understanding in this test."
                 )
-            else:
-                smart_analysis = _(
-                    "Test completed! Keep practicing to improve further."
-                )
-        except Exception as e:
+        except Exception as e:  # Catch issues during analysis generation
             logger.error(
                 f"Error generating smart analysis for attempt {test_attempt.id}: {e}",
                 exc_info=True,
             )
+            # smart_analysis remains the default or None
+    else:  # For Traditional type
+        smart_analysis = _("Practice session ended.")
 
-        # --- Prepare Response Data with new score structure ---
-        score_data = {
-            "overall": test_attempt.score_percentage,
-            "verbal": test_attempt.score_verbal,
-            "quantitative": test_attempt.score_quantitative,
-        }
+    # Prepare Response Data
+    score_data = {
+        "overall": test_attempt.score_percentage,  # Will be None for traditional if not calculated
+        "verbal": test_attempt.score_verbal,  # Will be None for traditional
+        "quantitative": test_attempt.score_quantitative,  # Will be None for traditional
+    }
 
-        return {
-            "attempt_id": test_attempt.id,
-            "status": test_attempt.get_status_display(),
-            "score": score_data,
-            "results_summary": results_summary,
-            "answered_question_count": answered_count,
-            "total_questions": total_questions,
-            "smart_analysis": smart_analysis,
-        }
+    return {
+        "attempt_id": test_attempt.id,
+        "status": test_attempt.get_status_display(),
+        "score": score_data,
+        "results_summary": test_attempt.results_summary or {},
+        "answered_question_count": answered_count,
+        "total_questions": total_questions,
+        "smart_analysis": smart_analysis,
+    }
 
 
 # --- Start Test Attempt Services ---
