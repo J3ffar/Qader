@@ -1,4 +1,3 @@
-# qader_project/settings/development.py
 import os
 from .base import *
 
@@ -24,9 +23,6 @@ REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"].append(
     "rest_framework.renderers.BrowsableAPIRenderer"
 )
 
-# Use console email backend for development
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-
 # Use SQLite for simpler local dev if needed (but Postgres parity is better)
 if not config("DATABASE_URL"):
     DATABASES = {
@@ -44,14 +40,25 @@ PASSWORD_HASHERS = [
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname}: {message}",
+            "style": "{",
+        },
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "formatter": "simple",
         },
     },
     "root": {
         "handlers": ["console"],
-        "level": "WARNING",  # Adjust level for verbosity
+        "level": "INFO",  # Adjust level for verbosity
     },
     "loggers": {
         "django": {
@@ -64,5 +71,3 @@ LOGGING = {
 
 # Disable password validators during development for faster user creation
 AUTH_PASSWORD_VALIDATORS = []
-
-print("--- Development Settings Loaded ---")
