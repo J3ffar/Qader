@@ -20,9 +20,29 @@ import {
   ExclamationCircleIcon,
   Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
+import SignupModal from "@/components/auth/SignupModal";
 
 const StudyPage = () => {
   const [isOpen, setIsOpen] = useState(true);
+   const [showLogin, setShowLogin] = useState(false);
+      const [showSignup, setShowSignup] = useState(false);
+  
+  
+    const switchToLogin = () => {
+      setShowSignup(false);
+      setShowLogin(true);
+    };
+  
+    // Function to switch from login to signup
+    const switchToSignup = () => {
+      setShowLogin(false);
+      setShowSignup(true);
+    };
+  
+    const openSignup = () => {
+      setShowSignup(true);
+      setShowLogin(false); // Close login if open
+    };
 
   const menuItems = [
     { label: "تحديد المستوى", icon: <NewspaperIcon className="w-6 h-6" />, link: "/student/level" },
@@ -184,11 +204,17 @@ const StudyPage = () => {
         <Image src={"/images/open-folder.png"} width={100} height={100} alt="" />
         <p className="font-semibold text-xl text-black dark:text-white">لا توجد ملفات لعرضها</p>
         <p className="text-gray-500 w-[180px] text-center dark:text-[#D9E1FA]">قم بإنشاء حساب لتستفيد من ميزات قادر</p>
-        <Button variant="outline" className="w-48 gap-2 mt-4 border-[2px] hover:border-[2px] font-[700] hover:border-[#074182] dark:hover:border-[#3D93F5] dark:border-[#3D93F5] dark:bg-[#3D93F5] hover:dark:bg-transparent ">
+        <button onClick={openSignup}  className="   flex justify-center gap-2 min-[1120px]:py-3 sm:w-[220px] w-[130px] mt-4  p-2 rounded-[8px] bg-[#074182] dark:bg-[#074182] text-[#FDFDFD] font-[600] hover:bg-[#074182DF] dark:hover:bg-[#074182DF] transition-all cursor-pointer">
           <UserPlusIcon className="w-5 h-5" />
           <span> اشتراك</span>
-        </Button>
+        </button>
       </div>
+
+      <SignupModal
+        show={showSignup}
+        onClose={() => setShowSignup(false)}
+        onSwitchToLogin={switchToLogin} // Pass switch handler
+      />
     </div>
   );
 };
