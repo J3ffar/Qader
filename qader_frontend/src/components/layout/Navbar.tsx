@@ -22,12 +22,12 @@ import {
 import { useTheme } from "next-themes";
 
 const navLinks = [
-  { name: "الرئيسية", ref: "/", icon: HomeIcon },
-  { name: "قصتنا", ref: "/about", icon: BookOpenIcon },
-  { name: "شركاء النجاح", ref: "/partners", icon: UsersIcon },
-  { name: "صفحة المذاكرة", ref: "/study", icon: PencilIcon },
-  { name: "الأسئلة الشائعة", ref: "/questions", icon: QuestionMarkCircleIcon },
-  { name: "تواصل معنا", ref: "/contact", icon: ChatBubbleOvalLeftEllipsisIcon },
+  { name: "الرئيسية", ref: "/", isHidden : false,icon: HomeIcon },
+  { name: "قصتنا", ref: "/about", isHidden : false,icon: BookOpenIcon },
+  { name: "شركاء النجاح", ref: "/partners", isHidden : false,icon: UsersIcon },
+  { name: "صفحة المذاكرة", ref: "/study", isHidden : false,icon: PencilIcon },
+  { name: "الأسئلة الشائعة", ref: "/questions", isHidden : true,icon: QuestionMarkCircleIcon },
+  { name: "تواصل معنا", ref: "/contact", isHidden : true,icon: ChatBubbleOvalLeftEllipsisIcon },
 ];
 
 const Navbar = () => {
@@ -72,7 +72,7 @@ const Navbar = () => {
   return (
     <>
       <div className="relative z-50">
-        <nav className="flex justify-between items-center shadow-lg px-4 sm:px-8 md:px-16 py-4 w-full bg-background max-md:bg-[#074182] dark:max-md:bg-[#081028] md:bg-[#FDFDFD] dark:md:bg-[#081028] max-md:flex-row-reverse max-md:gap-6">
+        <nav className="flex justify-between items-center shadow-lg px-4 sm:px-8 md:px-16 py-4 w-full bg-background max-md:bg-[#074182] dark:max-md:bg-[#053061] md:bg-[#FDFDFD] dark:md:bg-[#081028] max-md:flex-row-reverse max-md:gap-6">
           {/* Hamburger Icon 'we will back to her later' */}
           <div className="hidden max-md:flex">
             <button
@@ -109,16 +109,16 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Menu */}
-          <ul className="hidden lg:flex justify-center items-center gap-5">
+          <ul className="hidden md:flex justify-center items-center gap-3 min-[1120px]:gap-5">
             {navLinks.map((item) => (
               <li key={item.name}>
                 <Link
                   href={item.ref}
-                  className={` max-[1190px]:text-[13px] transition-colors hover:text-[#074182] text-[#074182] dark:text-[#3D93F5] dark:hover:text-[#3D93F5] ${
+                  className={`  transition-colors hover:text-[#074182] text-[#074182] dark:text-[#3D93F5] dark:hover:text-[#3D93F5] ${
                     pathname === item.ref
                       ? " font-[600] "
                       : "text-black dark:text-[#FDFDFD]"
-                  }`}
+                  } ${item.isHidden ? "lg:inline-block hidden" : ""}`}
                 >
                   {item.name}
                 </Link>
@@ -130,39 +130,43 @@ const Navbar = () => {
           {/* Desktop Buttons */}
           <div className="hidden md:flex items-center gap-3">
           
-            <Button variant="outline" className=" border-[2px] hover:border-[2px] font-[700] hover:border-[#074182] dark:hover:border-[#3D93F5] dark:border-[#3D93F5] dark:bg-[#3D93F5] hover:dark:bg-white " onClick={openSignup}>
+            <button className=" flex gap-2 min-[1120px]:py-3 min-[1120px]:px-4 p-2 rounded-[8px] bg-[#074182] dark:bg-[#074182] text-[#FDFDFD] font-[600] hover:bg-[#074182DF] dark:hover:bg-[#074182DF] transition-all cursor-pointer " onClick={openSignup}>
               <UserPlusIcon className="w-5 h-5 ml-1" />
               <span className="hidden lg:inline "> اشتراك</span>
-            </Button>
-            <Button variant="default" className="  border-[2px] font-[700] hover:border-[#074182] dark:hover:border-[#3D93F5] dark:border-[#3D93F5]" onClick={openLogin}>
+            </button>
+            <button className="hidden lg:flex gap-2 min-[1120px]:py-2.5 min-[1120px]:px-4 p-2 rounded-[8px] bg-transparent border-[1.5px] border-[#074182]  text-[#074182] dark:border-[#3D93F5]  dark:text-[#3D93F5] font-[600] hover:bg-[#07418211] dark:hover:bg-[#3D93F511] transition-all cursor-pointer" onClick={openLogin}>
               <UserIcon className="w-5 h-5 ml-1" />
-              <span className="hidden lg:inline">تسجيل الدخول</span>
-            </Button>
+              <span className=" lg:inline ">تسجيل الدخول</span>
+            </button>
             
           </div>
         </nav>
 
         {/* Mobile Menu */}
         {showNav && (
-          <div className="lg:hidden absolute top-full left-0 w-full bg-background dark:bg-slate-800 shadow-md z-40 transition-transform duration-300 ease-in-out">
+          <div className="lg:hidden absolute top-full left-0 w-full bg-background dark:bg-[#081028] shadow-md z-40 transition-transform duration-300 ease-in-out">
             <ul className="flex flex-col items-start gap-1 px-5 py-4">
               {navLinks.map((item) => {
                 const Icon = item.icon;
                 return (
                   <li
                     key={item.name}
-                    className="w-full border-b border-border last-of-type:border-b-0 py-3"
+                    className="w-full  last-of-type:border-b-0 py-3"
                   >
                     <Link
                       href={item.ref}
                       onClick={closeNav}
-                      className={`font-bold transition-colors flex items-center gap-3 w-full ${
+                      className={` transition-colors hover:text-[#074182] text-[#074182] dark:text-[#3D93F5] dark:hover:text-[#3D93F5] flex items-center gap-3 w-full ${
                         pathname === item.ref
-                          ? "text-primary"
-                          : "text-foreground hover:text-primary"
-                      }`}
+                      ? " font-[600] "
+                      : "text-black dark:text-[#FDFDFD]"
+                      } `}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className={` transition-colors hover:text-[#074182] text-[#074182] dark:text-[#3D93F5] dark:hover:text-[#3D93F5] w-5 h-5 ${
+                        pathname === item.ref
+                      ? " font-[600] "
+                      : "text-black dark:text-[#FDFDFD]"
+                      } `} />
                       {item.name}
                     </Link>
                   </li>
@@ -172,20 +176,9 @@ const Navbar = () => {
 
             {/* Mobile Buttons */}
             <div className="flex flex-col items-start gap-4 p-5 border-t border-border max-lg:hidden max-md:flex">
-              <Button
-                variant="outline"
-                className="w-full  gap-2"
-                onClick={() => {
-                  openSignup();
-                  closeNav();
-                }}
-              >
-                <UserPlusIcon className="w-5 h-5" />
-                <span> اشتراك</span>
-              </Button>
-              <Button
-                variant="default"
-                className="w-full gap-2"
+            <button
+               
+                className="w-full flex justify-center gap-2 min-[1120px]:py-2.5 min-[1120px]:px-4 p-2 rounded-[8px] bg-transparent border-[1.5px] border-[#074182]  text-[#074182] dark:border-[#3D93F5]  dark:text-[#3D93F5] font-[600] hover:bg-[#07418211] dark:hover:bg-[#3D93F511] transition-all cursor-pointer"
                 onClick={() => {
                   openLogin();
                   closeNav();
@@ -193,7 +186,19 @@ const Navbar = () => {
               >
                 <UserIcon className="w-5 h-5" />
                 <span>تسجيل الدخول</span>
-              </Button>
+              </button>
+              <button
+                
+                className=" w-full  flex justify-center gap-2 min-[1120px]:py-3 min-[1120px]:px-4 p-2 rounded-[8px] bg-[#074182] dark:bg-[#074182] text-[#FDFDFD] font-[600] hover:bg-[#074182DF] dark:hover:bg-[#074182DF] transition-all cursor-pointer"
+                onClick={() => {
+                  openSignup();
+                  closeNav();
+                }}
+              >
+                <UserPlusIcon className="w-5 h-5" />
+                <span> اشتراك</span>
+              </button>
+              
               <div className="w-full flex justify-center pt-2">
                 <ThemeToggle />
               </div>
