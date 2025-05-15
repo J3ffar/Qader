@@ -5,7 +5,7 @@ from django.conf import settings
 from taggit.managers import TaggableManager
 from django.utils.html import strip_tags
 from django.template.defaultfilters import truncatewords_html
-from django.utils.text import slugify  # Import slugify here
+from django.utils.text import slugify
 
 # Assuming support and users apps exist as defined in settings
 # Import related models cautiously to avoid circular dependencies if possible
@@ -41,7 +41,7 @@ class BlogPost(models.Model):
         verbose_name=_("Author"),
         on_delete=models.SET_NULL,
         null=True,
-        blank=True,  # Allow posts without a specific user author (e.g., "Admin Team")
+        blank=True,
         related_name="blog_posts",
         limit_choices_to={"is_staff": True},
         help_text=_("The staff member who authored this post."),
@@ -57,6 +57,15 @@ class BlogPost(models.Model):
     content = models.TextField(
         _("Content"),
         help_text=_("Main content of the post (supports HTML/Markdown)."),
+    )
+    image = models.ImageField(
+        _("Featured Image"),
+        upload_to="blog/images/%Y/%m/",  # Store images in a structured path
+        null=True,
+        blank=True,
+        help_text=_(
+            "Optional: A featured image for the blog post. Will be shown in listings and at the top of the post."
+        ),
     )
     status = models.CharField(
         _("Status"),
@@ -83,7 +92,7 @@ class BlogPost(models.Model):
         return self.title
 
     @property
-    def excerpt(self, words=30) -> str:  # Changed to property
+    def excerpt(self, words=30) -> str:
         """Generates a short plain text excerpt from the content."""
         # Ensure content is treated as a string, even if None
         content_str = str(self.content) if self.content is not None else ""
@@ -93,48 +102,34 @@ class BlogPost(models.Model):
     def author_display_name(self) -> str:
         """Returns the author's preferred name or username, or a default."""
         if self.author:
-            # Check if the related profile exists and use preferred_name if available
-            # Assumes your user model has a related 'profile' object with 'preferred_name'
             if (
                 hasattr(self.author, "profile")
                 and self.author.profile
                 and getattr(self.author.profile, "preferred_name", None)
             ):
                 return self.author.profile.preferred_name
-            return self.author.username  # Fallback to username
-        return _("Qader Team")  # Default if no author assigned
+            return self.author.username
+        return _("Qader Team")
 
     def save(self, *args, **kwargs):
-        # Auto-populate slug from title if empty
         if not self.slug and self.title:
             self.slug = slugify(self.title)[:255]
-            # Ensure uniqueness
             original_slug = self.slug
             counter = 1
-            # Check for existing slugs, excluding the current instance if it's already saved
             queryset = BlogPost.objects.filter(slug=self.slug)
             if self.pk:
                 queryset = queryset.exclude(pk=self.pk)
 
             while queryset.exists():
-                max_len = (
-                    255 - len(str(counter)) - 1
-                )  # Max length considering counter and hyphen
+                max_len = 255 - len(str(counter)) - 1
                 self.slug = f"{original_slug[:max_len]}-{counter}"
                 counter += 1
-                # Update queryset for the next check
                 queryset = BlogPost.objects.filter(slug=self.slug)
                 if self.pk:
                     queryset = queryset.exclude(pk=self.pk)
 
-        # Set published_at when status changes to published
-        # Check the instance state before saving if possible (requires fetching original object)
-        # Simple approach: Only set if status is published AND published_at is not already set
         if self.status == PostStatusChoices.PUBLISHED and not self.published_at:
             self.published_at = timezone.now()
-        # Optional: Clear published_at if status changes away from published
-        # elif self.status != PostStatusChoices.PUBLISHED and self.published_at:
-        #     self.published_at = None
 
         super().save(*args, **kwargs)
 
@@ -145,7 +140,7 @@ class BlogAdviceRequest(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name=_("User"),
-        on_delete=models.CASCADE,  # If user is deleted, their requests are too
+        on_delete=models.CASCADE,
         related_name="advice_requests",
         help_text=_("The user requesting advice."),
     )
@@ -174,9 +169,8 @@ class BlogAdviceRequest(models.Model):
         blank=True,
         help_text=_("How the user was (or will be) answered."),
     )
-    # Use string imports to avoid direct dependency/circular issues
     related_support_ticket = models.ForeignKey(
-        "support.SupportTicket",  # String reference
+        "support.SupportTicket",
         verbose_name=_("Related Support Ticket"),
         on_delete=models.SET_NULL,
         null=True,
