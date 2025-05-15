@@ -1,186 +1,127 @@
 import pytest
-from unittest.mock import patch, call, ANY  # Import ANY
+from unittest.mock import patch, call, ANY
 from django.conf import settings
+from django.utils import timezone  # For setting end_time
 
 from apps.study.tests.factories import (
     UserQuestionAttemptFactory,
     UserTestAttemptFactory,
-    # Need UserFactory if creating users directly in tests
 )
 from apps.study.models import UserQuestionAttempt, UserTestAttempt
 from apps.gamification.models import Badge
-from ..services import PointReason  # Import PointReason
-from apps.gamification.tests.factories import BadgeFactory  # For badge test setup
+from ..services import PointReason
+from apps.gamification.tests.factories import BadgeFactory
 
 pytestmark = pytest.mark.django_db
 
-# Define expected point values for tests
-POINTS_QUESTION_SOLVED = getattr(settings, "POINTS_TRADITIONAL_CORRECT", 1)
-POINTS_TEST_COMPLETED = getattr(settings, "POINTS_TEST_COMPLETED", 10)
-POINTS_LEVEL_ASSESSMENT_COMPLETED = getattr(
-    settings, "POINTS_LEVEL_ASSESSMENT_COMPLETED", 25
-)
+POINTS_QUESTION_SOLVED_CORRECT = getattr(
+    settings, "POINTS_QUESTION_SOLVED_CORRECT", 1
+)  # Use the correct setting key
+
+# Note: The signal gamify_on_test_completed now calls process_test_completion_gamification.
+# So, tests for the signal should mock process_test_completion_gamification.
 
 
 @patch("apps.gamification.signals.award_points")
 def test_gamify_on_correct_question_solved(mock_award_points):
-    attempt = UserQuestionAttemptFactory(is_correct=True)
-    if POINTS_QUESTION_SOLVED > 0:
+    # Test creation of new attempt
+    attempt = UserQuestionAttemptFactory(
+        is_correct=True, test_attempt=None
+    )  # Ensure created=True logic
+    if POINTS_QUESTION_SOLVED_CORRECT > 0:
         mock_award_points.assert_called_once_with(
             user=attempt.user,
-            points_change=POINTS_QUESTION_SOLVED,
+            points_change=POINTS_QUESTION_SOLVED_CORRECT,
             reason_code=PointReason.QUESTION_SOLVED,
-            description=ANY,  # Use ANY
+            description=ANY,
             related_object=attempt.question,
         )
     else:
         mock_award_points.assert_not_called()
 
+    # Test update of existing attempt (should not re-award)
     mock_award_points.reset_mock()
-    attempt.save()
+    attempt.selected_answer = "B"  # Make a change to trigger save
+    attempt.save()  # This is an update, not creation
     mock_award_points.assert_not_called()
 
 
 @patch("apps.gamification.signals.award_points")
-@patch("apps.gamification.signals.update_streak")
-def test_gamify_on_incorrect_question_solved(mock_update_streak, mock_award_points):
-    UserQuestionAttemptFactory(is_correct=False)
+def test_gamify_on_incorrect_question_solved(mock_award_points):
+    UserQuestionAttemptFactory(
+        is_correct=False, test_attempt=None
+    )  # Ensure created=True logic
     mock_award_points.assert_not_called()
-    mock_update_streak.assert_not_called()
 
 
-# Add mocker fixture
-@patch("apps.gamification.signals.award_points")
-@patch("apps.gamification.signals.update_streak")
-@patch("apps.gamification.signals.check_and_award_badge")
-def test_gamify_on_test_completed_practice(
-    mock_check_badge, mock_update_streak, mock_award_points, mocker
-):  # Add mocker
+# Test the gamify_on_test_completed signal which calls process_test_completion_gamification
+@patch("apps.gamification.signals.process_test_completion_gamification")
+def test_signal_gamify_on_test_completed_calls_service(mock_process_gamification):
+    # Create a UserTestAttempt that is initially not completed
     attempt = UserTestAttemptFactory(
         status=UserTestAttempt.Status.STARTED,
-        attempt_type=UserTestAttempt.AttemptType.PRACTICE,
         completion_points_awarded=False,
+        end_time=None,  # Ensure end_time is None initially
     )
-    mock_award_points.assert_not_called()  # Before completion
+    mock_process_gamification.assert_not_called()  # Not called on creation or if not completed
+
+    # Now, update the attempt to be completed
     attempt.status = UserTestAttempt.Status.COMPLETED
-    attempt.save()  # Trigger completion logic
+    attempt.end_time = (
+        timezone.now()
+    )  # Set end_time as the service/signal expects for valid completion
+    attempt.save()  # This save should trigger the signal
 
-    if POINTS_TEST_COMPLETED > 0:
-        mock_award_points.assert_called_once_with(
-            user=attempt.user,
-            points_change=POINTS_TEST_COMPLETED,
-            reason_code=PointReason.TEST_COMPLETED,
-            description=ANY,  # Use ANY
-            related_object=attempt,
-        )
-    else:
-        mock_award_points.assert_not_called()
-    mock_update_streak.assert_called_once_with(attempt.user)
-    mock_check_badge.assert_not_called()
-    attempt.refresh_from_db()
-    assert attempt.completion_points_awarded is True
+    mock_process_gamification.assert_called_once_with(
+        user=attempt.user, test_attempt=attempt
+    )
+    # The service process_test_completion_gamification itself will set completion_points_awarded.
+    # We don't need to check it here as we're testing the signal's call to the service.
 
 
-@patch("apps.gamification.signals.award_points")
-@patch("apps.gamification.signals.update_streak")
-@patch("apps.gamification.signals.check_and_award_badge")
-def test_gamify_on_test_completed_simulation(
-    mock_check_badge, mock_update_streak, mock_award_points, mocker
-):  # Add mocker
+@patch("apps.gamification.signals.process_test_completion_gamification")
+def test_signal_gamify_on_test_completed_already_awarded(mock_process_gamification):
     attempt = UserTestAttemptFactory(
-        status=UserTestAttempt.Status.STARTED,
-        attempt_type=UserTestAttempt.AttemptType.SIMULATION,
-        completion_points_awarded=False,
+        status=UserTestAttempt.Status.COMPLETED,
+        completion_points_awarded=True,  # Points already awarded
+        end_time=timezone.now(),
     )
-    first_test_slug = getattr(settings, "BADGE_SLUG_FIRST_FULL_TEST", "first-full-test")
-    BadgeFactory(
-        slug=first_test_slug,
-        criteria_type=Badge.BadgeCriteriaType.TESTS_COMPLETED,
-        target_value=1,  # Assuming the first test badge has target_value 1
-    )
-
-    attempt.status = UserTestAttempt.Status.COMPLETED
+    # Update some other field to trigger save, but gamification should not run again via signal
+    attempt.score_percentage = 90.0
     attempt.save()
+    mock_process_gamification.assert_not_called()
 
-    if POINTS_TEST_COMPLETED > 0:
-        mock_award_points.assert_called_once_with(
-            user=attempt.user,
-            points_change=POINTS_TEST_COMPLETED,
-            reason_code=PointReason.TEST_COMPLETED,
-            description=ANY,  # Use ANY
-            related_object=attempt,
-        )
-    else:
-        mock_award_points.assert_not_called()
-    mock_update_streak.assert_called_once_with(attempt.user)
-    # Check badge call if the logic is expected to run
 
-    expected_badge_slugs = list(
-        Badge.objects.filter(
-            is_active=True, criteria_type=Badge.BadgeCriteriaType.TESTS_COMPLETED
-        ).values_list("slug", flat=True)
+@patch("apps.gamification.signals.process_test_completion_gamification")
+def test_signal_gamify_on_test_status_not_completed(mock_process_gamification):
+    # Test with ABANDONED status
+    attempt_abandoned = UserTestAttemptFactory(
+        status=UserTestAttempt.Status.ABANDONED, end_time=timezone.now()
     )
+    attempt_abandoned.save()  # Should not trigger
+    mock_process_gamification.assert_not_called()
 
-    expected_calls = [call(attempt.user, slug) for slug in expected_badge_slugs]
-    assert mock_check_badge.call_count == len(expected_badge_slugs)
-    for expected_call in expected_calls:
-        mock_check_badge.assert_any_call(*expected_call.args, **expected_call.kwargs)
-
-    attempt.refresh_from_db()
-    assert attempt.completion_points_awarded is True
+    # Test with STARTED status (update)
+    attempt_started = UserTestAttemptFactory(status=UserTestAttempt.Status.STARTED)
+    attempt_started.score_percentage = 10  # Arbitrary change
+    attempt_started.save()  # Should not trigger
+    mock_process_gamification.assert_not_called()
 
 
-# Add mocker fixture
-@patch("apps.gamification.signals.award_points")
-@patch("apps.gamification.signals.update_streak")
-@patch("apps.gamification.signals.check_and_award_badge")
-def test_gamify_on_test_completed_level_assessment(
-    mock_check_badge, mock_update_streak, mock_award_points, mocker
-):  # Add mocker
+@patch("apps.gamification.signals.process_test_completion_gamification")
+def test_signal_gamify_on_test_completed_no_end_time_skipped(mock_process_gamification):
+    """
+    Test that the signal skips gamification if status is COMPLETED but end_time is None.
+    This is a heuristic in the signal to avoid premature processing.
+    """
     attempt = UserTestAttemptFactory(
         status=UserTestAttempt.Status.STARTED,
-        attempt_type=UserTestAttempt.AttemptType.LEVEL_ASSESSMENT,
         completion_points_awarded=False,
+        end_time=None,
     )
+    # Manually set status to COMPLETED without setting end_time to simulate the edge case
     attempt.status = UserTestAttempt.Status.COMPLETED
     attempt.save()
 
-    if POINTS_LEVEL_ASSESSMENT_COMPLETED > 0:
-        mock_award_points.assert_called_once_with(
-            user=attempt.user,
-            points_change=POINTS_LEVEL_ASSESSMENT_COMPLETED,
-            reason_code=PointReason.LEVEL_ASSESSMENT_COMPLETED,
-            description=ANY,  # Use ANY
-            related_object=attempt,
-        )
-    else:
-        mock_award_points.assert_not_called()
-    mock_update_streak.assert_called_once_with(attempt.user)
-    mock_check_badge.assert_not_called()
-    attempt.refresh_from_db()
-    assert attempt.completion_points_awarded is True
-
-
-@patch("apps.gamification.signals.award_points")
-@patch("apps.gamification.signals.update_streak")
-def test_gamify_on_test_completed_idempotency(mock_update_streak, mock_award_points):
-    attempt = UserTestAttemptFactory(
-        status=UserTestAttempt.Status.COMPLETED, completion_points_awarded=True
-    )
-    attempt.score_percentage = 95.5
-    attempt.save()  # Save again
-    mock_award_points.assert_not_called()
-    mock_update_streak.assert_not_called()
-    attempt.refresh_from_db()
-    assert attempt.completion_points_awarded is True
-
-
-@patch("apps.gamification.signals.award_points")
-@patch("apps.gamification.signals.update_streak")
-def test_gamify_on_test_status_not_completed(mock_update_streak, mock_award_points):
-    UserTestAttemptFactory(status=UserTestAttempt.Status.ABANDONED)
-    mock_award_points.assert_not_called()
-    mock_update_streak.assert_not_called()
-    UserTestAttemptFactory(status=UserTestAttempt.Status.STARTED)
-    mock_award_points.assert_not_called()
-    mock_update_streak.assert_not_called()
+    # The signal handler should log a warning and return, not calling process_test_completion_gamification
+    mock_process_gamification.assert_not_called()
