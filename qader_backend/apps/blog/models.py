@@ -1,3 +1,4 @@
+import re
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -92,11 +93,31 @@ class BlogPost(models.Model):
         return self.title
 
     @property
-    def excerpt(self, words=30) -> str:
+    def excerpt(
+        self,
+    ) -> str:
         """Generates a short plain text excerpt from the content."""
-        # Ensure content is treated as a string, even if None
         content_str = str(self.content) if self.content is not None else ""
-        return truncatewords_html(strip_tags(content_str), words)
+        if not content_str:
+            return ""
+
+        # Step 1: Replace block-level tags with a space to preserve separation
+        # Add more block tags as needed (e.g., <div>, <blockquote>)
+        block_tags = re.compile(
+            r"</(p|h1|h2|h3|h4|h5|h6|li|div|blockquote|br|hr)>", re.IGNORECASE
+        )
+        spaced_content = block_tags.sub(" ", content_str)
+
+        # Step 2: Strip all remaining HTML tags
+        plain_text = strip_tags(spaced_content)
+
+        # Step 3: Normalize multiple spaces to single spaces and strip leading/trailing whitespace
+        normalized_text = " ".join(plain_text.split())
+
+        # Step 4: Truncate
+        # truncatewords_html default is 30 words and it handles HTML entities correctly
+        # even though we've stripped tags, it's robust for text.
+        return truncatewords_html(normalized_text, 130)
 
     @property
     def author_display_name(self) -> str:
