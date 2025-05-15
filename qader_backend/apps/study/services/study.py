@@ -474,110 +474,113 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             }
         )
 
-    # Set status and end time in memory first
-    test_attempt.status = UserTestAttempt.Status.COMPLETED
-    test_attempt.end_time = timezone.now()
+    signal_disconnected_successfully = False
+    try:
+        disconnected = post_save.disconnect(
+            receiver=gamify_test_completed_signal_handler,
+            sender=UserTestAttempt,
+            dispatch_uid="gamify_test_completed",
+        )
 
-    answered_count = 0
-    total_questions = test_attempt.num_questions
-
-    if test_attempt.attempt_type != UserTestAttempt.AttemptType.TRADITIONAL:
-        question_attempts_qs = test_attempt.question_attempts.select_related(
-            "question__subsection__section", "question__skill"
-        ).all()
-        answered_count = question_attempts_qs.count()
-
-        if answered_count < total_questions:
+        if disconnected:
+            signal_disconnected_successfully = True
+            logger.debug(
+                f"Temporarily disconnected 'gamify_on_test_completed' signal (UID: gamify_test_completed) for attempt {test_attempt.id}."
+            )
+        else:
             logger.warning(
-                f"Test attempt {test_attempt.id} (Type: {test_attempt.attempt_type}) completed by user {user.id} with only {answered_count}/{total_questions} questions answered."
+                f"Failed to disconnect 'gamify_on_test_completed' signal (UID: gamify_test_completed) for attempt {test_attempt.id}. "
             )
-        elif answered_count > total_questions and total_questions > 0:
-            logger.error(
-                f"Data inconsistency: Test attempt {test_attempt.id} has {answered_count} answers recorded but expected {total_questions}. Scoring based on recorded answers."
+
+        test_attempt.status = UserTestAttempt.Status.COMPLETED
+        test_attempt.end_time = timezone.now()
+
+        answered_count = 0
+        total_questions = test_attempt.num_questions
+        correct_answers_in_test_count = 0
+
+        if test_attempt.attempt_type != UserTestAttempt.AttemptType.TRADITIONAL:
+            question_attempts_qs = test_attempt.question_attempts.select_related(
+                "question__subsection__section", "question__skill"
+            ).all()
+            answered_count = question_attempts_qs.count()
+
+            # Count correct answers for this specific test
+            correct_answers_in_test_count = question_attempts_qs.filter(
+                is_correct=True
+            ).count()
+
+            if answered_count < total_questions:
+                logger.warning(
+                    f"Test attempt {test_attempt.id} (Type: {test_attempt.attempt_type}) completed by user {user.id} with only {answered_count}/{total_questions} questions answered."
+                )
+            elif answered_count > total_questions and total_questions > 0:
+                logger.error(
+                    f"Data inconsistency: Test attempt {test_attempt.id} has {answered_count} answers recorded but expected {total_questions}. Scoring based on recorded answers."
+                )
+
+            try:
+                test_attempt.calculate_and_save_scores(
+                    question_attempts_qs=question_attempts_qs
+                )
+            except Exception as e:
+                logger.exception(
+                    f"Error calculating or saving scores for test attempt {test_attempt.id}, user {user.id}: {e}"
+                )
+
+            logger.info(
+                f"Test attempt {test_attempt.id} (Type: {test_attempt.attempt_type}) scores calculated for user {user.id}. Score: {test_attempt.score_percentage}%"
             )
+        else:  # For Traditional type
+            # For traditional, we still want to count any answers marked as correct within this session
+            question_attempts_qs = test_attempt.question_attempts.all()
+            answered_count = question_attempts_qs.count()
+            correct_answers_in_test_count = question_attempts_qs.filter(
+                is_correct=True
+            ).count()
+            logger.info(
+                f"Traditional practice session {test_attempt.id} marked as completed for user {user.id}."
+            )
+
+        service_controlled_update_fields = ["status", "end_time", "updated_at"]
+        test_attempt.save(update_fields=service_controlled_update_fields)
+        logger.info(
+            f"Status and end_time saved for test_attempt {test_attempt.id}. Status is now {test_attempt.status.label}."
+        )
+
+        gamification_results = {
+            "total_points_earned": 0,  # This will store points from process_test_completion_gamification
+            "badges_won_details": [],
+            "streak_info": {"was_updated": False, "current_days": 0},
+        }
+
+        logger.info(
+            f"Before calling gamification service directly for test {test_attempt.id}, completion_points_awarded is: {test_attempt.completion_points_awarded}"
+        )
 
         try:
-            # This model method is assumed to:
-            # 1. Calculate score_percentage, score_verbal, score_quantitative, results_summary.
-            # 2. Update these attributes on the `test_attempt` instance (self).
-            # 3. Save these specific score-related fields to the database using `update_fields`.
-            test_attempt.calculate_and_save_scores(
-                question_attempts_qs=question_attempts_qs
+            # This call handles points for test completion, streak, and badges earned AT THIS POINT
+            gamification_results = process_test_completion_gamification(
+                user, test_attempt
             )
-            # After this call, test_attempt in memory should have updated score values,
-            # and these values should also be in the DB.
         except Exception as e:
             logger.exception(
-                f"Error calculating or saving scores for test attempt {test_attempt.id}, user {user.id}: {e}"
+                f"Error processing gamification for test_attempt {test_attempt.id}: {e}"
             )
 
-        logger.info(
-            f"Test attempt {test_attempt.id} (Type: {test_attempt.attempt_type}) scores calculated for user {user.id}. Score: {test_attempt.score_percentage}%"
-        )
-    else:  # For Traditional type
-        answered_count = test_attempt.question_attempts.count()
-        logger.info(
-            f"Traditional practice session {test_attempt.id} marked as completed for user {user.id}."
-        )
-
-    # --- Save status and end_time (scores assumed saved by model method) ---
-    # Fields that this service layer is directly responsible for updating in this save.
-    service_controlled_update_fields = ["status", "end_time", "updated_at"]
-
-    signal_disconnected = False
-    try:
-        post_save.disconnect(
-            gamify_test_completed_signal_handler, sender=UserTestAttempt
-        )
-        signal_disconnected = True
-        logger.debug(
-            f"Temporarily disconnected gamify_on_test_completed signal for attempt {test_attempt.id}"
-        )
-
-        test_attempt.save(update_fields=service_controlled_update_fields)
-
-        logger.info(
-            f"Primary save for test_attempt {test_attempt.id} (status, end_time) successful."
-        )
-    except Exception as e:
-        logger.exception(
-            f"Error during primary save of test_attempt {test_attempt.id}: {e}"
-        )
-        if signal_disconnected:
-            post_save.connect(
-                gamify_test_completed_signal_handler, sender=UserTestAttempt
-            )
-            logger.debug(
-                f"Reconnected gamify_on_test_completed signal after primary save error for attempt {test_attempt.id}"
-            )
-        raise
     finally:
-        if signal_disconnected:
+        if signal_disconnected_successfully:
             post_save.connect(
-                gamify_test_completed_signal_handler, sender=UserTestAttempt
+                gamify_test_completed_signal_handler,
+                sender=UserTestAttempt,
+                dispatch_uid="gamify_test_completed",
             )
             logger.debug(
-                f"Reconnected gamify_on_test_completed signal for attempt {test_attempt.id}"
+                f"Reconnected 'gamify_on_test_completed' signal (UID: gamify_test_completed) for attempt {test_attempt.id}."
             )
 
-    # --- Gamification Processing ---
-    gamification_results = {
-        "total_points_earned": 0,
-        "badges_won_details": [],
-        "streak_info": {"was_updated": False, "current_days": 0},
-    }
-    try:
-        gamification_results = process_test_completion_gamification(user, test_attempt)
-    except Exception as e:
-        logger.exception(
-            f"Error processing gamification for test_attempt {test_attempt.id}: {e}"
-        )
-
-    # Refresh the instance from DB to get the absolute latest state after all saves
-    # (status, scores, end_time, completion_points_awarded)
     test_attempt.refresh_from_db()
 
-    # --- Update User Profile (Only for Level Assessment) ---
     if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
         try:
             profile = UserProfile.objects.select_for_update().get(user=user)
@@ -608,7 +611,6 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
         except Exception as e:
             logger.exception(f"Error updating profile levels for user {user.id}: {e}")
 
-    # --- Generate Simple Smart Analysis ---
     smart_analysis = None
     if test_attempt.attempt_type != UserTestAttempt.AttemptType.TRADITIONAL:
         smart_analysis = _("Test completed successfully!")
@@ -644,7 +646,6 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
     else:
         smart_analysis = _("Practice session ended.")
 
-    # --- Prepare Final Response Data ---
     score_data = {
         "overall": test_attempt.score_percentage,
         "verbal": test_attempt.score_verbal,
@@ -656,15 +657,29 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
         for b in gamification_results.get("badges_won_details", [])
     ]
 
+    # Calculate points earned from correct answers within this test attempt
+    # These points were already awarded by the gamify_on_question_solved signal.
+    # We are just reporting them here.
+    points_from_correct_answers_this_test = (
+        correct_answers_in_test_count * settings.POINTS_QUESTION_SOLVED_CORRECT
+    )
+
+    # Points earned from the test completion event (completing test, streak, badges at completion)
+    points_from_test_completion_event = gamification_results.get(
+        "total_points_earned", 0
+    )
+
     return {
         "attempt_id": test_attempt.id,
-        "status": test_attempt.get_status_display(),  # Relies on the final refreshed status
+        "status": test_attempt.get_status_display(),
         "score": score_data,
         "results_summary": test_attempt.results_summary or {},
         "answered_question_count": answered_count,
         "total_questions": total_questions,
+        "correct_answers_in_test_count": correct_answers_in_test_count,  # New: count of correct answers
         "smart_analysis": smart_analysis,
-        "points_earned": gamification_results.get("total_points_earned", 0),
+        "points_from_test_completion_event": points_from_test_completion_event,
+        "points_from_correct_answers_this_test": points_from_correct_answers_this_test,  # New: points from these answers
         "badges_won": badges_won_for_response,
         "streak_info": {
             "updated": gamification_results.get("streak_info", {}).get(

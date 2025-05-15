@@ -202,7 +202,6 @@ class UserQuestionAttemptResponseSerializer(serializers.Serializer):
 
     question_id = serializers.IntegerField(read_only=True)
     is_correct = serializers.BooleanField(read_only=True)
-    # Correct answer/explanation are revealed conditionally based on mode/context (handled by service/view)
     correct_answer = serializers.CharField(
         read_only=True, allow_null=True, required=False
     )
@@ -235,18 +234,43 @@ class UserTestAttemptCompletionResponseSerializer(serializers.Serializer):
     (Practice, Simulation, Level Assessment).
     """
 
-    attempt_id = serializers.IntegerField()
-    status = serializers.CharField()
+    attempt_id = serializers.IntegerField(read_only=True)
+    status = serializers.CharField(read_only=True)
     score = ScoreSerializer(read_only=True, allow_null=True, required=False)
-    results_summary = serializers.JSONField(required=False)
-    answered_question_count = serializers.IntegerField()
-    total_questions = serializers.IntegerField()
-    smart_analysis = serializers.CharField(
-        allow_blank=True, allow_null=True, required=False
+    results_summary = serializers.JSONField(required=False, read_only=True)
+    answered_question_count = serializers.IntegerField(read_only=True)
+    total_questions = serializers.IntegerField(read_only=True)
+    correct_answers_in_test_count = serializers.IntegerField(
+        read_only=True,
+        default=0,
+        help_text=_("Number of questions answered correctly in this test."),
     )
-    points_earned = serializers.IntegerField(read_only=True, default=0)
+    smart_analysis = serializers.CharField(
+        allow_blank=True, allow_null=True, required=False, read_only=True
+    )
+    points_from_test_completion_event = serializers.IntegerField(
+        read_only=True,
+        default=0,
+        help_text=_(
+            "Points earned from completing the test, streak bonuses, and badges awarded at completion."
+        ),
+    )
+    points_from_correct_answers_this_test = serializers.IntegerField(
+        read_only=True,
+        default=0,
+        help_text=_(
+            "Points earned from correctly answering questions during this specific test attempt."
+        ),
+    )
     badges_won = BadgeWonSerializer(many=True, read_only=True, default=list)
     streak_info = StreakInfoSerializer(read_only=True, required=False)
+
+    # All fields are read-only as this is a response serializer
+    def create(self, validated_data):
+        raise NotImplementedError("This serializer cannot create data.")
+
+    def update(self, instance, validated_data):
+        raise NotImplementedError("This serializer cannot update data.")
 
 
 # --- Review Serializers ---
@@ -357,7 +381,6 @@ class UserTestAttemptReviewSerializer(serializers.Serializer):
         source="attempt.results_summary", read_only=True
     )
 
-    # This serializer is read-only, used for response structuring. No create/update.
     def create(self, validated_data):
         raise NotImplementedError("This serializer cannot create data.")
 

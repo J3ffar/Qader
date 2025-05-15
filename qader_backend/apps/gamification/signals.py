@@ -17,9 +17,7 @@ from .services import (
 logger = logging.getLogger(__name__)
 
 
-@receiver(
-    post_save, sender=UserQuestionAttempt, dispatch_uid="gamify_question_solved_v2"
-)
+@receiver(post_save, sender=UserQuestionAttempt, dispatch_uid="gamify_question_solved")
 def gamify_on_question_solved(sender, instance: UserQuestionAttempt, created, **kwargs):
     if created and instance.is_correct:
         user = instance.user
@@ -36,26 +34,28 @@ def gamify_on_question_solved(sender, instance: UserQuestionAttempt, created, **
             )
 
 
-@receiver(post_save, sender=UserTestAttempt, dispatch_uid="gamify_test_completed_v2")
+@receiver(post_save, sender=UserTestAttempt, dispatch_uid="gamify_test_completed")
 def gamify_on_test_completed(sender, instance: UserTestAttempt, created, **kwargs):
-    """
-    Fallback handler for test completion gamification.
-    The primary path is through study.services.complete_test_attempt, which
-    calls process_test_completion_gamification directly after disconnecting this signal.
-    This signal acts if a test is marked COMPLETED by other means and gamification
-    hasn't been processed yet.
-    """
     if (
         instance.status == UserTestAttempt.Status.COMPLETED
-        and not instance.completion_points_awarded  # This flag indicates if gamification was done
+        and not instance.completion_points_awarded
     ):
+        # ADD A CHECK: Only process via signal if it seems like a legitimate completion
+        # This is a heuristic. For example, if the test has an end_time set by the main service.
+        # The main `complete_test_attempt` service *does* set `end_time`.
+        # If `end_time` is None here, it might be a premature completion.
+        if instance.end_time is None:
+            logger.warning(
+                f"Signal gamify_on_test_completed triggered for attempt {instance.id} "
+                f"with status COMPLETED but no end_time. Suspecting premature completion. Skipping gamification via signal."
+            )
+            return  # Avoid processing if it looks premature
+
         logger.info(
-            f"Signal gamify_on_test_completed triggered for attempt {instance.id} "
-            f"(likely a non-service completion path). Calling gamification service."
+            f"Signal gamify_on_test_completed triggered for attempt {instance.id}. "
+            f"Calling gamification service."
         )
         try:
-            # process_test_completion_gamification handles setting completion_points_awarded
-            # and saving the instance.
             process_test_completion_gamification(
                 user=instance.user, test_attempt=instance
             )

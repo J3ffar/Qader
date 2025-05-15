@@ -242,7 +242,7 @@ def update_streak(user: DjangoUser) -> Dict[str, Any]:  # Changed return type
 
             study_day_logged_this_call = False
             if last_activity_date_utc != today_utc:
-                _, created = StudyDayLog.objects.get_or_create(
+                daylog, created = StudyDayLog.objects.get_or_create(
                     user=user, study_date=today_utc
                 )
                 if created:
