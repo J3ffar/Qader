@@ -39,11 +39,11 @@ const reviewsData = [
   },
 ];
 
-const ReviewCard = ({ review }: { review: (typeof reviewsData)[0] }) => (
+const ReviewCard = ({ review  }: { review: (typeof reviewsData)[0] }) => (
   <div
-    className={`w-full shadow-xl rounded-2xl flex flex-col justify-start items-center text-center border-r-8 p-6 sm:p-8 ${review.borderColor} transition-all delay-150 duration-300 ease-in-out ${review.initialScale} ${review.hoverBorder} ${review.hoverShadow} ${review.hoverScale} bg-card text-card-foreground`} // Use theme colors, adjusted padding
+    className={`w-full shadow-xl rounded-2xl flex flex-col justify-start items-center text-center border-r-8 p-6 sm:p-8 ${review.borderColor} transition-all delay-150 duration-300 ease-in-out hover:bg-[#E7F1FE4D] dark:hover:bg-[#053061] ${review.initialScale} ${review.hoverBorder} ${review.hoverShadow} ${review.hoverScale} bg-card text-card-foreground`} // Use theme colors, adjusted padding
   >
-    <div className="w-14 h-14 mb-4 bg-muted flex justify-center items-center rounded-full">
+    <div className="w-14 h-14 mb-4 flex justify-center items-center rounded-full bg-[#EDEDED]">
       {" "}
       {/* Use muted color */}
       <User className="w-6 h-6 text-muted-foreground" />{" "}
@@ -57,7 +57,7 @@ const ReviewCard = ({ review }: { review: (typeof reviewsData)[0] }) => (
 
 const ReviewSection = () => {
   return (
-    <div className=" bg-[#F9F9FA] dark:bg-[#0B1739]">
+    <div className=" bg-[#F9F9FA] dark:bg-[#0B1739] sm:px-0 px-4">
     <div className="py-6 sm:py-8 md:py-10 container mx-auto px-0">
       {" "}
       {/* Adjusted padding */}
