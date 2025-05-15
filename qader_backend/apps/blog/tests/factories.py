@@ -4,7 +4,12 @@ from django.utils.text import slugify
 from django.utils import timezone
 from django.conf import settings
 
-from apps.users.tests.factories import UserFactory  # Use existing UserFactory
+# --- Import SimpleUploadedFile for image factory ---
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+# --- End import ---
+
+from apps.users.tests.factories import UserFactory
 from ..models import (
     BlogPost,
     BlogAdviceRequest,
@@ -14,51 +19,67 @@ from ..models import (
 
 
 class BlogPostFactory(DjangoModelFactory):
-    """Factory for the BlogPost model."""
-
     class Meta:
         model = BlogPost
 
     author = factory.SubFactory(UserFactory, is_staff=True)
     title = factory.Faker("sentence", nb_words=6)
     slug = factory.LazyAttribute(lambda o: slugify(o.title)[:255])
-    content = factory.Faker("paragraphs", nb=3, ext_word_list=None)
+    content = factory.Faker(
+        "paragraphs", nb=3, ext_word_list=None
+    )  # Stored as HTML after admin processing
     status = PostStatusChoices.DRAFT
     created_at = factory.LazyFunction(timezone.now)
     updated_at = factory.LazyFunction(timezone.now)
     published_at = None
 
-    # --- Correct Trait Definition ---
+    # --- Add image field ---
+    # By default, no image. Can be set in tests: BlogPostFactory(image=...)
+    image = None
+    # Example of how to provide a dummy image if always needed:
+    # image = factory.django.ImageField(filename='test_image.png', color='blue')
+    # Or for more control:
+    # @factory.lazy_attribute
+    # def image(self):
+    #     return SimpleUploadedFile(
+    #         name='test_image.jpg',
+    #         content=b'',  # Empty content for dummy file
+    #         content_type='image/jpeg'
+    #     )
+    # --- End image field ---
+
     class Params:
-        # Trait for published posts
         published = factory.Trait(
             status=PostStatusChoices.PUBLISHED,
             published_at=factory.LazyAttribute(
                 lambda o: o.created_at if o.created_at else timezone.now()
             ),
         )
-        # Trait for archived posts
         archived = factory.Trait(status=PostStatusChoices.ARCHIVED, published_at=None)
-        # REMOVED tags_list = factory.LazyAttribute(lambda _: [])
+
+        # Trait to simulate Markdown input for admin tests
+        # This won't be saved directly to the model, but used as input for admin serializer tests
+        with_markdown_content = factory.Trait(
+            raw_markdown_content="# Test Header\n*   List item\n\nSome `code`."
+        )
+
+        # Trait for posts with an image
+        with_image = factory.Trait(
+            image=factory.django.ImageField(
+                filename="post_image.png", color="green", width=100, height=100
+            )
+        )
 
     @factory.post_generation
-    def tags(
-        self, create, extracted, **kwargs
-    ):  # Changed hook name to 'tags' for clarity
-        """Handle adding tags after generation. Use by passing tags=['tag1', 'tag2']"""
+    def tags(self, create, extracted, **kwargs):
         if not create:
             return
-
-        if extracted:  # 'extracted' will contain the list passed as tags=[...]
+        if extracted:
             for tag in extracted:
-                # Access the actual tag manager via self.tags
                 self.tags.add(tag)
 
 
-# --- BlogAdviceRequestFactory remains the same ---
 class BlogAdviceRequestFactory(DjangoModelFactory):
-    """Factory for the BlogAdviceRequest model."""
-
     class Meta:
         model = BlogAdviceRequest
 

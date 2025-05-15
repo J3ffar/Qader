@@ -3,6 +3,9 @@ from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from django.utils import timezone
 from datetime import timedelta
+import tempfile
+import shutil
+from django.conf import settings
 
 
 # Use the specific factory path
@@ -173,3 +176,22 @@ def used_serial_code(db, standard_user: User) -> SerialCode:
 def inactive_serial_code(db) -> SerialCode:
     """Provides an inactive, unused SerialCode instance."""
     return SerialCodeFactory(is_active=False, is_used=False)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def temporary_media_root():
+    # Create a temporary directory for media files
+    temp_media_root = tempfile.mkdtemp()
+    original_media_root = settings.MEDIA_ROOT
+    # original_file_storage = settings.DEFAULT_FILE_STORAGE
+
+    settings.MEDIA_ROOT = temp_media_root
+    # Optionally, set a test-specific storage if needed
+    # settings.DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+
+    yield  # Run tests
+
+    # Clean up the temporary directory after tests
+    shutil.rmtree(temp_media_root)
+    settings.MEDIA_ROOT = original_media_root
+    # settings.DEFAULT_FILE_STORAGE = original_file_storage
