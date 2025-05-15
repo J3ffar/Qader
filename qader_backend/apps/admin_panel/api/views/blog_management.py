@@ -1,8 +1,10 @@
 from rest_framework import viewsets, permissions, mixins
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
 from ..permissions import IsAdminUserOrSubAdminWithPermission
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema_view, extend_schema
+from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiRequest
 
 from apps.blog.models import BlogPost, BlogAdviceRequest
 from ..serializers.blog_management import (
@@ -13,35 +15,38 @@ from ..serializers.blog_management import (
 
 @extend_schema_view(
     list=extend_schema(summary="List Blog Posts", tags=["Admin Panel - Blog"]),
-    create=extend_schema(summary="Create Blog Post", tags=["Admin Panel - Blog"]),
+    create=extend_schema(
+        summary="Create Blog Post",
+        tags=["Admin Panel - Blog"],
+        request={"multipart/form-data": AdminBlogPostSerializer},
+        description="Create a new blog post. Accepts Markdown for content and allows image upload.",
+    ),
     retrieve=extend_schema(summary="Retrieve Blog Post", tags=["Admin Panel - Blog"]),
-    update=extend_schema(summary="Update Blog Post", tags=["Admin Panel - Blog"]),
+    update=extend_schema(
+        summary="Update Blog Post",
+        tags=["Admin Panel - Blog"],
+        request={"multipart/form-data": AdminBlogPostSerializer},
+        description="Update an existing blog post. Accepts Markdown for content and allows image upload.",
+    ),
     partial_update=extend_schema(
-        summary="Partially Update Blog Post", tags=["Admin Panel - Blog"]
+        summary="Partially Update Blog Post",
+        tags=["Admin Panel - Blog"],
+        request={"multipart/form-data": AdminBlogPostSerializer},
+        description="Partially update an existing blog post. Accepts Markdown for content and allows image upload.",
     ),
     destroy=extend_schema(summary="Delete Blog Post", tags=["Admin Panel - Blog"]),
 )
 class AdminBlogPostViewSet(viewsets.ModelViewSet):
-    """
-    Admin ViewSet for managing Blog Posts (CRUD).
-    Requires staff privileges.
-    """
-
     serializer_class = AdminBlogPostSerializer
-    permission_classes = [
-        IsAdminUserOrSubAdminWithPermission
-    ]  # Replace/add custom permissions if needed
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     queryset = BlogPost.objects.all().select_related("author").prefetch_related("tags")
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = [
-        "status",
-        "author",
-        "tags__slug",
-    ]  # Allow filtering by status, author ID, tag slug
+    filterset_fields = ["status", "author", "tags__slug"]
     search_fields = ["title", "content", "slug", "author__username", "tags__name"]
     ordering_fields = ["created_at", "updated_at", "published_at", "title", "status"]
     ordering = ["-created_at"]
-    lookup_field = "slug"  # Or 'pk' if preferred for admin
+    lookup_field = "slug"
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
 
 @extend_schema_view(
@@ -59,7 +64,6 @@ class AdminBlogPostViewSet(viewsets.ModelViewSet):
         summary="Partially Update Blog Advice Request Status/Links",
         tags=["Admin Panel - Blog"],
     ),
-    # No destroy by default, admin should typically change status to 'Closed' or 'Published'
 )
 class AdminBlogAdviceRequestViewSet(
     mixins.ListModelMixin,
@@ -73,21 +77,15 @@ class AdminBlogAdviceRequestViewSet(
     """
 
     serializer_class = AdminBlogAdviceRequestSerializer
-    permission_classes = [
-        IsAdminUserOrSubAdminWithPermission
-    ]  # Replace/add custom permissions if needed
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     queryset = BlogAdviceRequest.objects.all().select_related(
-        "user__profile",  # Include profile for user_info
+        "user__profile",
         "related_support_ticket",
         "related_blog_post",
     )
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = [
-        "status",
-        "response_via",
-        "user",
-    ]  # Filter by status, response method, user ID
+    filterset_fields = ["status", "response_via", "user"]
     search_fields = ["user__username", "user__email", "problem_type", "description"]
     ordering_fields = ["created_at", "updated_at", "status"]
     ordering = ["-created_at"]
-    lookup_field = "pk"  # Use PK for advice requests
+    lookup_field = "pk"
