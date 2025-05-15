@@ -17,6 +17,13 @@ ADMIN_PERMISSIONS_DATA = [
         ),
     },
     {
+        "slug": "create_users",
+        "name": _("Create Users"),
+        "description": _(
+            "Allows creating new user accounts (e.g., Students, Teachers). Does not include creating Admins/Sub-Admins unless also a main Admin."
+        ),
+    },
+    {
         "slug": "edit_users",
         "name": _("Edit User Details"),
         "description": _(
@@ -34,33 +41,6 @@ ADMIN_PERMISSIONS_DATA = [
         "description": _(
             "Allows manually adding or subtracting points from a user's account."
         ),
-    },
-    # --- Sub-Admin Management (Requires higher-level admin/superuser) ---
-    {
-        "slug": "view_sub_admins",
-        "name": _("View Sub-Admins"),
-        "description": _(
-            "Allows viewing the list and details of other sub-admin accounts."
-        ),
-    },
-    {
-        "slug": "create_sub_admins",
-        "name": _("Create Sub-Admins"),
-        "description": _(
-            "Allows creating new sub-admin accounts and assigning their permissions."
-        ),
-    },
-    {
-        "slug": "edit_sub_admins",
-        "name": _("Edit Sub-Admins"),
-        "description": _(
-            "Allows modifying details, permissions, or status of other sub-admin accounts."
-        ),
-    },
-    {
-        "slug": "delete_sub_admins",
-        "name": _("Delete Sub-Admins"),
-        "description": _("Allows deleting sub-admin accounts."),
     },
     # --- Content & Feature Management ---
     {

@@ -8,7 +8,6 @@ from ..views import user_detail_views
 router = DefaultRouter()
 # Allow update/partial_update/destroy on AdminUserViewSet
 router.register(r"users", views.AdminUserViewSet, basename="admin-user")
-router.register(r"sub-admins", views.AdminSubAdminViewSet, basename="admin-sub-admin")
 
 # Define urlpatterns for this module
 urlpatterns = [

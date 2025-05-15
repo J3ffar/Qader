@@ -492,6 +492,13 @@ class UserProfile(models.Model):
                     "Could not generate referral code during profile save: User or username not available."
                 )
 
+        # Auto-populate preferred_name from full_name if preferred_name is empty
+        if self.full_name and not self.preferred_name:
+            self.preferred_name = self.full_name
+            logger.info(
+                f"Preferred name for user {self.user.username} auto-populated from full name."
+            )
+
         # Ensure is_staff is True for ADMIN, SUB_ADMIN, TEACHER, TRAINER roles
         staff_roles = [
             RoleChoices.ADMIN,
@@ -499,13 +506,32 @@ class UserProfile(models.Model):
             RoleChoices.TEACHER,
             RoleChoices.TRAINER,
         ]
-        if self.role in staff_roles and not self.user.is_staff:
-            self.user.is_staff = True
-            if self.user.pk:
-                self.user.save(update_fields=["is_staff", "last_login"])
+        if hasattr(self, "user") and self.user:  # Ensure user object exists
+            if self.role in staff_roles and not self.user.is_staff:
+                self.user.is_staff = True
+                if self.user.pk:  # Check if user is already saved
+                    self.user.save(
+                        update_fields=["is_staff"]
+                    )  # Removed last_login to avoid issues on new user creation
+            elif (
+                self.role == RoleChoices.STUDENT and self.user.is_staff
+            ):  # Demoting to student
+                # Only turn off is_staff if they are not also a superuser
+                if not self.user.is_superuser:
+                    self.user.is_staff = False
+                    if self.user.pk:
+                        self.user.save(update_fields=["is_staff"])
 
         # If role is not Student, ensure assigned_mentor is cleared
         if self.role != RoleChoices.STUDENT and self.assigned_mentor is not None:
             self.assigned_mentor = None  # Mentors cannot have mentors
+
+        # If role is not Teacher/Trainer, ensure mentees are cleared
+        # This needs to be handled carefully if mentees is a M2M through 'assigned_mentor'
+        # The current model structure handles this by assigned_mentor being null for non-students.
+        # If a user's role changes FROM Teacher/Trainer, their mentees' assigned_mentor link to this user will be broken
+        # if those students are reassigned or if we explicitly clear them.
+        # For now, the model's current structure is okay. If a Teacher becomes a Student,
+        # their 'mentees' field (reverse of assigned_mentor) becomes irrelevant for them in their new role.
 
         super().save(*args, **kwargs)
