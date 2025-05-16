@@ -50,3 +50,5 @@ channels_redis==4.2.1
 redis==6.0.0
 bleach==6.2.0
 Markdown==3.8
+django-redis==5.4.0
+django-sslserver==0.22
