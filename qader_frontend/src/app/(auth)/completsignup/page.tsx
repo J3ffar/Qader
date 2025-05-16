@@ -23,55 +23,62 @@ const Completsignup = () => {
     has_taken_qiyas_before: false,
     username: "",
     serial_code: "",
+    profilePicture: null as File | null,
   });
+  
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      console.log("الصورة المختارة:", file);
+      setForm({ ...form, profilePicture: file });
     }
   };
+  
 
   const handleSubmit = async () => {
     try {
       const step1 = JSON.parse(localStorage.getItem("signup-step1") || "{}");
-
-      const payload = {
-        full_name: step1.full_name,
-        email: step1.email,
-        password: step1.password,
-        password_confirm: step1.password,
-        gender: form.gender === "أنثى" ? "female" : "male",
-        preferred_name: form.preferred_name,
-        grade: form.grade,
-        has_taken_qiyas_before: form.has_taken_qiyas_before,
-        username: form.username,
-        serial_code: form.serial_code,
-      };
-
-      const res = await fetch("https://qader.vip/ar/api/v1/auth/register/", {
+      const token = localStorage.getItem("accessToken"); // تأكد من وجود التوكن
+  
+      const formData = new FormData();
+      formData.append("gender", form.gender === "أنثى" ? "female" : "male");
+      formData.append("grade", form.grade);
+      formData.append("has_taken_qiyas_before", String(form.has_taken_qiyas_before));
+      formData.append("preferred_name", form.preferred_name);
+      formData.append("username", form.username);
+      formData.append("serial_code", form.serial_code);
+      formData.append("language", "ar"); // ثابت حسب مواصفات الـ API
+  
+      if (form.profilePicture) {
+        formData.append("profile_picture", form.profilePicture); // صورة من state
+      }
+  
+      const res = await fetch("https://qader.vip/ar/api/v1/users/me/complete-profile/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
       });
-
+  
       const data = await res.json();
-
+  
       if (!res.ok) {
         alert("فشل التسجيل: " + JSON.stringify(data));
         return;
       }
-
+  
       setShowSuccess(true);
       localStorage.removeItem("signup-step1");
-
+  
       setTimeout(() => {
-        router.push("/dashboard"); // or redirect to login
+        router.push("/dashboard");
       }, 3000);
     } catch (err) {
       alert("فشل الاتصال بالخادم");
     }
   };
+  
 
   return (
     <div className="w-full max-w-[500px] mx-auto p-6 space-y-4 relative">
