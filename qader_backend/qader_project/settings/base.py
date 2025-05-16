@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     "django_filters",
     "taggit",
     "channels",
+    "django_redis",
+    "sslserver",
     # Project apps
     "apps.api",
     "apps.users",
@@ -112,8 +114,7 @@ CHANNEL_LAYERS = {
                     "host": config("REDIS_HOST", default="127.0.0.1"),
                     "port": config("REDIS_PORT", default=6379, cast=int),
                     "db": config("CHANNELS_REDIS_DB", default=1, cast=int),
-                    # --- Optionally add password here if needed ---
-                    # "password": config("REDIS_PASSWORD", default=None),
+                    "password": config("REDIS_PASSWORD", default=None),
                 }
                 # You can add more hosts for sharding/failover if needed
             ],
@@ -126,7 +127,10 @@ CHANNEL_LAYERS = {
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    "default": dj_database_url.config(default=config("DATABASE_URL"), conn_max_age=600)
+    "default": dj_database_url.config(
+        default=config("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+        conn_max_age=config("DB_CONN_MAX_AGE", default=600, cast=int),
+    )
 }
 
 # Password validation
@@ -192,9 +196,11 @@ EMAIL_BACKEND = config(
 EMAIL_HOST = config("EMAIL_HOST", default="mail.qiyas.net")
 EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=False, cast=bool)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="contact@qiyas.net")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="contact@qiyas.net")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Django REST Framework
 REST_FRAMEWORK = {
@@ -222,6 +228,21 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
     "DEFAULT_VERSION": "v1",
     "ALLOWED_VERSIONS": ["v1"],
+    "DEFAULT_THROTTLE_RATES": {
+        # Rate for anonymous users (identified by IP address)
+        "anon": config(
+            "API_THROTTLE_ANON_RATE", default="100/hour"
+        ),  # e.g., 100 requests per hour
+        # Rate for authenticated users (identified by user ID)
+        "user": config(
+            "API_THROTTLE_USER_RATE", default="1000/hour"
+        ),  # e.g., 1000 requests per hour
+        # --- Example Scoped Rates (if using ScopedRateThrottle) ---
+        # These would be applied to views decorated with `throttle_scope = 'scope_name'`
+        # "login_attempts": config("API_THROTTLE_LOGIN_RATE", default="5/minute"),
+        # "password_reset": config("API_THROTTLE_PW_RESET_RATE", default="3/hour"),
+        # "sensitive_operation": config("API_THROTTLE_SENSITIVE_RATE", default="10/hour"),
+    },
 }
 
 # DRF Spectacular (OpenAPI Schema) Settings
@@ -391,6 +412,7 @@ SIMPLE_JWT = {
 
 # CORS Settings
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
+CORS_ALLOW_CREDENTIALS = True
 
 
 LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE = "MAX_TEST_ATTEMPTS_PER_TYPE"

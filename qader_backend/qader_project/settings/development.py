@@ -23,15 +23,6 @@ REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"].append(
     "rest_framework.renderers.BrowsableAPIRenderer"
 )
 
-# Use SQLite for simpler local dev if needed (but Postgres parity is better)
-if not config("DATABASE_URL"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
-
 # Less strict password hashing for faster tests/dev
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
@@ -71,3 +62,14 @@ LOGGING = {
 
 # Disable password validators during development for faster user creation
 AUTH_PASSWORD_VALIDATORS = []
+
+
+# --- Channels ---
+# For development, you might want a simpler channel layer backend if Redis isn't running
+# For example, an in-memory backend (though Redis is usually preferred for consistency)
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer"
+#     }
+# }
+# However, using Redis as in base.py is generally better for parity with production.
