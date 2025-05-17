@@ -209,11 +209,16 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             )
 
         try:
-            # Use select_related for efficiency if accessing user fields often in serializer
+            # Ensure the profile is fetched with necessary related objects if AuthUserResponseSerializer needs them
+            # The unread_notifications_count is a property, so it doesn't need explicit prefetching here
             profile = UserProfile.objects.select_related(
-                "user", "serial_code_used"
+                "user",
+                "serial_code_used",
+                "assigned_mentor__user",  # Add assigned_mentor related fields if needed
             ).get(user=user)
-            context = {"request": request}
+            context = {
+                "request": request
+            }  # Ensure request context is passed for URL building
             user_data_serializer = AuthUserResponseSerializer(profile, context=context)
             data["user"] = user_data_serializer.data
             logger.info(
@@ -224,22 +229,24 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             logger.error(
                 f"CRITICAL: UserProfile not found during login for user '{user.username}' (ID: {user.id}). Data inconsistency."
             )
-            # Return standard tokens but log error and potentially omit 'user' key or provide minimal data
-            data["user"] = {
+            data["user"] = {  # Minimal user data on profile error
                 "id": user.id,
                 "username": user.username,
+                "email": user.email,  # Add email for consistency
                 "error": "Profile data missing.",
+                "unread_notifications_count": 0,  # Default on error
             }
         except Exception as e:
             logger.exception(
                 f"Error adding user data to login response for user '{user.username}': {e}"
             )
-            data["user"] = {
+            data["user"] = {  # Minimal user data on other errors
                 "id": user.id,
                 "username": user.username,
+                "email": user.email,
                 "error": "Error fetching profile data.",
+                "unread_notifications_count": 0,
             }
-
         return Response(data, status=status.HTTP_200_OK)
 
 

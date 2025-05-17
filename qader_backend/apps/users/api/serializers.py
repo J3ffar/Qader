@@ -429,6 +429,9 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
     mentees_count = serializers.SerializerMethodField(
         help_text="Number of students assigned to this teacher/trainer (if applicable)."
     )
+    unread_notifications_count = serializers.IntegerField(
+        read_only=True, help_text=_("Number of unread notifications for the user.")
+    )
 
     class Meta:
         model = UserProfile
@@ -450,6 +453,7 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
             "current_streak_days",
             "assigned_mentor",
             "mentees_count",
+            "unread_notifications_count",
         )
         read_only_fields = fields  # This ensures all fields listed above are read-only
 

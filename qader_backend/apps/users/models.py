@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
 
 from apps.notifications.services import create_notification
-from apps.notifications.models import NotificationTypeChoices
+from apps.notifications.models import Notification, NotificationTypeChoices
 from .constants import (
     AccountTypeChoices,
     GenderChoices,
@@ -397,6 +397,16 @@ class UserProfile(models.Model):
         )
         # Also check if full_name exists (should be set during initial signup)
         return bool(self.full_name and required_fields_filled)
+
+    @property
+    def unread_notifications_count(self) -> int:
+        """Returns the count of unread notifications for the user associated with this profile."""
+        if hasattr(self, "user") and self.user_id:  # Efficiently check if user is set
+            # Use user_id directly to avoid fetching the full user object if not already done
+            return Notification.objects.filter(
+                recipient_id=self.user_id, is_read=False
+            ).count()
+        return 0
 
     def apply_subscription(self, serial_code: SerialCode):  # Added type hint
         """Applies or extends subscription duration based on a valid SerialCode."""
