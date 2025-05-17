@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     # Project apps
     "apps.api",
     "apps.users",
+    "apps.chat",
     "apps.learning",
     "apps.study",
     "apps.gamification",
