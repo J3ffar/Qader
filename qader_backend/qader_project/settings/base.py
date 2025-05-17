@@ -278,6 +278,10 @@ SPECTACULAR_SETTINGS = {
             "description": "Manage current user profile and settings.",
         },
         {
+            "name": "Chat",
+            "description": "Endpoints for real-time student-teacher/trainer communication.",
+        },
+        {
             "name": "Subscription Plans",
             "description": "Endpoints related to viewing available subscription plans.",
         },
