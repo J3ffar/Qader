@@ -5,7 +5,7 @@ from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "qader_project.settings.development")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "qader_project.settings.production")
 django.setup()  # Ensure Django settings and apps are loaded
 
 # Import your WebSocket routing *after* django.setup()

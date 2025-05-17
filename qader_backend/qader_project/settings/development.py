@@ -10,18 +10,21 @@ INSTALLED_APPS += [
 ]
 
 # Add development-specific middleware
-MIDDLEWARE += [
+MIDDLEWARE.insert(  # type: ignore
+    MIDDLEWARE.index("django.middleware.common.CommonMiddleware") + 1,
     "debug_toolbar.middleware.DebugToolbarMiddleware",
-]
+)
 
 # Debug Toolbar settings
 INTERNAL_IPS = [
     "127.0.0.1",
+    "localhost",
 ]
 
-REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"].append(
-    "rest_framework.renderers.BrowsableAPIRenderer"
-)
+if "rest_framework.renderers.BrowsableAPIRenderer" not in REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"]:  # type: ignore
+    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] += (  # type: ignore
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    )
 
 # Less strict password hashing for faster tests/dev
 PASSWORD_HASHERS = [
@@ -33,12 +36,13 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "format": "{levelname} {asctime} {name} {module} {process:d} {thread:d} {message}",
             "style": "{",
         },
         "simple": {
-            "format": "{levelname}: {message}",
+            "format": "[{asctime}] {levelname}: {message}",
             "style": "{",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },
     "handlers": {
@@ -49,13 +53,23 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "INFO",  # Adjust level for verbosity
+        "level": "INFO",
     },
     "loggers": {
         "django": {
             "handlers": ["console"],
-            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+            "level": config("DJANGO_LOG_LEVEL", default="INFO"),
             "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
+        },
+        "apps": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": True,
         },
     },
 }

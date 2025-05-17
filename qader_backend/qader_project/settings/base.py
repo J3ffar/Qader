@@ -102,6 +102,7 @@ TEMPLATES = [
     },
 ]
 
+WSGI_APPLICATION = "qader_project.wsgi.application"
 ASGI_APPLICATION = "qader_project.asgi.application"
 
 # Configure Channel Layers (using Redis)
@@ -216,9 +217,9 @@ REST_FRAMEWORK = {
     ],
     # "EXCEPTION_HANDLER": "apps.api.exceptions.custom_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 20,
+    "PAGE_SIZE": config("API_PAGE_SIZE", default=20, cast=int),
     "PAGE_SIZE_QUERY_PARAM": "page_size",
-    "MAX_PAGE_SIZE": 100,
+    "MAX_PAGE_SIZE": config("API_MAX_PAGE_SIZE", default=100, cast=int),
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.OrderingFilter",
@@ -228,6 +229,14 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
     "DEFAULT_VERSION": "v1",
     "ALLOWED_VERSIONS": ["v1"],
+    "DEFAULT_THROTTLE_CLASSES": [
+        # Apply different rates for anonymous and authenticated users
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        # You can also add ScopedRateThrottle if you want to define specific
+        # rates for certain views/actions.
+        # "rest_framework.throttling.ScopedRateThrottle",
+    ],
     "DEFAULT_THROTTLE_RATES": {
         # Rate for anonymous users (identified by IP address)
         "anon": config(
@@ -252,6 +261,11 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    "SERVE_AUTHENTICATION": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
     # Define Tag order and descriptions
     "TAGS": [
         {
@@ -403,11 +417,6 @@ SIMPLE_JWT = {
     "TOKEN_TYPE_CLAIM": "token_type",
     "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
     "JTI_CLAIM": "jti",
-    "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
-    "SLIDING_TOKEN_LIFETIME": timedelta(
-        minutes=5
-    ),  # Not typically used with Access/Refresh pair
-    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),  # Not typically used
 }
 
 # CORS Settings
