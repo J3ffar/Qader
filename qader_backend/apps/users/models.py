@@ -4,6 +4,9 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
+
+from apps.notifications.services import create_notification
+from apps.notifications.models import NotificationTypeChoices
 from .constants import (
     AccountTypeChoices,
     GenderChoices,
@@ -421,6 +424,17 @@ class UserProfile(models.Model):
                     "account_type",
                     "updated_at",
                 ]
+            )
+            create_notification(
+                recipient=self.user,
+                verb=_("activated a subscription"),
+                description=_(
+                    "Your subscription has been successfully activated using code: {serial_code}."
+                ).format(serial_code=self.serial_code_used.code),
+                target=self.serial_code_used,  # The SerialCode instance
+                notification_type=NotificationTypeChoices.SUBSCRIPTION,
+                url="/profile/me/subscription",  # Example frontend URL
+                extra_data={"serial_code_id": self.serial_code_used.id},
             )
             logger.info(
                 f"Subscription for user {self.user.username} updated. Expires: {new_expiry_date}. Using code: {serial_code.code}"

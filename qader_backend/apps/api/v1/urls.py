@@ -9,6 +9,10 @@ urlpatterns = [
     path("", include(router.urls)),
     path("auth/", include("apps.users.api.auth_urls"), name="auth"),
     path("users/", include("apps.users.api.users_urls"), name="users"),
+    path(
+        "notifications/",
+        include("apps.notifications.api.urls", namespace="notifications"),
+    ),
     path("chat/", include("apps.chat.api.urls", namespace="chat")),
     path("learning/", include("apps.learning.api.urls"), name="learning"),
     path("study/", include("apps.study.api.urls"), name="study"),

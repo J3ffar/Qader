@@ -44,7 +44,9 @@ from typing import Optional
 
 from apps.users.api.permissions import (
     IsCurrentlySubscribed,
-)  # For type hinting
+)
+from apps.notifications.models import NotificationTypeChoices
+from apps.notifications.services import create_notification
 
 from .serializers import (
     ApplySerialCodeSerializer,
@@ -789,7 +791,15 @@ class CompleteProfileView(generics.UpdateAPIView):
                     logger.warning(
                         f"Could not delete old profile picture for user {user.username}: {e}"
                     )
-
+        create_notification(
+            recipient=user,
+            actor=user,
+            verb=_("completed your profile"),
+            description=_("Your profile is now complete! You can start exploring."),
+            notification_type=NotificationTypeChoices.USER_PROFILE,
+            url=f"/profile/me/",  # Example frontend URL
+            extra_data={"profile_completion_step": "final"},  # Example extra data
+        )
         logger.info(f"Profile completed successfully for user {user.username}")
 
     # Override update to return full UserProfileSerializer data
