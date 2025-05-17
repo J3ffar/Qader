@@ -240,6 +240,34 @@ class MessageListCreateView(generics.ListCreateAPIView):
             )
         serializer.save(sender=self.request.user, conversation=conversation)
 
+    def create(self, request, *args, **kwargs):
+        # Use CreateMessageSerializer for validating the request data
+        serializer = CreateMessageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Get the conversation (re-using your existing logic)
+        conversation = self.get_conversation()
+        if not (
+            self.request.user.profile == conversation.student
+            or self.request.user.profile == conversation.teacher
+        ):
+            raise DjangoPermissionDenied(
+                _("You are not a participant in this conversation.")
+            )
+
+        # Save the message instance using validated data from CreateMessageSerializer
+        # The perform_create method is not directly called when overriding create, so we replicate its core logic.
+        instance = serializer.save(sender=self.request.user, conversation=conversation)
+
+        # Now, serialize the created instance using ChatMessageSerializer for the response
+        response_serializer = ChatMessageSerializer(
+            instance, context=self.get_serializer_context()
+        )
+        headers = self.get_success_headers(response_serializer.data)
+        return Response(
+            response_serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
+
 
 @extend_schema_view(
     get=extend_schema(

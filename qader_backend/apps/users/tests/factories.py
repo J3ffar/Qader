@@ -72,25 +72,40 @@ class UserFactory(DjangoModelFactory):
     # Profile data convenience
     @factory.post_generation
     def profile_data(self, create, extracted: dict, **kwargs):
-        """Allows passing profile data directly: UserFactory(profile_data={'full_name': '...'})"""
         if create and extracted and isinstance(extracted, dict):
             try:
-                # Profile should exist due to signal. Use get_or_create defensively.
-                profile, created = UserProfile.objects.get_or_create(user=self)
-                if created:
+                # Always fetch the profile associated with `self` (the user instance)
+                # The signal should have created it. If not, get_or_create is a fallback.
+                profile = UserProfile.objects.get(user=self)
+            except UserProfile.DoesNotExist:
+                # This case implies the signal failed or UserFactory is used where no signal runs (e.g. bulk_create)
+                profile = UserProfile.objects.create(
+                    user=self
+                )  # Create if absolutely necessary
+                logger.warning(
+                    f"Profile created directly in profile_data hook for {self.username} "
+                    f"(signal might have failed or not run yet for this User instance)"
+                )
+
+            assigned_mentor_profile_from_data = extracted.pop(
+                "assigned_mentor_profile", None
+            )  # Handle special key
+
+            for key, value in extracted.items():
+                if hasattr(profile, key):
+                    setattr(profile, key, value)
+                else:
                     logger.warning(
-                        f"Profile created directly in profile_data hook for {self.username} (signal might have failed or run late)"
+                        f"UserProfile has no attribute '{key}' provided in profile_data factory arg."
                     )
-                for key, value in extracted.items():
-                    if hasattr(profile, key):
-                        setattr(profile, key, value)
-                    else:
-                        logger.warning(
-                            f"UserProfile has no attribute '{key}' provided in profile_data factory arg."
-                        )
-                profile.save()  # Save all changes made here
-            except Exception as e:
-                logger.error(f"Error setting profile_data for {self.username}: {e}")
+
+            if assigned_mentor_profile_from_data and isinstance(
+                assigned_mentor_profile_from_data, UserProfile
+            ):
+                profile.assigned_mentor = assigned_mentor_profile_from_data
+
+            profile.save()  # Save all accumulated changes
+            self.profile = profile
 
 
 class SerialCodeFactory(DjangoModelFactory):

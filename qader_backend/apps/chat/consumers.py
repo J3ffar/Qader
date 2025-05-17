@@ -30,38 +30,48 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        self.conversation_id = self.scope["url_route"]["kwargs"].get("conversation_id")
+        self.conversation_id_param = self.scope["url_route"]["kwargs"].get(
+            "conversation_id"
+        )  # Renamed for clarity
         self.conversation_obj = None
 
-        if (
-            self.conversation_id
-        ):  # Teacher/Trainer connecting to a specific conversation
+        if self.conversation_id_param:
             self.conversation_obj = await self.get_conversation_by_id_for_teacher(
-                self.conversation_id, self.user_profile
+                self.conversation_id_param, self.user_profile
             )
-        elif (
-            self.user_profile.role == RoleChoices.STUDENT
-        ):  # Student connecting to their conversation
+        elif self.user_profile.role == RoleChoices.STUDENT:
             self.conversation_obj = await self.get_student_conversation(
                 self.user_profile
             )
-        else:  # Non-student trying to connect without conversation_id (e.g. teacher, but wrong URL)
+        else:
             await self.close()
             return
 
         if not self.conversation_obj:
-            await self.close()  # Could not determine or access conversation
+            await self.close()
             return
 
-        self.conversation_id_str = str(self.conversation_obj.id)
+        self.conversation_id_str = str(
+            self.conversation_obj.id
+        )  # Keep this as it's used for group name
         self.room_group_name = f"chat_{self.conversation_id_str}"
 
-        # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
-        # Mark messages as read on connect for this user
+        # Mark messages as read on connect
         await self.mark_messages_as_read_on_connect(self.conversation_obj, self.user)
+
+        # Send connection established message
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "connection_established",
+                    "conversation_id": self.conversation_id_str,  # Send the ID of the established conversation
+                    "room_group_name": self.room_group_name,  # Optionally send for debugging/testing
+                }
+            )
+        )
 
     async def disconnect(self, close_code):
         # Leave room group

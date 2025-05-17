@@ -15,7 +15,8 @@ from apps.users.models import (
     UserProfile,
     GenderChoices,
     RoleChoices,
-)  # Direct import is fine here
+)
+from apps.chat.models import Conversation  # Direct import is fine here
 
 
 @pytest.fixture(scope="session")
@@ -178,20 +179,85 @@ def inactive_serial_code(db) -> SerialCode:
     return SerialCodeFactory(is_active=False, is_used=False)
 
 
-@pytest.fixture(autouse=True, scope="session")
-def temporary_media_root():
-    # Create a temporary directory for media files
-    temp_media_root = tempfile.mkdtemp()
-    original_media_root = settings.MEDIA_ROOT
-    # original_file_storage = settings.DEFAULT_FILE_STORAGE
+@pytest.fixture
+def student_user(db, standard_user):  # Using standard_user as a base
+    """Creates a user with the STUDENT role and a complete profile."""
+    profile = standard_user.profile
+    profile.role = RoleChoices.STUDENT
+    # Ensure profile is complete if standard_user doesn't guarantee it for all fields
+    if not profile.full_name:
+        profile.full_name = "Student User"
+    if not profile.gender:
+        profile.gender = GenderChoices.MALE
+    if not profile.grade:
+        profile.grade = "Grade 10"
+    if profile.has_taken_qiyas_before is None:
+        profile.has_taken_qiyas_before = False
+    profile.save()
+    standard_user.refresh_from_db()
+    return standard_user
 
-    settings.MEDIA_ROOT = temp_media_root
-    # Optionally, set a test-specific storage if needed
-    # settings.DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
-    yield  # Run tests
+@pytest.fixture
+def teacher_user(db):
+    """Creates a user with the TEACHER role and a complete profile."""
+    user = UserFactory(
+        username="teacher_chat",
+        email="teacher_chat@qader.test",
+        is_active=True,
+        profile_data={
+            "full_name": "Teacher Chat User",
+            "gender": GenderChoices.MALE,
+            "grade": "N/A",
+            "has_taken_qiyas_before": False,
+            "role": RoleChoices.TEACHER,  # Set role here
+        },
+    )
+    user.refresh_from_db()
+    return user
 
-    # Clean up the temporary directory after tests
-    shutil.rmtree(temp_media_root)
-    settings.MEDIA_ROOT = original_media_root
-    # settings.DEFAULT_FILE_STORAGE = original_file_storage
+
+@pytest.fixture
+def student_with_mentor(db, student_user, teacher_user):
+    """A student user whose assigned_mentor is the teacher_user."""
+    profile = student_user.profile
+    profile.assigned_mentor = teacher_user.profile
+    profile.save()
+    student_user.refresh_from_db()
+    return student_user
+
+
+@pytest.fixture
+def conversation_between_student_and_mentor(db, student_with_mentor, teacher_user):
+    """Creates a conversation between the student_with_mentor and their teacher_user."""
+    # The model's get_or_create_conversation should handle this correctly
+    convo, _ = Conversation.get_or_create_conversation(
+        student_profile=student_with_mentor.profile,
+        teacher_profile=teacher_user.profile,
+    )
+    return convo
+
+
+# API Client fixtures authenticated as specific roles for chat
+@pytest.fixture
+def student_client(api_client, student_user):
+    api_client.force_authenticate(user=student_user)
+    api_client.user = student_user  # Store user on client for easier access in tests
+    yield api_client
+    api_client.force_authenticate(user=None)
+
+
+@pytest.fixture
+def student_mentor_client(api_client, student_with_mentor):
+    api_client.force_authenticate(user=student_with_mentor)
+    api_client.user = student_with_mentor
+    yield api_client
+    api_client.force_authenticate(user=None)
+
+
+@pytest.fixture
+def teacher_client(api_client, teacher_user):
+    api_client.force_authenticate(user=teacher_user)
+    api_client.user = teacher_user
+    yield api_client
+    api_client.force_authenticate(user=None)
