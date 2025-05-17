@@ -10,6 +10,7 @@ django.setup()  # Ensure Django settings and apps are loaded
 
 # Import your WebSocket routing *after* django.setup()
 from apps.challenges.routing import websocket_urlpatterns as challenge_ws_urlpatterns
+from apps.chat.routing import websocket_urlpatterns as chat_ws_urlpatterns
 
 # Get the standard Django ASGI app for HTTP requests
 django_asgi_app = get_asgi_application()
@@ -23,8 +24,7 @@ application = ProtocolTypeRouter(
             AuthMiddlewareStack(  # Handle authentication
                 URLRouter(
                     challenge_ws_urlpatterns  # Add challenge WebSocket routes
-                    # Add other app WebSocket routes here if needed
-                    # + other_app_ws_urlpatterns
+                    + chat_ws_urlpatterns  # Add chat WebSocket routes
                 )
             )
         ),
