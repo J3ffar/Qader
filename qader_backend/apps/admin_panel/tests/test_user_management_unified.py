@@ -139,12 +139,22 @@ class TestAdminUserViewSet:
         )  # Regular users can't access
 
     def test_list_users_permission_sub_admin_no_permission(
-        self, api_client, db, setup_permissions
+        self,
+        api_client,
+        db,
+        setup_permissions,
     ):
         sub_admin_no_perm = UserFactory(username="subadmin_noperm", is_staff=True)
-        UserProfile.objects.create(
-            user=sub_admin_no_perm, role=RoleChoices.SUB_ADMIN, full_name="No Perm Sub"
-        )
+        # Get the profile created by the factory/signal and update its role
+        profile = UserProfile.objects.get(
+            user=sub_admin_no_perm
+        )  # Or sub_admin_no_perm.profile
+        profile.role = RoleChoices.SUB_ADMIN
+        profile.full_name = "No Perm Sub"
+        # Ensure no permissions are assigned for this test case
+        profile.admin_permissions.clear()  # Explicitly clear if factory might add some
+        profile.save()
+
         api_client.force_authenticate(user=sub_admin_no_perm)
         response = api_client.get(self.USER_LIST_URL)
         assert response.status_code == status.HTTP_403_FORBIDDEN

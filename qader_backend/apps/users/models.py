@@ -469,17 +469,6 @@ class UserProfile(models.Model):
             return self.admin_permissions.filter(slug=perm_slug).exists()
         return False
 
-    def has_permission(self, perm_slug: str) -> bool:
-        if (
-            self.user.is_superuser
-            or self.user.is_staff
-            and self.role == RoleChoices.ADMIN
-        ):
-            return True
-        if self.role == RoleChoices.SUB_ADMIN and self.user.is_staff:
-            return self.admin_permissions.filter(slug=perm_slug).exists()
-        return False
-
     def save(self, *args, **kwargs):
         if not self.referral_code:
             if hasattr(self, "user") and self.user and self.user.username:
