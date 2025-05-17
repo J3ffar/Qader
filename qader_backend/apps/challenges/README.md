@@ -17,9 +17,8 @@ It's best practice to configure the base WebSocket URL using environment variabl
     ```bash
     # .env.local
 
-    # Use ws:// for local dev (non-HTTPS), wss:// for production (HTTPS)
     # Ensure this matches the host and port where Daphne is running
-    NEXT_PUBLIC_WS_BASE_URL=ws://127.0.0.1:8000/ws
+    NEXT_PUBLIC_WS_BASE_URL=wss://qader.vip/ws
     ```
 
 2. **Accessing the Variable:** In your Next.js code, you can access this as `process.env.NEXT_PUBLIC_WS_BASE_URL`. The `NEXT_PUBLIC_` prefix makes it available in the browser.
