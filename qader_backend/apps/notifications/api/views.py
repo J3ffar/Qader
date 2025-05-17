@@ -1,8 +1,20 @@
-from rest_framework import generics, views, status
+from rest_framework import (
+    generics,
+    views,
+    status,
+    serializers as drf_serializers,
+)  # Alias for clarity
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils.translation import gettext_lazy as _
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiResponse,
+    inline_serializer,  # For simple response structures
+    OpenApiExample,
+)
+from drf_spectacular.types import OpenApiTypes  # For parameter types
 
 from apps.notifications.models import Notification
 from apps.notifications.services import bulk_mark_as_read, mark_all_as_read_for_user
@@ -12,39 +24,122 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# --- Define Reusable Error Responses for Notifications API Docs ---
+# (Could be in a shared module like apps.api.openapi_schemas if used across apps)
+NOTIFICATION_API_COMMON_ERRORS = {
+    status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+        description="Bad Request: Invalid input data. Check response body for details.",
+        response=inline_serializer(
+            name="NotificationValidationErrorResponse",
+            fields={
+                "field_name": drf_serializers.ListField(
+                    child=drf_serializers.CharField(), required=False
+                ),
+                "detail": drf_serializers.CharField(required=False),
+            },
+        ),
+        examples=[
+            OpenApiExample(
+                "Field Error Example",
+                value={"notification_ids": ["This field is required."]},
+            ),
+            OpenApiExample(
+                "Non-Field Error Example",
+                value={"detail": "Invalid operation parameter."},
+            ),
+        ],
+    ),
+    status.HTTP_401_UNAUTHORIZED: OpenApiResponse(
+        description="Unauthorized: Authentication credentials were not provided or are invalid.",
+        response=inline_serializer(
+            name="NotificationUnauthorizedResponse",
+            fields={"detail": drf_serializers.CharField()},
+        ),
+        examples=[
+            OpenApiExample(
+                "Auth Required Example",
+                value={"detail": "Authentication credentials were not provided."},
+            )
+        ],
+    ),
+    status.HTTP_403_FORBIDDEN: OpenApiResponse(
+        description="Forbidden: You do not have permission to perform this action.",
+        response=inline_serializer(
+            name="NotificationForbiddenResponse",
+            fields={"detail": drf_serializers.CharField()},
+        ),
+        examples=[
+            OpenApiExample(
+                "Permission Denied Example",
+                value={"detail": "You do not have permission to perform this action."},
+            )
+        ],
+    ),
+    status.HTTP_404_NOT_FOUND: OpenApiResponse(
+        description="Not Found: The requested resource could not be found.",
+        response=inline_serializer(
+            name="NotificationNotFoundResponse",
+            fields={"detail": drf_serializers.CharField()},
+        ),
+        examples=[
+            OpenApiExample(
+                "Not Found Example", value={"detail": "Notification not found."}
+            )
+        ],
+    ),
+}
+
 
 @extend_schema(
     tags=["Notifications"],
     summary="List User Notifications",
     description=(
         "Retrieves a paginated list of notifications for the authenticated user. "
-        "Can be filtered by read status using `?is_read=true` or `?is_read=false`."
+        "Notifications are ordered by creation date (most recent first). "
+        "Can be filtered by read status using the `is_read` query parameter."
     ),
     parameters=[
         OpenApiParameter(
             name="is_read",
-            description="Filter by read status (true/false).",
+            description="Filter by read status. `true` for read, `false` for unread. If omitted, all notifications are returned.",
             required=False,
-            type=bool,
-        )
+            type=OpenApiTypes.BOOL,  # Use OpenApiTypes for clarity
+        ),
+        OpenApiParameter(  # Standard pagination parameter
+            name="page",
+            description="A page number within the paginated result set.",
+            required=False,
+            type=OpenApiTypes.INT,
+        ),
+        OpenApiParameter(  # Standard pagination parameter
+            name="page_size",
+            description="Number of results to return per page.",
+            required=False,
+            type=OpenApiTypes.INT,
+        ),
     ],
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=NotificationSerializer(many=True),  # Use the actual serializer
+            description="Successfully retrieved list of notifications.",
+        ),
+        status.HTTP_401_UNAUTHORIZED: NOTIFICATION_API_COMMON_ERRORS[
+            status.HTTP_401_UNAUTHORIZED
+        ],
+    },
 )
 class NotificationListView(generics.ListAPIView):
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
-    # pagination_class = YourDefaultPaginationClass (if you have one)
+    # Ensure pagination_class is set in REST_FRAMEWORK defaults or here
+    # pagination_class = YourDefaultPaginationClass
 
     def get_queryset(self):
         user = self.request.user
         queryset = (
             Notification.objects.filter(recipient=user)
-            .select_related(
-                "actor__profile",  # Assuming actor has a profile for SimpleUserSerializer
-                "recipient__profile",
-            )
-            .prefetch_related(  # For GenericForeignKeys
-                "target_content_type", "action_object_content_type"
-            )
+            .select_related("actor__profile", "recipient__profile")
+            .prefetch_related("target_content_type", "action_object_content_type")
         )
 
         is_read_param = self.request.query_params.get("is_read")
@@ -52,18 +147,38 @@ class NotificationListView(generics.ListAPIView):
             is_read_value = is_read_param.lower() == "true"
             queryset = queryset.filter(is_read=is_read_value)
 
-        return queryset.order_by("-created_at")  # Default ordering is in model Meta
+        return queryset.order_by("-created_at")
 
 
 @extend_schema(
     tags=["Notifications"],
     summary="Mark Specified Notifications as Read",
     description="Marks one or more specified notifications as read for the authenticated user.",
+    request=NotificationMarkReadInputSerializer,  # Use the input serializer for request body
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=inline_serializer(
+                name="MarkAsReadSuccessResponse",
+                fields={"detail": drf_serializers.CharField()},
+            ),
+            description="Successfully marked specified notifications as read.",
+            examples=[
+                OpenApiExample(
+                    "Success Example",
+                    value={"detail": "3 notification(s) marked as read."},
+                )
+            ],
+        ),
+        status.HTTP_400_BAD_REQUEST: NOTIFICATION_API_COMMON_ERRORS[
+            status.HTTP_400_BAD_REQUEST
+        ],
+        status.HTTP_401_UNAUTHORIZED: NOTIFICATION_API_COMMON_ERRORS[
+            status.HTTP_401_UNAUTHORIZED
+        ],
+    },
 )
-class NotificationMarkAsReadView(
-    generics.GenericAPIView
-):  # Changed to GenericAPIView for custom logic
-    serializer_class = NotificationMarkReadInputSerializer  # For input validation
+class NotificationMarkAsReadView(generics.GenericAPIView):
+    serializer_class = NotificationMarkReadInputSerializer
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
@@ -83,6 +198,25 @@ class NotificationMarkAsReadView(
     tags=["Notifications"],
     summary="Mark All Notifications as Read",
     description="Marks all unread notifications as read for the authenticated user.",
+    request=None,  # No request body
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=inline_serializer(
+                name="MarkAllAsReadSuccessResponse",
+                fields={"detail": drf_serializers.CharField()},
+            ),
+            description="Successfully marked all unread notifications as read.",
+            examples=[
+                OpenApiExample(
+                    "Success Example",
+                    value={"detail": "5 unread notification(s) marked as read."},
+                )
+            ],
+        ),
+        status.HTTP_401_UNAUTHORIZED: NOTIFICATION_API_COMMON_ERRORS[
+            status.HTTP_401_UNAUTHORIZED
+        ],
+    },
 )
 class NotificationMarkAllAsReadView(views.APIView):
     permission_classes = [IsAuthenticated]
@@ -98,15 +232,37 @@ class NotificationMarkAllAsReadView(views.APIView):
 @extend_schema(
     tags=["Notifications"],
     summary="Delete a Notification",
-    description="Deletes a specific notification belonging to the authenticated user.",
+    description="Deletes a specific notification belonging to the authenticated user. The notification is identified by its ID in the URL path.",
+    parameters=[
+        OpenApiParameter(
+            name="pk",
+            description="The primary key of the notification to delete.",
+            required=True,
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,  # Indicate it's a path parameter
+        )
+    ],
+    responses={
+        status.HTTP_204_NO_CONTENT: OpenApiResponse(
+            description="Notification deleted successfully. No content returned."
+        ),
+        status.HTTP_401_UNAUTHORIZED: NOTIFICATION_API_COMMON_ERRORS[
+            status.HTTP_401_UNAUTHORIZED
+        ],
+        status.HTTP_403_FORBIDDEN: NOTIFICATION_API_COMMON_ERRORS[
+            status.HTTP_403_FORBIDDEN
+        ],  # If trying to delete other's notification
+        status.HTTP_404_NOT_FOUND: NOTIFICATION_API_COMMON_ERRORS[
+            status.HTTP_404_NOT_FOUND
+        ],
+    },
 )
 class NotificationDeleteView(generics.DestroyAPIView):
-    serializer_class = NotificationSerializer  # For response schema in docs
+    # serializer_class = NotificationSerializer # Not strictly needed for DELETE response schema if 204
     permission_classes = [IsAuthenticated]
-    lookup_field = "pk"  # Default
+    lookup_field = "pk"
 
     def get_queryset(self):
-        # Ensure users can only delete their own notifications
         return Notification.objects.filter(recipient=self.request.user)
 
     def perform_destroy(self, instance):
@@ -120,6 +276,19 @@ class NotificationDeleteView(generics.DestroyAPIView):
     tags=["Notifications"],
     summary="Get Unread Notifications Count",
     description="Retrieves the count of unread notifications for the authenticated user.",
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=inline_serializer(
+                name="UnreadCountResponse",
+                fields={"unread_count": drf_serializers.IntegerField()},
+            ),
+            description="Successfully retrieved the count of unread notifications.",
+            examples=[OpenApiExample("Count Example", value={"unread_count": 12})],
+        ),
+        status.HTTP_401_UNAUTHORIZED: NOTIFICATION_API_COMMON_ERRORS[
+            status.HTTP_401_UNAUTHORIZED
+        ],
+    },
 )
 class UnreadNotificationCountView(views.APIView):
     permission_classes = [IsAuthenticated]

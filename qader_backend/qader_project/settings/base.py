@@ -279,6 +279,10 @@ SPECTACULAR_SETTINGS = {
             "description": "Manage current user profile and settings.",
         },
         {
+            "name": "Notifications",
+            "description": "Manage user notifications (list, read, delete, count).",  # Added description
+        },
+        {
             "name": "Chat",
             "description": "Endpoints for real-time student-teacher/trainer communication.",
         },
