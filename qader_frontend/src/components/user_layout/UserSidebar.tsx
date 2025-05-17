@@ -41,31 +41,37 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       label: "تحديد المستوى",
       icon: <NewspaperIcon className="w-6 h-6" />,
       link: "/student/level",
+      subLink : "/student/level/pic"
     },
     {
       label: "التعلم بالطرق التقليدية",
       icon: <BookOpenIcon className="w-6 h-6" />,
       link: "/student/traditional",
+      subLink : ""
     },
     {
       label: "التعلم عبر المحادثة",
       icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />,
-      link: "/user/conversation-learning",
+      link: "/student/conversation-learning",
+      subLink : ""
     },
     {
       label: "اختبارات المحاكاة",
       icon: <PencilSquareIcon className="w-6 h-6" />,
-      link: "/user/simulation-tests",
+      link: "/student/simulation-tests",
+      subLink : ""
     },
     {
       label: "المكافأت والمسابقات",
       icon: <GiftIcon className="w-6 h-6" />,
-      link: "/user/rewards-and-competitions",
+      link: "/student/rewards-and-competitions",
+      subLink : ""
     },
     {
       label: "الاحصائيات",
       icon: <ChartPieIcon className="w-6 h-6" />,
-      link: "/user/statistics",
+      link: "/student/statistics",
+      subLink : ""
     },
   ];
 
@@ -73,22 +79,26 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     {
       label: "تحدى الزملاء",
       icon: <ClockIcon className="w-6 h-6" />,
-      link: "/user/challenge-peers",
+      link: "/student/challenge-peers",
+      subLink : ""
     },
     {
       label: "مجتمع الطلاب",
       icon: <UsersIcon className="w-6 h-6" />,
-      link: "/user/student-community",
+      link: "/student/student-community",
+      subLink : ""
     },
     {
       label: "المدونة",
       icon: <BookmarkIcon className="w-6 h-6" />,
-      link: "/user/blog",
+      link: "/student/blog",
+      subLink : ""
     },
     {
       label: "الدعم الإدارى",
       icon: <QuestionMarkCircleIcon className="w-6 h-6" />,
-      link: "/user/admin-support",
+      link: "/student/admin-support",
+      subLink : ""
     },
   ];
 
@@ -96,30 +106,33 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     {
       label: "وضع الطوارئ",
       icon: <ExclamationCircleIcon className="w-6 h-6" />,
-      link: "/user/emergency-mode",
+      link: "/student/emergency-mode",
+      subLink : ""
     },
     {
       label: "الإعدادات",
       icon: <Cog6ToothIcon className="w-6 h-6" />,
-      link: "/user/settings",
+      link: "/student/settings",
+      subLink : ""
     },
   ];
 
   const renderMenu = (
-    items: { label: string; icon: JSX.Element; link: string }[]
+    items: { label: string; icon: JSX.Element; link: string ; subLink : string }[]
   ) => {
     return items.map((item, index) => {
       const isActive = pathname === item.link;
+      const isActives = pathname === item.subLink;
 
       return (
         <Link key={index} href={item.link}>
           <motion.div
             className={`flex items-center px-4 py-2 cursor-pointer transition-all duration-200 
               ${isOpen ? "justify-start gap-3" : "justify-center"}
-              ${isActive ? "bg-white/20" : "hover:bg-white/10"}
+              ${isActive || isActives ? "bg-white/20" : "hover:bg-white/10"}
             `}
             whileHover={{ scale: 1.05 }}
-            animate={isActive ? { scale: 1.05 } : {}}
+            animate={isActive || isActives ? { scale: 1.05 } : {}}
             transition={{ duration: 0.2 }}
           >
             {item.icon}
@@ -130,7 +143,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                   transition={{ duration: 0.2 }}
-                  className={isActive ? "font-bold" : ""}
+                  className={isActive || isActives ? "font-bold" : ""}
                 >
                   {item.label}
                 </motion.span>
@@ -156,34 +169,22 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
   return (
     <div
-      className="flex relative flex-col bg-[#074182] min-h-screen text-white transition-all duration-300 ease-in-out z-50"
+      className="flex relative flex-col bg-[#074182] dark:bg-[#081028] min-h-screen text-white transition-all duration-300 ease-in-out z-50"
       style={{ width: isOpen ? 220 : 100 }}
     >
       {/* زر الفتح/الإغلاق */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute cursor-pointer top-32 -left-3 bg-white text-[#074182] shadow-md rounded-md w-6 h-6 text-sm flex items-center justify-center"
+        className="absolute cursor-pointer top-32 -left-3 bg-white dark:bg-transparent border text-[#074182] dark:text-white shadow-md rounded-md w-6 h-6 text-sm flex items-center justify-center"
       >
         {isOpen ? ">" : "<"}
       </button>
 
       {/* صورة المستخدم */}
-      <div className="flex flex-col items-center py-6 border-b border-white/20">
-        <div className="mb-2">
-          <Image src="/images/logo.svg" width={120} height={120} alt="" />
+      <div className="flex flex-col items-center py-6 ">
+        <div className="mb-2 flex justify-center items-center">
+         {isOpen ?  <Image src="/images/logosidebar.png" width={120} height={120} alt="" /> :  <Image src="/images/logoside.png" width={71} height={71} alt="" /> }
         </div>
-        <AnimatePresence>
-          {isOpen && (
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-sm font-semibold"
-            >
-              زائر
-            </motion.span>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* القوائم */}
