@@ -205,6 +205,31 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="contact@qiyas.net")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
+# Celery Configuration
+# Using Redis as the broker and result backend
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://127.0.0.1:6379/0")
+CELERY_RESULT_BACKEND = config(
+    "CELERY_RESULT_BACKEND", default="redis://127.0.0.1:6379/0"
+)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE  # Use Django's timezone setting
+CELERY_ENABLE_UTC = True
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 300  # Seconds
+CELERY_TASK_SOFT_TIME_LIMIT = 240  # Seconds
+
+# Optional: Define periodic tasks here or in a separate file
+# CELERY_BEAT_SCHEDULE = {
+#     'send-subscription-expiry-reminders-daily': {
+#         'task': 'send_subscription_expiry_reminders',
+#         'schedule': timedelta(days=1), # Run daily
+#         # 'args': (arg1, arg2), # Optional arguments
+#     },
+# }
+
+
 # Django REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
