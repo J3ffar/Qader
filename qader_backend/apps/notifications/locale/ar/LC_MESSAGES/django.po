@@ -1,0 +1,206 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-18 14:21+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
+"Language-Team: Arabic <ar@li.org>\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#: .\apps\notifications\admin.py:42
+msgid "Core Info"
+msgstr "المعلومات الأساسية"
+
+#: .\apps\notifications\admin.py:55
+msgid "Status"
+msgstr "الحالة"
+
+#: .\apps\notifications\admin.py:57
+msgid "Related Objects (Readonly)"
+msgstr "الكائنات ذات الصلة (للقراءة فقط)"
+
+#: .\apps\notifications\admin.py:70
+msgid "Timestamps"
+msgstr "الطوابع الزمنية"
+
+#: .\apps\notifications\admin.py:76 .\apps\notifications\models.py:40
+msgid "Recipient"
+msgstr "المستلم"
+
+#: .\apps\notifications\admin.py:82 .\apps\notifications\models.py:50
+msgid "Actor"
+msgstr "الفاعل"
+
+#: .\apps\notifications\admin.py:88 .\apps\notifications\models.py:106
+msgid "Created At"
+msgstr "تاريخ الإنشاء"
+
+#: .\apps\notifications\admin.py:106
+msgid "Target"
+msgstr "الهدف"
+
+#: .\apps\notifications\admin.py:112
+msgid "Target (Admin Link)"
+msgstr "الهدف (رابط المسؤول)"
+
+#: .\apps\notifications\admin.py:121
+msgid "Action Object (Admin Link)"
+msgstr "كائن الإجراء (رابط المسؤول)"
+
+#: .\apps\notifications\api\serializers.py:89
+msgid "A list of notification IDs to mark as read."
+msgstr "قائمة بمعرفات الإشعارات لتمييزها كمقروءة."
+
+#: .\apps\notifications\api\serializers.py:102
+msgid ""
+"One or more notification IDs are invalid or do not belong to the current "
+"user."
+msgstr "معرف إشعار واحد أو أكثر غير صالح أو لا ينتمي إلى المستخدم الحالي."
+
+#: .\apps\notifications\api\views.py:192
+#, python-brace-format
+msgid "{updated_count} notification(s) marked as read."
+msgstr "تم وضع علامة مقروء على {updated_count} إشعار(ات)."
+
+#: .\apps\notifications\api\views.py:227
+#, python-brace-format
+msgid "{updated_count} unread notification(s) marked as read."
+msgstr "تم وضع علامة مقروء على {updated_count} إشعار(ات) غير مقروءة."
+
+#: .\apps\notifications\apps.py:8 .\apps\notifications\models.py:116
+msgid "Notifications"
+msgstr "الإشعارات"
+
+#: .\apps\notifications\models.py:11
+msgid "Information"
+msgstr "معلومات"
+
+#: .\apps\notifications\models.py:12
+msgid "Success"
+msgstr "نجاح"
+
+#: .\apps\notifications\models.py:13
+msgid "Warning"
+msgstr "تحذير"
+
+#: .\apps\notifications\models.py:14
+msgid "Error"
+msgstr "خطأ"
+
+#: .\apps\notifications\models.py:15
+msgid "System Update"
+msgstr "تحديث النظام"
+
+#: .\apps\notifications\models.py:18
+msgid "User Profile Update"
+msgstr "تحديث ملف تعريف المستخدم"
+
+#: .\apps\notifications\models.py:19
+msgid "Subscription Update"
+msgstr "تحديث الاشتراك"
+
+#: .\apps\notifications\models.py:20
+msgid "Badge Earned"
+msgstr "تم كسب شارة"
+
+#: .\apps\notifications\models.py:21
+msgid "Community Post Interaction"
+msgstr "تفاعل منشور المجتمع"
+
+#: .\apps\notifications\models.py:22
+msgid "Community Reply Interaction"
+msgstr "تفاعل رد المجتمع"
+
+#: .\apps\notifications\models.py:23
+msgid "Challenge Invitation"
+msgstr "دعوة تحدي"
+
+#: .\apps\notifications\models.py:24
+msgid "Challenge Update"
+msgstr "تحديث التحدي"
+
+#: .\apps\notifications\models.py:25
+msgid "Mentor Assignment"
+msgstr "تعيين مرشد"
+
+#: .\apps\notifications\models.py:26
+msgid "Support Ticket Update"
+msgstr "تحديث تذكرة الدعم"
+
+#: .\apps\notifications\models.py:53
+msgid "Verb"
+msgstr "الفعل"
+
+#: .\apps\notifications\models.py:56
+msgid ""
+"A short description of the action, e.g., 'liked your post', 'earned a new "
+"badge'."
+msgstr "وصف موجز للإجراء، على سبيل المثال، 'أعجب بمنشورك'، 'كسب شارة جديدة'."
+
+#: .\apps\notifications\models.py:60
+msgid "Description"
+msgstr "الوصف"
+
+#: .\apps\notifications\models.py:64
+msgid ""
+"Optional: More detailed text for the notification. Can include simple HTML "
+"if rendered carefully."
+msgstr ""
+"اختياري: نص أكثر تفصيلاً للإشعار. يمكن أن يتضمن HTML بسيطًا إذا تم عرضه بعناية."
+
+#: .\apps\notifications\models.py:77
+msgid "Target Object ID"
+msgstr "معرف كائن الهدف"
+
+#: .\apps\notifications\models.py:90
+msgid "Action Object ID"
+msgstr "معرف كائن الإجراء"
+
+#: .\apps\notifications\models.py:97
+msgid "Notification Type"
+msgstr "نوع الإشعار"
+
+#: .\apps\notifications\models.py:103
+msgid "Is Read?"
+msgstr "هل تمت القراءة؟"
+
+#: .\apps\notifications\models.py:104
+msgid "Read At"
+msgstr "تاريخ القراءة"
+
+#: .\apps\notifications\models.py:110
+msgid "URL"
+msgstr "عنوان URL"
+
+#: .\apps\notifications\models.py:112
+msgid "Additional Data"
+msgstr "بيانات إضافية"
+
+#: .\apps\notifications\models.py:115
+msgid "Notification"
+msgstr "إشعار"
+
+#: .\apps\notifications\tasks.py:48
+msgid "your subscription is expiring soon"
+msgstr "اشتراكك سينتهي قريباً"
+
+#: .\apps\notifications\tasks.py:50
+#, python-brace-format
+msgid ""
+"Heads up! Your Qader subscription will expire in {days} day(s) on "
+"{expiry_date}. Renew now to maintain access."
+msgstr ""
+"انتبه! اشتراكك في قادر سينتهي خلال {days} يوم(أيام) في {expiry_date}. جدد "
+"الآن للحفاظ على الوصول."

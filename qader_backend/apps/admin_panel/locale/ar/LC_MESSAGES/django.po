@@ -2,432 +2,423 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
-#, fuzzy
+# 
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-01 17:13+0300\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"POT-Creation-Date: 2025-05-17 23:30+0300\n"
+"PO-Revision-Date: 2025-05-18 13:07+0300\n"
+"Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
+"Language-Team: Arabic <ar@li.org>\n"
+"Language: ar\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
 #: .\apps\admin_panel\api\serializers\content_management.py:172
 msgid "Invalid status value."
-msgstr ""
+msgstr "قيمة حالة غير صالحة."
 
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:89
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:94
 msgid "Subscription Plan Type"
-msgstr ""
-
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:90
-msgid "Select the plan type (e.g., 1 Month, 6 Months) for the codes."
-msgstr ""
+msgstr "نوع خطة الاشتراك"
 
 #: .\apps\admin_panel\api\serializers\serial_code_management.py:96
-msgid "Number of Codes"
-msgstr ""
-
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:97
-msgid "How many codes to generate in this batch (1-1000)."
-msgstr ""
-
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:102
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:145
-msgid "Subscription Type"
-msgstr ""
+msgid ""
+"Select the plan type (e.g., 1 Month, 3 Months) for the codes. 'Custom' type "
+"cannot be batch generated here."
+msgstr "حدد نوع الخطة (مثل شهر واحد، 3 أشهر) للأكواد. لا يمكن إنشاء نوع 'مخصص' دفعة واحدة هنا."
 
 #: .\apps\admin_panel\api\serializers\serial_code_management.py:103
-msgid "Categorizes the intended duration or type of the code."
-msgstr ""
+msgid "Number of Codes"
+msgstr "عدد الأكواد"
 
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:108
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:104
+msgid "How many codes to generate in this batch (1-1000)."
+msgstr "عدد الأكواد المراد إنشاؤها في هذه الدفعة (1-1000)."
+
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:109
 msgid "Batch Notes"
-msgstr ""
+msgstr "ملاحظات الدفعة"
 
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:110
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:111
 msgid "Optional notes for this batch (e.g., 'For School X Campaign')."
-msgstr ""
+msgstr "ملاحظات اختيارية لهذه الدفعة (مثل 'لحملة المدرسة س')."
 
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:118
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:125
 msgid ""
 "Generating 'Custom' type codes via this batch endpoint is not supported. Use "
 "the standard POST method to create individual custom codes."
-msgstr ""
+msgstr "إنشاء أكواد من نوع 'مخصص' عبر نقطة النهاية هذه غير مدعوم. استخدم طريقة POST القياسية لإنشاء أكواد مخصصة فردية."
 
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:132
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:131
+msgid "Invalid plan type selected or configuration missing."
+msgstr "نوع الخطة المحدد غير صالح أو التكوين مفقود."
+
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:135
+msgid "Selected plan type configuration is missing 'duration_days'."
+msgstr "تكوين نوع الخطة المحدد يفتقد 'duration_days'."
+
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:148
 msgid "The unique serial code string (case-insensitive). Will be uppercased."
-msgstr ""
+msgstr "سلسلة الرمز التسلسلي الفريدة (غير حساسة لحالة الأحرف). سيتم تحويلها إلى أحرف كبيرة."
 
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:138
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:154
 msgid "A serial code with this value already exists."
-msgstr ""
+msgstr "رمز تسلسلي بهذه القيمة موجود بالفعل."
 
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:150
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:161
+msgid "Subscription Type"
+msgstr "نوع الاشتراك"
+
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:166
 msgid "Duration (Days)"
-msgstr ""
+msgstr "المدة (أيام)"
 
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:153
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:169
 msgid "Is Active?"
-msgstr ""
+msgstr "هل هو نشط؟"
 
-#: .\apps\admin_panel\api\serializers\serial_code_management.py:159
+#: .\apps\admin_panel\api\serializers\serial_code_management.py:175
 msgid "Notes"
-msgstr ""
+msgstr "ملاحظات"
 
-#: .\apps\admin_panel\api\serializers\user_management.py:238
-msgid "Auto dark mode start time must be before end time."
-msgstr ""
-
-#: .\apps\admin_panel\api\serializers\user_management.py:241
-msgid "Auto dark mode end time must be after start time."
-msgstr ""
-
-#: .\apps\admin_panel\api\serializers\user_management.py:350
+#: .\apps\admin_panel\api\serializers\user_management.py:97
 msgid "Confirm Password"
-msgstr ""
+msgstr "تأكيد كلمة المرور"
 
-#: .\apps\admin_panel\api\serializers\user_management.py:396
-msgid "Password fields didn't match."
-msgstr ""
-
-#: .\apps\admin_panel\api\serializers\user_management.py:417
-#: .\apps\admin_panel\api\serializers\user_management.py:540
-#: .\apps\admin_panel\api\serializers\user_management.py:578
+#: .\apps\admin_panel\api\serializers\user_management.py:158
 msgid "A user with that username already exists."
-msgstr ""
+msgstr "مستخدم بهذا الاسم موجود بالفعل."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:429
-#: .\apps\admin_panel\api\serializers\user_management.py:544
-#: .\apps\admin_panel\api\serializers\user_management.py:589
+#: .\apps\admin_panel\api\serializers\user_management.py:163
 msgid "A user with that email already exists."
-msgstr ""
+msgstr "مستخدم بهذا البريد الإلكتروني موجود بالفعل."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:478
-msgid "Failed to create user profile automatically. Contact support."
-msgstr ""
+#: .\apps\admin_panel\api\serializers\user_management.py:169
+msgid "Password fields didn't match."
+msgstr "حقلي كلمة المرور غير متطابقين."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:548
-msgid "Error creating sub-admin account due to a data conflict."
-msgstr ""
+#: .\apps\admin_panel\api\serializers\user_management.py:184
+#: .\apps\admin_panel\api\serializers\user_management.py:450
+msgid "Mentees can only be assigned to Teachers or Trainers."
+msgstr "لا يمكن تعيين المتدربين إلا للمعلمين أو المدربين."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:554
-msgid "An unexpected error occurred during sub-admin creation."
-msgstr ""
+#: .\apps\admin_panel\api\serializers\user_management.py:190
+msgid "Permissions can only be assigned to Sub-Admins."
+msgstr "لا يمكن تعيين الصلاحيات إلا للمسؤولين الفرعيين."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:640
+#: .\apps\admin_panel\api\serializers\user_management.py:232
+msgid "Failed to create user due to a data conflict (e.g., username/email)."
+msgstr "فشل إنشاء المستخدم بسبب تعارض في البيانات (مثل اسم المستخدم/البريد الإلكتروني)."
+
+#: .\apps\admin_panel\api\serializers\user_management.py:438
+msgid "Permissions can only be set for Sub-Admins."
+msgstr "لا يمكن تعيين الصلاحيات إلا للمسؤولين الفرعيين."
+
+#: .\apps\admin_panel\api\serializers\user_management.py:461
+msgid "A mentor can only be assigned to Students."
+msgstr "لا يمكن تعيين المرشد إلا للطلاب."
+
+#: .\apps\admin_panel\api\serializers\user_management.py:469
+msgid "User cannot be their own mentor."
+msgstr "لا يمكن للمستخدم أن يكون مرشد نفسه."
+
+#: .\apps\admin_panel\api\serializers\user_management.py:574
 msgid "Username or Email of the user to reset password for."
-msgstr ""
+msgstr "اسم المستخدم أو البريد الإلكتروني للمستخدم المراد إعادة تعيين كلمة المرور له."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:654
+#: .\apps\admin_panel\api\serializers\user_management.py:586
 msgid "Number of points to add (positive) or subtract (negative)."
-msgstr ""
+msgstr "عدد النقاط المراد إضافتها (موجب) أو طرحها (سالب)."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:660
+#: .\apps\admin_panel\api\serializers\user_management.py:592
 msgid ""
 "Reason for the point adjustment (will be logged and may be shown to user)."
-msgstr ""
+msgstr "سبب تعديل النقاط (سيتم تسجيله وقد يظهر للمستخدم)."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:670
+#: .\apps\admin_panel\api\serializers\user_management.py:602
 msgid "Points change cannot be zero."
-msgstr ""
+msgstr "تغيير النقاط لا يمكن أن يكون صفرًا."
 
-#: .\apps\admin_panel\api\views\serial_code_management.py:301
-msgid "Invalid plan type selected or configuration missing."
-msgstr ""
-
-#: .\apps\admin_panel\api\views\serial_code_management.py:311
-msgid "Generating 'Custom' type codes via batch is not supported."
-msgstr ""
-
-#: .\apps\admin_panel\api\views\serial_code_management.py:322
-msgid "Selected plan type configuration is missing 'duration_days'."
-msgstr ""
-
-#: .\apps\admin_panel\api\views\serial_code_management.py:365
+#: .\apps\admin_panel\api\views\serial_code_management.py:344
 msgid ""
 "{len(created_instances)} serial codes generated successfully for plan "
-"'{plan_enum_value}'."
-msgstr ""
+"'{SUBSCRIPTION_PLANS_CONFIG[plan_enum_value]['name']}'."
+msgstr "تم إنشاء {len(created_instances)} رمز تسلسلي بنجاح للخطة '{SUBSCRIPTION_PLANS_CONFIG[plan_enum_value]['name']}'."
 
-#: .\apps\admin_panel\api\views\serial_code_management.py:383
-msgid "A database conflict occurred during code generation. Please try again."
-msgstr ""
+#: .\apps\admin_panel\api\views\serial_code_management.py:364
+msgid ""
+"A database conflict occurred during code generation. This might be due to a "
+"code collision. Please try again."
+msgstr "حدث تعارض في قاعدة البيانات أثناء إنشاء الكود. قد يكون هذا بسبب تضارب في الكود. يرجى المحاولة مرة أخرى."
 
-#: .\apps\admin_panel\api\views\serial_code_management.py:393
+#: .\apps\admin_panel\api\views\serial_code_management.py:374
 msgid "An unexpected error occurred during code generation."
-msgstr ""
+msgstr "حدث خطأ غير متوقع أثناء إنشاء الكود."
 
 #: .\apps\admin_panel\api\views\user_detail_views.py:107
 msgid "An unexpected error occurred while generating statistics."
-msgstr ""
+msgstr "حدث خطأ غير متوقع أثناء إنشاء الإحصائيات."
 
-#: .\apps\admin_panel\api\views\user_management.py:375
+#: .\apps\admin_panel\api\views\user_management.py:169
+msgid "You do not have permission to create Admin or Sub-Admin users."
+msgstr "ليس لديك إذن لإنشاء مستخدمين من نوع مسؤول أو مسؤول فرعي."
+
+#: .\apps\admin_panel\api\views\user_management.py:203
+msgid ""
+"You do not have permission to edit Admin or Sub-Admin users other than "
+"yourself (if applicable)."
+msgstr "ليس لديك إذن لتعديل مستخدمين من نوع مسؤول أو مسؤول فرعي غير نفسك (إذا كان ذلك ينطبق)."
+
+#: .\apps\admin_panel\api\views\user_management.py:212
+msgid "You do not have permission to assign Admin or Sub-Admin roles."
+msgstr "ليس لديك إذن لتعيين أدوار مسؤول أو مسؤول فرعي."
+
+#: .\apps\admin_panel\api\views\user_management.py:231
+msgid "Only superusers can delete users."
+msgstr "يمكن للمستخدمين الخارقين فقط حذف المستخدمين."
+
+#: .\apps\admin_panel\api\views\user_management.py:288
+msgid "You do not have permission to reset the password for this user type."
+msgstr "ليس لديك إذن لإعادة تعيين كلمة المرور لهذا النوع من المستخدمين."
+
+#: .\apps\admin_panel\api\views\user_management.py:297
 msgid "Password reset email sent successfully."
-msgstr ""
+msgstr "تم إرسال بريد إلكتروني لإعادة تعيين كلمة المرور بنجاح."
 
-#: .\apps\admin_panel\api\views\user_management.py:383
+#: .\apps\admin_panel\api\views\user_management.py:305
 msgid "Failed to send password reset email."
-msgstr ""
+msgstr "فشل إرسال بريد إلكتروني لإعادة تعيين كلمة المرور."
 
-#: .\apps\admin_panel\api\views\user_management.py:450
+#: .\apps\admin_panel\api\views\user_management.py:345
 msgid "Points adjusted successfully."
-msgstr ""
+msgstr "تم تعديل النقاط بنجاح."
 
-#: .\apps\admin_panel\api\views\user_management.py:465
-msgid "Failed to adjust points."
-msgstr ""
-
-#: .\apps\admin_panel\api\views\user_management.py:475
-msgid "An unexpected error occurred during point adjustment."
-msgstr ""
+#: .\apps\admin_panel\api\views\user_management.py:353
+msgid "Failed to adjust points due to an internal issue."
+msgstr "فشل تعديل النقاط بسبب مشكلة داخلية."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:7
 msgid "View All Users"
-msgstr ""
+msgstr "عرض جميع المستخدمين"
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:9
 msgid ""
 "Allows viewing the list of all user accounts (students, sub-admins, etc.)."
-msgstr ""
+msgstr "يسمح بعرض قائمة بجميع حسابات المستخدمين (الطلاب، المسؤولين الفرعيين، إلخ)."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:14
 msgid "View User Details & Progress"
-msgstr ""
+msgstr "عرض تفاصيل المستخدم والتقدم"
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:16
 msgid ""
 "Allows viewing detailed profile information, statistics, and activity logs, "
 "test history, etc. for individual users."
-msgstr ""
+msgstr "يسمح بعرض معلومات الملف الشخصي التفصيلية، الإحصائيات، سجلات النشاط، سجل الاختبار، إلخ للمستخدمين الفرديين."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:21
-msgid "Edit User Details"
-msgstr ""
+msgid "Create Users"
+msgstr "إنشاء مستخدمين"
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:23
+msgid ""
+"Allows creating new user accounts (e.g., Students, Teachers). Does not "
+"include creating Admins/Sub-Admins unless also a main Admin."
+msgstr "يسمح بإنشاء حسابات مستخدمين جديدة (مثل الطلاب، المعلمين). لا يشمل إنشاء المسؤولين/المسؤولين الفرعيين ما لم يكن أيضًا مسؤولًا رئيسيًا."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:28
+msgid "Edit User Details"
+msgstr "تعديل تفاصيل المستخدم"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:30
 msgid ""
 "Allows modifying basic user profile fields (name, grade, gender, etc.) and "
 "account status (active/inactive). Does NOT include role or sensitive "
 "subscription details."
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:28
-msgid "Trigger User Password Reset"
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:29
-msgid "Allows sending a password reset email to a user."
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:33
-msgid "Adjust User Points"
-msgstr ""
+msgstr "يسمح بتعديل حقول الملف الشخصي الأساسية للمستخدم (الاسم، الصف، الجنس، إلخ) وحالة الحساب (نشط/غير نشط). لا يشمل الدور أو تفاصيل الاشتراك الحساسة."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:35
+msgid "Trigger User Password Reset"
+msgstr "تشغيل إعادة تعيين كلمة مرور المستخدم"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:36
+msgid "Allows sending a password reset email to a user."
+msgstr "يسمح بإرسال بريد إلكتروني لإعادة تعيين كلمة المرور للمستخدم."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:40
+msgid "Adjust User Points"
+msgstr "تعديل نقاط المستخدم"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:42
 msgid "Allows manually adding or subtracting points from a user's account."
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:41
-msgid "View Sub-Admins"
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:43
-msgid "Allows viewing the list and details of other sub-admin accounts."
-msgstr ""
+msgstr "يسمح بإضافة أو طرح النقاط يدويًا من حساب المستخدم."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:48
-msgid "Create Sub-Admins"
-msgstr ""
+msgid "Manage Static Content"
+msgstr "إدارة المحتوى الثابت"
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:50
-msgid "Allows creating new sub-admin accounts and assigning their permissions."
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:55
-msgid "Edit Sub-Admins"
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:57
-msgid ""
-"Allows modifying details, permissions, or status of other sub-admin accounts."
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:62
-msgid "Delete Sub-Admins"
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:63
-msgid "Allows deleting sub-admin accounts."
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:68
-msgid "Manage Static Content"
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:70
 msgid ""
 "Allows editing website static pages (Homepage components, About Us, Terms, "
 "Story)."
-msgstr ""
+msgstr "يسمح بتعديل صفحات الموقع الثابتة (مكونات الصفحة الرئيسية، من نحن، الشروط، القصة)."
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:75
+#: .\apps\admin_panel\data\admin_permissions_data.py:55
 msgid "Manage FAQ Content"
-msgstr ""
+msgstr "إدارة محتوى الأسئلة الشائعة"
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:77
+#: .\apps\admin_panel\data\admin_permissions_data.py:57
 msgid "Allows managing Frequently Asked Questions categories and items."
-msgstr ""
+msgstr "يسمح بإدارة فئات وعناصر الأسئلة الشائعة."
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:82
+#: .\apps\admin_panel\data\admin_permissions_data.py:62
 msgid "Manage Success Partners"
-msgstr ""
+msgstr "إدارة شركاء النجاح"
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:84
+#: .\apps\admin_panel\data\admin_permissions_data.py:64
 msgid "Allows managing Success Partner categories and related settings."
-msgstr ""
+msgstr "يسمح بإدارة فئات شركاء النجاح والإعدادات ذات الصلة."
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:89
+#: .\apps\admin_panel\data\admin_permissions_data.py:69
 msgid "Manage Learning Content"
-msgstr ""
+msgstr "إدارة محتوى التعلم"
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:91
+#: .\apps\admin_panel\data\admin_permissions_data.py:71
 msgid ""
 "Allows creating, editing, and deleting learning sections, subsections, "
 "skills, and questions."
-msgstr ""
+msgstr "يسمح بإنشاء وتعديل وحذف أقسام التعلم، الأقسام الفرعية، المهارات، والأسئلة."
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:96
+#: .\apps\admin_panel\data\admin_permissions_data.py:76
 msgid "Manage Serial Codes"
-msgstr ""
+msgstr "إدارة الأكواد التسلسلية"
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:98
+#: .\apps\admin_panel\data\admin_permissions_data.py:78
 msgid ""
 "Allows viewing, generating, and managing the status and details of "
 "subscription serial codes."
-msgstr ""
+msgstr "يسمح بعرض وإنشاء وإدارة حالة وتفاصيل أكواد الاشتراك التسلسلية."
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:103
+#: .\apps\admin_panel\data\admin_permissions_data.py:83
 msgid "Manage Gamification Settings"
-msgstr ""
+msgstr "إدارة إعدادات التلعيب"
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:105
+#: .\apps\admin_panel\data\admin_permissions_data.py:85
 msgid ""
 "Allows managing the list and properties of badges and reward store items."
-msgstr ""
+msgstr "يسمح بإدارة قائمة وخصائص الشارات وعناصر متجر المكافآت."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:90
+msgid "Manage Subscription Plans"
+msgstr "إدارة خطط الاشتراك"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:92
+msgid "Allows managing the available subscription plans and their details."
+msgstr "يسمح بإدارة خطط الاشتراك المتاحة وتفاصيلها."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:98
+msgid "View Contact Us Messages"
+msgstr "عرض رسائل اتصل بنا"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:100
+msgid "Allows viewing messages submitted via the 'Contact Us' form."
+msgstr "يسمح بعرض الرسائل المرسلة عبر نموذج 'اتصل بنا'."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:105
+msgid "Reply to Contact Us Messages"
+msgstr "الرد على رسائل اتصل بنا"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:106
+msgid "Allows sending replies to users for 'Contact Us' messages."
+msgstr "يسمح بإرسال الردود للمستخدمين لرسائل 'اتصل بنا'."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:110
-msgid "Manage Subscription Plans"
-msgstr ""
+msgid "View Support Tickets"
+msgstr "عرض تذاكر الدعم"
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:112
-msgid "Allows managing the available subscription plans and their details."
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:118
-msgid "View Contact Us Messages"
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:120
-msgid "Allows viewing messages submitted via the 'Contact Us' form."
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:125
-msgid "Reply to Contact Us Messages"
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:126
-msgid "Allows sending replies to users for 'Contact Us' messages."
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:130
-msgid "View Support Tickets"
-msgstr ""
-
-#: .\apps\admin_panel\data\admin_permissions_data.py:132
 msgid "Allows viewing all user support tickets, including message logs."
-msgstr ""
+msgstr "يسمح بعرض جميع تذاكر دعم المستخدم، بما في ذلك سجلات الرسائل."
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:137
+#: .\apps\admin_panel\data\admin_permissions_data.py:117
 msgid "Reply to Support Tickets"
-msgstr ""
+msgstr "الرد على تذاكر الدعم"
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:139
+#: .\apps\admin_panel\data\admin_permissions_data.py:119
 msgid ""
 "Allows adding replies (visible to user or internal notes) to user support "
 "tickets."
-msgstr ""
+msgstr "يسمح بإضافة الردود (مرئية للمستخدم أو ملاحظات داخلية) لتذاكر دعم المستخدم."
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:144
+#: .\apps\admin_panel\data\admin_permissions_data.py:124
 msgid "Manage Support Tickets Workflow"
-msgstr ""
+msgstr "إدارة سير عمل تذاكر الدعم"
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:146
+#: .\apps\admin_panel\data\admin_permissions_data.py:126
 msgid "Allows assigning, changing status, or prioritizing support tickets."
-msgstr ""
+msgstr "يسمح بتعيين، تغيير حالة، أو تحديد أولوية تذاكر الدعم."
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:152
+#: .\apps\admin_panel\data\admin_permissions_data.py:132
 msgid "View Platform Statistics"
-msgstr ""
+msgstr "عرض إحصائيات المنصة"
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:154
+#: .\apps\admin_panel\data\admin_permissions_data.py:134
 msgid ""
 "Allows viewing aggregated platform analytics and dashboards (user counts, "
 "overall scores, usage trends)."
-msgstr ""
+msgstr "يسمح بعرض تحليلات المنصة المجمعة ولوحات المعلومات (عدد المستخدمين، الدرجات الإجمالية، اتجاهات الاستخدام)."
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:159
+#: .\apps\admin_panel\data\admin_permissions_data.py:139
 msgid "Export Data"
-msgstr ""
+msgstr "تصدير البيانات"
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:160
+#: .\apps\admin_panel\data\admin_permissions_data.py:140
 msgid "Allows triggering data export tasks for reporting."
-msgstr ""
+msgstr "يسمح بتشغيل مهام تصدير البيانات للتقارير."
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:165
+#: .\apps\admin_panel\data\admin_permissions_data.py:145
 msgid "Moderate Community"
-msgstr ""
+msgstr "إشراف المجتمع"
 
-#: .\apps\admin_panel\data\admin_permissions_data.py:167
+#: .\apps\admin_panel\data\admin_permissions_data.py:147
 msgid ""
 "Allows managing (hiding, deleting, editing) community posts and replies."
-msgstr ""
+msgstr "يسمح بإدارة (إخفاء، حذف، تعديل) منشورات المجتمع والردود."
 
 #: .\apps\admin_panel\models.py:12
 msgid "Slug"
-msgstr ""
+msgstr "سلاغ"
 
 #: .\apps\admin_panel\models.py:17
 msgid ""
 "Unique identifier for the permission (e.g., 'view_users', 'manage_content')."
-msgstr ""
+msgstr "معرف فريد للإذن (مثل 'view_users', 'manage_content')."
 
 #: .\apps\admin_panel\models.py:21
 msgid "Name"
-msgstr ""
+msgstr "الاسم"
 
 #: .\apps\admin_panel\models.py:23
 msgid "Human-readable name for the permission."
-msgstr ""
+msgstr "اسم الإذن سهل القراءة."
 
 #: .\apps\admin_panel\models.py:26
 msgid "Description"
-msgstr ""
+msgstr "الوصف"
 
 #: .\apps\admin_panel\models.py:29
 msgid "Detailed explanation of what this permission allows."
-msgstr ""
+msgstr "شرح مفصل لما يسمح به هذا الإذن."
 
 #: .\apps\admin_panel\models.py:33
 msgid "Admin Permission"
-msgstr ""
+msgstr "إذن المسؤول"
 
 #: .\apps\admin_panel\models.py:34
 msgid "Admin Permissions"
-msgstr ""
+msgstr "صلاحيات المسؤول"

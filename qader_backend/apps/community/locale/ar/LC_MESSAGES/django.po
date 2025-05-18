@@ -3,16 +3,15 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-01 17:13+0300\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"PO-Revision-Date: 2025-05-18 13:10+0300\n"
+"Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
+"Language-Team: Arabic <ar@li.org>\n"
+"Language: ar\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -20,169 +19,169 @@ msgstr ""
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 #: .\apps\community\api\filters.py:22 .\apps\community\models.py:34
 msgid "Post Type"
-msgstr ""
+msgstr "نوع المنشور"
 
 #: .\apps\community\api\filters.py:28
 msgid "Section Slug"
-msgstr ""
+msgstr "سلاغ القسم"
 
 #: .\apps\community\api\filters.py:32
 msgid "Tags (comma-separated names/slugs)"
-msgstr ""
+msgstr "الوسوم (أسماء/سلاغات مفصولة بفواصل)"
 
 #: .\apps\community\api\filters.py:34
 msgid "Is Pinned?"
-msgstr ""
+msgstr "هل هو مثبت؟"
 
 #: .\apps\community\api\serializers.py:46
 #: .\apps\community\api\serializers.py:52
 msgid "ID of the parent reply being responded to (for threading)."
-msgstr ""
+msgstr "معرف الرد الأصلي الذي يتم الرد عليه (للترابط)."
 
 #: .\apps\community\api\serializers.py:93
 msgid "Parent reply not found."
-msgstr ""
+msgstr "لم يتم العثور على الرد الأصلي."
 
 #: .\apps\community\api\serializers.py:153
 msgid "Slug of the learning section to associate this post with (optional)."
-msgstr ""
+msgstr "سلاغ قسم التعلم لربط هذا المنشور به (اختياري)."
 
 #: .\apps\community\api\serializers.py:185
 msgid "Invalid post type selected."
-msgstr ""
+msgstr "تم تحديد نوع منشور غير صالح."
 
 #: .\apps\community\api\serializers.py:201
 msgid "A title is required for this post type."
-msgstr ""
+msgstr "العنوان مطلوب لهذا النوع من المنشورات."
 
 #: .\apps\community\api\views.py:339
 msgid "Parent reply does not belong to this post."
-msgstr ""
+msgstr "الرد الأصلي لا ينتمي إلى هذا المنشور."
 
 #: .\apps\community\models.py:18
 msgid "Study Discussion"
-msgstr ""
+msgstr "مناقشة دراسية"
 
 #: .\apps\community\models.py:19
 msgid "Achievement"
-msgstr ""
+msgstr "إنجاز"
 
 #: .\apps\community\models.py:20
 msgid "Find Study Partners"
-msgstr ""
+msgstr "البحث عن شركاء دراسة"
 
 #: .\apps\community\models.py:21
 msgid "Tips & Experiences"
-msgstr ""
+msgstr "نصائح وتجارب"
 
 #: .\apps\community\models.py:23
 msgid "Monthly Competition"
-msgstr ""
+msgstr "مسابقة شهرية"
 
 #: .\apps\community\models.py:30 .\apps\community\models.py:135
 msgid "Author"
-msgstr ""
+msgstr "المؤلف"
 
 #: .\apps\community\models.py:31
 msgid "The user who created this post."
-msgstr ""
+msgstr "المستخدم الذي أنشأ هذا المنشور."
 
 #: .\apps\community\models.py:38
 msgid "The category or purpose of the post."
-msgstr ""
+msgstr "فئة المنشور أو الغرض منه."
 
 #: .\apps\community\models.py:47
 msgid "Section Filter"
-msgstr ""
+msgstr "تصفية حسب القسم"
 
 #: .\apps\community\models.py:48
 msgid "Optional filter by main learning section (e.g., Quant, Verbal)"
-msgstr ""
+msgstr "تصفية اختيارية حسب قسم التعلم الرئيسي (مثل الكمي، اللفظي)"
 
 #: .\apps\community\models.py:51
 msgid "Title"
-msgstr ""
+msgstr "العنوان"
 
 #: .\apps\community\models.py:55
 msgid "Optional title for the post."
-msgstr ""
+msgstr "عنوان اختياري للمنشور."
 
 #: .\apps\community\models.py:58 .\apps\community\models.py:139
 msgid "Content"
-msgstr ""
+msgstr "المحتوى"
 
 #: .\apps\community\models.py:59
 msgid "The main body of the post."
-msgstr ""
+msgstr "النص الرئيسي للمنشور."
 
 #: .\apps\community\models.py:62
 msgid "Is Pinned"
-msgstr ""
+msgstr "مثبت"
 
 #: .\apps\community\models.py:65
 msgid "Pinned posts appear at the top (Admin/Moderator action)."
-msgstr ""
+msgstr "المنشورات المثبتة تظهر في الأعلى (إجراء المسؤول/المشرف)."
 
 #: .\apps\community\models.py:68
 msgid "Is Closed"
-msgstr ""
+msgstr "مغلق"
 
 #: .\apps\community\models.py:70
 msgid "Prevents further replies (Admin/Moderator action)."
-msgstr ""
+msgstr "يمنع الردود الإضافية (إجراء المسؤول/المشرف)."
 
 #: .\apps\community\models.py:75
 msgid "Tags"
-msgstr ""
+msgstr "الوسوم"
 
 #: .\apps\community\models.py:76
 msgid "Relevant keywords or topics for the post."
-msgstr ""
+msgstr "كلمات مفتاحية أو مواضيع ذات صلة بالمنشور."
 
 #: .\apps\community\models.py:79 .\apps\community\models.py:153
 msgid "Created At"
-msgstr ""
+msgstr "تاريخ الإنشاء"
 
 #: .\apps\community\models.py:80 .\apps\community\models.py:154
 msgid "Updated At"
-msgstr ""
+msgstr "تاريخ التحديث"
 
 #: .\apps\community\models.py:83
 msgid "Community Post"
-msgstr ""
+msgstr "منشور مجتمع"
 
 #: .\apps\community\models.py:84
 msgid "Community Posts"
-msgstr ""
+msgstr "منشورات المجتمع"
 
 #: .\apps\community\models.py:128
 msgid "Post"
-msgstr ""
+msgstr "المنشور"
 
 #: .\apps\community\models.py:129
 msgid "The post this reply belongs to."
-msgstr ""
+msgstr "المنشور الذي ينتمي إليه هذا الرد."
 
 #: .\apps\community\models.py:136
 msgid "The user who wrote this reply."
-msgstr ""
+msgstr "المستخدم الذي كتب هذا الرد."
 
 #: .\apps\community\models.py:140
 msgid "The body of the reply."
-msgstr ""
+msgstr "نص الرد."
 
 #: .\apps\community\models.py:148
 msgid "Parent Reply"
-msgstr ""
+msgstr "الرد الأصلي"
 
 #: .\apps\community\models.py:149
 msgid "Links to the reply being responded to for threading."
-msgstr ""
+msgstr "روابط إلى الرد الذي يتم الرد عليه للترابط."
 
 #: .\apps\community\models.py:157
 msgid "Community Reply"
-msgstr ""
+msgstr "رد مجتمع"
 
 #: .\apps\community\models.py:158
 msgid "Community Replies"
-msgstr ""
+msgstr "ردود المجتمع"

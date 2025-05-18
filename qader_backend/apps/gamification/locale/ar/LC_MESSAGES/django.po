@@ -2,341 +2,408 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
-#, fuzzy
+# 
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-01 17:13+0300\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"POT-Creation-Date: 2025-05-17 23:30+0300\n"
+"PO-Revision-Date: 2025-05-18 13:15+0300\n"
+"Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
+"Language-Team: Arabic <ar@li.org>\n"
+"Language: ar\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
-#: .\apps\gamification\admin.py:17
+
+#: .\apps\gamification\admin.py:29
 msgid "Icon"
-msgstr ""
+msgstr "أيقونة"
 
-#: .\apps\gamification\admin.py:20 .\apps\gamification\admin.py:68
+#: .\apps\gamification\admin.py:32 .\apps\gamification\admin.py:80
 msgid "Status"
-msgstr ""
+msgstr "الحالة"
 
-#: .\apps\gamification\admin.py:44
+#: .\apps\gamification\admin.py:56
 msgid "Description Snippet"
-msgstr ""
+msgstr "مقتطف الوصف"
 
-#: .\apps\gamification\admin.py:65
+#: .\apps\gamification\admin.py:77
 msgid "Visuals & Assets"
-msgstr ""
+msgstr "المرئيات والأصول"
 
-#: .\apps\gamification\api\serializers.py:18
+#: .\apps\gamification\api\serializers.py:25
 msgid "User's current point balance."
-msgstr ""
+msgstr "رصيد نقاط المستخدم الحالي."
 
-#: .\apps\gamification\api\serializers.py:23
+#: .\apps\gamification\api\serializers.py:30
 msgid "Number of consecutive study days."
-msgstr ""
+msgstr "عدد أيام الدراسة المتتالية."
 
-#: .\apps\gamification\api\serializers.py:28
+#: .\apps\gamification\api\serializers.py:35
 msgid "User's longest ever study streak."
-msgstr ""
-
-#: .\apps\gamification\api\serializers.py:45
-msgid "Whether the current authenticated user has earned this badge."
-msgstr ""
+msgstr "أطول سلسلة دراسة للمستخدم على الإطلاق."
 
 #: .\apps\gamification\api\serializers.py:52
-msgid "Timestamp when the current user earned this badge (null if not earned)."
-msgstr ""
+msgid "Whether the current authenticated user has earned this badge."
+msgstr "ما إذا كان المستخدم الحالي المصادق عليه قد حصل على هذه الشارة."
 
 #: .\apps\gamification\api\serializers.py:59
+msgid "Timestamp when the current user earned this badge (null if not earned)."
+msgstr "الختم الزمني عندما حصل المستخدم الحالي على هذه الشارة (null إذا لم يتم الحصول عليها)."
+
+#: .\apps\gamification\api\serializers.py:66
+#: .\apps\gamification\api\serializers.py:104
 msgid "URL of the badge icon image."
-msgstr ""
+msgstr "رابط صورة أيقونة الشارة."
 
-#: .\apps\gamification\api\serializers.py:122
+#: .\apps\gamification\api\serializers.py:128
+msgid "Details of the earned badge."
+msgstr "تفاصيل الشارة المكتسبة."
+
+#: .\apps\gamification\api\serializers.py:131
+msgid "Timestamp when the user earned this badge."
+msgstr "الختم الزمني عندما حصل المستخدم على هذه الشارة."
+
+#: .\apps\gamification\api\serializers.py:180
 msgid "Purchase successful!"
-msgstr ""
+msgstr "تم الشراء بنجاح!"
 
-#: .\apps\gamification\api\views.py:59
+#: .\apps\gamification\api\views.py:73
 msgid "User profile not found."
-msgstr ""
+msgstr "لم يتم العثور على ملف المستخدم الشخصي."
 
-#: .\apps\gamification\api\views.py:183
+#: .\apps\gamification\api\views.py:234
 msgid "Reward item not found or is inactive."
-msgstr ""
+msgstr "لم يتم العثور على عنصر المكافأة أو أنه غير نشط."
 
-#: .\apps\gamification\api\views.py:195
+#: .\apps\gamification\api\views.py:246
 msgid "An unexpected error occurred."
-msgstr ""
+msgstr "حدث خطأ غير متوقع."
 
 #: .\apps\gamification\apps.py:8
 msgid "Gamification"
-msgstr ""
-
-#: .\apps\gamification\models.py:17
-msgid "Question Solved"
-msgstr ""
+msgstr "التلعيب"
 
 #: .\apps\gamification\models.py:18
+msgid "Question Solved"
+msgstr "تم حل السؤال"
+
+#: .\apps\gamification\models.py:19
 msgid "Test Completed"
-msgstr ""
+msgstr "تم الانتهاء من الاختبار"
 
-#: .\apps\gamification\models.py:20
+#: .\apps\gamification\models.py:21
 msgid "Level Assessment Completed"
-msgstr ""
+msgstr "تم الانتهاء من تقييم المستوى"
 
-#: .\apps\gamification\models.py:22
+#: .\apps\gamification\models.py:23
 msgid "Streak Bonus"
-msgstr ""
+msgstr "مكافأة السلسلة"
 
-#: .\apps\gamification\models.py:24
+#: .\apps\gamification\models.py:25
 msgid "Feature First Use"
-msgstr ""
-
-#: .\apps\gamification\models.py:28
-msgid "Challenge Participation"
-msgstr ""
+msgstr "أول استخدام للميزة"
 
 #: .\apps\gamification\models.py:29
-msgid "Challenge Win"
-msgstr ""
+msgid "Challenge Participation"
+msgstr "مشاركة في التحدي"
 
-#: .\apps\gamification\models.py:32
-msgid "Reward Purchase"
-msgstr ""
+#: .\apps\gamification\models.py:30
+msgid "Challenge Win"
+msgstr "فوز في التحدي"
 
 #: .\apps\gamification\models.py:33
-msgid "Admin Adjustment"
-msgstr ""
+msgid "Reward Purchase"
+msgstr "شراء مكافأة"
 
 #: .\apps\gamification\models.py:34
+msgid "Admin Adjustment"
+msgstr "تعديل المسؤول"
+
+#: .\apps\gamification\models.py:35
 msgid "Referral Bonus"
-msgstr ""
+msgstr "مكافأة الإحالة"
 
-#: .\apps\gamification\models.py:37
+#: .\apps\gamification\models.py:38
 msgid "Badge Earned"
-msgstr ""
+msgstr "تم الحصول على شارة"
 
-#: .\apps\gamification\models.py:40 .\apps\gamification\models.py:192
+#: .\apps\gamification\models.py:41 .\apps\gamification\models.py:221
 msgid "Other"
-msgstr ""
+msgstr "أخرى"
 
-#: .\apps\gamification\models.py:50 .\apps\gamification\models.py:163
-#: .\apps\gamification\models.py:251
+#: .\apps\gamification\models.py:51 .\apps\gamification\models.py:192
+#: .\apps\gamification\models.py:280 .\apps\gamification\models.py:310
 msgid "User"
-msgstr ""
+msgstr "المستخدم"
 
-#: .\apps\gamification\models.py:53
+#: .\apps\gamification\models.py:54
 msgid "Points Change"
-msgstr ""
-
-#: .\apps\gamification\models.py:59
-msgid "Reason Code"
-msgstr ""
+msgstr "تغيير النقاط"
 
 #: .\apps\gamification\models.py:60
+msgid "Reason Code"
+msgstr "رمز السبب"
+
+#: .\apps\gamification\models.py:61
 msgid "Standardized code indicating the reason for the point change."
-msgstr ""
+msgstr "رمز موحد يشير إلى سبب تغيير النقاط."
 
-#: .\apps\gamification\models.py:65 .\apps\gamification\models.py:117
-#: .\apps\gamification\models.py:195
+#: .\apps\gamification\models.py:66 .\apps\gamification\models.py:130
+#: .\apps\gamification\models.py:224
 msgid "Description"
-msgstr ""
+msgstr "الوصف"
 
-#: .\apps\gamification\models.py:67
+#: .\apps\gamification\models.py:68
 msgid "Human-readable explanation, especially for OTHER or specific contexts."
-msgstr ""
+msgstr "شرح سهل القراءة، خاصة للسياقات الأخرى أو المحددة."
 
-#: .\apps\gamification\models.py:75
+#: .\apps\gamification\models.py:76
 msgid "Related Object Type"
-msgstr ""
+msgstr "نوع الكائن المرتبط"
 
-#: .\apps\gamification\models.py:81
+#: .\apps\gamification\models.py:82
 msgid "Related Object ID"
-msgstr ""
+msgstr "معرف الكائن المرتبط"
 
-#: .\apps\gamification\models.py:87
+#: .\apps\gamification\models.py:88
 msgid "Timestamp"
-msgstr ""
-
-#: .\apps\gamification\models.py:91
-msgid "Point Log"
-msgstr ""
+msgstr "الختم الزمني"
 
 #: .\apps\gamification\models.py:92
-msgid "Point Logs"
-msgstr ""
+msgid "Point Log"
+msgstr "سجل النقاط"
 
-#: .\apps\gamification\models.py:109 .\apps\gamification\models.py:194
-msgid "Name"
-msgstr ""
+#: .\apps\gamification\models.py:93
+msgid "Point Logs"
+msgstr "سجلات النقاط"
 
 #: .\apps\gamification\models.py:113
-msgid "Slug"
-msgstr ""
+msgid "Consecutive Study Days"
+msgstr "أيام الدراسة المتتالية"
 
 #: .\apps\gamification\models.py:114
-msgid "Unique identifier used internally and potentially in URLs."
-msgstr ""
+msgid "Correct Questions Solved"
+msgstr "الأسئلة الصحيحة التي تم حلها"
+
+#: .\apps\gamification\models.py:115
+msgid "Tests Completed (Any Type)"
+msgstr "الاختبارات المكتملة (أي نوع)"
+
+#: .\apps\gamification\models.py:116
+msgid "Challenges Won"
+msgstr "التحديات التي تم الفوز بها"
 
 #: .\apps\gamification\models.py:120
-msgid "Icon Image"
-msgstr ""
+msgid "Other / Manual Award"
+msgstr "أخرى / مكافأة يدوية"
 
-#: .\apps\gamification\models.py:121
-msgid "Upload an image file for the badge icon."
-msgstr ""
+#: .\apps\gamification\models.py:122 .\apps\gamification\models.py:223
+msgid "Name"
+msgstr "الاسم"
 
 #: .\apps\gamification\models.py:126
-msgid "Criteria Description"
-msgstr ""
+msgid "Slug"
+msgstr "سلاغ"
 
 #: .\apps\gamification\models.py:127
-msgid "User-facing text explaining how to earn the badge."
-msgstr ""
+msgid "Unique identifier used internally and potentially in URLs."
+msgstr "معرف فريد يستخدم داخليًا وربما في عناوين URL."
 
-#: .\apps\gamification\models.py:131 .\apps\gamification\models.py:221
-msgid "Is Active"
-msgstr ""
+#: .\apps\gamification\models.py:133
+msgid "Icon Image"
+msgstr "صورة الأيقونة"
 
-#: .\apps\gamification\models.py:132
-msgid "Inactive badges cannot be earned."
-msgstr ""
+#: .\apps\gamification\models.py:134
+msgid "Upload an image file for the badge icon."
+msgstr "تحميل ملف صورة لأيقونة الشارة."
 
-#: .\apps\gamification\models.py:139 .\apps\gamification\models.py:170
-msgid "Badge"
-msgstr ""
+#: .\apps\gamification\models.py:139
+msgid "Criteria Description"
+msgstr "وصف المعيار"
 
 #: .\apps\gamification\models.py:140
+msgid "User-facing text explaining how to earn the badge."
+msgstr "نص يظهر للمستخدم يشرح كيفية الحصول على الشارة."
+
+#: .\apps\gamification\models.py:145
+msgid "Criteria Type"
+msgstr "نوع المعيار"
+
+#: .\apps\gamification\models.py:146
+msgid "The type of condition required to earn this badge."
+msgstr "نوع الشرط المطلوب للحصول على هذه الشارة."
+
+#: .\apps\gamification\models.py:150
+msgid "Target Value"
+msgstr "القيمة المستهدفة"
+
+#: .\apps\gamification\models.py:152
+msgid ""
+"The numerical goal for the criteria (e.g., 5 for a 5-day streak, 50 for 50 "
+"questions). Not used for 'Other' type."
+msgstr "الهدف الرقمي للمعيار (مثل 5 لسلسلة 5 أيام، 50 لـ 50 سؤال). لا يستخدم لنوع 'أخرى'."
+
+#: .\apps\gamification\models.py:160 .\apps\gamification\models.py:250
+msgid "Is Active"
+msgstr "هل هو نشط؟"
+
+#: .\apps\gamification\models.py:161
+msgid "Inactive badges cannot be earned."
+msgstr "لا يمكن الحصول على الشارات غير النشطة."
+
+#: .\apps\gamification\models.py:168 .\apps\gamification\models.py:199
+msgid "Badge"
+msgstr "شارة"
+
+#: .\apps\gamification\models.py:169
 msgid "Badges"
-msgstr ""
+msgstr "شارات"
 
-#: .\apps\gamification\models.py:153
+#: .\apps\gamification\models.py:182
 msgid "No icon"
-msgstr ""
+msgstr "لا توجد أيقونة"
 
-#: .\apps\gamification\models.py:173
+#: .\apps\gamification\models.py:202
 msgid "Earned At"
-msgstr ""
+msgstr "تاريخ الحصول عليها"
 
-#: .\apps\gamification\models.py:176
+#: .\apps\gamification\models.py:205
 msgid "User Badge"
-msgstr ""
-
-#: .\apps\gamification\models.py:177
-msgid "User Badges"
-msgstr ""
-
-#: .\apps\gamification\models.py:189
-msgid "Avatar/Theme"
-msgstr ""
-
-#: .\apps\gamification\models.py:190
-msgid "Study Material/Outline"
-msgstr ""
-
-#: .\apps\gamification\models.py:191
-msgid "Competition Entry"
-msgstr ""
-
-#: .\apps\gamification\models.py:200
-msgid "Item Type"
-msgstr ""
-
-#: .\apps\gamification\models.py:203
-msgid "Cost (Points)"
-msgstr ""
+msgstr "شارة المستخدم"
 
 #: .\apps\gamification\models.py:206
+msgid "User Badges"
+msgstr "شارات المستخدم"
+
+#: .\apps\gamification\models.py:218
+msgid "Avatar/Theme"
+msgstr "صورة رمزية/سمة"
+
+#: .\apps\gamification\models.py:219
+msgid "Study Material/Outline"
+msgstr "مادة دراسية/مخطط تفصيلي"
+
+#: .\apps\gamification\models.py:220
+msgid "Competition Entry"
+msgstr "دخول مسابقة"
+
+#: .\apps\gamification\models.py:229
+msgid "Item Type"
+msgstr "نوع العنصر"
+
+#: .\apps\gamification\models.py:232
+msgid "Cost (Points)"
+msgstr "التكلفة (نقاط)"
+
+#: .\apps\gamification\models.py:235
 msgid "Item Image"
-msgstr ""
+msgstr "صورة العنصر"
 
-#: .\apps\gamification\models.py:207
+#: .\apps\gamification\models.py:236
 msgid "Optional visual representation of the reward item."
-msgstr ""
+msgstr "تمثيل مرئي اختياري لعنصر المكافأة."
 
-#: .\apps\gamification\models.py:213
+#: .\apps\gamification\models.py:242
 msgid "Asset File"
-msgstr ""
+msgstr "ملف الأصل"
 
-#: .\apps\gamification\models.py:215
+#: .\apps\gamification\models.py:244
 msgid ""
 "Optional downloadable file associated with the reward (e.g., PDF outline)."
-msgstr ""
+msgstr "ملف اختياري قابل للتنزيل مرتبط بالمكافأة (مثل مخطط تفصيلي بصيغة PDF)."
 
-#: .\apps\gamification\models.py:227
+#: .\apps\gamification\models.py:256
 msgid "Reward Store Item"
-msgstr ""
+msgstr "عنصر متجر المكافآت"
 
-#: .\apps\gamification\models.py:228
+#: .\apps\gamification\models.py:257
 msgid "Reward Store Items"
-msgstr ""
+msgstr "عناصر متجر المكافآت"
 
-#: .\apps\gamification\models.py:241
+#: .\apps\gamification\models.py:270
 msgid "No image"
-msgstr ""
+msgstr "لا توجد صورة"
 
-#: .\apps\gamification\models.py:258
+#: .\apps\gamification\models.py:287
 msgid "Item"
-msgstr ""
+msgstr "العنصر"
 
-#: .\apps\gamification\models.py:260
+#: .\apps\gamification\models.py:289
 msgid "Points Spent"
-msgstr ""
+msgstr "النقاط المصروفة"
 
-#: .\apps\gamification\models.py:262
+#: .\apps\gamification\models.py:291
 msgid "Purchased At"
-msgstr ""
+msgstr "تاريخ الشراء"
 
-#: .\apps\gamification\models.py:266
+#: .\apps\gamification\models.py:295
 msgid "User Reward Purchase"
-msgstr ""
+msgstr "شراء مكافأة المستخدم"
 
-#: .\apps\gamification\models.py:267
+#: .\apps\gamification\models.py:296
 msgid "User Reward Purchases"
-msgstr ""
+msgstr "مشتريات مكافآت المستخدم"
 
-#: .\apps\gamification\services.py:340
+#: .\apps\gamification\models.py:314
+msgid "Study Date"
+msgstr "تاريخ الدراسة"
+
+#: .\apps\gamification\models.py:316
+msgid "The calendar date (UTC) of the study activity."
+msgstr "التاريخ التقويمي (UTC) لنشاط الدراسة."
+
+#: .\apps\gamification\models.py:319
+msgid "Logged At"
+msgstr "تاريخ التسجيل"
+
+#: .\apps\gamification\models.py:322
+msgid "Study Day Log"
+msgstr "سجل يوم الدراسة"
+
+#: .\apps\gamification\models.py:323
+msgid "Study Day Logs"
+msgstr "سجلات أيام الدراسة"
+
+#: .\apps\gamification\services.py:321
 #, python-brace-format
 msgid "Reached {days}-day streak!"
-msgstr ""
+msgstr "وصلت إلى سلسلة {days} أيام!"
 
-#: .\apps\gamification\services.py:386
-msgid "Invalid user for reward purchase."
-msgstr ""
-
-#: .\apps\gamification\services.py:403
-msgid "Insufficient points to purchase this item."
-msgstr ""
-
-#: .\apps\gamification\services.py:417
-msgid "Failed to update points balance during purchase."
-msgstr ""
-
-#: .\apps\gamification\services.py:443
-msgid "User profile error during purchase."
-msgstr ""
-
-#: .\apps\gamification\services.py:453
-msgid "An unexpected error occurred during purchase."
-msgstr ""
-
-#: .\apps\gamification\signals.py:40
-#, python-brace-format
-msgid "Solved Question #{qid} ({mode})"
-msgstr ""
-
-#: .\apps\gamification\signals.py:69
+#: .\apps\gamification\services.py:416
 #, python-brace-format
 msgid "Completed Test Attempt #{att_id} ({type})"
-msgstr ""
+msgstr "تم الانتهاء من محاولة الاختبار رقم {att_id} ({type})"
 
-#: .\apps\gamification\signals.py:77
+#: .\apps\gamification\services.py:423
 #, python-brace-format
 msgid "Completed Level Assessment #{att_id}"
-msgstr ""
+msgstr "تم الانتهاء من تقييم المستوى رقم {att_id}"
+
+#: .\apps\gamification\services.py:534
+msgid "Invalid user for reward purchase."
+msgstr "مستخدم غير صالح لشراء المكافأة."
+
+#: .\apps\gamification\services.py:547
+msgid "Insufficient points to purchase this item."
+msgstr "نقاط غير كافية لشراء هذا العنصر."
+
+#: .\apps\gamification\services.py:560
+msgid "Failed to update points balance during purchase."
+msgstr "فشل تحديث رصيد النقاط أثناء الشراء."
+
+#: .\apps\gamification\services.py:578
+msgid "User profile error during purchase."
+msgstr "خطأ في ملف المستخدم الشخصي أثناء الشراء."
+
+#: .\apps\gamification\services.py:586
+msgid "An unexpected error occurred during purchase."
+msgstr "حدث خطأ غير متوقع أثناء الشراء."
+
+#: .\apps\gamification\signals.py:30
+#, python-brace-format
+msgid "Solved Question #{qid} ({mode})"
+msgstr "تم حل السؤال رقم {qid} ({mode})"

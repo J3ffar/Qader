@@ -1,0 +1,107 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Qader\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-17 23:32+0300\n"
+"PO-Revision-Date: 2025-05-18 13:10+0300\n"
+"Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
+"Language-Team: Arabic <ar@li.org>\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+#: .\apps\chat\api\views.py:81
+msgid "Only students can access this view."
+msgstr "الطلاب فقط يمكنهم الوصول إلى هذا العرض."
+
+#: .\apps\chat\api\views.py:86 .\apps\chat\api\views.py:188
+msgid "No mentor assigned. Conversation not available."
+msgstr "لم يتم تعيين مرشد. المحادثة غير متاحة."
+
+#: .\apps\chat\api\views.py:184 .\apps\chat\api\views.py:200
+msgid "Access denied for this conversation."
+msgstr "تم رفض الوصول لهذه المحادثة."
+
+#: .\apps\chat\api\views.py:205
+msgid "Conversation ID not provided."
+msgstr "لم يتم توفير معرف المحادثة."
+
+#: .\apps\chat\api\views.py:239 .\apps\chat\api\views.py:255
+msgid "You are not a participant in this conversation."
+msgstr "أنت لست مشاركًا في هذه المحادثة."
+
+#: .\apps\chat\api\views.py:309
+msgid "Only teachers or trainers can list their conversations."
+msgstr "المعلمون أو المدربون فقط يمكنهم عرض محادثاتهم."
+
+#: .\apps\chat\api\views.py:372
+#, python-brace-format
+msgid "{updated_count} messages marked as read."
+msgstr "تم وضع علامة مقروء على {updated_count} رسالة."
+
+#: .\apps\chat\models.py:14
+msgid "Student Profile"
+msgstr "ملف الطالب الشخصي"
+
+#: .\apps\chat\models.py:21
+msgid "Teacher/Trainer Profile"
+msgstr "ملف المعلم/المدرب الشخصي"
+
+#: .\apps\chat\models.py:24
+msgid "Created At"
+msgstr "تاريخ الإنشاء"
+
+#: .\apps\chat\models.py:25
+msgid "Last Message At"
+msgstr "آخر رسالة في"
+
+#: .\apps\chat\models.py:28 .\apps\chat\models.py:83
+msgid "Conversation"
+msgstr "المحادثة"
+
+#: .\apps\chat\models.py:29
+msgid "Conversations"
+msgstr "المحادثات"
+
+#: .\apps\chat\models.py:40
+msgid "The 'student' must have the role of STUDENT."
+msgstr "يجب أن يكون لدى 'الطالب' دور طالب."
+
+#: .\apps\chat\models.py:43
+msgid "The 'teacher' must have the role of TEACHER or TRAINER."
+msgstr "يجب أن يكون لدى 'المعلم' دور معلم أو مدرب."
+
+#: .\apps\chat\models.py:89
+msgid "Sender"
+msgstr "المرسل"
+
+#: .\apps\chat\models.py:91
+msgid "Content"
+msgstr "المحتوى"
+
+#: .\apps\chat\models.py:92
+msgid "Timestamp"
+msgstr "الختم الزمني"
+
+#: .\apps\chat\models.py:93
+msgid "Is Read?"
+msgstr "هل تمت القراءة؟"
+
+#: .\apps\chat\models.py:96
+msgid "Message"
+msgstr "الرسالة"
+
+#: .\apps\chat\models.py:97
+msgid "Messages"
+msgstr "الرسائل"
+
+#: .\apps\chat\models.py:110
+msgid "Sender must be a participant in the conversation."
+msgstr "يجب أن يكون المرسل مشاركًا في المحادثة."
