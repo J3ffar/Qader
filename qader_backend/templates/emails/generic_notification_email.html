@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eeeeee;
+        }
+        .header h1 {
+            margin: 0;
+            color: #0056b3;
+        }
+        .content {
+            padding: 20px 0;
+        }
+        .content p {
+            margin: 0 0 10px;
+        }
+        .content strong {
+            color: #0056b3;
+        }
+        .button-link {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 15px;
+            background-color: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .button-link:hover {
+            background-color: #0056b3;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #eeeeee;
+            font-size: 0.9em;
+            color: #777777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ subject|default:"New Notification" }}</h1>
+        </div>
+        <div class="content">
+            <p>Hi {{ recipient_name|default:"User" }},</p>
+            
+            <p>
+                {% if actor_name and actor_name != "System" %}
+                    <strong>{{ actor_name }}</strong>
+                {% endif %}
+                {{ verb }}.
+            </p>
+
+            {% if description %}
+                <p><em>{{ description }}</em></p>
+            {% endif %}
+
+            {% if target_name %}
+                <p>Related to: {{ target_name }}</p>
+            {% endif %}
+            
+            {% if action_object_name %}
+                 <p>Details: {{ action_object_name }}</p>
+            {% endif %}
+
+            {% if url and site_base_url %}
+                <p>
+                    <a href="{{ site_base_url }}{{ url }}" class="button-link">View Details</a>
+                </p>
+            {% elif url %}
+                 <p>You can view more details here: {{ url }} (Please prepend your site's address if this is a relative link)</p>
+            {% endif %}
+        </div>
+        <div class="footer">
+            <p>Thanks,<br>The Qader Team</p>
+            <p>&copy; {% now "Y" %} Qader. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

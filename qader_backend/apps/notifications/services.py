@@ -6,6 +6,8 @@ from django.utils.translation import gettext_lazy as _
 from typing import Optional, Any, Dict
 import logging
 
+from apps.notifications.tasks import dispatch_notification_email_task
+
 from .models import Notification, NotificationTypeChoices
 
 User = get_user_model()
@@ -23,10 +25,13 @@ def create_notification(
     notification_type: str = NotificationTypeChoices.INFO,
     url: Optional[str] = None,
     extra_data: Optional[Dict[str, Any]] = None,
+    send_email: bool = False,
+    email_subject: Optional[str] = None,
+    email_body_template_name: Optional[str] = None,
     # send_realtime: bool = True, # For future WebSocket integration
 ) -> Optional[Notification]:
     """
-    Creates and saves a notification.
+    Creates and saves a notification, optionally triggering an email.
 
     Args:
         recipient: The user who will receive the notification.
@@ -38,6 +43,9 @@ def create_notification(
         notification_type: The type of notification (from NotificationTypeChoices).
         url: A URL the user can click to see more details (optional).
         extra_data: A dictionary for any additional data for frontend/logic.
+        send_email: If True, an email notification will be dispatched.
+        email_subject: Custom subject for the email. If None, a default will be used.
+        email_body_template_name: Custom template name for email body. If None, a default will be used.
         # send_realtime: If True, attempt to send a real-time update (future).
 
     Returns:
@@ -92,6 +100,50 @@ def create_notification(
         # if send_realtime:
         #     from .tasks import send_realtime_notification_task # Example Celery task
         #     send_realtime_notification_task.delay(notification.id)
+
+        if send_email and recipient.email:
+            try:
+                # Prepare context for the email template
+                email_context = {
+                    "recipient_name": recipient.get_full_name() or recipient.username,
+                    "verb": verb,
+                    "actor_name": (
+                        actor.get_full_name() or actor.username
+                        if actor
+                        else _("System")
+                    ),
+                    "description": description,
+                    "target_name": str(target) if target else None,
+                    "action_object_name": str(action_object) if action_object else None,
+                    "url": url,  # This should be the relative path, SITE_BASE_URL will be prepended in task
+                }
+                if extra_data:
+                    email_context.update(
+                        extra_data
+                    )  # Merge extra_data into email_context
+
+                actual_email_subject = email_subject or _(
+                    "New Notification: {}"
+                ).format(verb)
+                actual_email_template = (
+                    email_body_template_name or "emails/generic_notification_email"
+                )
+
+                dispatch_notification_email_task.delay(
+                    notification_id=notification.id,
+                    recipient_email=recipient.email,
+                    subject=actual_email_subject,
+                    body_template_name=actual_email_template,
+                    context=email_context,
+                )
+                logger.info(
+                    f"Dispatched email notification task for Notification ID {notification.id} to {recipient.email}"
+                )
+            except Exception as email_exc:
+                logger.error(
+                    f"Failed to dispatch email for notification {notification.id} for {recipient.username}. Error: {email_exc}",
+                    exc_info=True,
+                )
 
         return notification
     except ContentType.DoesNotExist as e:

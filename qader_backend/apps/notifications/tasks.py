@@ -66,3 +66,51 @@ def send_subscription_expiry_reminders():
                     f"Sent {days_before_expiry}-day subscription expiry reminder to {profile.user.username}"
                 )
     return f"Subscription expiry reminders check complete. Processed for {len(reminder_periods_days)} periods."
+
+
+@shared_task(name="dispatch_notification_email_task")
+def dispatch_notification_email_task(
+    notification_id: int,
+    recipient_email: str,
+    subject: str,
+    body_template_name: str,
+    context: dict,
+):
+    """
+    Sends a notification email to a user.
+    """
+    logger.info(
+        f"Attempting to send notification email for Notification ID {notification_id} to {recipient_email}"
+    )
+    try:
+        from django.core.mail import send_mail
+        from django.template.loader import render_to_string
+        from django.conf import settings
+
+        # Add site base URL to context for constructing full URLs in email
+        # Ensure SITE_BASE_URL is configured in settings.py
+        context["site_base_url"] = getattr(settings, "SITE_BASE_URL", "")
+        if not context["site_base_url"]:
+            logger.warning(
+                "SITE_BASE_URL is not configured in Django settings. Email links may be broken."
+            )
+
+        html_message = render_to_string(f"{body_template_name}.html", context)
+        plain_message = render_to_string(f"{body_template_name}.txt", context)
+
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[recipient_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        logger.info(
+            f"Successfully sent notification email for Notification ID {notification_id} to {recipient_email}"
+        )
+    except Exception as e:
+        logger.error(
+            f"Error sending notification email for Notification ID {notification_id} to {recipient_email}: {e}",
+            exc_info=True,
+        )

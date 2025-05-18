@@ -24,6 +24,7 @@ class NotificationTypeChoices(models.TextChoices):
     CHALLENGE_UPDATE = "CHALLENGE_UPDATE", _("Challenge Update")
     MENTOR_ASSIGNMENT = "MENTOR_ASSIGNMENT", _("Mentor Assignment")
     SUPPORT_TICKET = "SUPPORT_TICKET", _("Support Ticket Update")
+    CHAT = "CHAT", _("Chat Message")
     # Add more types as your application grows
 
 

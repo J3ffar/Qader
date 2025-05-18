@@ -1,0 +1,30 @@
+Subject: {{ subject|default:"New Notification" }}
+
+Hi {{ recipient_name|default:"User" }},
+
+{% if actor_name and actor_name != "System" %}{{ actor_name }}{% else %}A system notification{% endif %} {{ verb }}.
+
+{% if description %}
+Description: {{ description }}
+{% endif %}
+
+{% if target_name %}
+Related to: {{ target_name }}
+{% endif %}
+
+{% if action_object_name %}
+Details: {{ action_object_name }}
+{% endif %}
+
+{% if url and site_base_url %}
+View Details: {{ site_base_url }}{{ url }}
+{% elif url %}
+View Details: {{ url }} (Please prepend your site's address if this is a relative link)
+{% endif %}
+
+Thanks,
+The Qader Team
+
+---
+This is an automated notification.
+&copy; {% now "Y" %} Qader. All rights reserved.
