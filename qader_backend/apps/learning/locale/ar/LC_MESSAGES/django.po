@@ -2,13 +2,13 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-17 23:30+0300\n"
+"POT-Creation-Date: 2025-05-18 15:00+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -77,7 +77,8 @@ msgstr "اسم القسم الفرعي (على سبيل المثال، فهم ا
 #: .\apps\learning\models.py:97
 msgid ""
 "URL-friendly identifier (leave blank to auto-generate from section and name)."
-msgstr "معرف صديق لعنوان URL (اتركه فارغًا ليتم إنشاؤه تلقائيًا من القسم والاسم)."
+msgstr ""
+"معرف صديق لعنوان URL (اتركه فارغًا ليتم إنشاؤه تلقائيًا من القسم والاسم)."
 
 #: .\apps\learning\models.py:104
 msgid "Optional description of the learning sub-section."
@@ -96,7 +97,9 @@ msgstr "الحالة النشطة"
 msgid ""
 "Designates whether this sub-section is active and should be used in question "
 "selections, filters, etc."
-msgstr "يحدد ما إذا كان هذا القسم الفرعي نشطًا ويجب استخدامه في اختيارات الأسئلة، عوامل التصفية، إلخ."
+msgstr ""
+"يحدد ما إذا كان هذا القسم الفرعي نشطًا ويجب استخدامه في اختيارات الأسئلة، "
+"عوامل التصفية، إلخ."
 
 #: .\apps\learning\models.py:123
 msgid "Learning Sub-Section"
@@ -122,7 +125,9 @@ msgstr "اسم المهارة المحددة (على سبيل المثال، ح�
 msgid ""
 "URL-friendly identifier (leave blank to auto-generate from subsection and "
 "name)."
-msgstr "معرف صديق لعنوان URL (اتركه فارغًا ليتم إنشاؤه تلقائيًا من القسم الفرعي والاسم)."
+msgstr ""
+"معرف صديق لعنوان URL (اتركه فارغًا ليتم إنشاؤه تلقائيًا من القسم الفرعي "
+"والاسم)."
 
 #: .\apps\learning\models.py:181
 msgid "Optional description of the skill."
@@ -132,7 +137,9 @@ msgstr "وصف اختياري للمهارة."
 msgid ""
 "Designates whether this skill is active and should be used in question "
 "selections, filters, etc."
-msgstr "يحدد ما إذا كانت هذه المهارة نشطة ويجب استخدامه في اختيارات الأسئلة، عوامل التصفية، إلخ."
+msgstr ""
+"يحدد ما إذا كانت هذه المهارة نشطة ويجب استخدامه في اختيارات الأسئلة، عوامل "
+"التصفية، إلخ."
 
 #: .\apps\learning\models.py:194
 msgid "Skill"

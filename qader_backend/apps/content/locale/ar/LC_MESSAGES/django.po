@@ -2,12 +2,12 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
 msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-01 17:13+0300\n"
+"POT-Creation-Date: 2025-05-18 16:10+0300\n"
 "PO-Revision-Date: 2025-05-18 13:14+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -17,6 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
 #: .\apps\content\api\serializers.py:117
 msgid "Subject must be at least 5 characters long."
 msgstr "يجب أن يكون الموضوع 5 أحرف على الأقل."
@@ -43,7 +44,8 @@ msgstr "سلاغ"
 msgid ""
 "Unique identifier for the page/content (e.g., 'terms-and-conditions'). Used "
 "in URLs."
-msgstr "معرف فريد للصفحة/المحتوى (مثل 'terms-and-conditions'). يستخدم في عناوين URL."
+msgstr ""
+"معرف فريد للصفحة/المحتوى (مثل 'terms-and-conditions'). يستخدم في عناوين URL."
 
 #: .\apps\content\models.py:30 .\apps\content\models.py:196
 msgid "Title"
@@ -236,10 +238,6 @@ msgid "Contact Messages"
 msgstr "رسائل التواصل"
 
 #: .\apps\content\models.py:197
-msgid "Title"
-msgstr "العنوان"
-
-#: .\apps\content\models.py:197
 msgid "Text"
 msgstr "النص"
 
@@ -255,17 +253,9 @@ msgstr "كود صورة SVG"
 msgid "Paste the SVG code here, or provide an icon class below."
 msgstr "الصق كود SVG هنا، أو قدم فئة أيقونة أدناه."
 
-#: .\apps\content\models.py:205
-msgid "Icon Class"
-msgstr "فئة الأيقونة"
-
 #: .\apps\content\models.py:209
 msgid "Alternative to SVG: CSS class for the icon."
 msgstr "بديل لـ SVG: فئة CSS للأيقونة."
-
-#: .\apps\content\models.py:211
-msgid "Display Order"
-msgstr "ترتيب العرض"
 
 #: .\apps\content\models.py:215
 msgid "Homepage Feature Card"
@@ -290,14 +280,6 @@ msgstr "القيمة"
 #: .\apps\content\models.py:229
 msgid "e.g., '15,000+'"
 msgstr "مثال: '15,000+'"
-
-#: .\apps\content\models.py:231
-msgid "Icon Class"
-msgstr "فئة الأيقونة"
-
-#: .\apps\content\models.py:233
-msgid "Display Order"
-msgstr "ترتيب العرض"
 
 #: .\apps\content\models.py:237
 msgid "Homepage Statistic"

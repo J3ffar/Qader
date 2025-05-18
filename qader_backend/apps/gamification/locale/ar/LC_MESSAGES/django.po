@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-17 23:30+0300\n"
+"POT-Creation-Date: 2025-05-18 15:00+0300\n"
 "PO-Revision-Date: 2025-05-18 13:15+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -52,7 +52,9 @@ msgstr "ما إذا كان المستخدم الحالي المصادق عليه
 
 #: .\apps\gamification\api\serializers.py:59
 msgid "Timestamp when the current user earned this badge (null if not earned)."
-msgstr "الختم الزمني عندما حصل المستخدم الحالي على هذه الشارة (null إذا لم يتم الحصول عليها)."
+msgstr ""
+"الختم الزمني عندما حصل المستخدم الحالي على هذه الشارة (null إذا لم يتم "
+"الحصول عليها)."
 
 #: .\apps\gamification\api\serializers.py:66
 #: .\apps\gamification\api\serializers.py:104
@@ -245,7 +247,9 @@ msgstr "القيمة المستهدفة"
 msgid ""
 "The numerical goal for the criteria (e.g., 5 for a 5-day streak, 50 for 50 "
 "questions). Not used for 'Other' type."
-msgstr "الهدف الرقمي للمعيار (مثل 5 لسلسلة 5 أيام، 50 لـ 50 سؤال). لا يستخدم لنوع 'أخرى'."
+msgstr ""
+"الهدف الرقمي للمعيار (مثل 5 لسلسلة 5 أيام، 50 لـ 50 سؤال). لا يستخدم لنوع "
+"'أخرى'."
 
 #: .\apps\gamification\models.py:160 .\apps\gamification\models.py:250
 msgid "Is Active"
