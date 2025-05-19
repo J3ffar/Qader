@@ -63,7 +63,7 @@ LOGGING = {
         },
         "django.db.backends": {
             "handlers": ["console"],
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "DEBUG" if DEBUG and False else "INFO",
             "propagate": False,
         },
         "apps": {
@@ -77,6 +77,11 @@ LOGGING = {
 # Disable password validators during development for faster user creation
 AUTH_PASSWORD_VALIDATORS = []
 
+
+# For debugging Celery tasks locally without a broker
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
 
 # --- Channels ---
 # For development, you might want a simpler channel layer backend if Redis isn't running

@@ -1,17 +1,26 @@
 from celery import shared_task
+from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
-from apps.users.models import UserProfile
-from apps.notifications.services import create_notification
-from apps.notifications.models import NotificationTypeChoices, Notification
+
 from django.utils.translation import gettext_lazy as _
 import logging
+
+from apps.users.constants import AccountTypeChoices
+from apps.notifications.models import Notification, NotificationTypeChoices
 
 logger = logging.getLogger(__name__)
 
 
 @shared_task(name="send_subscription_expiry_reminders")
 def send_subscription_expiry_reminders():
+    from apps.users.models import (
+        UserProfile,
+    )  # Import here to avoid circular dependency
+    from apps.notifications.services import (
+        create_notification,
+    )
+
     now = timezone.now()
     # Define reminder periods, e.g., 7 days, 3 days, 1 day before expiry
     reminder_periods_days = [7, 3, 1]
@@ -25,7 +34,7 @@ def send_subscription_expiry_reminders():
         expiring_profiles = UserProfile.objects.filter(
             subscription_expires_at__gte=target_expiry_date_start,
             subscription_expires_at__lt=target_expiry_date_end,
-            account_type="SUBSCRIBED",  # Only for active subscribed users
+            account_type=AccountTypeChoices.SUBSCRIBED,  # Only for active subscribed users
         ).select_related("user")
 
         for profile in expiring_profiles:
@@ -85,10 +94,7 @@ def dispatch_notification_email_task(
     try:
         from django.core.mail import send_mail
         from django.template.loader import render_to_string
-        from django.conf import settings
 
-        # Add site base URL to context for constructing full URLs in email
-        # Ensure SITE_BASE_URL is configured in settings.py
         context["site_base_url"] = getattr(settings, "SITE_BASE_URL", "")
         if not context["site_base_url"]:
             logger.warning(
@@ -107,10 +113,10 @@ def dispatch_notification_email_task(
             fail_silently=False,
         )
         logger.info(
-            f"Successfully sent notification email for Notification ID {notification_id} to {recipient_email}"
+            f"Successfully sent/processed notification email for Notification ID {notification_id} to {recipient_email}"
         )
     except Exception as e:
         logger.error(
             f"Error sending notification email for Notification ID {notification_id} to {recipient_email}: {e}",
-            exc_info=True,
+            exc_info=True,  # This will print the full traceback
         )

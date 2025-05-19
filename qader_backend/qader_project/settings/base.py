@@ -6,6 +6,10 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.users.constants import AccountTypeChoices
 
+import mimetypes
+
+mimetypes.add_type("application/javascript", ".js", True)
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -222,9 +226,9 @@ CELERY_TASK_SOFT_TIME_LIMIT = 240  # Seconds
 
 # Optional: Define periodic tasks here or in a separate file
 # CELERY_BEAT_SCHEDULE = {
-#     'send-subscription-expiry-reminders-daily': {
-#         'task': 'send_subscription_expiry_reminders',
-#         'schedule': timedelta(days=1), # Run daily
+#     "send-subscription-expiry-reminders-daily": {
+#         "task": "send_subscription_expiry_reminders",
+#         "schedule": timedelta(days=1),  # Run daily
 #         # 'args': (arg1, arg2), # Optional arguments
 #     },
 # }

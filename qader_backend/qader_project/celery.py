@@ -15,6 +15,8 @@ app = Celery("qader_project")
 #   should have a `CELERY_` prefix in settings.py.
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
+app.conf.broker_connection_retry_on_startup = True
+
 # Discover tasks in all installed apps.
 app.autodiscover_tasks()
 
