@@ -63,17 +63,18 @@ const TraditionalEdu = () => {
   
       const data = await res.json();
   
-      if (!res.ok) {
-        alert(data.detail || "فشل بدء الاختبار");
-        return;
-      }
+      // if (!res.ok) {
+      //   alert(data.detail || "فشل بدء الاختبار");
+      //   return;
+      // }
   
       // حفظ البيانات في localStorage
       localStorage.setItem("level-questions", JSON.stringify(data.questions));
       localStorage.setItem("attemptId", String(data.attempt_id));
   
       // ✅ توجيه المستخدم إلى المسار الصحيح الجديد
-      router.push(`/level/questions/${data.attempt_id}`);
+      router.push(`/student/level/questions/${data.attempt_id}`);
+      //  router.push(`/level/questions/1`);
     } catch (err) {
       console.error("فشل الاتصال:", err);
       alert("فشل الاتصال بالخادم.");
