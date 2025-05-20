@@ -8,11 +8,18 @@ import { BadgeCheck, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
-const TestResultOverview = ({ attemptId = 1234 }: { attemptId: number }) => {
+interface TestResultOverviewProps {
+  attemptId?: number;
+}
+
+const TestResultOverview: React.FC<TestResultOverviewProps> = ({ attemptId }) => {
   const [score, setScore] = useState(70);
   const [verbalScore, setVerbalScore] = useState(25);
   const [quantScore, setQuantScore] = useState(62);
   const router = useRouter();
+
+  // Fallback ID for dev/test
+  const id = attemptId ?? 1234;
 
   const pieData = [
     { name: "الكمي", value: quantScore, color: "#074182" },
@@ -24,7 +31,7 @@ const TestResultOverview = ({ attemptId = 1234 }: { attemptId: number }) => {
       try {
         const token = localStorage.getItem("accessToken");
         const response = await axios.get(
-          `https://qader.vip/ar/api/v1/study/attempts/${attemptId}/review/`,
+          `https://qader.vip/ar/api/v1/study/attempts/${id}/review/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -42,13 +49,13 @@ const TestResultOverview = ({ attemptId = 1234 }: { attemptId: number }) => {
     };
 
     fetchReviewData();
-  }, [attemptId]);
+  }, [id]);
 
   const handleRetake = async () => {
     try {
       const token = localStorage.getItem("accessToken");
       const response = await axios.post(
-        `https://qader.vip/ar/api/v1/study/attempts/${attemptId}/retake/`,
+        `https://qader.vip/ar/api/v1/study/attempts/${id}/retake/`,
         {},
         {
           headers: {
@@ -133,10 +140,10 @@ const TestResultOverview = ({ attemptId = 1234 }: { attemptId: number }) => {
       </div>
 
       <div className="flex justify-center flex-wrap gap-4 mt-4">
-        <a href="/student/level/questions/1/results">
-            <button className="flex justify-center items-center gap-2 min-[1120px]:py-3 min-[1120px]:px-4 p-2 rounded-[8px] bg-[#074182] dark:bg-[#074182] text-[#FDFDFD] font-[600] hover:bg-[#074182DF] dark:hover:bg-[#074182DF] transition-all cursor-pointer">
-          مراجعة الاختبار
-        </button>
+        <a href={`/student/level/questions/${id}/results`}>
+          <button className="flex justify-center items-center gap-2 min-[1120px]:py-3 min-[1120px]:px-4 p-2 rounded-[8px] bg-[#074182] dark:bg-[#074182] text-[#FDFDFD] font-[600] hover:bg-[#074182DF] dark:hover:bg-[#074182DF] transition-all cursor-pointer">
+            مراجعة الاختبار
+          </button>
         </a>
         <button
           onClick={handleRetake}
