@@ -200,7 +200,9 @@ msgstr ""
 msgid ""
 "\n"
 "A system notification %(verb)s.\n"
-msgstr "إشعار النظام %(verb)s."
+msgstr ""
+"\n"
+"إشعار النظام %(verb)s.\n"
 
 #: .\templates\emails\generic_notification_email.txt:21
 #, fuzzy
