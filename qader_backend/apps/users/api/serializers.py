@@ -21,6 +21,7 @@ from ..constants import (
     SUBSCRIPTION_PLANS_CONFIG,
 )
 from ..models import (
+    PasswordResetOTP,
     UserProfile,
     SerialCode,
 )
@@ -760,6 +761,146 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
                 {"new_password_confirm": _("New password fields didn't match.")}
             )
         return attrs
+
+
+class PasswordResetVerifyOTPSerializer(serializers.Serializer):
+    """Serializer for verifying an OTP and obtaining a password reset token."""
+
+    identifier = serializers.CharField(
+        required=True,
+        label=_("Email or Username"),
+        help_text=_("The email address or username used to request the OTP."),
+    )
+    otp = serializers.CharField(
+        required=True,
+        label=_("OTP Code"),
+        min_length=settings.OTP_LENGTH,  # Use OTP_LENGTH from settings
+        max_length=settings.OTP_LENGTH,
+        style={"input_type": "text"},
+        help_text=_("The {otp_length}-digit OTP sent to your email.").format(
+            otp_length=settings.OTP_LENGTH
+        ),
+    )
+
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+        identifier = attrs.get("identifier")
+        otp_plain = attrs.get("otp")
+
+        try:
+            user = User.objects.get(
+                Q(email__iexact=identifier.lower().strip())
+                | Q(username__iexact=identifier.strip())
+            )
+            if not user.is_active:
+                raise serializers.ValidationError(_("User account is inactive."))
+        except User.DoesNotExist:
+            raise serializers.ValidationError(_("User with this identifier not found."))
+        except User.MultipleObjectsReturned:
+            logger.error(
+                f"CRITICAL: Multiple users found for identifier '{identifier}' during OTP verification."
+            )
+            raise serializers.ValidationError(_("Error identifying user account."))
+
+        try:
+            # Get the latest, non-fully-used OTP record for this user
+            otp_record = PasswordResetOTP.objects.filter(
+                user=user,
+                is_used=False,  # Not fully used for a password change yet
+                otp_expires_at__gt=timezone.now(),  # OTP itself should not be expired
+            ).latest("otp_created_at")
+
+            if not otp_record.verify_otp(otp_plain):
+                raise serializers.ValidationError(
+                    {"otp": _("The OTP provided is invalid or has expired.")}
+                )
+
+            # Attach user and otp_record to validated_data for the view
+            attrs["user"] = user
+            attrs["otp_record"] = otp_record
+            return attrs
+
+        except PasswordResetOTP.DoesNotExist:
+            raise serializers.ValidationError(
+                {
+                    "otp": _(
+                        "No active OTP found for this user or it has expired. Please request a new one."
+                    )
+                }
+            )
+        except Exception as e:
+            logger.exception(
+                f"Unexpected error during OTP verification for {identifier}: {e}"
+            )
+            raise serializers.ValidationError(
+                _("An error occurred during OTP verification.")
+            )
+
+
+class PasswordResetConfirmOTPSerializer(serializers.Serializer):
+    """Serializer for confirming password reset using a reset_token and new password."""
+
+    reset_token = serializers.CharField(
+        required=True,
+        label=_("Reset Token"),
+        help_text=_("The secure token received after OTP verification."),
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_password],
+        label=_("New Password"),
+        style={"input_type": "password"},
+    )
+    new_password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        label=_("Confirm New Password"),
+        style={"input_type": "password"},
+    )
+
+    def validate_new_password(self, value):
+        # validate_password is already in validators list, but if you need context (like user):
+        # For this flow, user is derived from reset_token, so context might be tricky here.
+        # The view will handle passing the user to validate_password if needed.
+        # For now, relying on the default validator is fine.
+        return value
+
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError(
+                {"new_password_confirm": _("New password fields didn't match.")}
+            )
+
+        plain_reset_token = attrs.get("reset_token")
+        hashed_token = PasswordResetOTP()._hash_value(
+            plain_reset_token
+        )  # Helper to hash
+
+        try:
+            # Find the OTP record by the hashed reset token
+            # Ensure it's not used and the reset token itself hasn't expired
+            otp_record = PasswordResetOTP.objects.get(
+                reset_token_hash=hashed_token,
+                is_used=False,
+                reset_token_expires_at__gt=timezone.now(),
+            )
+            attrs["otp_record"] = otp_record
+            attrs["user"] = otp_record.user  # Get user from the OTP record
+            return attrs
+
+        except PasswordResetOTP.DoesNotExist:
+            raise serializers.ValidationError(
+                {
+                    "reset_token": _(
+                        "Invalid or expired reset token. Please verify OTP again."
+                    )
+                }
+            )
+        except Exception as e:
+            logger.exception(f"Unexpected error validating reset token: {e}")
+            raise serializers.ValidationError(
+                _("An error occurred while validating the reset token.")
+            )
 
 
 class ApplySerialCodeSerializer(serializers.Serializer):

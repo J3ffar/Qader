@@ -1,12 +1,14 @@
 from django.urls import path
 from .views import (
-    InitialSignupView,  # New
-    ConfirmEmailView,  # New
+    InitialSignupView,
+    ConfirmEmailView,
     CustomTokenObtainPairView,
     LogoutView,
     CustomTokenRefreshView,
-    PasswordResetRequestView,
     PasswordResetConfirmView,
+    PasswordResetRequestView,
+    PasswordResetConfirmOTPView,
+    PasswordResetVerifyOTPView,
 )
 
 app_name = "auth"
@@ -27,9 +29,19 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="logout"),
     # Password Reset
     path(
-        "password/reset/",
+        "password/reset/request-otp/",
         PasswordResetRequestView.as_view(),
-        name="password_reset_request",
+        name="password_reset_request_otp",
+    ),
+    path(
+        "password/reset/verify-otp/",
+        PasswordResetVerifyOTPView.as_view(),
+        name="password_reset_verify_otp",
+    ),
+    path(
+        "password/reset/confirm-otp/",
+        PasswordResetConfirmOTPView.as_view(),
+        name="password_reset_confirm",
     ),
     path(
         "password/reset/confirm/",

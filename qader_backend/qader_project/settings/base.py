@@ -41,6 +41,13 @@ SITE_NAME = config("SITE_NAME", default=_("Qader"))
 REFERRAL_BONUS_DAYS = config("REFERRAL_BONUS_DAYS", default=3, cast=int)
 MAX_PROFILE_PIC_SIZE_MB = config("MAX_PROFILE_PIC_SIZE_MB", default=5, cast=int)
 
+# OTP Settings
+OTP_LENGTH = config("OTP_LENGTH", default=6, cast=int)
+OTP_EXPIRY_MINUTES = config("OTP_EXPIRY_MINUTES", default=10, cast=int)
+PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = config(
+    "PASSWORD_RESET_TOKEN_EXPIRY_MINUTES", default=5, cast=int
+)
+
 # Application definition
 INSTALLED_APPS = [
     "daphne",
@@ -208,6 +215,10 @@ EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="contact@qiyas.net")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="contact@qiyas.net")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# OTP Settings for Password Reset
+OTP_EXPIRY_MINUTES = config("OTP_EXPIRY_MINUTES", default=10, cast=int)
+OTP_LENGTH = config("OTP_LENGTH", default=6, cast=int)
 
 # Celery Configuration
 # Using Redis as the broker and result backend

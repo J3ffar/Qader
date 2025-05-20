@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
@@ -148,6 +150,131 @@ class SerialCode(models.Model):
             f"Attempted to mark code {self.code} used by {user.username}, but it was not active or already used."
         )
         return False
+
+
+class PasswordResetOTP(models.Model):
+    """Stores OTPs and subsequent reset tokens for password reset."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="password_reset_otps",
+        verbose_name=_("User"),
+    )
+    # OTP specific fields
+    otp_code_hash = models.CharField(
+        _("OTP Code (Hashed)"),
+        max_length=128,  # SHA256 hex digest is 64 chars, but let's give some room
+        help_text=_("Hashed version of the OTP code."),
+    )
+    otp_created_at = models.DateTimeField(
+        _("OTP Created At"), auto_now_add=True
+    )  # Renamed for clarity
+    otp_expires_at = models.DateTimeField(_("OTP Expires At"))  # Renamed for clarity
+
+    # Reset Token specific fields (populated after OTP verification)
+    reset_token_hash = models.CharField(
+        _("Reset Token (Hashed)"),
+        max_length=128,
+        null=True,
+        blank=True,
+        unique=True,  # Ensures reset token is unique if generated globally
+        db_index=True,
+    )
+    reset_token_expires_at = models.DateTimeField(
+        _("Reset Token Expires At"), null=True, blank=True
+    )
+
+    is_used = models.BooleanField(
+        _("Is Used?"),
+        default=False,
+        db_index=True,
+        help_text=_("True if password has been successfully reset using this record."),
+    )
+    # General timestamps
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )  # Redundant with otp_created_at, consider removing if otp_created_at is primary
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Password Reset OTP & Token")
+        verbose_name_plural = _("Password Reset OTPs & Tokens")
+        ordering = ["-otp_created_at"]  # Order by OTP creation time
+
+    def __str__(self):
+        status_parts = []
+        if self.is_used:
+            status_parts.append("Used")
+        else:
+            if timezone.now() > self.otp_expires_at:
+                status_parts.append("OTP Expired")
+            else:
+                status_parts.append("OTP Active")
+            if self.reset_token_hash:
+                if (
+                    self.reset_token_expires_at
+                    and timezone.now() > self.reset_token_expires_at
+                ):
+                    status_parts.append("ResetToken Expired")
+                else:
+                    status_parts.append("ResetToken Active")
+        return f"OTP/Token for {self.user.username} - ({', '.join(status_parts)})"
+
+    def _hash_value(self, plain_value: str) -> str:
+        """Hashes a value using SHA256."""
+        return hashlib.sha256(plain_value.encode("utf-8")).hexdigest()
+
+    def set_otp(self, otp_plain: str):
+        """Sets the OTP by storing its hash and its expiry."""
+        self.otp_code_hash = self._hash_value(otp_plain)
+        self.otp_expires_at = timezone.now() + timedelta(
+            minutes=settings.OTP_EXPIRY_MINUTES
+        )
+
+    def verify_otp(self, otp_plain: str) -> bool:
+        """Verifies the provided plain OTP against the stored hashed OTP and checks OTP validity."""
+        if self.is_used:  # Already fully used for password reset
+            return False
+        if timezone.now() > self.otp_expires_at:  # OTP itself has expired
+            return False
+        return self.otp_code_hash == self._hash_value(otp_plain)
+
+    def generate_reset_token(self) -> str:
+        """Generates a unique reset token, stores its hash and expiry, and returns the plain token."""
+        plain_reset_token = secrets.token_urlsafe(
+            32
+        )  # Generates a secure URL-safe text string
+        self.reset_token_hash = self._hash_value(plain_reset_token)
+        # Reset token should have a shorter expiry, e.g., 5 minutes after OTP verification
+        self.reset_token_expires_at = timezone.now() + timedelta(
+            minutes=getattr(settings, "PASSWORD_RESET_TOKEN_EXPIRY_MINUTES", 5)
+        )
+        # Do not mark is_used here. is_used is for when the password is changed.
+        self.save(
+            update_fields=["reset_token_hash", "reset_token_expires_at", "updated_at"]
+        )
+        return plain_reset_token
+
+    def verify_reset_token(self, plain_reset_token: str) -> bool:
+        """Verifies the provided plain reset token."""
+        if self.is_used:
+            return False
+        if (
+            not self.reset_token_hash or not self.reset_token_expires_at
+        ):  # Token not generated
+            return False
+        if timezone.now() > self.reset_token_expires_at:  # Token expired
+            return False
+        return self.reset_token_hash == self._hash_value(plain_reset_token)
+
+    def mark_used(self):
+        """Marks the entire OTP/Token record as used (password reset successful)."""
+        self.is_used = True
+        # Optionally, clear token fields if desired after use, though is_used flag is primary
+        # self.reset_token_hash = None
+        # self.reset_token_expires_at = None
+        self.save(update_fields=["is_used", "updated_at"])
 
 
 class UserProfile(models.Model):

@@ -17,7 +17,8 @@ from django.core.exceptions import (
 from apps.users.utils import (
     get_user_from_uidb64,
     send_confirmation_email,
-    send_password_reset_email,
+    generate_otp,
+    send_password_reset_otp_email,
 )
 from rest_framework import generics, status, views, serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -59,6 +60,8 @@ from .serializers import (
     UserProfileUpdateSerializer,
     PasswordChangeSerializer,
     PasswordResetRequestSerializer,
+    PasswordResetVerifyOTPSerializer,  # New import
+    PasswordResetConfirmOTPSerializer,
     PasswordResetConfirmSerializer,
     UserRedeemedSerialCodeSerializer,
     # Removed unused imports: SimpleUserSerializer, SubscriptionDetailSerializer
@@ -70,6 +73,7 @@ from ..constants import (
 from ..models import (
     UserProfile,
     SerialCode,
+    PasswordResetOTP,
 )  # Added SerialCode import
 
 import logging
@@ -1090,128 +1094,282 @@ class PasswordChangeView(generics.GenericAPIView):
 
 @extend_schema(
     tags=["Authentication"],
-    summary="Request Password Reset",
+    summary="Request Password Reset OTP",
     description=(
-        "Initiates the password reset process. "
-        "Sends an email with a unique reset link *if* the user associated with the provided email or username exists and is active. "
-        "**WARNING:** This endpoint reveals whether an identifier exists in the system."  # Added warning
+        "Initiates the password reset process. If the provided identifier (email or username) "
+        "corresponds to an active account, an OTP (One-Time Password) will be sent to the user's registered email. "
+        "This endpoint always returns a generic success response to prevent user account enumeration."
     ),
     request=PasswordResetRequestSerializer,
     responses={
-        status.HTTP_200_OK: OpenApiResponse(  # Updated 200 description
-            description="Request successful. Password reset email sent to the associated account.",
+        status.HTTP_200_OK: OpenApiResponse(
+            description="Request processed. If your account exists and is active, an OTP has been sent to your email address.",
             response=inline_serializer(
-                name="PasswordResetSent", fields={"detail": serializers.CharField()}
+                name="PasswordResetOTPSent", fields={"detail": serializers.CharField()}
             ),
             examples=[
                 OpenApiExample(
                     "Success",
-                    value={"detail": "Password reset email sent."},
+                    value={
+                        "detail": "If your account exists and is active, an OTP has been sent to your email address."
+                    },
                 )
             ],
         ),
-        status.HTTP_400_BAD_REQUEST: OpenApiResponse(
-            description="Bad Request: Invalid input format (e.g., identifier missing)."
-        ),
-        status.HTTP_404_NOT_FOUND: OpenApiResponse(  # Added specific 404
-            description="Not Found: No active user found with the provided identifier.",
+        status.HTTP_400_BAD_REQUEST: COMMON_ERRORS[
+            status.HTTP_400_BAD_REQUEST
+        ],  # For invalid input format
+        status.HTTP_500_INTERNAL_SERVER_ERROR: OpenApiResponse(
+            description="Internal Server Error: Issue during OTP generation or email sending.",
             response=inline_serializer(
-                name="UserNotFound", fields={"detail": serializers.CharField()}
-            ),
-            examples=[
-                OpenApiExample(
-                    "Not Found",
-                    value={"detail": "User with the provided identifier not found."},
-                )
-            ],
-        ),
-        status.HTTP_500_INTERNAL_SERVER_ERROR: OpenApiResponse(  # Keep 500 for unexpected errors
-            description="Internal Server Error: Issue during email sending or processing.",
-            response=inline_serializer(
-                name="PasswordResetError", fields={"detail": serializers.CharField()}
+                name="PasswordResetOTPError", fields={"detail": serializers.CharField()}
             ),
         ),
     },
 )
 class PasswordResetRequestView(generics.GenericAPIView):
-    """
-    Handles requests to initiate the password reset flow.
-    Checks for user existence and returns 404 if not found.
-    """
-
     permission_classes = [AllowAny]
     serializer_class = PasswordResetRequestSerializer
 
+    @transaction.atomic
     def post(self, request: Request, *args, **kwargs) -> Response:
         serializer = self.get_serializer(data=request.data)
         try:
-            serializer.is_valid(raise_exception=True)
-            # Validator returns the User object if found and active, otherwise None
-            # Crucially, the default serializer validation should *not* raise ValidationError if user is None
-            user: Optional[User] = serializer.validated_data.get(
-                "identifier"
-            )  # Use .get() for safety
+            if not serializer.is_valid():
+                logger.warning(
+                    f"Password reset OTP request failed basic validation: {serializer.errors}"
+                )
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            user: Optional[User] = serializer.validated_data.get("identifier")
+            identifier_from_request = request.data.get("identifier", "N/A")
 
             if user:
-                # User found, proceed with sending email
-                email_sent_successfully = send_password_reset_email(user)
+                # Invalidate (mark as used and expired) any previous, non-fully-used OTPs
+                # AND non-fully-used reset tokens for this user.
+                # This ensures only one active OTP/reset path per user.
+                PasswordResetOTP.objects.filter(user=user, is_used=False).update(
+                    is_used=True,  # Mark as if this path was abandoned
+                    otp_expires_at=timezone.now() - timedelta(seconds=1),
+                    reset_token_expires_at=timezone.now() - timedelta(seconds=1),
+                )
 
-                if email_sent_successfully:
-                    logger.info(
-                        f"Password reset initiated successfully for {user.username or user.email}"
-                    )
-                    return Response(
-                        {
-                            "detail": _("Password reset email sent.")
-                        },  # Specific success message
-                        status=status.HTTP_200_OK,
-                    )
-                else:
-                    # Email sending failed - this is an internal server error
+                otp_plain_text = generate_otp()
+                new_otp_record = PasswordResetOTP(user=user)
+                new_otp_record.set_otp(otp_plain_text)  # Sets hash and otp_expires_at
+                # reset_token fields are not set here yet.
+                new_otp_record.save()
+
+                email_sent = send_password_reset_otp_email(user, otp_plain_text)
+                if not email_sent:
                     logger.error(
-                        f"Failed to send password reset email to {user.username or user.email} after user lookup."
+                        f"Failed to send password reset OTP email to user '{user.username}' (identifier: {identifier_from_request}) after OTP generation."
                     )
-                    return Response(
-                        {
-                            "detail": _(
-                                "Failed to send password reset email. Please try again later."
-                            )
-                        },
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    )
-
-            else:
-                # User not found or inactive
-                identifier = request.data.get("identifier", "N/A")
+                    raise Exception(
+                        "Failed to send OTP email."
+                    )  # Will rollback transaction
                 logger.info(
-                    f"Password reset requested for non-existent or inactive identifier: {identifier}"
+                    f"Password reset OTP generated and email sent for user '{user.username}' (identifier: {identifier_from_request})."
                 )
-                return Response(
-                    {
-                        "detail": _("User with the provided identifier not found.")
-                    },  # Specific not found message
-                    status=status.HTTP_404_NOT_FOUND,
+            else:
+                logger.info(
+                    f"Password reset OTP request for non-existent or inactive identifier: {identifier_from_request}. No email sent (anti-enumeration)."
                 )
 
+            return Response(
+                {
+                    "detail": _(
+                        "If your account exists and is active, an OTP has been sent to your email address."
+                    )
+                },
+                status=status.HTTP_200_OK,
+            )
         except DRFValidationError as e:
-            # Handle validation errors from the serializer itself (e.g., field missing)
-            logger.warning(f"Password reset request validation failed: {e.detail}")
+            logger.warning(f"Password reset OTP request validation failed: {e.detail}")
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            # Catch any other unexpected errors
-            identifier = request.data.get("identifier", "N/A")
+            identifier_from_request = request.data.get("identifier", "N/A")
             logger.exception(
-                f"Unexpected error during password reset request for identifier '{identifier}': {e}"
+                f"Unexpected error during password reset OTP request for identifier '{identifier_from_request}': {e}"
             )
+            if "Failed to send OTP email" in str(e):
+                return Response(
+                    {
+                        "detail": _(
+                            "We encountered an issue sending the OTP. Please try again later or contact support."
+                        )
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
             return Response(
-                {"detail": _("An unexpected error occurred.")},
+                {
+                    "detail": _(
+                        "An unexpected error occurred. Please try again later or contact support."
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
 @extend_schema(
     tags=["Authentication"],
-    summary="Confirm Password Reset",
+    summary="Verify Password Reset OTP",
+    description="Verifies the OTP sent to the user's email. If successful, returns a short-lived reset token to be used for confirming the password change.",
+    request=PasswordResetVerifyOTPSerializer,
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            description="OTP verified successfully. Use the provided reset_token to set a new password.",
+            response=inline_serializer(
+                name="OTPVerifiedResponse",
+                fields={
+                    "reset_token": serializers.CharField(),
+                    "detail": serializers.CharField(),
+                },
+            ),
+            examples=[
+                OpenApiExample(
+                    "Success",
+                    value={
+                        "reset_token": "some_secure_token_string",
+                        "detail": "OTP verified successfully.",
+                    },
+                )
+            ],
+        ),
+        status.HTTP_400_BAD_REQUEST: COMMON_ERRORS[
+            status.HTTP_400_BAD_REQUEST
+        ],  # For invalid OTP, identifier, etc.
+    },
+)
+class PasswordResetVerifyOTPView(generics.GenericAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = PasswordResetVerifyOTPSerializer
+
+    @transaction.atomic
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+
+            # user = serializer.validated_data['user'] # Not directly needed here if otp_record has user
+            otp_record: PasswordResetOTP = serializer.validated_data["otp_record"]
+
+            # Generate and store the reset token within the OTP record
+            plain_reset_token = (
+                otp_record.generate_reset_token()
+            )  # This saves the otp_record
+
+            logger.info(
+                f"OTP verified for user '{otp_record.user.username}'. Reset token generated."
+            )
+            return Response(
+                {
+                    "reset_token": plain_reset_token,
+                    "detail": _(
+                        "OTP verified successfully. Please use the provided token to reset your password."
+                    ),
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except DRFValidationError as e:
+            logger.warning(f"Password reset OTP verification failed: {e.detail}")
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.exception(
+                f"Unexpected error during OTP verification for '{request.data.get('identifier', 'N/A')}': {e}"
+            )
+            return Response(
+                {"detail": _("An unexpected error occurred during OTP verification.")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Confirm Password Reset with OTP",
+    description="Sets a new password using the identifier (email/username), the OTP received via email, and the new password. Validates the OTP and updates the user's password upon success.",
+    request=PasswordResetConfirmOTPSerializer,
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            description="Password has been reset successfully.",
+            response=inline_serializer(
+                name="PasswordResetSuccess", fields={"detail": serializers.CharField()}
+            ),
+            examples=[
+                OpenApiExample(
+                    "Success", value={"detail": "Password has been reset successfully."}
+                )
+            ],
+        ),
+        status.HTTP_400_BAD_REQUEST: COMMON_ERRORS[
+            status.HTTP_400_BAD_REQUEST
+        ],  # Covers invalid OTP, password issues, etc.
+        # No explicit 404 as identifier validation is part of the 400 bad request if user not found.
+    },
+)
+class PasswordResetConfirmOTPView(generics.GenericAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = PasswordResetConfirmOTPSerializer
+
+    @transaction.atomic
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+
+            user: User = serializer.validated_data[
+                "user"
+            ]  # User derived from valid reset_token
+            new_password = serializer.validated_data["new_password"]
+            otp_record: PasswordResetOTP = serializer.validated_data[
+                "otp_record"
+            ]  # The record tied to the reset_token
+
+            # Double-check password policies for the specific user if needed
+            # validate_password(new_password, user=user) # Already done by serializer
+
+            user.set_password(new_password)
+            user.save(update_fields=["password"])
+
+            otp_record.mark_used()  # Mark the entire record as used
+
+            logger.info(
+                f"Password reset confirmed and updated successfully for user '{user.username}' using reset_token."
+            )
+            return Response(
+                {"detail": _("Password has been reset successfully.")},
+                status=status.HTTP_200_OK,
+            )
+        except DjangoValidationError as e:
+            logger.warning(
+                f"Password reset (token) confirmation failed for reset_token '{request.data.get('reset_token', 'N/A')}': New password validation failed: {e.messages}"
+            )
+            return Response(
+                {"new_password": e.messages}, status=status.HTTP_400_BAD_REQUEST
+            )
+        except DRFValidationError as e:
+            logger.warning(
+                f"Password reset (token) confirmation failed due to validation for reset_token '{request.data.get('reset_token', 'N/A')}': {e.detail}"
+            )
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.exception(
+                f"Unexpected error during password reset (token) confirmation for reset_token '{request.data.get('reset_token', 'N/A')}': {e}"
+            )
+            return Response(
+                {
+                    "detail": _(
+                        "An unexpected error occurred while resetting your password. Please try again."
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Confirm Password Reset from Admin when send to reset the user password",
     description="Sets a new password using the uidb64 and token from the password reset email link. Validates the token and updates the user's password.",
     request=PasswordResetConfirmSerializer,
     responses={

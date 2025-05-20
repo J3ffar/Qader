@@ -1,4 +1,5 @@
 import random
+import secrets
 import string
 import uuid
 import logging
@@ -167,6 +168,70 @@ def send_password_reset_email(user: User, context: dict = None):
         return True
     except Exception as e:
         logger.exception(f"Error sending password reset email to {user.email}: {e}")
+        return False
+
+
+def generate_otp(length: Optional[int] = None) -> str:
+    """Generates a secure random OTP of a specified length."""
+    otp_actual_length = length if length is not None else settings.OTP_LENGTH
+    return "".join(secrets.choice(string.digits) for _ in range(otp_actual_length))
+
+
+def send_password_reset_otp_email(
+    user: User, otp_code: str, context: Optional[dict] = None
+) -> bool:
+    """
+    Sends an email with the OTP for password reset.
+    """
+    if not user or not user.email:
+        logger.error(
+            "Attempted to send password reset OTP to invalid user or user without email."
+        )
+        return False
+
+    language_code = (
+        user.profile.language
+        if hasattr(user, "profile") and user.profile.language
+        else settings.LANGUAGE_CODE
+    )
+
+    try:
+        email_context = {
+            "email": user.email,
+            "username": user.username,
+            "otp_code": otp_code,
+            "otp_expiry_minutes": settings.OTP_EXPIRY_MINUTES,
+            "site_name": settings.SITE_NAME,
+            "user": user,
+            **(context or {}),
+        }
+
+        with override(language_code):
+            subject = render_to_string(
+                "emails/password_reset_otp/password_reset_otp_subject.txt",
+                email_context,
+            ).strip()
+            html_body = render_to_string(
+                "emails/password_reset_otp/password_reset_otp_body.html", email_context
+            )
+            text_body = render_to_string(
+                "emails/password_reset_otp/password_reset_otp_body.txt", email_context
+            )
+
+        msg = EmailMultiAlternatives(
+            subject,
+            text_body,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+        )
+        msg.attach_alternative(html_body, "text/html")
+        msg.send()
+        logger.info(
+            f"Password reset OTP email sent successfully to {user.email} in language '{language_code}'."
+        )
+        return True
+    except Exception as e:
+        logger.exception(f"Error sending password reset OTP email to {user.email}: {e}")
         return False
 
 
