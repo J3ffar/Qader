@@ -1,106 +1,61 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ subject }}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            text-align: center;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #eeeeee;
-        }
-        .header h1 {
-            margin: 0;
-            color: #0056b3;
-        }
-        .content {
-            padding: 20px 0;
-        }
-        .content p {
-            margin: 0 0 10px;
-        }
-        .content strong {
-            color: #0056b3;
-        }
-        .button-link {
-            display: inline-block;
-            padding: 10px 20px;
-            margin-top: 15px;
-            background-color: #007bff;
-            color: #ffffff;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        .button-link:hover {
-            background-color: #0056b3;
-        }
-        .footer {
-            text-align: center;
-            padding-top: 20px;
-            border-top: 1px solid #eeeeee;
-            font-size: 0.9em;
-            color: #777777;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>{{ subject|default:"New Notification" }}</h1>
-        </div>
-        <div class="content">
-            <p>Hi {{ recipient_name|default:"User" }},</p>
-            
-            <p>
-                {% if actor_name and actor_name != "System" %}
-                    <strong>{{ actor_name }}</strong>
-                {% endif %}
-                {{ verb }}.
-            </p>
+{% extends "emails/base_email.html" %}
+{% load i18n %}
 
-            {% if description %}
-                <p><em>{{ description }}</em></p>
-            {% endif %}
+{% block title %}{{ subject|default:_("Notification") }}{% endblock %}
 
-            {% if target_name %}
-                <p>Related to: {{ target_name }}</p>
-            {% endif %}
-            
-            {% if action_object_name %}
-                 <p>Details: {{ action_object_name }}</p>
-            {% endif %}
+{% block preheader %}{{ verb|truncatewords:10|default:_("You have a new notification.") }}{% endblock %}
 
-            {% if url and site_base_url %}
-                <p>
-                    <a href="{{ site_base_url }}{{ url }}" class="button-link">View Details</a>
-                </p>
-            {% elif url %}
-                 <p>You can view more details here: {{ url }} (Please prepend your site's address if this is a relative link)</p>
-            {% endif %}
-        </div>
-        <div class="footer">
-            <p>Thanks,<br>The Qader Team</p>
-            <p>&copy; {% now "Y" %} Qader. All rights reserved.</p>
-        </div>
-    </div>
-</body>
-</html>
+{% block header_text %}{{ subject|default:_("New Notification") }}{% endblock %}
+
+{% block email_content %}
+    <p style="color: #201C2E;">{% blocktrans with recipient_name=recipient_name|default:"User" %}Hi {{ recipient_name }},{% endblocktrans %}</p>
+    
+    <p style="color: #201C2E;">
+        {% if actor_name and actor_name != "System" %}
+            <strong style="color: #201C2E; font-weight: 600;">{{ actor_name }}</strong>
+        {% endif %}
+        {{ verb }}.
+    </p>
+
+    {% if description %}
+        <p style="font-style: italic; color: #555166; border-left: 3px solid #ECEBEE; padding-left: 10px; margin: 15px 0;">{{ description }}</p>
+    {% endif %}
+
+    {% if target_name %}
+        <p style="color: #201C2E;"><strong>{% trans "Related to:" %}</strong> {{ target_name }}</p>
+    {% endif %}
+    
+    {% if action_object_name %}
+         <p style="color: #201C2E;"><strong>{% trans "Details:" %}</strong> {{ action_object_name }}</p>
+    {% endif %}
+
+    {% if url %}
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 25px 0;">
+            <tr>
+                <td align="center">
+                    <div>
+                        <a href="{% if url|slice:":4" == 'http' %}{{ url }}{% else %}{{ site_base_url }}{{ url }}{% endif %}"
+                           target="_blank"
+                           class="button"
+                           style="display: inline-block; background-color: #2E294E; color: #FBF9FE !important; padding: 12px 24px; text-align: center; text-decoration: none !important; border-radius: 8px; font-size: 16px; font-weight: 500; border: 1px solid #2E294E;">
+                            {% trans "View Details" %}
+                        </a>
+                        <!--[if mso]>
+                        <div class="button-fallback" style="display:none; mso-hide: none;">
+                            <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center">
+                                <tr>
+                                    <td align="center" style="border-radius: 8px; background-color: #2E294E;">
+                                        <a href="{% if url|slice:":4" == 'http' %}{{ url }}{% else %}{{ site_base_url }}{{ url }}{% endif %}" target="_blank" style="font-size: 16px; font-weight: 500; color: #FBF9FE !important; text-decoration: none !important; padding: 12px 24px; border: 1px solid #2E294E; border-radius: 8px; display: inline-block;">
+                                            {% trans "View Details" %}
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <![endif]-->
+                    </div>
+                </td>
+            </tr>
+        </table>
+    {% endif %}
+{% endblock %}

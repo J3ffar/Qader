@@ -1,30 +1,43 @@
-Subject: {{ subject|default:"New Notification" }}
+{% load i18n %}
+{# Subject line - The 'subject' variable itself should ideally be passed as a translated string if it's dynamic. #}
+{# If 'subject' is a fixed key that needs translation, you'd handle it differently in the view. #}
+{# Here, we translate the default. #}
+Subject: {{ subject|default:_("New Notification") }}
 
-Hi {{ recipient_name|default:"User" }},
+{% blocktrans with recipient_name=recipient_name|default:_("User") %}Hi {{ recipient_name }},{% endblocktrans %}
 
-{% if actor_name and actor_name != "System" %}{{ actor_name }}{% else %}A system notification{% endif %} {{ verb }}.
+{% if actor_name and actor_name != "System" %}
+{# Assuming 'verb' is already a translated string or a simple verb that works across languages in this context #}
+{% blocktrans with actor_name=actor_name verb=verb %}
+{{ actor_name }} {{ verb }}.
+{% endblocktrans %}
+{% else %}
+{% blocktrans with verb=verb %}
+A system notification {{ verb }}.
+{% endblocktrans %}
+{% endif %}
 
 {% if description %}
-Description: {{ description }}
+{% trans "Description:" %} {{ description }}
 {% endif %}
 
 {% if target_name %}
-Related to: {{ target_name }}
+{% trans "Related to:" %} {{ target_name }}
 {% endif %}
 
 {% if action_object_name %}
-Details: {{ action_object_name }}
+{% trans "Details:" %} {{ action_object_name }}
 {% endif %}
 
 {% if url and site_base_url %}
-View Details: {{ site_base_url }}{{ url }}
+{% trans "View Details:" %} {{ site_base_url }}{{ url }}
 {% elif url %}
-View Details: {{ url }} (Please prepend your site's address if this is a relative link)
+{% trans "View Details:" %} {{ url }} ({% trans "Please prepend your site's address if this is a relative link" %})
 {% endif %}
 
-Thanks,
-The Qader Team
+{% trans "Thanks," %}
+{% blocktrans with site_name=site_name|default:"Qader" %}The {{ site_name }} Team{% endblocktrans %}
 
 ---
-This is an automated notification.
-&copy; {% now "Y" %} Qader. All rights reserved.
+{% trans "This is an automated notification." %}
+© {% now "Y" %} {{ site_name|default:"Qader" }}. {% trans "All rights reserved." %}

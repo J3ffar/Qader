@@ -1,0 +1,249 @@
+{% load i18n %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:"en" }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% trans "Notification" %}{% endblock %} | {{ site_name|default:"Qader" }}</title>
+    <style type="text/css">
+        /* Reset & Base Styles */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            background-color: #F0F2F5; /* Slightly softer page background */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            color: #201C2E; /* Primary text color */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+        table {
+            border-collapse: collapse;
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+            -ms-interpolation-mode: bicubic;
+            max-width: 100%;
+        }
+        p {
+            margin: 0 0 1em 0;
+            color: #201C2E;
+        }
+        p:last-child {
+            margin-bottom: 0;
+        }
+        a {
+            color: #2E294E; /* Primary link color */
+            text-decoration: none;
+            font-weight: 500;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Layout */
+        .email-wrapper {
+            width: 100%;
+            background-color: #F0F2F5; /* Consistent page background */
+            padding: 20px 0; /* Padding around the main container */
+        }
+        .container {
+            background-color: #FFFFFF; /* Card background */
+            border-radius: 12px; /* Slightly larger radius for a softer look --radius from your theme is 10px, this is an option */
+            border: 1px solid #E1E4E8; /* Softer border color */
+            margin: 0 auto;
+            max-width: 580px; /* Common width for good readability */
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* Subtle shadow for depth */
+        }
+
+        /* Header */
+        .header {
+            padding: 28px 32px; /* Generous padding */
+            border-bottom: 1px solid #E1E4E8;
+            text-align: center;
+        }
+        .header-logo {
+            max-height: 48px; /* Adjust as needed */
+            margin-bottom: 16px;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #201C2E; /* Heading color */
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        /* Content */
+        .content {
+            padding: 28px 32px; /* Consistent generous padding */
+        }
+
+        /* Footer */
+        .footer {
+            padding: 24px 32px;
+            border-top: 1px solid #E1E4E8;
+            text-align: center;
+            font-size: 13px;
+            color: #8C879B; /* Muted text color */
+        }
+        .footer a {
+            color: #8C879B;
+            text-decoration: underline;
+        }
+        .footer p {
+            color: #8C879B;
+            margin-bottom: 8px;
+        }
+
+        /* Button */
+        .button {
+            display: inline-block;
+            background-color: #2E294E; /* Button background from --primary */
+            color: #FBF9FE !important; /* Button text from --primary-foreground, important for <a> */
+            padding: 14px 28px;
+            text-align: center;
+            text-decoration: none !important;
+            border-radius: 8px; /* Consistent radius */
+            font-size: 16px;
+            font-weight: 500;
+            border: 1px solid #2E294E;
+            mso-hide: all; /* Hide from Outlooks that don't support rounded corners well on <a> */
+            transition: background-color 0.2s ease-in-out;
+        }
+        .button:hover {
+            background-color: #201C2E; /* Darken button on hover */
+            text-decoration: none !important;
+        }
+        /* Fallback for Outlook */
+        .button-fallback {
+            display: none; /* Hide by default */
+            mso-hide: none; /* Show only in Outlook */
+        }
+
+        /* OTP Code Box */
+        .otp-code {
+            font-size: 26px;
+            font-weight: 700; /* Bolder OTP */
+            letter-spacing: 4px; /* Increased letter spacing */
+            color: #2E294E; /* Primary color for OTP */
+            padding: 16px 20px;
+            background-color: #F8F9FA; /* Very light background for contrast */
+            border: 1px solid #D1D5DB; /* Slightly more visible border */
+            border-radius: 8px;
+            text-align: center;
+            margin: 24px 0;
+        }
+
+        /* Utility */
+        .preheader {
+            display: none !important;
+            visibility: hidden;
+            opacity: 0;
+            color: transparent;
+            height: 0;
+            width: 0;
+        }
+        .spacer { /* For creating vertical space */
+            height: 20px;
+            line-height: 20px;
+            font-size: 20px;
+        }
+
+    </style>
+    <!--[if mso]>
+    <style type="text/css">
+        body {background-color: #F0F2F5 !important;} /* Force background for Outlook */
+        .container {border: none !important; box-shadow: none !important;} /* Outlook doesn't support box-shadow well */
+        .button-fallback { display: block !important; }
+        .button-fallback td {
+            background-color: #2E294E !important;
+            border-radius: 8px;
+        }
+        .button-fallback a {
+            color: #FBF9FE !important;
+            text-decoration: none !important;
+            display: inline-block;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+    </style>
+    <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; width: 100%; background-color: #F0F2F5;">
+    <span class="preheader">{% block preheader %}{% endblock %}</span>
+
+    <table role="presentation" class="email-wrapper" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F0F2F5;">
+        <tr>
+            <td align="center" style="padding: 20px 15px;">
+                <!--[if mso | IE]>
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="580" align="center" style="width:580px; margin:0 auto;">
+                <tr>
+                <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">
+                <![endif]-->
+
+                <div class="container" style="background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E1E4E8; margin: 0 auto; max-width: 580px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                        {% block email_header %}
+                        <tr>
+                            <td class="header" style="padding: 28px 32px; border-bottom: 1px solid #E1E4E8; text-align: center;">
+                                <!-- Optional: Add your logo here -->
+                                <img src="https://www.qader.vip{% static 'logo.png' %}" alt="{{ site_name }} Logo" class="header-logo" style="max-height: 48px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto;">
+                                <h1 style="font-size: 24px; font-weight: 600; color: #201C2E; margin: 0; line-height: 1.3;">
+                                    {% block header_text %}{{ site_name|default:"Qader" }}{% endblock %}
+                                </h1>
+                            </td>
+                    </tr>
+                        {% endblock email_header %}
+
+                        <tr>
+                            <td class="content" style="padding: 28px 32px;">
+                                {% block email_content %}
+                                <!-- Default content if not overridden -->
+                                <p style="color: #201C2E;">This is a notification from {{ site_name|default:"Qader" }}.</p>
+                                {% endblock %}
+                            </td>
+                        </tr>
+
+                        {% block email_footer %}
+                        <tr>
+                            <td class="footer" style="padding: 24px 32px; border-top: 1px solid #E1E4E8; text-align: center; font-size: 13px; color: #8C879B;">
+                                <p style="margin: 0 0 8px 0; color: #8C879B;">
+                                    {% trans "Thanks," %}<br />
+                                    {% blocktrans with site_name=site_name|default:"Qader" %}The {{ site_name }} Team{% endblocktrans %}
+                                </p>
+                                <p style="margin: 0 0 8px 0; color: #8C879B;">© {% now "Y" %} {{ site_name|default:"Qader" }}. {% trans "All rights reserved." %}</p>
+                                <!-- Optional: Add address or unsubscribe link -->
+                                {# <p style="margin: 0; color: #8C879B;">123 Qader Street, Learning City, ED 101</p> #}
+                                {# <p style="margin: 0; color: #8C879B;"><a href="#" style="color: #8C879B; text-decoration: underline;">Unsubscribe</a></p> #}
+                            </td>
+                        </tr>
+                        {% endblock email_footer %}
+                    </table>
+                </div>
+
+                <!--[if mso | IE]>
+                </td>
+                </tr>
+                </table>
+                <![endif]-->
+            </td>
+        </tr>
+        <!-- Optional: Add a little extra space at the bottom of the email body -->
+        <tr>
+            <td class="spacer" style="height: 20px; line-height: 20px; font-size: 20px;"> </td>
+        </tr>
+    </table>
+</body>
+</html>
