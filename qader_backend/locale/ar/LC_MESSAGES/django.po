@@ -91,8 +91,6 @@ msgid "Confirm your email address to activate your account."
 msgstr "قم بتأكيد عنوان بريدك الإلكتروني لتفعيل حسابك."
 
 #: .\templates\emails\confirmation_body.html:9
-#, fuzzy
-#| msgid "Account Activation for %(site_name)s"
 msgid "Account Activation"
 msgstr "تفعيل الحساب"
 
