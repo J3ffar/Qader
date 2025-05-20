@@ -1,12 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { StarIcon } from "@heroicons/react/24/outline";
+import axios from "axios";
 
 const RewardsDashboard = () => {
-  const testPoints = [
+  const defaultTestPoints = [
     { day: "الأحد", percent: 50 },
     { day: "الإثنين", percent: 30 },
     { day: "الثلاثاء", percent: 60 },
@@ -16,9 +17,7 @@ const RewardsDashboard = () => {
     { day: "السبت", percent: 50 },
   ];
 
-  const activeDays = [true, true, false, false, false, false, false];
-
-  const storeItems = [
+  const defaultStoreItems = [
     {
       title: "تصاميم",
       desc: "استبدل 20 نقطة مقابل الحصول على تصاميم، شرح وافٍ لما ستحصل عليه.",
@@ -41,11 +40,60 @@ const RewardsDashboard = () => {
     },
   ];
 
+  const [testPoints, setTestPoints] = useState(defaultTestPoints);
+  const [badgesCount, setBadgesCount] = useState(12);
+  const [streakPoints, setStreakPoints] = useState(30);
+  const [activeDays, setActiveDays] = useState([true, true, false, false, false, false, false]);
+  const [storeItems, setStoreItems] = useState(defaultStoreItems);
+
+  useEffect(() => {
+    const fetchGamificationData = async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        const headers = {
+          Authorization: `Bearer ${token}`,
+        };
+
+        const [summaryRes, badgesRes, storeRes] = await Promise.all([
+          axios.get("https://qader.vip/api/v1/gamification/summary/", { headers }),
+          axios.get("https://qader.vip/api/v1/gamification/badges/", { headers }),
+          axios.get("https://qader.vip/api/v1/gamification/rewards-store/", { headers }),
+        ]);
+
+        const summary = summaryRes.data;
+        const badges = badgesRes.data.filter((badge:any) => badge.is_earned);
+        const store = storeRes.data;
+
+        if (badges.length) setBadgesCount(badges.length);
+        if (summary.current_streak) {
+          setStreakPoints(summary.current_streak * 10);
+          setActiveDays(
+            Array.from({ length: 7 }, (_, i) => i < summary.current_streak)
+          );
+        }
+        if (Array.isArray(store) && store.length > 0) {
+          setStoreItems(
+            store.map((item) => ({
+              title: item.name,
+              desc: item.description,
+              points: item.cost_points,
+            }))
+          );
+        }
+
+      } catch (error) {
+        console.error("Error fetching gamification data:", error);
+      }
+    };
+
+    fetchGamificationData();
+  }, []);
+
   return (
-    <div className="p-5 space-y-6">
+    <div className="p-5 space-y-6 dark:bg-[#081028]">
       <div className="flex flex-wrap gap-6">
         {/* Test Points Section */}
-        <div className="flex-1 min-w-[300px] border rounded-2xl p-5">
+        <div className="flex-1 min-w-[300px] border rounded-2xl p-5 dark:bg-[#0B1739]">
           <p className="font-bold mb-2">النقاط الاختبارات</p>
           <div className="text-3xl font-bold text-center mb-1">50</div>
           <p className="text-sm text-center text-gray-500 mb-4">نقطة</p>
@@ -65,10 +113,10 @@ const RewardsDashboard = () => {
         </div>
 
         {/* Achievement and Weekly Stars Section */}
-        <div className="flex-1 min-w-[300px] border rounded-2xl p-5 space-y-4">
+        <div className="flex-1 min-w-[300px] border rounded-2xl p-5 space-y-4 dark:bg-[#0B1739]">
           <div>
             <p className="font-bold mb-1">شارات الإنجاز</p>
-            <p className="text-2xl font-bold">12</p>
+            <p className="text-2xl font-bold">{badgesCount}</p>
             <p className="text-sm text-gray-500">شارة إنجاز</p>
             <div className="mt-2 flex flex-wrap gap-1 text-xl">
               <span>🏅</span>
@@ -82,7 +130,7 @@ const RewardsDashboard = () => {
           </div>
           <div>
             <p className="font-bold mb-1">نقاط الأيام التالية</p>
-            <p className="text-2xl font-bold">30</p>
+            <p className="text-2xl font-bold">{streakPoints}</p>
             <p className="text-sm text-gray-500 mb-1">نقطة</p>
             <div className="flex items-center">
               <StarIcon className="w-8 h-8 text-[#2f80ed]" />
@@ -110,7 +158,7 @@ const RewardsDashboard = () => {
       </div>
 
       {/* Store Section */}
-      <div className="border p-5 rounded-2xl">
+      <div className="border p-5 rounded-2xl dark:bg-[#0B1739]">
         <p className="font-bold mb-5">متجر المكافآت</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {storeItems.map((item, index) => (
