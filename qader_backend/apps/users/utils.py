@@ -135,7 +135,7 @@ def send_password_reset_email(user: User, context: dict = None):
 
         email_context = {
             "email": user.email,
-            "username": user.username,
+            "full_name": user.profile.full_name,
             "reset_link": reset_link,
             "site_name": settings.SITE_NAME,  # SITE_NAME is already lazy translated
             "user": user,
@@ -198,7 +198,7 @@ def send_password_reset_otp_email(
     try:
         email_context = {
             "email": user.email,
-            "username": user.username,
+            "full_name": user.profile.full_name,
             "otp_code": otp_code,
             "otp_expiry_minutes": settings.OTP_EXPIRY_MINUTES,
             "site_name": settings.SITE_NAME,
