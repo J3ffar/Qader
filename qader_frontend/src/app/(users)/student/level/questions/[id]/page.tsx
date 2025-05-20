@@ -6,8 +6,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
-// Default questions as a fallback
 const defaultQuestions = [
   {
     text: "ما هو عاصمة فرنسا؟",
@@ -42,23 +42,24 @@ const TraditionalEdu = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
-  const [timeLeft, setTimeLeft] = useState(5 * 60 + 30); // 5 minutes 30 seconds
+  const [timeLeft, setTimeLeft] = useState(5 * 60 + 30);
   const [isTimeOver, setIsTimeOver] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
 
-    // Fetch attempt data from API
     const fetchAttemptData = async () => {
       try {
-        const response = await fetch("https://qader.vip/ar/api/v1/study/attempts/1/"); // Replace '1' with dynamic attempt_id if needed
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const data = await response.json();
-        if (data && data.results && data.results.length > 0) {
-          // Map API data to match question structure
+        const accessToken = localStorage.getItem("accessToken");
+        const response = await axios.get("https://qader.vip/ar/api/v1/study/attempts/1/", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        const data = response.data;
+        if (data?.results?.length > 0) {
           const apiQuestions = data.results.map((item: any) => ({
             text: item.question_text,
             options: item.options,
@@ -66,9 +67,38 @@ const TraditionalEdu = () => {
           }));
           setQuestions(apiQuestions);
         }
-      } catch (error) {
-        console.error("Failed to fetch attempt data:", error);
-        // Keep default questions
+      } catch (error: any) {
+        if (error.response?.status === 401) {
+          try {
+            const refreshToken = localStorage.getItem("refreshToken");
+            const refreshResponse = await axios.post("https://qader.vip/ar/api/v1/auth/token/refresh/", {
+              refresh: refreshToken,
+            });
+
+            const newAccessToken = refreshResponse.data.access;
+            localStorage.setItem("accessToken", newAccessToken);
+
+            const retryResponse = await axios.get("https://qader.vip/ar/api/v1/study/attempts/1/", {
+              headers: {
+                Authorization: `Bearer ${newAccessToken}`,
+              },
+            });
+
+            const retryData = retryResponse.data;
+            if (retryData?.results?.length > 0) {
+              const apiQuestions = retryData.results.map((item: any) => ({
+                text: item.question_text,
+                options: item.options,
+                correctAnswer: item.correct_answer_index,
+              }));
+              setQuestions(apiQuestions);
+            }
+          } catch (refreshError) {
+            console.error("Token refresh failed", refreshError);
+          }
+        } else {
+          console.error("Failed to fetch attempt data:", error);
+        }
       }
     };
 
@@ -90,9 +120,7 @@ const TraditionalEdu = () => {
   }, [router]);
 
   const formatTime = (seconds: number) => {
-    const min = Math.floor(seconds / 60)
-      .toString()
-      .padStart(2, "0");
+    const min = Math.floor(seconds / 60).toString().padStart(2, "0");
     const sec = (seconds % 60).toString().padStart(2, "0");
     return `${min}:${sec}`;
   };
@@ -103,7 +131,6 @@ const TraditionalEdu = () => {
 
   const handleConfirm = () => {
     if (selectedAnswer === null) return;
-
     const updatedAnswers = [...userAnswers];
     updatedAnswers[currentQuestionIndex] = selectedAnswer;
     setUserAnswers(updatedAnswers);
@@ -111,11 +138,9 @@ const TraditionalEdu = () => {
 
   const handleNext = () => {
     if (selectedAnswer === null) return;
-
     const updatedAnswers = [...userAnswers];
     updatedAnswers[currentQuestionIndex] = selectedAnswer;
     setUserAnswers(updatedAnswers);
-
     setCurrentQuestionIndex((prev) => prev + 1);
     setSelectedAnswer(null);
   };
@@ -124,9 +149,6 @@ const TraditionalEdu = () => {
     const updatedAnswers = [...userAnswers];
     updatedAnswers[currentQuestionIndex] = selectedAnswer;
     setUserAnswers(updatedAnswers);
-
-    // Optionally, send userAnswers to the server here
-
     router.push("/student/level/questions/1/results");
   };
 
@@ -138,26 +160,24 @@ const TraditionalEdu = () => {
   return (
     <div className="p-5 dark:bg-[#081028]">
       <div className="space-y-8">
-        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div>
             <p className="font-bold text-lg">عنوان</p>
             <p className="text-gray-600 mt-1">وصف</p>
           </div>
-          <button className="flex items-center gap-2 border border-[#f34b4b] p-2 rounded-lg text-[#f34b4b] font-semibold">
-            <ArrowRightEndOnRectangleIcon className="w-5 h-5" />
-            انهاء الاختبار
-          </button>
+          <a href="/student/level">
+            <button className="flex items-center gap-2 border border-[#f34b4b] p-2 rounded-lg text-[#f34b4b] font-semibold">
+              <ArrowRightEndOnRectangleIcon className="w-5 h-5" />
+              انهاء الاختبار
+            </button>
+          </a>
         </div>
 
-        {/* Progress */}
         <div className="flex items-center gap-4 mx-auto max-w-3xl">
           <div className="flex-1 bg-[#9ec9fa] rounded-full h-2 overflow-hidden">
             <div
               className="bg-[#074182] h-full"
-              style={{
-                width: `${((currentQuestionIndex + 1) / questions.length) * 100}%`,
-              }}
+              style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
             ></div>
           </div>
           <span className="text-[#074182]">
@@ -165,7 +185,6 @@ const TraditionalEdu = () => {
           </span>
         </div>
 
-        {/* Question Body */}
         <div className="flex flex-col lg:flex-row gap-8 mx-auto max-w-3xl">
           <div className="flex-1 space-y-6">
             <div className="border rounded-2xl">
@@ -199,7 +218,6 @@ const TraditionalEdu = () => {
               </div>
             </div>
 
-            {/* Navigation Buttons */}
             <div className="flex justify-center gap-4 font-bold">
               {currentQuestionIndex < questions.length - 1 ? (
                 <>

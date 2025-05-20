@@ -96,10 +96,12 @@ const TestResults = () => {
             <p className="font-bold text-lg">نتيجة الاختبار</p>
             <p className="text-gray-600 mt-1">شاهد الإجابات الصحيحة لكل سؤال</p>
           </div>
-          <button className="flex items-center gap-2 border border-[#f34b4b] p-2 rounded-lg text-[#f34b4b] font-semibold">
+          <a href="/student/level/questions/1/score">
+            <button className="flex items-center gap-2 border border-[#f34b4b] p-2 rounded-lg text-[#f34b4b] font-semibold">
             <ArrowRightEndOnRectangleIcon className="w-5 h-5" />
-            العودة
+            عرض النتائج
           </button>
+          </a>
         </div>
 
         <div className="flex flex-col md:flex-row-reverse min-h-screen p-4 gap-4 ">
