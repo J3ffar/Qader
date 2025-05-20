@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-18 16:09+0300\n"
+"POT-Creation-Date: 2025-05-19 23:44+0300\n"
 "PO-Revision-Date: 2023-10-27 10:00+0000\n"
 "Last-Translator: Your Name <your.email@example.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -42,15 +42,15 @@ msgid "User not found or not authenticated in serializer context."
 msgstr ""
 "لم يتم العثور على المستخدم أو لم يتم التحقق من هويته في سياق السيريالايزر."
 
-#: .\qader_project\settings\base.py:34
+#: .\qader_project\settings\base.py:38
 msgid "Qader"
 msgstr "قادر"
 
-#: .\qader_project\settings\base.py:169
+#: .\qader_project\settings\base.py:180
 msgid "Arabic"
 msgstr "العربية"
 
-#: .\qader_project\settings\base.py:170
+#: .\qader_project\settings\base.py:181
 msgid "English"
 msgstr "الإنجليزية"
 
@@ -103,6 +103,8 @@ msgstr "إذا لم تقم بالتسجيل للحصول على حساب، ير�
 #: .\templates\emails\confirmation_body.txt:17
 #: .\templates\emails\password_reset_body.html:25
 #: .\templates\emails\password_reset_body.txt:13
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.html:21
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:14
 msgid "Thanks,"
 msgstr "شكرًا،"
 
@@ -110,6 +112,8 @@ msgstr "شكرًا،"
 #: .\templates\emails\confirmation_body.txt:18
 #: .\templates\emails\password_reset_body.html:26
 #: .\templates\emails\password_reset_body.txt:14
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.html:22
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:15
 #, python-format
 msgid "The %(site_name)s Team"
 msgstr "فريق %(site_name)s"
@@ -140,6 +144,8 @@ msgstr "إعادة تعيين كلمة المرور"
 #. Translators: Email greeting. username is the variable for the user's username.
 #: .\templates\emails\password_reset_body.html:11
 #: .\templates\emails\password_reset_body.txt:3
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.html:8
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:2
 #, python-format
 msgid "Hello %(username)s,"
 msgstr "مرحبًا %(username)s،"
@@ -147,6 +153,8 @@ msgstr "مرحبًا %(username)s،"
 #. Translators: Email body text confirming password reset request. site_name is the platform name.
 #: .\templates\emails\password_reset_body.html:14
 #: .\templates\emails\password_reset_body.txt:6
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.html:10
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:4
 #, python-format
 msgid "You requested a password reset for your account on %(site_name)s."
 msgstr "لقد طلبت إعادة تعيين كلمة المرور لحسابك على %(site_name)s."
@@ -164,12 +172,42 @@ msgstr "إعادة تعيين كلمة المرور"
 #. Translators: Email body text for users who didn't request a reset.
 #: .\templates\emails\password_reset_body.html:21
 #: .\templates\emails\password_reset_body.txt:11
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.html:18
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:12
 msgid "If you didn't request this, please ignore this email."
 msgstr "إذا لم تطلب ذلك، يرجى تجاهل هذا البريد الإلكتروني."
 
 #: .\templates\emails\password_reset_body.txt:8
 msgid "Please go to the following link to set a new password:"
 msgstr "يرجى الانتقال إلى الرابط التالي لتعيين كلمة مرور جديدة:"
+
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.html:5
+#, fuzzy
+#| msgid "Password Reset"
+msgid "Password Reset OTP"
+msgstr "إعادة تعيين كلمة المرور"
+
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.html:12
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:6
+msgid "Your One-Time Password (OTP) is:"
+msgstr "كلمة المرور الخاصة بك لمرة واحدة (OTP) هي:"
+
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.html:15
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:9
+#, python-format
+msgid "This OTP is valid for %(expiry_minutes)s minutes."
+msgstr "هذا OTP صالح لمدة %(expiry_minutes)s دقيقة."
+
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.html:16
+#: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:10
+msgid "Please use this OTP to complete your password reset process."
+msgstr "يرجى استخدام OTP هذا لإكمال عملية إعادة تعيين كلمة المرور الخاصة بك."
+
+#: .\templates\emails\password_reset_otp\password_reset_otp_subject.txt:2
+#, fuzzy, python-format
+#| msgid "Password Reset for %(site_name)s"
+msgid "Password Reset OTP for %(site_name)s"
+msgstr "إعادة تعيين كلمة المرور لـ %(site_name)s"
 
 #: .\templates\emails\password_reset_subject.txt:2
 #, python-format

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-18 15:00+0300\n"
+"POT-Creation-Date: 2025-05-19 23:45+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -35,15 +35,15 @@ msgstr "الكائنات ذات الصلة (للقراءة فقط)"
 msgid "Timestamps"
 msgstr "الطوابع الزمنية"
 
-#: .\apps\notifications\admin.py:76 .\apps\notifications\models.py:40
+#: .\apps\notifications\admin.py:76 .\apps\notifications\models.py:41
 msgid "Recipient"
 msgstr "المستلم"
 
-#: .\apps\notifications\admin.py:82 .\apps\notifications\models.py:50
+#: .\apps\notifications\admin.py:82 .\apps\notifications\models.py:51
 msgid "Actor"
 msgstr "الفاعل"
 
-#: .\apps\notifications\admin.py:88 .\apps\notifications\models.py:106
+#: .\apps\notifications\admin.py:88 .\apps\notifications\models.py:107
 msgid "Created At"
 msgstr "تاريخ الإنشاء"
 
@@ -79,7 +79,7 @@ msgstr "تم وضع علامة مقروء على {updated_count} إشعار(ات
 msgid "{updated_count} unread notification(s) marked as read."
 msgstr "تم وضع علامة مقروء على {updated_count} إشعار(ات) غير مقروءة."
 
-#: .\apps\notifications\apps.py:8 .\apps\notifications\models.py:116
+#: .\apps\notifications\apps.py:8 .\apps\notifications\models.py:117
 msgid "Notifications"
 msgstr "الإشعارات"
 
@@ -139,64 +139,80 @@ msgstr "تعيين مرشد"
 msgid "Support Ticket Update"
 msgstr "تحديث تذكرة الدعم"
 
-#: .\apps\notifications\models.py:53
+#: .\apps\notifications\models.py:27
+msgid "Chat Message"
+msgstr "رسالة الدردشة"
+
+#: .\apps\notifications\models.py:54
 msgid "Verb"
 msgstr "الفعل"
 
-#: .\apps\notifications\models.py:56
+#: .\apps\notifications\models.py:57
 msgid ""
 "A short description of the action, e.g., 'liked your post', 'earned a new "
 "badge'."
 msgstr "وصف موجز للإجراء، على سبيل المثال، 'أعجب بمنشورك'، 'كسب شارة جديدة'."
 
-#: .\apps\notifications\models.py:60
+#: .\apps\notifications\models.py:61
 msgid "Description"
 msgstr "الوصف"
 
-#: .\apps\notifications\models.py:64
+#: .\apps\notifications\models.py:65
 msgid ""
 "Optional: More detailed text for the notification. Can include simple HTML "
 "if rendered carefully."
 msgstr ""
 "اختياري: نص أكثر تفصيلاً للإشعار. يمكن أن يتضمن HTML بسيطًا إذا تم عرضه بعناية."
 
-#: .\apps\notifications\models.py:77
+#: .\apps\notifications\models.py:78
 msgid "Target Object ID"
 msgstr "معرف كائن الهدف"
 
-#: .\apps\notifications\models.py:90
+#: .\apps\notifications\models.py:91
 msgid "Action Object ID"
 msgstr "معرف كائن الإجراء"
 
-#: .\apps\notifications\models.py:97
+#: .\apps\notifications\models.py:98
 msgid "Notification Type"
 msgstr "نوع الإشعار"
 
-#: .\apps\notifications\models.py:103
+#: .\apps\notifications\models.py:104
 msgid "Is Read?"
 msgstr "هل تمت القراءة؟"
 
-#: .\apps\notifications\models.py:104
+#: .\apps\notifications\models.py:105
 msgid "Read At"
 msgstr "تاريخ القراءة"
 
-#: .\apps\notifications\models.py:110
+#: .\apps\notifications\models.py:111
 msgid "URL"
 msgstr "عنوان URL"
 
-#: .\apps\notifications\models.py:112
+#: .\apps\notifications\models.py:113
 msgid "Additional Data"
 msgstr "بيانات إضافية"
 
-#: .\apps\notifications\models.py:115
+#: .\apps\notifications\models.py:116
 msgid "Notification"
 msgstr "إشعار"
 
-#: .\apps\notifications\tasks.py:48
+#: .\apps\notifications\services.py:113
+#, fuzzy
+#| msgid "System Update"
+msgid "System"
+msgstr "تحديث النظام"
+
+#: .\apps\notifications\services.py:126
+#, fuzzy
+#| msgid "Notification"
+msgid "New Notification: {}"
+msgstr "إشعار"
+
+#: .\apps\notifications\tasks.py:57
 msgid "your subscription is expiring soon"
 msgstr "اشتراكك سينتهي قريباً"
 
-#: .\apps\notifications\tasks.py:50
+#: .\apps\notifications\tasks.py:59
 #, python-brace-format
 msgid ""
 "Heads up! Your Qader subscription will expire in {days} day(s) on "
