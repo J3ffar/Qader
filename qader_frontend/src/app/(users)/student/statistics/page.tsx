@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import {
   LineChart,
   Line,
@@ -18,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CalendarDaysIcon } from "@heroicons/react/24/outline";
 
-const performanceData = [
+const defaultPerformanceData = [
   { name: "J", general: 65, verbal: 40, quantitative: 70 },
   { name: "F", general: 70, verbal: 50, quantitative: 68 },
   { name: "M", general: 78, verbal: 60, quantitative: 60 },
@@ -31,13 +32,13 @@ const performanceData = [
   { name: "N", general: 91, verbal: 62, quantitative: 74 },
 ];
 
-const pieData = [
+const defaultPieData = [
   { name: "اللفظي", value: 35, color: "#00C49F" },
   { name: "الكمي", value: 40, color: "#FFBB28" },
   { name: "مستوى الأداء العام", value: 25, color: "#0088FE" },
 ];
 
-const barData = [
+const defaultBarData = [
   { name: "Sept 10", percent: 80 },
   { name: "Sept 11", percent: 60 },
   { name: "Sept 12", percent: 70 },
@@ -48,8 +49,78 @@ const barData = [
 ];
 
 export default function StatsDashboard() {
+  const [performanceData, setPerformanceData] = useState(defaultPerformanceData);
+  const [pieData, setPieData] = useState(defaultPieData);
+  const [barData, setBarData] = useState(defaultBarData);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        let token = localStorage.getItem("accessToken");
+
+        const response = await axios.get("https://qader.vip/ar/api/v1/study/statistics/", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const stats = response.data;
+
+        // Update line chart data if available
+        const testTrends = stats.performance_trends_by_test_type?.practice || [];
+        if (testTrends.length > 0) {
+          setPerformanceData(
+            testTrends.map((item:any) => ({
+              name: item.date?.slice(5, 10) || "-",
+              general: item.score ?? 0,
+              verbal: item.verbal_score ?? 0,
+              quantitative: item.quantitative_score ?? 0,
+            }))
+          );
+        }
+
+        // Update pie chart
+        if (stats.overall) {
+          setPieData([
+            { name: "اللفظي", value: stats.overall?.mastery_level?.verbal ?? 0, color: "#00C49F" },
+            { name: "الكمي", value: stats.overall?.mastery_level?.quantitative ?? 0, color: "#FFBB28" },
+            { name: "مستوى الأداء العام", value: stats.average_scores_by_test_type?.practice?.average_score ?? 0, color: "#0088FE" },
+          ]);
+        }
+
+        // Update bar chart
+        if (stats.test_history_summary?.length > 0) {
+          setBarData(
+            stats.test_history_summary.map((item:any) => ({
+              name: item.date?.slice(5, 10) || "-",
+              percent: item.overall_score ?? 0,
+            }))
+          );
+        }
+      } catch (error:any) {
+        if (error.response?.status === 401) {
+          try {
+            const refreshToken = localStorage.getItem("refreshToken");
+            const refreshRes = await axios.post("https://qader.vip/ar/api/v1/auth/token/refresh/", {
+              refresh: refreshToken,
+            });
+            const newAccessToken = refreshRes.data.access;
+            localStorage.setItem("accessToken", newAccessToken);
+            fetchStats();
+          } catch (refreshError) {
+            console.error("Token refresh failed", refreshError);
+          }
+        } else {
+          console.error("Failed to fetch statistics:", error);
+        }
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
-    <div className="p-6 space-y-6 text-right">
+    <div className="p-6 space-y-6 ">
       <h1 className="text-2xl font-bold">الإحصائيات</h1>
 
       {/* Summary boxes */}
@@ -79,9 +150,8 @@ export default function StatsDashboard() {
         ].map((item, i) => (
           <div
             key={i}
-            className="bg-white border p-4 rounded-xl space-y-1 shadow"
-          >
-            <div className="flex justify-between text-sm text-gray-500">
+            className="bg-white border p-4 rounded-xl space-y-1 shadow dark:bg-[#0B1739]">
+            <div className="flex justify-between text-sm text-gray-500  dark:text-gray-300">
               <span>هذا الأسبوع</span>
               <CalendarDaysIcon className="w-5 h-5" />
             </div>
@@ -105,9 +175,9 @@ export default function StatsDashboard() {
       {/* Second row */}
       <div className="grid grid-cols-3 gap-4">
         {/* Notes */}
-        <div className="bg-white border p-4 rounded-xl shadow">
+        <div className="bg-white border p-4 rounded-xl shadow dark:bg-[#0B1739]">
           <h2 className="font-semibold mb-2">ملاحظات عامة</h2>
-          <ul className="list-disc text-sm text-gray-600 pr-4 space-y-1">
+          <ul className="list-disc text-sm text-gray-600 dark:text-gray-200 pr-4 space-y-1">
             <li>تحتاج تحسين أداءك في اختبار المحاكاة.</li>
             <li>أنت بحاجة إلى مراجعة المفاهيم الأساسية.</li>
             <li>أنت بحاجة إلى تحسين التركيز.</li>
@@ -116,8 +186,8 @@ export default function StatsDashboard() {
         </div>
 
         {/* Line Chart */}
-        <div className="bg-white border p-4 rounded-xl shadow">
-          <div className="flex justify-between text-sm text-gray-500 mb-1">
+        <div className="bg-white border p-4 rounded-xl shadow dark:bg-[#0B1739]">
+          <div className="flex justify-between text-sm text-gray-500 dark:text-gray-300 mb-1">
             <span>هذا الأسبوع</span>
             <span>تحسن الأداء</span>
           </div>
@@ -135,8 +205,8 @@ export default function StatsDashboard() {
         </div>
 
         {/* Pie Chart */}
-        <div className="bg-white border p-4 rounded-xl shadow">
-          <div className="flex justify-between text-sm text-gray-500 mb-1">
+        <div className="bg-white border p-4 rounded-xl shadow dark:bg-[#0B1739]">
+          <div className="flex justify-between text-sm text-gray-500 dark:text-gray-300 mb-1">
             <span>هذا الأسبوع</span>
             <span>نقاط القوة</span>
           </div>
@@ -165,22 +235,22 @@ export default function StatsDashboard() {
       {/* Bottom row */}
       <div className="grid grid-cols-3 gap-4">
         {/* Call to action */}
-        <div className="bg-white border p-6 rounded-xl text-center shadow">
+        <div className="bg-white border p-6 rounded-xl text-center shadow dark:bg-[#0B1739]">
           <img
             src="/images/empty-chart.png"
             alt="جدول تحسين"
             className="mx-auto mb-4 w-24"
           />
           <p className="font-bold text-sm mb-2">ابني جدول لتحسين وضعك</p>
-          <p className="text-gray-600 text-sm mb-4">
+          <p className="text-gray-600 dark:text-gray-200 text-sm mb-4">
             دعنا نساعدك في بناء جدول مذاكرة لك لتحسين أدائك
           </p>
           <Button className="bg-blue-700 text-white px-6">ابني جدول</Button>
         </div>
 
         {/* Bar Chart */}
-        <div className="col-span-2 bg-white border p-4 rounded-xl shadow">
-          <div className="flex justify-between text-sm text-gray-500 mb-1">
+        <div className="col-span-2 bg-white border p-4 rounded-xl shadow dark:bg-[#0B1739]">
+          <div className="flex justify-between text-sm text-gray-500 dark:text-gray-300 mb-1">
             <span>هذا الشهر</span>
             <span>مقارنة الاختبارات</span>
           </div>
@@ -197,4 +267,3 @@ export default function StatsDashboard() {
     </div>
   );
 }
-

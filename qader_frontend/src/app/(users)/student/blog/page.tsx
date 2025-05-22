@@ -35,7 +35,7 @@ const BlogSupportSection = () => {
       {/* Categories section */}
       <div className="space-y-4">
         {/* Category 1 */}
-        <div className="bg-white p-4 rounded-xl shadow-sm">
+        <div className="bg-white dark:bg-[#0B1739] p-4 rounded-xl shadow-sm">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => setShowEducation(!showEducation)}
@@ -53,7 +53,7 @@ const BlogSupportSection = () => {
         </div>
 
         {/* Category 2 */}
-        <div className="bg-white p-4 rounded-xl shadow-sm">
+        <div className="bg-white dark:bg-[#0B1739] p-4 rounded-xl shadow-sm">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => setShowStrategies(!showStrategies)}
@@ -72,7 +72,7 @@ const BlogSupportSection = () => {
       </div>
 
       {/* Support form section */}
-      <div className="bg-white p-6 rounded-xl shadow-sm flex flex-col lg:flex-row gap-6">
+      <div className="bg-white dark:bg-[#0B1739] p-6 rounded-xl shadow-sm flex flex-col lg:flex-row gap-6">
         <form className="flex-1 space-y-4">
           <div>
             <label className="block text-sm font-bold mb-1">نوع المشكلة</label>
