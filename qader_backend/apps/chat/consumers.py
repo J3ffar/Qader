@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.utils import timezone
+from django.core.cache import cache
+from django.conf import settings
 
 from qader_project.settings.base import FRONTEND_BASE_URL
 
@@ -19,6 +21,10 @@ User = get_user_model()
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
+    def _get_active_user_cache_key(self, user_id, conversation_id):
+        """Helper to generate a consistent cache key."""
+        return f"active_chat_user_{user_id}_conversation_{conversation_id}"
+
     async def connect(self):
         self.user = self.scope.get("user")
         if not self.user or not self.user.is_authenticated:
@@ -32,7 +38,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         self.conversation_id_param = self.scope["url_route"]["kwargs"].get(
             "conversation_id"
-        )  # Renamed for clarity
+        )
         self.conversation_obj = None
 
         if self.conversation_id_param:
@@ -51,43 +57,66 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        self.conversation_id_str = str(
-            self.conversation_obj.id
-        )  # Keep this as it's used for group name
+        self.conversation_id_str = str(self.conversation_obj.id)
         self.room_group_name = f"chat_{self.conversation_id_str}"
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
-        # Mark messages as read on connect
+        # Mark user as active in this conversation
+        active_user_cache_key = self._get_active_user_cache_key(
+            self.user.id, self.conversation_id_str
+        )
+        await database_sync_to_async(cache.set)(
+            active_user_cache_key, True, timeout=settings.CHAT_ACTIVE_USER_TIMEOUT
+        )
+
         await self.mark_messages_as_read_on_connect(self.conversation_obj, self.user)
 
-        # Send connection established message
         await self.send(
             text_data=json.dumps(
                 {
                     "type": "connection_established",
-                    "conversation_id": self.conversation_id_str,  # Send the ID of the established conversation
-                    "room_group_name": self.room_group_name,  # Optionally send for debugging/testing
+                    "conversation_id": self.conversation_id_str,
+                    "room_group_name": self.room_group_name,
                 }
             )
         )
 
     async def disconnect(self, close_code):
-        # Leave room group
+        if (
+            hasattr(self, "user")
+            and self.user
+            and self.user.is_authenticated
+            and hasattr(self, "conversation_id_str")
+            and self.conversation_id_str
+        ):
+            # Mark user as inactive by deleting the cache key
+            active_user_cache_key = self._get_active_user_cache_key(
+                self.user.id, self.conversation_id_str
+            )
+            await database_sync_to_async(cache.delete)(active_user_cache_key)
+
         if hasattr(self, "room_group_name") and self.room_group_name:
             await self.channel_layer.group_discard(
                 self.room_group_name, self.channel_name
             )
 
-    # Receive message from WebSocket
     async def receive(self, text_data):
         if not self.conversation_obj:
-            # Should not happen if connect was successful, but good to check
             await self.send(
                 text_data=json.dumps({"error": "Conversation not established."})
             )
             return
+
+        # Refresh user's active status in this conversation upon receiving a message
+        # This indicates they are still actively participating.
+        active_user_cache_key = self._get_active_user_cache_key(
+            self.user.id, self.conversation_id_str
+        )
+        await database_sync_to_async(cache.set)(
+            active_user_cache_key, True, timeout=settings.CHAT_ACTIVE_USER_TIMEOUT
+        )
 
         text_data_json = json.loads(text_data)
         message_content = text_data_json.get("message")
@@ -98,29 +127,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
             return
 
-        # Create message in the database
         new_message = await self.create_message(
             self.conversation_obj, self.user, message_content
         )
 
-        if not new_message:  # Should not happen if create_message is robust
+        if not new_message:
             await self.send(text_data=json.dumps({"error": "Failed to save message."}))
             return
 
-        # Serialize the message for broadcasting
-        # We need to pass a dummy request-like context for the serializer if it expects one
-        # (e.g., for building absolute URLs or checking request.user)
-        # For ChatMessageSerializer's is_own_message, we can't rely on context directly here
-        # So we'll add the sender's ID to the event for client-side determination.
         serialized_message = await self.serialize_message_for_broadcast(new_message)
 
-        # Send message to room group
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                "type": "chat_message",  # This will call the chat_message method
+                "type": "chat_message",
                 "message": serialized_message,
-                "sender_id": self.user.id,  # Client can use this to check if it's their own message
+                "sender_id": self.user.id,
             },
         )
 

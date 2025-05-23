@@ -244,6 +244,7 @@ CELERY_TASK_SOFT_TIME_LIMIT = 240  # Seconds
 #     },
 # }
 
+CHAT_ACTIVE_USER_TIMEOUT = config("CHAT_ACTIVE_USER_TIMEOUT", default=60, cast=int)
 
 # Django REST Framework
 REST_FRAMEWORK = {

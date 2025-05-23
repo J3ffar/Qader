@@ -83,6 +83,13 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",  # Can be any string
+    }
+}
+
 # --- Channels ---
 # For development, you might want a simpler channel layer backend if Redis isn't running
 # For example, an in-memory backend (though Redis is usually preferred for consistency)
