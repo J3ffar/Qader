@@ -146,21 +146,21 @@ Test Details Provided:
 - Performance by Topic/Subsection (Name: Score%):
 {results_summary_str}
 - Test Type: {test_type_display}
+- Summary of Some Answers (primarily incorrect ones):
+{user_answers_details_str}
 
 Task:
 Generate a brief (target 2-4 sentences, max 5) analysis in Arabic.
 1. Acknowledge the effort and mention the overall score. Example: "عمل رائع في إكمال {test_type_display}! نتيجتك الإجمالية هي {overall_score}%."
 2. If applicable, briefly comment on verbal/quantitative performance if scores are available. Example: "أداؤك في القسم اللفظي كان {verbal_score_str} وفي القسم الكمي {quantitative_score_str}." (Only if scores are not "N/A").
-3. Identify one or two topics/subsections where the user performed weakest (lowest scores from the summary, e.g., below 60-70%). Suggest focusing on these. Example: "لتحسين أدائك أكثر، نقترح التركيز على [اسم الموضوع الضعيف الأول] حيث كانت نتيجتك [النتيجة]%." (Mention specific score).
-4. If there are clear strengths (high scores in some topics, e.g., above 85-90%), mention one briefly as encouragement. Example: "لقد أظهرت فهمًا جيدًا في [اسم الموضوع القوي]."
+3. Using the "Summary of Some Answers" and "Performance by Topic/Subsection", identify one or two topics/subsections where the user struggled most.
+   If the "Summary of Some Answers" provides clues (e.g., specific skills missed within a low-scoring subsection, or common error patterns if visible from the summary), try to mention this.
+   Example: "لتحسين أدائك أكثر، نقترح التركيز على [اسم الموضوع الضعيف الأول] حيث كانت نتيجتك [النتيجة]%. استنادًا إلى إجاباتك، يبدو أن الأسئلة المتعلقة بـ [مهارة معينة أو نوع سؤال معين من ملخص الإجابات] في هذا الموضوع كانت تمثل تحديًا."
+4. If there are clear strengths (high scores in some topics, e.g., above 85-90%), mention one briefly as encouragement. If "Summary of Some Answers" shows correct handling of certain types, you can allude to it.
+   Example: "لقد أظهرت فهمًا جيدًا في [اسم الموضوع القوي]."
 5. Maintain an encouraging and constructive tone. Avoid overly negative language.
 6. If scores are generally high (e.g., overall > 85%), congratulate the user. If scores are low, focus on improvement steps.
-7. If the results_summary is empty or lacks scorable data, provide a general encouraging message about completing the test and suggest reviewing the material.
-
-Example (conceptual, ensure final output is purely Arabic text):
-"عمل رائع في إكمال اختبار {test_type_display}! نتيجتك الإجمالية هي {overall_score}%.
-أظهرت فهمًا جيدًا في [اسم الموضوع القوي].
-لتحسين أدائك أكثر، نقترح التركيز على [اسم الموضوع الضعيف الأول] حيث كانت نتيجتك [النتيجة]%."
+7. If the results_summary or answer details are sparse or not very informative, provide a general encouraging message about completing the test and suggest reviewing the material broadly.
 
 Output ONLY the generated text analysis as a single string. Do not use markdown or JSON.
     """,

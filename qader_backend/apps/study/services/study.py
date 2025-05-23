@@ -89,6 +89,7 @@ AI_ANALYSIS_LOW_SCORE_THRESHOLD = getattr(
 AI_ANALYSIS_HIGH_SCORE_THRESHOLD = getattr(
     settings, "AI_ANALYSIS_HIGH_SCORE_THRESHOLD", 85
 )
+AI_ANALYSIS_MAX_ANSWER_DETAILS = getattr(settings, "AI_ANALYSIS_MAX_ANSWER_DETAILS", 10)
 
 
 # --- Question Filtering Logic ---
@@ -490,6 +491,95 @@ def _format_results_summary_for_ai(results_summary: Optional[Dict[str, Any]]) ->
     return "\n".join(summary_lines)
 
 
+def _format_user_answers_for_ai(
+    user_test_attempt: UserTestAttempt,
+    max_questions_to_detail: int = AI_ANALYSIS_MAX_ANSWER_DETAILS,
+) -> str:
+    """
+    Formats user's question attempts into a string for the AI prompt.
+    Focuses on incorrect answers first, then a sample of correct ones if space permits.
+    """
+    # Fetch question attempts with related question, skill, and subsection for context
+    # This is a list comprehension that executes the query immediately.
+    question_attempts = list(
+        user_test_attempt.question_attempts.select_related(
+            "question__subsection", "question__skill"
+        ).all()
+    )
+
+    if not question_attempts:
+        return _("No specific answer details available for this attempt.")
+
+    answer_details_lines = []
+
+    incorrect_attempts = [qa for qa in question_attempts if qa.is_correct is False]
+    correct_attempts = [qa for qa in question_attempts if qa.is_correct is True]
+
+    # Process incorrect attempts
+    for qa in incorrect_attempts:
+        if len(answer_details_lines) >= max_questions_to_detail:
+            break
+        q = qa.question  # Safe due to select_related
+        subsection_name = q.subsection.name if q.subsection else _("N/A")
+        skill_name = q.skill.name if q.skill else _("N/A")
+        # Translators: Part of AI analysis summary showing an incorrect answer.
+        # {subsection} is the topic, {skill} is the specific skill.
+        # {user_ans} is user's choice, {correct_ans} is the right one.
+        line = _(
+            "Question in '{subsection}' (Skill: {skill}): Your answer '{user_ans}', Correct: '{correct_ans}' (Incorrect)."
+        ).format(
+            subsection=subsection_name,
+            skill=skill_name,
+            user_ans=qa.selected_answer or _("Not Answered"),
+            correct_ans=q.correct_answer,  # Assuming Question model has correct_answer field
+        )
+        answer_details_lines.append(line)
+
+    # If space, add some correct answers
+    # Keep this part minimal to focus AI on areas of improvement from incorrect answers
+    # For example, limit correct examples to a small number like 2-3 if incorrect ones are few.
+    remaining_space_for_correct = max_questions_to_detail - len(answer_details_lines)
+    if remaining_space_for_correct > 0:
+        # Show only a few correct answers to not dilute focus on incorrect ones.
+        # For instance, show at most 2-3 correct answers.
+        num_correct_to_show = min(remaining_space_for_correct, 2)
+        for qa in correct_attempts[:num_correct_to_show]:  # Take only the first few
+            q = qa.question
+            subsection_name = q.subsection.name if q.subsection else _("N/A")
+            skill_name = q.skill.name if q.skill else _("N/A")
+            # Translators: Part of AI analysis summary showing a correct answer.
+            # {subsection} is the topic, {skill} is the specific skill.
+            # {user_ans} is user's choice.
+            line = _(
+                "Question in '{subsection}' (Skill: {skill}): Your answer '{user_ans}' (Correct)."
+            ).format(
+                subsection=subsection_name,
+                skill=skill_name,
+                user_ans=qa.selected_answer,
+            )
+            answer_details_lines.append(line)
+
+    if not answer_details_lines:
+        # This might happen if all questions were skipped or if there's an issue fetching.
+        return _("Could not retrieve specific answer details for analysis.")
+
+    # Indicate if more answers were ommitted due to length constraints
+    total_processed_in_detail = len(answer_details_lines)
+    total_attempted_questions = len(question_attempts)
+    if (
+        total_attempted_questions > total_processed_in_detail
+        and total_processed_in_detail >= max_questions_to_detail
+    ):
+        # Translators: Indicates more questions were answered than detailed in AI summary.
+        answer_details_lines.append(
+            _("... (and {num_more} other questions were answered).").format(
+                num_more=total_attempted_questions - total_processed_in_detail
+            )
+        )
+
+    return "\n".join(answer_details_lines)
+
+
 def _generate_ai_performance_analysis(user: User, test_attempt: UserTestAttempt) -> str:
     """
     Generates a smart performance analysis using AI.
@@ -500,7 +590,6 @@ def _generate_ai_performance_analysis(user: User, test_attempt: UserTestAttempt)
         logger.warning(
             f"AI manager not available for performance analysis (User: {user.id}, Attempt: {test_attempt.id}). Reason: {ai_manager.init_error}"
         )
-        # Basic fallback if AI is completely unavailable
         if test_attempt.score_percentage is not None:
             if test_attempt.score_percentage >= AI_ANALYSIS_HIGH_SCORE_THRESHOLD:
                 return _(
@@ -528,6 +617,8 @@ def _generate_ai_performance_analysis(user: User, test_attempt: UserTestAttempt)
         else _("N/A")
     )
 
+    user_answers_details_str = _format_user_answers_for_ai(test_attempt)
+
     context_params = {
         "overall_score": overall_score_str,
         "verbal_score_str": verbal_score_str,
@@ -536,26 +627,25 @@ def _generate_ai_performance_analysis(user: User, test_attempt: UserTestAttempt)
             test_attempt.results_summary
         ),
         "test_type_display": test_attempt.get_attempt_type_display(),
+        "user_answers_details_str": user_answers_details_str,
     }
 
     system_prompt = ai_manager._construct_system_prompt(
-        ai_tone_value="encouraging_analytic",  # Using the custom tone defined in ai_manager
+        ai_tone_value="encouraging_analytic",
         context_key="generate_test_performance_analysis",
         context_params=context_params,
     )
 
-    # For this type of analysis, we don't need conversation history.
-    # We send a single "user" message to trigger the AI based on the system prompt and context.
     trigger_message = _(
-        "Please provide a performance analysis for the test I just completed."
-    )  # This is a dummy message for the API call structure.
+        "Please provide a performance analysis for the test I just completed based on my scores and answer summary."
+    )
 
     ai_response_content, error_msg = ai_manager.get_chat_completion(
         system_prompt_content=system_prompt,
         messages_for_api=[{"role": "user", "content": trigger_message}],
-        temperature=0.6,  # Slightly lower temp for more focused analysis
-        max_tokens=300,  # Analysis should be concise
-        response_format=None,  # Expecting plain text based on the prompt
+        temperature=0.6,
+        max_tokens=450,  # Slightly increased max_tokens for potentially more detailed analysis
+        response_format=None,
         user_id_for_tracking=str(user.id),
     )
 
@@ -597,7 +687,7 @@ def _generate_ai_performance_analysis(user: User, test_attempt: UserTestAttempt)
         return AI_ANALYSIS_DEFAULT_FALLBACK  # Ultimate fallback
 
     logger.info(
-        f"Successfully generated AI performance analysis for User: {user.id}, Attempt: {test_attempt.id}."
+        f"Successfully generated AI performance analysis for User: {user.id}, Attempt: {test_attempt.id}. Analysis: {ai_response_content[:200]}..."
     )
     return ai_response_content.strip()
 
