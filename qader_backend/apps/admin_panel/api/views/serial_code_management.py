@@ -32,6 +32,9 @@ from ..serializers.serial_code_management import (
     SerialCodeGenerateSerializer,
     SerialCodeCreateSerializer,  # Import the new serializer
 )
+from ..permissions import (
+    IsAdminUserOrSubAdminWithPermission,
+)  # Import the custom permission
 
 import logging
 
@@ -222,10 +225,10 @@ class SerialCodeAdminViewSet(viewsets.ModelViewSet):
     and generating batches of new serial codes based on plan types.
     """
 
-    queryset = SerialCode.objects.select_related("used_by", "created_by").order_by(
-        "-created_at"
-    )
-    permission_classes = [IsAdminUser]
+    queryset = SerialCode.objects.select_related(  # pylint: disable=no-member
+        "used_by", "created_by"
+    ).order_by("-created_at")
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = [
         "is_active",
@@ -250,6 +253,19 @@ class SerialCodeAdminViewSet(viewsets.ModelViewSet):
             return SerialCodeCreateSerializer
         # Default for other actions (like default destroy if enabled)
         return SerialCodeDetailSerializer
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["manage_serial_codes"]
+        elif self.action in ["create", "generate_codes"]:
+            self.required_permissions = ["manage_serial_codes"]
+        elif self.action in ["update", "partial_update"]:
+            self.required_permissions = ["manage_serial_codes"]
+        elif self.action == "destroy":
+            self.required_permissions = ["manage_serial_codes"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
     # --- Enable Standard Create (POST for single code) ---
     def perform_create(self, serializer):
@@ -311,7 +327,7 @@ class SerialCodeAdminViewSet(viewsets.ModelViewSet):
                         # For batch check, ensure consistency.
                         code_upper = code_str.upper()
                         if (
-                            not SerialCode.objects.filter(
+                            not SerialCode.objects.filter(  # pylint: disable=no-member
                                 code__iexact=code_upper
                             ).exists()
                             and code_upper not in generated_code_strings
@@ -333,7 +349,9 @@ class SerialCodeAdminViewSet(viewsets.ModelViewSet):
                         )
                     )
 
-                created_instances = SerialCode.objects.bulk_create(new_codes)
+                created_instances = SerialCode.objects.bulk_create(
+                    new_codes
+                )  # pylint: disable=no-member
                 logger.info(
                     f"Admin '{creator.username}' generated {len(created_instances)} serial codes via API (Plan: {plan_enum_value}, Notes: {notes or 'N/A'})."
                 )

@@ -147,9 +147,9 @@ class AdminUserViewSet(viewsets.ModelViewSet):  # Changed from ReadOnlyModelView
         elif self.action in ["update", "partial_update"]:
             self.required_permissions = ["edit_users"]
         elif self.action == "destroy":
-            # No specific granular permission for destroy; superuser check is primary.
-            # If sub-admins could delete *some* users, add a 'delete_users' perm.
-            self.required_permissions = []
+            # For destroy, require 'api_manage_users' permission.
+            # The superuser check within the destroy method will still apply.
+            self.required_permissions = ["api_manage_users"]
         else:
             self.required_permissions = []
         return [permission() for permission in self.permission_classes]

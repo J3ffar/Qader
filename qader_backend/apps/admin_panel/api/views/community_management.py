@@ -1,5 +1,3 @@
-# qader_backend/apps/admin_panel/api/views/community_management.py
-
 from django.db.models import Count, Prefetch
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAdminUser
@@ -21,6 +19,9 @@ from apps.community.api.serializers import (
 
 # Import filters from the community app (reusing the post filter)
 from apps.community.api.filters import CommunityPostFilter
+from ..permissions import (
+    IsAdminUserOrSubAdminWithPermission,
+)  # Import the custom permission
 
 
 @extend_schema(tags=["Admin Panel - Community Management"])
@@ -64,7 +65,9 @@ class AdminCommunityPostViewSet(viewsets.ModelViewSet):
     Provides full CRUD capabilities for administrators, including pinning/closing.
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [
+        IsAdminUserOrSubAdminWithPermission
+    ]  # Change permission class
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = CommunityPostFilter
     # Admins might want broader search capabilities
@@ -104,6 +107,18 @@ class AdminCommunityPostViewSet(viewsets.ModelViewSet):
         elif self.action == "retrieve":
             return CommunityPostDetailSerializer
         return CommunityPostCreateUpdateSerializer
+
+    def get_permissions(self):
+        """
+        Set required permissions based on the action.
+        """
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_community"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_community"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
     def perform_create(self, serializer):
         """Set the author if not provided (e.g., admin announcement)."""
@@ -201,7 +216,9 @@ class AdminCommunityReplyViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = CommunityReplySerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [
+        IsAdminUserOrSubAdminWithPermission
+    ]  # Change permission class
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["post", "author", "parent_reply"]
     search_fields = ["content", "author__username", "author__email", "post__title"]
@@ -213,12 +230,24 @@ class AdminCommunityReplyViewSet(viewsets.ModelViewSet):
         Return all community replies with necessary prefetches/select_related.
         """
         return (
-            CommunityReply.objects.select_related(
+            CommunityReply.objects.select_related(  # pylint: disable=no-member
                 "author__profile", "post", "parent_reply"
             )
             .annotate(child_replies_count_annotated=Count("child_replies"))
             .order_by(*self.ordering)
         )
+
+    def get_permissions(self):
+        """
+        Set required permissions based on the action.
+        """
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_community"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_community"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
     # No special perform_create/update needed unless admin-specific logic is required
     # Standard ModelViewSet actions with IsAdminUser permission suffice.

@@ -25,7 +25,11 @@ from apps.users.constants import RoleChoices
 # Import base serializer if needed for validation, but not for response
 from ..serializers import statistics as stats_serializers
 
-# --- Helper Functions (Keep the existing one) ---
+from ..permissions import (
+    IsAdminUserOrSubAdminWithPermission,
+)  # Import the custom permission
+
+# --- Helper Functions ---
 
 
 def get_date_filters(request):
@@ -86,7 +90,8 @@ class AdminStatisticsOverviewAPIView(APIView):
     Supports filtering by date range.
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
+    required_permissions = ["view_aggregated_statistics"]
     # Ensure the Overview Serializer is imported and set
     serializer_class = stats_serializers.AdminStatisticsOverviewSerializer
 
@@ -264,7 +269,8 @@ class AdminStatisticsExportAPIView(APIView):
     **Note:** May time out for very large datasets. Consider async implementation for production.
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
+    required_permissions = ["export_data"]
     # No serializer_class needed here for the response itself
 
     @extend_schema(
@@ -316,7 +322,7 @@ class AdminStatisticsExportAPIView(APIView):
 
         # --- Query Data Based on Filters ---
         # Example: Exporting completed test attempts data
-        queryset = UserTestAttempt.objects.select_related(
+        queryset = UserTestAttempt.objects.select_related(  # pylint: disable=no-member
             "user__profile", "test_definition"
         )
         if datetime_from and datetime_to:

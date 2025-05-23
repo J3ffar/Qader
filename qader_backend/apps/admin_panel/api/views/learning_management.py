@@ -21,9 +21,9 @@ from ..serializers.learning_management import (
     AdminSkillSerializer,
     AdminQuestionSerializer,
 )
-
-# TODO: Add IsSubAdminWithPermission check if needed later
-# from ..permissions import IsSubAdminWithPermission
+from ..permissions import (
+    IsAdminUserOrSubAdminWithPermission,
+)  # Import the custom permission
 
 ADMIN_TAG = "Admin Panel - Learning Management"  # Tag for OpenAPI docs
 
@@ -43,13 +43,26 @@ ADMIN_TAG = "Admin Panel - Learning Management"  # Tag for OpenAPI docs
 class AdminLearningSectionViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing Learning Sections."""
 
-    queryset = LearningSection.objects.all().order_by("order", "name")
+    queryset = LearningSection.objects.all().order_by(  # pylint: disable=no-member
+        "order", "name"
+    )
     serializer_class = AdminLearningSectionSerializer
-    permission_classes = [permissions.IsAdminUser]  # Only allow Django admin users
+    permission_classes = [
+        IsAdminUserOrSubAdminWithPermission
+    ]  # Only allow Django admin users
     lookup_field = "pk"  # Use PK for admin management
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "slug", "description"]
     ordering_fields = ["order", "name", "created_at"]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_content"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_content"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
 
 @extend_schema_view(
@@ -74,12 +87,14 @@ class AdminLearningSubSectionViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing Learning Sub-Sections."""
 
     queryset = (
-        LearningSubSection.objects.select_related("section")
+        LearningSubSection.objects.select_related(  # pylint: disable=no-member
+            "section"
+        )
         .all()
         .order_by("section__order", "order", "name")
     )
     serializer_class = AdminLearningSubSectionSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     lookup_field = "pk"
     filter_backends = [
         DjangoFilterBackend,
@@ -89,6 +104,15 @@ class AdminLearningSubSectionViewSet(viewsets.ModelViewSet):
     filterset_fields = ["section__slug", "section__id"]  # Filter by parent section
     search_fields = ["name", "slug", "description"]
     ordering_fields = ["order", "name", "section__name", "created_at"]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_content"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_content"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
     def perform_destroy(self, instance):
         try:
@@ -120,12 +144,12 @@ class AdminSkillViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing Skills."""
 
     queryset = (
-        Skill.objects.select_related("subsection__section")
+        Skill.objects.select_related("subsection__section")  # pylint: disable=no-member
         .all()
         .order_by("subsection__section__order", "subsection__order", "name")
     )
     serializer_class = AdminSkillSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     lookup_field = "pk"
     filter_backends = [
         DjangoFilterBackend,
@@ -138,6 +162,15 @@ class AdminSkillViewSet(viewsets.ModelViewSet):
     ]  # Filter by parent subsection
     search_fields = ["name", "slug", "description"]
     ordering_fields = ["name", "subsection__name", "created_at"]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_content"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_content"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
 
 @extend_schema_view(
@@ -155,12 +188,14 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
 
     # Admin sees ALL questions, active or not
     queryset = (
-        Question.objects.select_related("subsection", "skill")
+        Question.objects.select_related(  # pylint: disable=no-member
+            "subsection", "skill"
+        )
         .all()
         .order_by("-created_at")
     )
     serializer_class = AdminQuestionSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     lookup_field = "pk"
     filter_backends = [
         DjangoFilterBackend,
@@ -196,3 +231,12 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         "subsection__name",
         "skill__name",
     ]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_content"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_content"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]

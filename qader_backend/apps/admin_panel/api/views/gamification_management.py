@@ -7,6 +7,9 @@ from ..serializers.gamification_management import (
     AdminBadgeSerializer,
     AdminRewardStoreItemSerializer,
 )
+from ..permissions import (
+    IsAdminUserOrSubAdminWithPermission,
+)  # Import the custom permission
 
 
 @extend_schema_view(
@@ -47,9 +50,9 @@ class AdminBadgeViewSet(viewsets.ModelViewSet):
     Provides full CRUD operations for administrators, including criteria management.
     """
 
-    queryset = Badge.objects.all().order_by("name")
+    queryset = Badge.objects.all().order_by("name")  # pylint: disable=no-member
     serializer_class = AdminBadgeSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -66,6 +69,15 @@ class AdminBadgeViewSet(viewsets.ModelViewSet):
         "criteria_type",
         "target_value",
     ]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_gamification"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_gamification"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
 
 @extend_schema_view(
@@ -106,10 +118,12 @@ class AdminRewardStoreItemViewSet(viewsets.ModelViewSet):
     Provides full CRUD operations for administrators.
     """
 
-    queryset = RewardStoreItem.objects.all().order_by("name")
+    queryset = RewardStoreItem.objects.all().order_by(  # pylint: disable=no-member
+        "name"
+    )
     serializer_class = AdminRewardStoreItemSerializer
     permission_classes = [
-        permissions.IsAdminUser
+        IsAdminUserOrSubAdminWithPermission
     ]  # Or [IsAdminOrSubAdminWithPermission('manage_gamification')]
     filter_backends = [
         DjangoFilterBackend,
@@ -126,3 +140,12 @@ class AdminRewardStoreItemViewSet(viewsets.ModelViewSet):
         "updated_at",
         "is_active",
     ]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_gamification"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_gamification"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]

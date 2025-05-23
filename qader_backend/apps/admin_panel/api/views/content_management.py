@@ -8,6 +8,9 @@ from apps.admin_panel.api.serializers import content_management as admin_seriali
 # Assuming you have a standard IsAdmin permission, otherwise use IsAdminUser
 # from apps.api.permissions import IsAdmin
 from rest_framework.permissions import IsAdminUser  # Using built-in for simplicity
+from ..permissions import (
+    IsAdminUserOrSubAdminWithPermission,
+)  # Import the custom permission
 
 
 ADMIN_CONTENT_TAG = ["Admin Panel - Content Management"]
@@ -26,13 +29,24 @@ ADMIN_CONTENT_TAG = ["Admin Panel - Content Management"]
 class PageAdminViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing static Pages."""
 
-    queryset = content_models.Page.objects.all().order_by("title")
+    queryset = content_models.Page.objects.all().order_by(  # pylint: disable=no-member
+        "title"
+    )
     serializer_class = admin_serializers.AdminPageSerializer
-    permission_classes = [IsAdminUser]  # Or your custom IsAdmin
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]  # Or your custom IsAdmin
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["slug", "title", "content"]
     ordering_fields = ["title", "slug", "is_published", "created_at", "updated_at"]
     lookup_field = "slug"  # Maintain consistency with public view
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_content"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_content"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
 
 @extend_schema_view(
@@ -52,12 +66,25 @@ class PageAdminViewSet(viewsets.ModelViewSet):
 class FAQCategoryAdminViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing FAQ Categories."""
 
-    queryset = content_models.FAQCategory.objects.all().order_by("order", "name")
+    queryset = (
+        content_models.FAQCategory.objects.all().order_by(  # pylint: disable=no-member
+            "order", "name"
+        )
+    )
     serializer_class = admin_serializers.AdminFAQCategorySerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name"]
     ordering_fields = ["name", "order", "created_at"]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_content"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_content"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
 
 @extend_schema_view(
@@ -74,12 +101,14 @@ class FAQItemAdminViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing FAQ Items."""
 
     queryset = (
-        content_models.FAQItem.objects.select_related("category")
+        content_models.FAQItem.objects.select_related(  # pylint: disable=no-member
+            "category"
+        )
         .all()
         .order_by("category__order", "order", "question")
     )
     serializer_class = admin_serializers.AdminFAQItemSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -88,6 +117,15 @@ class FAQItemAdminViewSet(viewsets.ModelViewSet):
     filterset_fields = ["category", "is_active"]
     search_fields = ["question", "answer", "category__name"]
     ordering_fields = ["category__name", "order", "question", "is_active", "created_at"]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_content"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_content"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
 
 @extend_schema_view(
@@ -113,12 +151,23 @@ class FAQItemAdminViewSet(viewsets.ModelViewSet):
 class PartnerCategoryAdminViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing Partner Categories."""
 
-    queryset = content_models.PartnerCategory.objects.all().order_by("order", "name")
+    queryset = content_models.PartnerCategory.objects.all().order_by(  # pylint: disable=no-member
+        "order", "name"
+    )
     serializer_class = admin_serializers.AdminPartnerCategorySerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "description"]
     ordering_fields = ["name", "order", "is_active", "created_at"]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_content"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_content"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
 
 @extend_schema_view(
@@ -144,12 +193,23 @@ class PartnerCategoryAdminViewSet(viewsets.ModelViewSet):
 class HomepageFeatureCardAdminViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing Homepage Feature Cards."""
 
-    queryset = content_models.HomepageFeatureCard.objects.all().order_by("order")
+    queryset = content_models.HomepageFeatureCard.objects.all().order_by(  # pylint: disable=no-member
+        "order"
+    )
     serializer_class = admin_serializers.AdminHomepageFeatureCardSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title", "text"]
     ordering_fields = ["title", "order", "is_active", "created_at"]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_content"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_content"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
 
 @extend_schema_view(
@@ -175,12 +235,23 @@ class HomepageFeatureCardAdminViewSet(viewsets.ModelViewSet):
 class HomepageStatisticAdminViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing Homepage Statistics."""
 
-    queryset = content_models.HomepageStatistic.objects.all().order_by("order")
+    queryset = content_models.HomepageStatistic.objects.all().order_by(  # pylint: disable=no-member
+        "order"
+    )
     serializer_class = admin_serializers.AdminHomepageStatisticSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["label", "value"]
     ordering_fields = ["label", "order", "is_active", "created_at"]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_content"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_content"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
 
 
 # For Contact Messages, we don't want Admins to 'create' them.
@@ -214,12 +285,14 @@ class ContactMessageAdminViewSet(
     """
 
     queryset = (
-        content_models.ContactMessage.objects.select_related("responder")
+        content_models.ContactMessage.objects.select_related(
+            "responder"
+        )  # pylint: disable=no-member
         .all()
         .order_by("-created_at")
     )
     serializer_class = admin_serializers.AdminContactMessageSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -233,3 +306,18 @@ class ContactMessageAdminViewSet(
     def perform_update(self, serializer):
         # Pass request context to serializer for accessing the user
         serializer.save()
+
+    def get_permissions(self):
+        if self.action == "list":
+            self.required_permissions = ["view_contact_messages"]
+        elif self.action == "retrieve":
+            self.required_permissions = ["view_contact_messages"]
+        elif self.action in ["update", "partial_update"]:
+            self.required_permissions = ["reply_contact_messages"]
+        elif self.action == "destroy":
+            self.required_permissions = [
+                "api_destroy_any"
+            ]  # Or a more specific 'delete_contact_messages'
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]

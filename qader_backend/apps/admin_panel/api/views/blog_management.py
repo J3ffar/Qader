@@ -48,6 +48,15 @@ class AdminBlogPostViewSet(viewsets.ModelViewSet):
     lookup_field = "slug"
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.required_permissions = ["api_manage_blog"]
+        elif self.action in ["create", "update", "partial_update", "destroy"]:
+            self.required_permissions = ["api_manage_blog"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
+
 
 @extend_schema_view(
     list=extend_schema(
@@ -89,3 +98,10 @@ class AdminBlogAdviceRequestViewSet(
     ordering_fields = ["created_at", "updated_at", "status"]
     ordering = ["-created_at"]
     lookup_field = "pk"
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve", "update", "partial_update"]:
+            self.required_permissions = ["api_manage_blog"]
+        else:
+            self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
