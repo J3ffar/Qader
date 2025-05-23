@@ -6,11 +6,11 @@ import Image from "next/image";
 
 const ChatInterface: React.FC = () => {
   return (
-    <div className="flex flex-col gap-6 bg-white p-6 rounded-lg max-w-7xl mx-auto">
+    <div className="flex flex-col gap-6 bg-white dark:bg-[#081028] p-6 rounded-lg max-w-7xl mx-auto">
       {/* Header */}
       <div className="text-right">
-        <h2 className="text-2xl font-bold text-gray-900">تحدث عبر المحادثة</h2>
-        <p className="text-gray-500 mt-1">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-200">تحدث عبر المحادثة</h2>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">
           اختر قدراتك مع قادر او اطرح عليه سؤال.
         </p>
       </div>
@@ -20,10 +20,10 @@ const ChatInterface: React.FC = () => {
         {/* Sidebar */}
         <div className="flex flex-col gap-4 col-span-1">
           {/* Card 1 */}
-          <div className="bg-[#F5F7FA] p-4 rounded-xl flex flex-col items-center text-center">
-            <div className="w-full h-24 bg-gray-300 rounded-lg mb-3 flex items-center justify-center">
+          <div className="bg-[#F5F7FA] dark:bg-[#081028] border p-4 rounded-xl flex flex-col items-center text-center">
+            <div className="w-full h-24 bg-gray-300  rounded-lg mb-3 flex items-center justify-center">
               <Image
-                src="/images/image-placeholder.png"
+                src="/images/image-line.png"
                 alt="placeholder"
                 width={100}
                 height={100}
@@ -32,17 +32,19 @@ const ChatInterface: React.FC = () => {
             </div>
             <h3 className="font-bold text-gray-800">اطرح سؤالك</h3>
             <p className="text-sm text-gray-500">اطرح سؤالك من هنا</p>
-            <button className="bg-[#074182] hover:bg-[#053866] text-white text-sm mt-3 px-4 py-2 rounded-md flex items-center gap-1">
+            <a href="/student/conversation-learning/testme">
+              <button className="bg-[#074182] hover:bg-[#053866] text-white text-sm mt-3 px-4 py-2 rounded-md flex items-center gap-1">
               <PencilIcon className="w-4 h-4" />
               ابدأ
             </button>
+            </a>
           </div>
 
           {/* Card 2 */}
-          <div className="bg-[#F5F7FA] p-4 rounded-xl flex flex-col items-center text-center">
+          <div className="bg-[#F5F7FA] dark:bg-[#081028] border p-4 rounded-xl flex flex-col items-center text-center">
             <div className="w-full h-24 bg-gray-300 rounded-lg mb-3 flex items-center justify-center">
               <Image
-                src="/images/image-placeholder.png"
+                src="/images/image-line.png"
                 alt="placeholder"
                 width={100}
                 height={100}
@@ -51,10 +53,12 @@ const ChatInterface: React.FC = () => {
             </div>
             <h3 className="font-bold text-gray-800">اختبر قدراتك</h3>
             <p className="text-sm text-gray-500">اختبر قدراتك من هنا</p>
-            <button className="bg-[#074182] hover:bg-[#053866] text-white text-sm mt-3 px-4 py-2 rounded-md flex items-center gap-1">
+            <a href="/student/conversation-learning/testme">
+              <button className="bg-[#074182] hover:bg-[#053866] text-white text-sm mt-3 px-4 py-2 rounded-md flex items-center gap-1">
               <PencilIcon className="w-4 h-4" />
               اختبرني
             </button>
+            </a>
           </div>
         </div>
 
@@ -63,15 +67,15 @@ const ChatInterface: React.FC = () => {
           {/* Chat Empty State */}
           <div className="flex-1 flex flex-col justify-center items-center text-center text-gray-500">
             <Image
-              src="/images/chat-empty.png"
+              src="/images/nochat.svg"
               alt="no chat"
               width={150}
               height={150}
               className="mb-4"
             />
-            <h3 className="font-bold text-gray-800 text-lg">لا توجد محادثات</h3>
+            <h3 className="font-bold text-gray-800 dark:text-gray-300 text-lg">لا توجد محادثات</h3>
             <p className="text-sm">اختر أحد الخيارات الجانبية للبدء!</p>
-          </div>
+          </div> 
 
           {/* Chat Input */}
           <div className="flex items-center gap-2 border-t pt-4 mt-4">

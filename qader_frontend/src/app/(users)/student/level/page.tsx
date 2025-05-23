@@ -27,16 +27,16 @@ const defaultMockData = [
     verbal: "ممتاز",
     quantitative: "ممتاز",
     weakestSection: "لا يوجد",
-    highlighted: true,
+    highlighted: false,
   },
   {
     date: "25/2/23",
     totalQuestions: 30,
-    percentage: 90,
-    verbal: "ممتاز",
+    percentage: 70,
+    verbal: "جيد جداً",
     quantitative: "ممتاز",
     weakestSection: "لا يوجد",
-    highlighted: true,
+    highlighted: false,
   },
 ];
 
@@ -199,9 +199,11 @@ const LevelAssessmentPage = () => {
                   </td>
                   
                   <td className="p-4">
-                    <button className=" flex justify-center gap-2 w-full  p-2 rounded-[8px] bg-[#074182] text-white font-semibold hover:bg-[#074182DF]">
+                    <a href="/student/level/questions/undefined">
+                      <button className=" flex justify-center gap-2 w-full  p-2 rounded-[8px] bg-[#074182] text-white font-semibold hover:bg-[#074182DF]">
                       مراجعة الاختبار
                     </button>
+                    </a>
                   </td>
                 </tr>
               ))}

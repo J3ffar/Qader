@@ -12,10 +12,10 @@ export default function SubscriptionSettings() {
   ];
 
   return (
-    <div className="p-8 bg-gray-50 text-right font-sans text-gray-800">
+    <div className="p-8 bg-gray-50 dark:bg-[#081028] text-right font-sans text-gray-800">
       {/* Header Tabs */}
       <div className="flex justify-end gap-4 mb-4">
-        <button className="border px-4 py-1 rounded">الحساب</button>
+        <button className="border px-4 py-1 rounded dark:border-white dark:text-white">الحساب</button>
         <button className="border-b-4 border-blue-600 font-semibold px-4 py-1 rounded text-blue-600">
           الاشتراكات
         </button>
@@ -23,21 +23,21 @@ export default function SubscriptionSettings() {
 
       {/* Title */}
       <div className="mb-8">
-        <h2 className="text-lg font-bold mb-1">الاعدادات</h2>
+        <h2 className="text-lg font-bold mb-1 dark:text-gray-300">الاعدادات</h2>
         <p className="text-sm text-gray-500">تحكم في اعدادات حسابك على منصة فلان</p>
       </div>
 
       {/* Toggle Section */}
-      <div className="bg-white p-4 rounded-lg mb-6">
-        <h3 className="font-semibold mb-2">المرحلة الحالية</h3>
+      <div className="bg-white dark:bg-[#0B1739] p-4 rounded-lg mb-6">
+        <h3 className="font-semibold mb-2 dark:text-gray-300">المرحلة الحالية</h3>
         <p className="text-sm text-gray-500 mb-4">هذه هي حزمة اشتراكك الحالية</p>
 
-        <h3 className="font-semibold mt-4 mb-2">المرحلة الأخرى</h3>
+        <h3 className="font-semibold mt-4 mb-2 dark:text-gray-300">المرحلة الأخرى</h3>
         <p className="text-sm text-gray-500">تعرف على باقي الباقات المتوفرة لدينا</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex justify-center bg-gray-100 p-1 rounded-full w-64 mx-auto mb-8">
+      <div className="flex justify-center bg-gray-100 dark:bg-[#0B1739] p-1 rounded-full w-64 mx-auto mb-8">
         <button
           onClick={() => setActiveTab('current')}
           className={`w-1/2 px-4 py-2 rounded-full text-sm font-medium ${
@@ -61,7 +61,7 @@ export default function SubscriptionSettings() {
         {plans.map((plan, idx) => (
           <div
             key={plan.id}
-            className={`bg-white p-6 rounded-xl shadow relative ${
+            className={`bg-white dark:bg-[#0B1739] p-6 rounded-xl shadow relative ${
               activePlan === idx ? 'border-2 border-orange-400 z-10' : ''
             }`}
           >
@@ -70,14 +70,14 @@ export default function SubscriptionSettings() {
                 الحزمة الحالية
               </div>
             )}
-            <h4 className="text-sm font-semibold mb-1">حزمة البداية</h4>
+            <h4 className="text-sm font-semibold mb-1 dark:text-gray-300">حزمة البداية</h4>
             <p className="text-2xl font-bold text-gray-700 mb-1">
               {plan.price} <span className="text-sm font-normal text-gray-500">#</span>
             </p>
             <p className="text-sm text-gray-500 mb-4">{plan.period}</p>
             <button className="bg-blue-700 text-white w-full py-2 rounded mb-4">ترقية الباقة</button>
             <hr className="my-4" />
-            <h5 className="font-semibold mb-2">الميزات</h5>
+            <h5 className="font-semibold mb-2 dark:text-gray-300">الميزات</h5>
             <ul className="text-sm text-gray-600 space-y-1">
               {plan.features.map((f, i) => (
                 <li key={i} className="flex items-center gap-2">
