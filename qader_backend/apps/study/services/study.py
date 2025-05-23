@@ -80,6 +80,16 @@ LEVEL_ASSESSMENT_SCORE_THRESHOLD = getattr(
     settings, "LEVEL_ASSESSMENT_SCORE_THRESHOLD", 60
 )  # Example threshold for analysis
 
+AI_ANALYSIS_DEFAULT_FALLBACK = _(
+    "Test completed! Review your detailed results to identify areas for improvement."
+)
+AI_ANALYSIS_LOW_SCORE_THRESHOLD = getattr(
+    settings, "AI_ANALYSIS_LOW_SCORE_THRESHOLD", 50
+)
+AI_ANALYSIS_HIGH_SCORE_THRESHOLD = getattr(
+    settings, "AI_ANALYSIS_HIGH_SCORE_THRESHOLD", 85
+)
+
 
 # --- Question Filtering Logic ---
 def get_filtered_questions(
@@ -454,6 +464,144 @@ def record_single_answer(
     return feedback
 
 
+# --- AI Performance Analysis Helper ---
+def _format_results_summary_for_ai(results_summary: Optional[Dict[str, Any]]) -> str:
+    """Formats the results_summary dictionary into a string for the AI prompt."""
+    if not results_summary:
+        return _("No detailed breakdown by topic available.")
+
+    summary_lines = []
+    for slug, data in results_summary.items():
+        if isinstance(data, dict) and "name" in data and "score" in data:
+            name = data.get("name", slug)
+            score = data.get("score")
+            if score is not None:
+                # Ensure score is presented as a number for the AI
+                score_str = (
+                    f"{score:.1f}%" if isinstance(score, (float, int)) else str(score)
+                )
+                summary_lines.append(f"- {name}: {score_str}")
+            else:
+                summary_lines.append(f"- {name}: {_('N/A')}")  # Score not available
+        # Handle cases where data might not be a dict or lack expected keys, though model validation should prevent this
+
+    if not summary_lines:
+        return _("Detailed topic scores are not available for this attempt.")
+    return "\n".join(summary_lines)
+
+
+def _generate_ai_performance_analysis(user: User, test_attempt: UserTestAttempt) -> str:
+    """
+    Generates a smart performance analysis using AI.
+    Returns the AI-generated text or a fallback message.
+    """
+    ai_manager = get_ai_manager()
+    if not ai_manager.is_available():
+        logger.warning(
+            f"AI manager not available for performance analysis (User: {user.id}, Attempt: {test_attempt.id}). Reason: {ai_manager.init_error}"
+        )
+        # Basic fallback if AI is completely unavailable
+        if test_attempt.score_percentage is not None:
+            if test_attempt.score_percentage >= AI_ANALYSIS_HIGH_SCORE_THRESHOLD:
+                return _(
+                    "Excellent work! You demonstrated strong understanding in this test."
+                )
+            elif test_attempt.score_percentage < AI_ANALYSIS_LOW_SCORE_THRESHOLD:
+                return _(
+                    "Good effort! Keep practicing to improve your score. Review your answers to learn from any mistakes."
+                )
+        return AI_ANALYSIS_DEFAULT_FALLBACK
+
+    overall_score_str = (
+        f"{test_attempt.score_percentage:.1f}"
+        if test_attempt.score_percentage is not None
+        else _("N/A")
+    )
+    verbal_score_str = (
+        f"{test_attempt.score_verbal:.1f}%"
+        if test_attempt.score_verbal is not None
+        else _("N/A")
+    )
+    quantitative_score_str = (
+        f"{test_attempt.score_quantitative:.1f}%"
+        if test_attempt.score_quantitative is not None
+        else _("N/A")
+    )
+
+    context_params = {
+        "overall_score": overall_score_str,
+        "verbal_score_str": verbal_score_str,
+        "quantitative_score_str": quantitative_score_str,
+        "results_summary_str": _format_results_summary_for_ai(
+            test_attempt.results_summary
+        ),
+        "test_type_display": test_attempt.get_attempt_type_display(),
+    }
+
+    system_prompt = ai_manager._construct_system_prompt(
+        ai_tone_value="encouraging_analytic",  # Using the custom tone defined in ai_manager
+        context_key="generate_test_performance_analysis",
+        context_params=context_params,
+    )
+
+    # For this type of analysis, we don't need conversation history.
+    # We send a single "user" message to trigger the AI based on the system prompt and context.
+    trigger_message = _(
+        "Please provide a performance analysis for the test I just completed."
+    )  # This is a dummy message for the API call structure.
+
+    ai_response_content, error_msg = ai_manager.get_chat_completion(
+        system_prompt_content=system_prompt,
+        messages_for_api=[{"role": "user", "content": trigger_message}],
+        temperature=0.6,  # Slightly lower temp for more focused analysis
+        max_tokens=300,  # Analysis should be concise
+        response_format=None,  # Expecting plain text based on the prompt
+        user_id_for_tracking=str(user.id),
+    )
+
+    if (
+        error_msg
+        or not isinstance(ai_response_content, str)
+        or not ai_response_content.strip()
+    ):
+        logger.error(
+            f"AI performance analysis generation failed for User: {user.id}, Attempt: {test_attempt.id}. Error: {error_msg or 'Empty response'}. "
+            f"AI Response: '{str(ai_response_content)[:200]}...'"
+        )
+        # More nuanced fallback based on scores if AI fails
+        if test_attempt.score_percentage is not None:
+            if test_attempt.score_percentage >= AI_ANALYSIS_HIGH_SCORE_THRESHOLD:
+                return _("Fantastic job on this test! Your hard work is paying off.")
+            elif test_attempt.score_percentage < AI_ANALYSIS_LOW_SCORE_THRESHOLD:
+                weakest_area_name = None
+                min_score = 101  # Initialize higher than max score
+                if test_attempt.results_summary:
+                    for area_slug, data in test_attempt.results_summary.items():
+                        if (
+                            isinstance(data, dict)
+                            and isinstance(data.get("score"), (int, float))
+                            and data["score"] is not None
+                        ):
+                            if data["score"] < min_score:
+                                min_score = data["score"]
+                                weakest_area_name = data.get("name") or area_slug
+                if (
+                    weakest_area_name and min_score < LEVEL_ASSESSMENT_SCORE_THRESHOLD
+                ):  # Using a general threshold for "weak"
+                    return _(
+                        "Good effort! Your results suggest focusing more practice on '{area}' where your score was {score}%."
+                    ).format(area=weakest_area_name, score=round(min_score, 1))
+                return _(
+                    "You've completed the test. Take some time to review your answers and identify areas for growth."
+                )
+        return AI_ANALYSIS_DEFAULT_FALLBACK  # Ultimate fallback
+
+    logger.info(
+        f"Successfully generated AI performance analysis for User: {user.id}, Attempt: {test_attempt.id}."
+    )
+    return ai_response_content.strip()
+
+
 @transaction.atomic
 def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
     user = test_attempt.user
@@ -476,6 +624,7 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
 
     signal_disconnected_successfully = False
     try:
+        # Temporarily disconnect signal to prevent double processing if calculate_and_save_scores also saves
         disconnected = post_save.disconnect(
             receiver=gamify_test_completed_signal_handler,
             sender=UserTestAttempt,
@@ -489,7 +638,7 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             )
         else:
             logger.warning(
-                f"Failed to disconnect 'gamify_on_test_completed' signal (UID: gamify_test_completed) for attempt {test_attempt.id}. "
+                f"Failed to disconnect 'gamify_on_test_completed' signal (UID: gamify_test_completed) for attempt {test_attempt.id}. Gamification might run twice if calculate_scores saves."
             )
 
         test_attempt.status = UserTestAttempt.Status.COMPLETED
@@ -504,8 +653,6 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                 "question__subsection__section", "question__skill"
             ).all()
             answered_count = question_attempts_qs.count()
-
-            # Count correct answers for this specific test
             correct_answers_in_test_count = question_attempts_qs.filter(
                 is_correct=True
             ).count()
@@ -514,25 +661,29 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                 logger.warning(
                     f"Test attempt {test_attempt.id} (Type: {test_attempt.attempt_type}) completed by user {user.id} with only {answered_count}/{total_questions} questions answered."
                 )
-            elif answered_count > total_questions and total_questions > 0:
+            elif (
+                answered_count > total_questions and total_questions > 0
+            ):  # Should not happen
                 logger.error(
                     f"Data inconsistency: Test attempt {test_attempt.id} has {answered_count} answers recorded but expected {total_questions}. Scoring based on recorded answers."
                 )
 
+            # Calculate scores and save them (this will update score_percentage, etc.)
             try:
                 test_attempt.calculate_and_save_scores(
                     question_attempts_qs=question_attempts_qs
-                )
+                )  # This method now saves itself
             except Exception as e:
+                # Log and potentially set status to ERROR if score calculation is critical
                 logger.exception(
                     f"Error calculating or saving scores for test attempt {test_attempt.id}, user {user.id}: {e}"
                 )
+                # Consider if we should halt or proceed with partial data
 
             logger.info(
                 f"Test attempt {test_attempt.id} (Type: {test_attempt.attempt_type}) scores calculated for user {user.id}. Score: {test_attempt.score_percentage}%"
             )
         else:  # For Traditional type
-            # For traditional, we still want to count any answers marked as correct within this session
             question_attempts_qs = test_attempt.question_attempts.all()
             answered_count = question_attempts_qs.count()
             correct_answers_in_test_count = question_attempts_qs.filter(
@@ -541,15 +692,20 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             logger.info(
                 f"Traditional practice session {test_attempt.id} marked as completed for user {user.id}."
             )
+            # For traditional, scores are typically not applicable in the same way,
+            # but results_summary might be populated if questions were answered.
+            # No specific score calculation needed here, model defaults are fine.
 
+        # Save status and end_time. Score fields were saved by calculate_and_save_scores.
         service_controlled_update_fields = ["status", "end_time", "updated_at"]
         test_attempt.save(update_fields=service_controlled_update_fields)
         logger.info(
             f"Status and end_time saved for test_attempt {test_attempt.id}. Status is now {test_attempt.status.label}."
         )
 
+        # Initialize gamification_results before the try block
         gamification_results = {
-            "total_points_earned": 0,  # This will store points from process_test_completion_gamification
+            "total_points_earned": 0,
             "badges_won_details": [],
             "streak_info": {"was_updated": False, "current_days": 0},
         }
@@ -558,8 +714,8 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             f"Before calling gamification service directly for test {test_attempt.id}, completion_points_awarded is: {test_attempt.completion_points_awarded}"
         )
 
+        # Perform gamification processing *after* scores are saved and status is COMPLETED.
         try:
-            # This call handles points for test completion, streak, and badges earned AT THIS POINT
             gamification_results = process_test_completion_gamification(
                 user, test_attempt
             )
@@ -569,6 +725,7 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             )
 
     finally:
+        # Reconnect the signal regardless of success/failure within the try block
         if signal_disconnected_successfully:
             post_save.connect(
                 gamify_test_completed_signal_handler,
@@ -579,15 +736,17 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                 f"Reconnected 'gamify_on_test_completed' signal (UID: gamify_test_completed) for attempt {test_attempt.id}."
             )
 
-    test_attempt.refresh_from_db()
+    # Refresh the instance from DB to get any updates from signals or direct saves
+    test_attempt.refresh_from_db()  # Important if gamification service modifies test_attempt
 
+    # Update user profile for level assessments
     if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
         try:
             profile = UserProfile.objects.select_for_update().get(user=user)
             if (
                 test_attempt.score_verbal is not None
                 and test_attempt.score_quantitative is not None
-            ):
+            ):  # Ensure scores are valid before updating
                 profile.current_level_verbal = test_attempt.score_verbal
                 profile.current_level_quantitative = test_attempt.score_quantitative
                 profile.save(
@@ -602,7 +761,7 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                 )
             else:
                 logger.error(
-                    f"Skipping profile update for user {user.id} (Assessment {test_attempt.id}) due to invalid scores."
+                    f"Skipping profile update for user {user.id} (Assessment {test_attempt.id}) due to invalid scores (verbal or quantitative is None)."
                 )
         except UserProfile.DoesNotExist:
             logger.error(
@@ -611,40 +770,43 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
         except Exception as e:
             logger.exception(f"Error updating profile levels for user {user.id}: {e}")
 
-    smart_analysis = None
+    # --- Generate Smart Analysis (AI or Fallback) ---
+    smart_analysis = AI_ANALYSIS_DEFAULT_FALLBACK  # Default fallback
     if test_attempt.attempt_type != UserTestAttempt.AttemptType.TRADITIONAL:
-        smart_analysis = _("Test completed successfully!")
-        results_summary = test_attempt.results_summary or {}
-        weakest_area_name = None
-        min_score = 101
-        try:
-            for area_slug, data in results_summary.items():
-                if (
-                    isinstance(data, dict)
-                    and isinstance(data.get("score"), (int, float))
-                    and data["score"] is not None
-                ):
-                    if data["score"] < min_score:
-                        min_score = data["score"]
-                        weakest_area_name = data.get("name") or area_slug
-            if weakest_area_name and min_score < LEVEL_ASSESSMENT_SCORE_THRESHOLD:
-                smart_analysis = _(
-                    "Good effort! Your results suggest focusing more practice on '{area}' where your score was {score}%."
-                ).format(area=weakest_area_name, score=round(min_score, 1))
-            elif (
-                test_attempt.score_percentage is not None
-                and test_attempt.score_percentage >= 85
-            ):
-                smart_analysis = _(
-                    "Excellent work! You demonstrated strong understanding in this test."
+        # Only generate AI analysis for non-traditional tests that have scores
+        if (
+            test_attempt.score_percentage is not None
+        ):  # Ensure there's a score to analyze
+            try:
+                smart_analysis = _generate_ai_performance_analysis(user, test_attempt)
+            except Exception as e:  # Catch any unexpected error during AI call
+                logger.error(
+                    f"Unexpected error generating AI smart analysis for attempt {test_attempt.id}: {e}",
+                    exc_info=True,
                 )
-        except Exception as e:
-            logger.error(
-                f"Error generating smart analysis for attempt {test_attempt.id}: {e}",
-                exc_info=True,
+                # Fallback to simpler rule-based analysis if AI fails catastrophically
+                if test_attempt.score_percentage >= AI_ANALYSIS_HIGH_SCORE_THRESHOLD:
+                    smart_analysis = _(
+                        "Excellent work! You demonstrated strong understanding in this test."
+                    )
+                elif test_attempt.score_percentage < AI_ANALYSIS_LOW_SCORE_THRESHOLD:
+                    smart_analysis = _(
+                        "Good effort! Review your results to identify areas for improvement and keep practicing."
+                    )
+                else:
+                    smart_analysis = _(
+                        "Well done on completing the test! Check your detailed results for insights."
+                    )
+        else:
+            smart_analysis = _(
+                "Test completed. Scores are not available for detailed analysis at this time."
             )
     else:
         smart_analysis = _("Practice session ended.")
+        if answered_count > 0:
+            smart_analysis = _(
+                "Practice session ended. You answered {count} questions."
+            ).format(count=answered_count)
 
     score_data = {
         "overall": test_attempt.score_percentage,
@@ -657,14 +819,9 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
         for b in gamification_results.get("badges_won_details", [])
     ]
 
-    # Calculate points earned from correct answers within this test attempt
-    # These points were already awarded by the gamify_on_question_solved signal.
-    # We are just reporting them here.
     points_from_correct_answers_this_test = (
         correct_answers_in_test_count * settings.POINTS_QUESTION_SOLVED_CORRECT
     )
-
-    # Points earned from the test completion event (completing test, streak, badges at completion)
     points_from_test_completion_event = gamification_results.get(
         "total_points_earned", 0
     )
@@ -673,13 +830,14 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
         "attempt_id": test_attempt.id,
         "status": test_attempt.get_status_display(),
         "score": score_data,
-        "results_summary": test_attempt.results_summary or {},
+        "results_summary": test_attempt.results_summary
+        or {},  # Ensure it's at least an empty dict
         "answered_question_count": answered_count,
         "total_questions": total_questions,
-        "correct_answers_in_test_count": correct_answers_in_test_count,  # New: count of correct answers
-        "smart_analysis": smart_analysis,
+        "correct_answers_in_test_count": correct_answers_in_test_count,
+        "smart_analysis": smart_analysis,  # This is now AI-powered or a robust fallback
         "points_from_test_completion_event": points_from_test_completion_event,
-        "points_from_correct_answers_this_test": points_from_correct_answers_this_test,  # New: points from these answers
+        "points_from_correct_answers_this_test": points_from_correct_answers_this_test,
         "badges_won": badges_won_for_response,
         "streak_info": {
             "updated": gamification_results.get("streak_info", {}).get(

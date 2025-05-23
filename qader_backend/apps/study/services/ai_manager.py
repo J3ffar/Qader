@@ -8,7 +8,10 @@ from openai import OpenAI, OpenAIError
 
 # Assuming ConversationSession is in apps.study.models for AiTone definitions
 # If not, we'll pass tone strings directly.
-from apps.study.models import ConversationMessage, ConversationSession
+from apps.study.models import (
+    ConversationMessage,
+    ConversationSession,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +36,6 @@ AI_JSON_PARSE_ERROR_MSG = _(
 
 
 # --- System Prompt Configuration ---
-# Base persona prompt - can be loaded from settings or defined here
-# This is the "who is he" instruction.
 BASE_PERSONA_PROMPT = getattr(
     settings,
     "AI_BASE_PERSONA_PROMPT",
@@ -54,7 +55,7 @@ Ensure your responses are culturally appropriate for Saudi Arabia. And your outp
 # Context-specific instruction templates. These are added to the base persona.
 # Keys correspond to use cases. Placeholders like {tone} or {user_message_text} will be formatted.
 CONTEXTUAL_INSTRUCTIONS = {
-    "general_conversation": "",  # No specific extra instructions beyond persona and tone
+    "general_conversation": "",
     "generate_cheer_message": """
 The user wants you to ask them a practice question.
 The question is about the topic: '{topic_context}'.
@@ -133,17 +134,50 @@ Example JSON Output:
 }}
 Output ONLY the JSON object. And without markdown JSON like ```json ``` just pure JSON output.
     """,
+    "generate_test_performance_analysis": """
+You are Qader AI, an encouraging assistant analyzing a student's test performance for the Qudurat test.
+The user has just completed a test. Your goal is to provide a concise, insightful, and actionable summary.
+Your output language MUST be in Arabic.
+
+Test Details Provided:
+- Overall Score: {overall_score}%
+- Verbal Score: {verbal_score_str}
+- Quantitative Score: {quantitative_score_str}
+- Performance by Topic/Subsection (Name: Score%):
+{results_summary_str}
+- Test Type: {test_type_display}
+
+Task:
+Generate a brief (target 2-4 sentences, max 5) analysis in Arabic.
+1. Acknowledge the effort and mention the overall score. Example: "عمل رائع في إكمال {test_type_display}! نتيجتك الإجمالية هي {overall_score}%."
+2. If applicable, briefly comment on verbal/quantitative performance if scores are available. Example: "أداؤك في القسم اللفظي كان {verbal_score_str} وفي القسم الكمي {quantitative_score_str}." (Only if scores are not "N/A").
+3. Identify one or two topics/subsections where the user performed weakest (lowest scores from the summary, e.g., below 60-70%). Suggest focusing on these. Example: "لتحسين أدائك أكثر، نقترح التركيز على [اسم الموضوع الضعيف الأول] حيث كانت نتيجتك [النتيجة]%." (Mention specific score).
+4. If there are clear strengths (high scores in some topics, e.g., above 85-90%), mention one briefly as encouragement. Example: "لقد أظهرت فهمًا جيدًا في [اسم الموضوع القوي]."
+5. Maintain an encouraging and constructive tone. Avoid overly negative language.
+6. If scores are generally high (e.g., overall > 85%), congratulate the user. If scores are low, focus on improvement steps.
+7. If the results_summary is empty or lacks scorable data, provide a general encouraging message about completing the test and suggest reviewing the material.
+
+Example (conceptual, ensure final output is purely Arabic text):
+"عمل رائع في إكمال اختبار {test_type_display}! نتيجتك الإجمالية هي {overall_score}%.
+أظهرت فهمًا جيدًا في [اسم الموضوع القوي].
+لتحسين أدائك أكثر، نقترح التركيز على [اسم الموضوع الضعيف الأول] حيث كانت نتيجتك [النتيجة]%."
+
+Output ONLY the generated text analysis as a single string. Do not use markdown or JSON.
+    """,
 }
 
 
 def get_tone_instruction_text(ai_tone_value: str) -> str:
     """Returns specific tone instructions for the system prompt based on ConversationSession.AiTone value."""
+    # Ensure ConversationSession.AiTone is available or provide a fallback mechanism
+    # For this specific use case, we might pre-define the tone or make it configurable.
+    # Let's assume a default "encouraging" tone for performance analysis.
     tone_map = {
-        ConversationSession.AiTone.CHEERFUL: "Use a cheerful, friendly, and slightly informal tone. Use emojis appropriately to convey encouragement (e.g., 😎, ✨, 👍).",
-        ConversationSession.AiTone.SERIOUS: "Maintain a professional, encouraging, but more formal and direct tone.",
+        ConversationSession.AiTone.CHEERFUL: "Use a cheerful, friendly, and slightly informal tone. Use emojis appropriately to convey encouragement (e.g., 😎, ✨, 👍).",  # Assuming ConversationSession.AiTone.CHEERFUL.value
+        ConversationSession.AiTone.SERIOUS: "Maintain a professional, encouraging, but more formal and direct tone.",  # Assuming ConversationSession.AiTone.SERIOUS.value
+        "encouraging_analytic": "Maintain an encouraging, supportive, yet analytical tone suitable for providing feedback on test performance. Focus on actionable advice.",
     }
-    # Default to serious if tone is unrecognized or not provided
-    return tone_map.get(ai_tone_value, tone_map[ConversationSession.AiTone.SERIOUS])
+    return tone_map.get(ai_tone_value, tone_map["encouraging_analytic"])
 
 
 class AIInteractionManager:
@@ -184,15 +218,13 @@ class AIInteractionManager:
 
     def _construct_system_prompt(
         self,
-        ai_tone_value: str,
+        ai_tone_value: str,  # This will now accept a string like "encouraging_analytic"
         context_key: Optional[str] = None,
         context_params: Optional[Dict[str, Any]] = None,
         additional_instructions: Optional[List[str]] = None,
     ) -> str:
         prompt_parts = [BASE_PERSONA_PROMPT]
-        prompt_parts.append(
-            get_tone_instruction_text(ai_tone_value)
-        )  # Add tone instruction
+        prompt_parts.append(get_tone_instruction_text(ai_tone_value))
 
         if context_key and context_key in CONTEXTUAL_INSTRUCTIONS:
             instruction_template = CONTEXTUAL_INSTRUCTIONS[context_key]
@@ -218,9 +250,7 @@ class AIInteractionManager:
         if additional_instructions:
             prompt_parts.extend(additional_instructions)
 
-        return "\n\n".join(
-            filter(None, prompt_parts)
-        )  # Filter out empty strings and join
+        return "\n\n".join(filter(None, prompt_parts))
 
     def _format_conversation_history(
         self, history: List[ConversationMessage]
@@ -267,16 +297,21 @@ class AIInteractionManager:
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
-        if user_id_for_tracking:  # For OpenAI abuse monitoring
+        if user_id_for_tracking:
             api_kwargs["user"] = user_id_for_tracking
 
         try:
-            log_msg_snippet = json.dumps(
+            # Truncate log message if too long
+            log_payload_str = json.dumps(
                 api_payload_messages, ensure_ascii=False, indent=2
             )
+            log_snippet = log_payload_str[:1000] + (
+                "..." if len(log_payload_str) > 1000 else ""
+            )
+
             logger.info(
                 f"Calling OpenAI ({model}) with {len(api_payload_messages)} messages. "
-                f"User: {user_id_for_tracking or 'N/A'}. Snippet: {log_msg_snippet[:500]}..."
+                f"User: {user_id_for_tracking or 'N/A'}. Response Format: {response_format}. Snippet: {log_snippet}"
             )
 
             completion = self.client.chat.completions.create(**api_kwargs)
@@ -288,8 +323,24 @@ class AIInteractionManager:
                 )
                 return None, AI_SPEECHLESS_MSG
 
+            # If expecting JSON, try to parse it
             if response_format and response_format.get("type") == "json_object":
                 try:
+                    # Remove markdown backticks if present before parsing JSON
+                    # This is a common issue with models outputting JSON in markdown
+                    if content.strip().startswith("```json"):
+                        content_cleaned = content.strip()[7:]  # Remove ```json\n
+                        if content_cleaned.endswith("```"):
+                            content_cleaned = content_cleaned[:-3]  # Remove ```
+                        content = content_cleaned.strip()
+                    elif content.strip().startswith(
+                        "```"
+                    ):  # Less specific, but might catch other markdown variations
+                        content_cleaned = content.strip()[3:]
+                        if content_cleaned.endswith("```"):
+                            content_cleaned = content_cleaned[:-3]
+                        content = content_cleaned.strip()
+
                     parsed_json = json.loads(content)
                     logger.info(
                         f"AI JSON response parsed successfully. User: {user_id_for_tracking or 'N/A'}"
@@ -297,11 +348,12 @@ class AIInteractionManager:
                     return parsed_json, None
                 except json.JSONDecodeError as e:
                     logger.error(
-                        f"Failed to parse AI JSON response. Error: {e}. Response: '{content}'. User: {user_id_for_tracking or 'N/A'}",
+                        f"Failed to parse AI JSON response. Error: {e}. Raw Response: '{content}'. User: {user_id_for_tracking or 'N/A'}",
                         exc_info=True,
                     )
                     return None, AI_JSON_PARSE_ERROR_MSG
 
+            # If not expecting JSON, or if parsing wasn't required/attempted, return as string
             logger.info(
                 f"AI text response received. User: {user_id_for_tracking or 'N/A'}"
             )
@@ -312,9 +364,18 @@ class AIInteractionManager:
                 f"OpenAI API error: {e}. User: {user_id_for_tracking or 'N/A'}",
                 exc_info=True,
             )
-            return None, _(
-                "I encountered an issue communicating with my brain (the AI service). Please try again shortly."
-            )
+            # Provide a more specific error if possible, e.g., based on e.status_code
+            user_facing_error = AI_RESPONSE_ERROR_MSG
+            if hasattr(e, "status_code"):
+                if e.status_code == 429:  # Rate limit
+                    user_facing_error = _(
+                        "The AI service is currently busy. Please try again in a moment."
+                    )
+                elif e.status_code == 401:  # Auth error
+                    user_facing_error = _(
+                        "There's an issue with AI service authentication. Please contact support."
+                    )
+            return None, user_facing_error
         except Exception as e:
             logger.exception(
                 f"Unexpected error calling AI: {e}. User: {user_id_for_tracking or 'N/A'}"
@@ -322,7 +383,6 @@ class AIInteractionManager:
             return None, AI_RESPONSE_ERROR_MSG
 
 
-# Singleton instance for easy access
 _ai_manager_instance = None
 
 
