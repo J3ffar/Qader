@@ -3,15 +3,12 @@ import logging
 from typing import List, Optional, Dict, Any, Tuple, Union
 
 from django.conf import settings
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _  # Keep for defining lazy strings
+from django.utils.functional import Promise  # For type checking __proxy__
+from django.utils.encoding import force_str  # For converting lazy objects to strings
 from openai import OpenAI, OpenAIError
 
-# Assuming ConversationSession is in apps.study.models for AiTone definitions
-# If not, we'll pass tone strings directly.
-from apps.study.models import (
-    ConversationMessage,
-    ConversationSession,
-)
+from apps.study.models import ConversationMessage, ConversationSession
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +19,7 @@ DEFAULT_MAX_TOKENS = getattr(settings, "AI_DEFAULT_MAX_TOKENS", 1000)
 MAX_HISTORY_MESSAGES_FOR_AI_CONTEXT = getattr(settings, "MAX_HISTORY_MESSAGES", 20)
 
 
-# --- User-Facing Error Messages ---
+# --- User-Facing Error Messages (ensure these are cast to str if used in JSON directly, though usually they are not) ---
 AI_UNAVAILABLE_ERROR_MSG = _(
     "Sorry, the AI assistant is currently unavailable. Please try again later."
 )
@@ -36,10 +33,11 @@ AI_JSON_PARSE_ERROR_MSG = _(
 
 
 # --- System Prompt Configuration ---
-BASE_PERSONA_PROMPT = getattr(
-    settings,
-    "AI_BASE_PERSONA_PROMPT",
-    """
+BASE_PERSONA_PROMPT = force_str(
+    getattr(
+        settings,
+        "AI_BASE_PERSONA_PROMPT",
+        """
 You are Qader AI, a helpful and encouraging AI assistant for students preparing for the Qudurat test (Saudi Arabia's aptitude test).
 Your goal is to help students understand concepts, practice questions, and build confidence.
 Focus on the Verbal (اللفظي) and Quantitative (الكمي) sections.
@@ -50,10 +48,11 @@ Do not reveal answers or detailed solutions unless explicitly asked or when expl
 When asked to provide a question, give a motivational message first, then clearly state the question.
 Ensure your responses are culturally appropriate for Saudi Arabia. And your output language must be in Arabic.
 """,
+    )
 )
 
-# Context-specific instruction templates. These are added to the base persona.
-# Keys correspond to use cases. Placeholders like {tone} or {user_message_text} will be formatted.
+# CONTEXTUAL_INSTRUCTIONS values are templates. When they are .format()ted,
+# the parameters passed to .format() must also be strings.
 CONTEXTUAL_INSTRUCTIONS = {
     "general_conversation": "",
     "generate_cheer_message": """
@@ -169,15 +168,13 @@ Output ONLY the generated text analysis as a single string. Do not use markdown 
 
 def get_tone_instruction_text(ai_tone_value: str) -> str:
     """Returns specific tone instructions for the system prompt based on ConversationSession.AiTone value."""
-    # Ensure ConversationSession.AiTone is available or provide a fallback mechanism
-    # For this specific use case, we might pre-define the tone or make it configurable.
-    # Let's assume a default "encouraging" tone for performance analysis.
     tone_map = {
         ConversationSession.AiTone.CHEERFUL: "Use a cheerful, friendly, and slightly informal tone. Use emojis appropriately to convey encouragement (e.g., 😎, ✨, 👍).",  # Assuming ConversationSession.AiTone.CHEERFUL.value
         ConversationSession.AiTone.SERIOUS: "Maintain a professional, encouraging, but more formal and direct tone.",  # Assuming ConversationSession.AiTone.SERIOUS.value
         "encouraging_analytic": "Maintain an encouraging, supportive, yet analytical tone suitable for providing feedback on test performance. Focus on actionable advice.",
     }
-    return tone_map.get(ai_tone_value, tone_map["encouraging_analytic"])
+    # Ensure the returned value is a plain string
+    return force_str(tone_map.get(ai_tone_value, tone_map["encouraging_analytic"]))
 
 
 class AIInteractionManager:
@@ -214,11 +211,11 @@ class AIInteractionManager:
 
     def get_error_message_if_unavailable(self) -> str:
         reason = f" (Reason: {self.init_error})" if self.init_error else ""
-        return f"{AI_UNAVAILABLE_ERROR_MSG}{reason}"
+        return force_str(f"{AI_UNAVAILABLE_ERROR_MSG}{reason}")
 
     def _construct_system_prompt(
         self,
-        ai_tone_value: str,  # This will now accept a string like "encouraging_analytic"
+        ai_tone_value: str,
         context_key: Optional[str] = None,
         context_params: Optional[Dict[str, Any]] = None,
         additional_instructions: Optional[List[str]] = None,
@@ -228,9 +225,16 @@ class AIInteractionManager:
 
         if context_key and context_key in CONTEXTUAL_INSTRUCTIONS:
             instruction_template = CONTEXTUAL_INSTRUCTIONS[context_key]
-            # Add tone to context_params so templates can also reference it if needed for examples
-            full_context_params = {"tone": ai_tone_value, **(context_params or {})}
-            # Add example tones for templates that use them
+
+            # Ensure all context_params values are strings before formatting
+            safe_context_params = {}
+            if context_params:
+                for key, value in context_params.items():
+                    safe_context_params[key] = (
+                        force_str(value) if isinstance(value, Promise) else value
+                    )
+
+            full_context_params = {"tone": ai_tone_value, **safe_context_params}
             full_context_params["cheerful_example_tone"] = (
                 ConversationSession.AiTone.CHEERFUL.value
             )
@@ -244,18 +248,15 @@ class AIInteractionManager:
                 logger.error(
                     f"Missing key {e} for formatting contextual instruction '{context_key}'. Params: {full_context_params}"
                 )
-                # Fallback: append raw template or a generic error message within prompt?
-                # For now, we'll just miss this part of the instruction.
 
         if additional_instructions:
-            prompt_parts.extend(additional_instructions)
+            prompt_parts.extend([force_str(instr) for instr in additional_instructions])
 
         return "\n\n".join(filter(None, prompt_parts))
 
     def _format_conversation_history(
         self, history: List[ConversationMessage]
     ) -> List[Dict[str, str]]:
-        """Formats ConversationMessage history for the AI API."""
         formatted_messages = []
         for msg in history[-MAX_HISTORY_MESSAGES_FOR_AI_CONTEXT:]:
             role = (
@@ -269,26 +270,28 @@ class AIInteractionManager:
     def get_chat_completion(
         self,
         system_prompt_content: str,
-        messages_for_api: List[
-            Dict[str, str]
-        ],  # Already includes history + current user message or task trigger
+        messages_for_api: List[Dict[str, str]],
         model: str = DEFAULT_AI_MODEL,
         temperature: float = DEFAULT_TEMPERATURE,
         max_tokens: int = DEFAULT_MAX_TOKENS,
         response_format: Optional[Dict[str, str]] = None,
         user_id_for_tracking: Optional[str] = None,
     ) -> Tuple[Optional[Union[str, Dict]], Optional[str]]:
-        """
-        Core method to interact with OpenAI ChatCompletion.
-        Returns (response_content, user_facing_error_message).
-        response_content is str or dict (if JSON parsed successfully).
-        """
         if not self.is_available():
-            return None, self.get_error_message_if_unavailable()
+            return (
+                None,
+                self.get_error_message_if_unavailable(),
+            )  # Returns forced string
+
+        # Ensure all content in messages_for_api is string
+        safe_messages_for_api = [
+            {"role": msg["role"], "content": force_str(msg["content"])}
+            for msg in messages_for_api
+        ]
 
         api_payload_messages = [
-            {"role": "system", "content": system_prompt_content},
-            *messages_for_api,
+            {"role": "system", "content": system_prompt_content},  # Already a string
+            *safe_messages_for_api,
         ]
 
         api_kwargs = {
@@ -297,11 +300,14 @@ class AIInteractionManager:
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
+        if response_format:
+            api_kwargs["response_format"] = response_format
+
         if user_id_for_tracking:
             api_kwargs["user"] = user_id_for_tracking
 
         try:
-            # Truncate log message if too long
+            # The api_payload_messages should now be safe for json.dumps
             log_payload_str = json.dumps(
                 api_payload_messages, ensure_ascii=False, indent=2
             )
@@ -321,21 +327,16 @@ class AIInteractionManager:
                 logger.warning(
                     f"Received empty AI response. User: {user_id_for_tracking or 'N/A'}"
                 )
-                return None, AI_SPEECHLESS_MSG
+                return None, force_str(AI_SPEECHLESS_MSG)
 
-            # If expecting JSON, try to parse it
             if response_format and response_format.get("type") == "json_object":
                 try:
-                    # Remove markdown backticks if present before parsing JSON
-                    # This is a common issue with models outputting JSON in markdown
                     if content.strip().startswith("```json"):
-                        content_cleaned = content.strip()[7:]  # Remove ```json\n
+                        content_cleaned = content.strip()[7:]
                         if content_cleaned.endswith("```"):
-                            content_cleaned = content_cleaned[:-3]  # Remove ```
+                            content_cleaned = content_cleaned[:-3]
                         content = content_cleaned.strip()
-                    elif content.strip().startswith(
-                        "```"
-                    ):  # Less specific, but might catch other markdown variations
+                    elif content.strip().startswith("```"):
                         content_cleaned = content.strip()[3:]
                         if content_cleaned.endswith("```"):
                             content_cleaned = content_cleaned[:-3]
@@ -351,9 +352,8 @@ class AIInteractionManager:
                         f"Failed to parse AI JSON response. Error: {e}. Raw Response: '{content}'. User: {user_id_for_tracking or 'N/A'}",
                         exc_info=True,
                     )
-                    return None, AI_JSON_PARSE_ERROR_MSG
+                    return None, force_str(AI_JSON_PARSE_ERROR_MSG)
 
-            # If not expecting JSON, or if parsing wasn't required/attempted, return as string
             logger.info(
                 f"AI text response received. User: {user_id_for_tracking or 'N/A'}"
             )
@@ -364,23 +364,22 @@ class AIInteractionManager:
                 f"OpenAI API error: {e}. User: {user_id_for_tracking or 'N/A'}",
                 exc_info=True,
             )
-            # Provide a more specific error if possible, e.g., based on e.status_code
             user_facing_error = AI_RESPONSE_ERROR_MSG
             if hasattr(e, "status_code"):
-                if e.status_code == 429:  # Rate limit
+                if e.status_code == 429:
                     user_facing_error = _(
                         "The AI service is currently busy. Please try again in a moment."
                     )
-                elif e.status_code == 401:  # Auth error
+                elif e.status_code == 401:
                     user_facing_error = _(
                         "There's an issue with AI service authentication. Please contact support."
                     )
-            return None, user_facing_error
-        except Exception as e:
+            return None, force_str(user_facing_error)
+        except Exception as e:  # This will catch the TypeError if it still occurs
             logger.exception(
                 f"Unexpected error calling AI: {e}. User: {user_id_for_tracking or 'N/A'}"
             )
-            return None, AI_RESPONSE_ERROR_MSG
+            return None, force_str(AI_RESPONSE_ERROR_MSG)
 
 
 _ai_manager_instance = None
