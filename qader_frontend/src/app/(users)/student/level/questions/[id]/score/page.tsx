@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
 interface TestResultOverviewProps {
-  attemptId?: number;
+  attemptId?: any;
 }
 
 const TestResultOverview: React.FC<TestResultOverviewProps> = ({ attemptId }) => {
