@@ -8,18 +8,16 @@ import { BadgeCheck, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
-interface TestResultOverviewProps {
-  attemptId?: any;
-}
 
-const TestResultOverview: React.FC<TestResultOverviewProps> = ({ attemptId }) => {
+
+const TestResultOverview: React.FC<any> = () => {
   const [score, setScore] = useState(70);
   const [verbalScore, setVerbalScore] = useState(25);
   const [quantScore, setQuantScore] = useState(62);
   const router = useRouter();
 
   // Fallback ID for dev/test
-  const id = attemptId ?? 1234;
+  const id = 1234;
 
   const pieData = [
     { name: "الكمي", value: quantScore, color: "#074182" },
