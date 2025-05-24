@@ -145,6 +145,7 @@ const TestResultOverview: React.FC<TestResultOverviewProps> = ({ attemptId }) =>
             مراجعة الاختبار
           </button>
         </a>
+        <a href="/student/level/questions">
         <button
           onClick={handleRetake}
           className="flex justify-center items-center gap-2 min-[1120px]:py-2.5 min-[1120px]:px-4 p-2 rounded-[8px] bg-transparent border-[1.5px] border-[#074182] text-[#074182] dark:border-[#3D93F5] dark:text-[#3D93F5] font-[600] hover:bg-[#07418211] dark:hover:bg-[#3D93F511] transition-all cursor-pointer"
@@ -152,6 +153,7 @@ const TestResultOverview: React.FC<TestResultOverviewProps> = ({ attemptId }) =>
           <RefreshCcw className="w-4 h-4 ml-2" />
           إعادة الاختبار
         </button>
+        </a>
       </div>
     </div>
   );

@@ -11,7 +11,8 @@ const blogData = [
 ];
 
 const BlogCard = ({ title, date, image }: any) => (
-  <div className="rounded-xl overflow-hidden shadow-sm relative group">
+  <a href='/student/blog/undefined'>
+    <div className="rounded-xl overflow-hidden shadow-sm relative group">
     <img src={image} alt={title} className="w-full h-48 object-cover" />
     <div
       className="absolute inset-0 bg-gradient-to-t from-[#074182cc] to-transparent p-4 flex flex-col justify-end text-white"
@@ -24,6 +25,7 @@ const BlogCard = ({ title, date, image }: any) => (
       <p className="text-xs">{date}</p>
     </div>
   </div>
+  </a>
 );
 
 const BlogSupportSection = () => {
