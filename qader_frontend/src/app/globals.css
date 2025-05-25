@@ -154,3 +154,17 @@ h6 {
 .font-body {
   font-family: var(--font-body);
 }
+
+#nprogress .bar {
+  background: oklch(var(--primary)) !important; /* Use your primary color */
+  height: 3px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px oklch(var(--primary)), 0 0 5px oklch(var(--primary)) !important;
+}
+
+/* Optional: Hide the spinner */
+#nprogress .spinner {
+  display: none !important;
+}
