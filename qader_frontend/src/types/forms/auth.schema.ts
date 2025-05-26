@@ -149,3 +149,57 @@ export type ApiCompleteProfileData = Omit<
 > & {
   profile_picture?: File | null; // Explicitly File for the service
 };
+
+export const RequestOtpSchema = z.object({
+  identifier: z // Can be email or username
+    .string()
+    .min(1, { message: "الرجاء إدخال البريد الإلكتروني أو اسم المستخدم." })
+    // Optional: add more specific validation if you can distinguish email from username client-side
+    .refine(
+      (value) =>
+        z.string().email().safeParse(value).success ||
+        /^[a-zA-Z0-9_.-]+$/.test(value),
+      {
+        message: "الرجاء إدخال بريد إلكتروني صالح أو اسم مستخدم صالح.",
+      }
+    ),
+});
+export type RequestOtpFormValues = z.infer<typeof RequestOtpSchema>;
+
+export const VerifyOtpSchema = z.object({
+  identifier: z.string(), // Will be pre-filled from step 1
+  otp: z
+    .string()
+    .min(6, { message: "يجب أن يتكون رمز OTP من 6 أرقام." })
+    .max(6, { message: "يجب أن يتكون رمز OTP من 6 أرقام." })
+    .regex(/^\d{6}$/, {
+      message: "الرجاء إدخال رمز OTP صالح مكون من 6 أرقام.",
+    }),
+});
+export type VerifyOtpFormValues = z.infer<typeof VerifyOtpSchema>;
+
+export const ResetPasswordSchema = z
+  .object({
+    reset_token: z.string(), // Will be pre-filled from step 2
+    new_password: z
+      .string()
+      .min(8, {
+        message: "يجب أن تتكون كلمة المرور الجديدة من 8 أحرف على الأقل.",
+      })
+      .regex(
+        /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&._-])[A-Za-z\d@$!%*?&._-]+$/,
+        {
+          // Same complexity as signup
+          message:
+            "يجب أن تحتوي كلمة المرور على حرف واحد ورقم واحد ورمز خاص واحد على الأقل (@$!%*?&._-).",
+        }
+      ),
+    new_password_confirm: z
+      .string()
+      .min(1, { message: "الرجاء تأكيد كلمة المرور الجديدة." }),
+  })
+  .refine((data) => data.new_password === data.new_password_confirm, {
+    message: "كلمتا المرور الجديدتان غير متطابقتين.",
+    path: ["new_password_confirm"],
+  });
+export type ResetPasswordFormValues = z.infer<typeof ResetPasswordSchema>;

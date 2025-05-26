@@ -6,10 +6,10 @@ export const PATHS = {
   FAQ: "/questions",
   CONTACT: "/contact",
   TERMS_AND_CONDITIONS: "/conditions",
-  LOGIN: "/auth/login",
-  SIGNUP: "/auth/signup",
+  LOGIN: "/login",
+  SIGNUP: "/signup",
   COMPLETE_PROFILE: "/complete-profile",
-  FORGOT_PASSWORD: "/auth/forgot-password",
+  FORGOT_PASSWORD: "/forgot-password",
   STUDY_HOME: "/student/level",
   ADMIN_DASHBOARD: "/admin/dashboard",
   // ... other paths

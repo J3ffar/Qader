@@ -3,6 +3,9 @@ import {
   LoginCredentials,
   ApiSignupData,
   ApiCompleteProfileData,
+  RequestOtpFormValues,
+  VerifyOtpFormValues,
+  ResetPasswordFormValues,
 } from "@/types/forms/auth.schema"; // We will define these schemas
 import {
   LoginResponse,
@@ -162,4 +165,68 @@ export const completeUserProfile = async (
     }
   );
   return handleResponse<UserProfile>(response);
+};
+
+export interface RequestOtpResponse {
+  detail: string;
+}
+export const requestOtp = async (
+  data: RequestOtpFormValues
+): Promise<RequestOtpResponse> => {
+  const locale = getLocaleFromPathname() || "ar";
+  const response = await fetch(
+    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/password/reset/request-otp/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+  return handleResponse<RequestOtpResponse>(response);
+};
+
+export interface VerifyOtpResponse {
+  reset_token: string;
+  detail: string;
+}
+export const verifyOtp = async (
+  data: VerifyOtpFormValues
+): Promise<VerifyOtpResponse> => {
+  const locale = getLocaleFromPathname() || "ar";
+  const response = await fetch(
+    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/password/reset/verify-otp/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+  return handleResponse<VerifyOtpResponse>(response);
+};
+
+export interface ResetPasswordResponse {
+  detail: string;
+}
+export const resetPasswordWithOtp = async (
+  data: ResetPasswordFormValues
+): Promise<ResetPasswordResponse> => {
+  const locale = getLocaleFromPathname() || "ar";
+  const response = await fetch(
+    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/password/reset/confirm-otp/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+  return handleResponse<ResetPasswordResponse>(response);
 };
