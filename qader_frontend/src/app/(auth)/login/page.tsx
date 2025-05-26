@@ -27,7 +27,7 @@ export default function LoginPage() {
   // const t = useTranslations('Auth.Login');
   // const tCommon = useTranslations('Common');
   const router = useRouter();
-  const searchParams = useSearchParams();
+  // const searchParams = useSearchParams();
   const { login: storeLogin, isAuthenticated, user: authUser } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -69,14 +69,14 @@ export default function LoginPage() {
       storeLogin({ access: data.access, refresh: data.refresh }, data.user);
       toast.success("تم تسجيل الدخول بنجاح!");
       reset();
-      const redirectUrl =
-        searchParams.get("redirect") ||
-        (data.user.profile_complete
-          ? data.user.is_super || data.user.is_staff
-            ? PATHS.ADMIN_DASHBOARD
-            : PATHS.STUDY_HOME
-          : PATHS.COMPLETE_PROFILE);
-      router.replace(redirectUrl);
+      // const redirectUrl =
+      //   searchParams.get("redirect") ||
+      //   (data.user.profile_complete
+      //     ? data.user.is_super || data.user.is_staff
+      //       ? PATHS.ADMIN_DASHBOARD
+      //       : PATHS.STUDY_HOME
+      //     : PATHS.COMPLETE_PROFILE);
+      // router.replace(redirectUrl);
     },
     onError: (error: any) => {
       if (error.status === 400 && error.data) {

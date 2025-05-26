@@ -27,6 +27,14 @@ import { useAuthStore } from "@/store/auth.store";
 import { AuthFormCard } from "@/components/auth/AuthFormCard";
 // import { useTranslations } from 'next-intl';
 
+const signupPageDefaultValues: SignupFormValues = {
+  full_name: "",
+  email: "",
+  password: "",
+  password_confirm: "",
+  termsAccepted: false,
+};
+
 export default function SignupPage() {
   // const t = useTranslations('Auth.Signup');
   // const tCommon = useTranslations('Common');
@@ -44,13 +52,7 @@ export default function SignupPage() {
     reset,
   } = useForm<SignupFormValues>({
     resolver: zodResolver(SignupSchema),
-    defaultValues: {
-      full_name: "",
-      email: "",
-      password: "",
-      password_confirm: "",
-      termsAccepted: false,
-    },
+    defaultValues: signupPageDefaultValues,
   });
 
   // Redirect if already authenticated (logic remains the same)
@@ -93,18 +95,23 @@ export default function SignupPage() {
     },
     onError: (error: any) => {
       if (error.status === 400 && error.data) {
+        let specificErrorSet = false;
         Object.keys(error.data).forEach((key) => {
           const field = key as keyof SignupFormValues;
           const message = Array.isArray(error.data[key])
             ? error.data[key].join(", ")
             : String(error.data[key]);
-          if (Object.keys(SignupSchema.shape).includes(field)) {
+
+          if (Object.keys(signupPageDefaultValues).includes(field)) {
             setFormError(field, { type: "server", message });
+            specificErrorSet = true;
           }
         });
+
         if (error.data.detail) {
           toast.error(String(error.data.detail));
-        } else {
+        } else if (!specificErrorSet) {
+          // If no specific field errors were mapped from error.data and no detail message
           toast.error("فشل التسجيل. الرجاء التحقق من البيانات المدخلة.");
         }
       } else {

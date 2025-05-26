@@ -51,7 +51,7 @@ export default function RootLayout({
         {/* NProgressHandler needs to be inside Suspense if it uses usePathname/useSearchParams directly in Next.js 13/14 */}
         {/* However, since it's a client component, it should be fine. Next.js 15 might handle this better. */}
         {/* For safety, wrap it in Suspense if you encounter static rendering issues. */}
-        <NProgressHandler />
+        {/* <NProgressHandler /> */}
         <Providers
           attribute="class"
           defaultTheme="system"
