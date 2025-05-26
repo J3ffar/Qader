@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Mail, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
@@ -27,7 +27,6 @@ export default function LoginPage() {
   // const t = useTranslations('Auth.Login');
   // const tCommon = useTranslations('Common');
   const router = useRouter();
-  // const searchParams = useSearchParams();
   const { login: storeLogin, isAuthenticated, user: authUser } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -69,14 +68,13 @@ export default function LoginPage() {
       storeLogin({ access: data.access, refresh: data.refresh }, data.user);
       toast.success("تم تسجيل الدخول بنجاح!");
       reset();
-      // const redirectUrl =
-      //   searchParams.get("redirect") ||
-      //   (data.user.profile_complete
-      //     ? data.user.is_super || data.user.is_staff
-      //       ? PATHS.ADMIN_DASHBOARD
-      //       : PATHS.STUDY_HOME
-      //     : PATHS.COMPLETE_PROFILE);
-      // router.replace(redirectUrl);
+      if (data.user?.is_super || data.user?.is_staff) {
+        router.push(PATHS.ADMIN_DASHBOARD);
+      } else if (!data.user.profile_complete) {
+        router.push(PATHS.COMPLETE_PROFILE);
+      } else {
+        router.push(PATHS.STUDY_HOME);
+      }
     },
     onError: (error: any) => {
       if (error.status === 400 && error.data) {

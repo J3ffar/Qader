@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/global/Providers";
 import { NProgressHandler } from "@/components/global/NProgressHandler";
 import { Toaster } from "@/components/ui/sonner";
+import { Suspense } from "react";
 // For next-intl, configuration is different in App Router
 // Usually, you create a [locale] dynamic segment and use NextIntlClientProvider there or use middleware.
 // For a basic setup without locale in path yet:
@@ -48,16 +49,15 @@ export default function RootLayout({
       <body
         className={`${ibm.variable} ${harmattan.variable} font-body bg-background text-foreground antialiased`}
       >
-        {/* NProgressHandler needs to be inside Suspense if it uses usePathname/useSearchParams directly in Next.js 13/14 */}
-        {/* However, since it's a client component, it should be fine. Next.js 15 might handle this better. */}
-        {/* For safety, wrap it in Suspense if you encounter static rendering issues. */}
-        {/* <NProgressHandler /> */}
         <Providers
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
+          <Suspense fallback={null}>
+            <NProgressHandler />
+          </Suspense>
           {/* <NextIntlClientProvider locale={locale} messages={messages}> */}
           {children}
           <Toaster richColors position="top-center" />{" "}
