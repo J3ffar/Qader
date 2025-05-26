@@ -69,3 +69,83 @@ export type SignupFormValues = z.infer<typeof SignupSchema>;
 
 // Type for the data to be sent to the API (omitting termsAccepted as it's a UI concern)
 export type ApiSignupData = Omit<SignupFormValues, "termsAccepted">;
+
+// Helper for profile picture validation
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
+
+export const CompleteProfileSchema = z.object({
+  gender: z.enum(["male", "female"], {
+    required_error: "الرجاء اختيار الجنس.",
+    invalid_type_error: "قيمة الجنس غير صالحة.",
+  }),
+  grade: z
+    .string()
+    .min(1, { message: "الرجاء إدخال الصف الدراسي." })
+    .max(50, { message: "الصف الدراسي طويل جدًا." }),
+  has_taken_qiyas_before: z.boolean({
+    required_error: "الرجاء تحديد ما إذا كنت قد اختبرت قدرات من قبل.",
+    invalid_type_error: "قيمة غير صالحة لخيار اختبار القدرات.",
+  }),
+  preferred_name: z
+    .string()
+    .max(100, { message: "الاسم المفضل طويل جدًا." })
+    .optional()
+    .nullable(),
+  profile_picture: z
+    .custom<FileList>() // For FileList from input type="file"
+    .refine(
+      (files) =>
+        files === undefined ||
+        files === null ||
+        files.length === 0 ||
+        files?.[0]?.size <= MAX_FILE_SIZE,
+      `يجب أن يكون حجم الصورة أقل من 5 ميجابايت.`
+    )
+    .refine(
+      (files) =>
+        files === undefined ||
+        files === null ||
+        files.length === 0 ||
+        (files?.[0]?.type && ACCEPTED_IMAGE_TYPES.includes(files[0].type)),
+      "صيغ الصور المدعومة هي .jpg, .jpeg, .png, .webp"
+    )
+    .optional()
+    .nullable(),
+  serial_code: z
+    .string()
+    .max(50, { message: "الرمز التسلسلي طويل جدًا." })
+    .optional()
+    .nullable(),
+  referral_code_used: z
+    .string()
+    .max(50, { message: "رمز الإحالة طويل جدًا." })
+    .optional()
+    .nullable(),
+  language: z.enum(["ar", "en"], {
+    required_error: "الرجاء اختيار اللغة.",
+  }),
+  // Note: 'username' was in your old form state but not in the API spec for PATCH /users/me/complete-profile/
+  // The API for complete-profile does not seem to allow changing the username. Username is usually set at initial signup or is the email.
+  // If you NEED to send username here, the API spec for this endpoint needs to be updated.
+  // For now, I am omitting it from this schema as it's not in the PATCH request body.
+});
+
+// Type for the form values
+export type CompleteProfileFormValues = z.infer<typeof CompleteProfileSchema>;
+
+// Type for the data sent to the API (FormData compatible)
+// For FormData, we usually don't have a strict Zod type for the payload itself,
+// as RHF handles converting schema values to FormData entries.
+// However, the service function will need the values.
+export type ApiCompleteProfileData = Omit<
+  CompleteProfileFormValues,
+  "profile_picture"
+> & {
+  profile_picture?: File | null; // Explicitly File for the service
+};

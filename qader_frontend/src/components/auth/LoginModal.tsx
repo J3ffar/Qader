@@ -70,7 +70,9 @@ const LoginModal: React.FC<LoginModalProps> = ({
       onClose(); // Close modal on success
       reset(); // Reset form
       // Redirect based on profile completion or other logic
-      if (!data.user.profile_complete) {
+      if (data.user?.is_super || data.user?.is_staff) {
+        router.push(PATHS.ADMIN_DASHBOARD);
+      } else if (!data.user.profile_complete) {
         router.push(PATHS.COMPLETE_PROFILE); // Or your specific path
       } else {
         router.push(PATHS.STUDY_HOME); // Or user's last visited page

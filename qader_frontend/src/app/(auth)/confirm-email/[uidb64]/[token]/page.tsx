@@ -32,7 +32,7 @@ export default function ConfirmEmailPage() {
 
       // Redirect based on profile completion
       if (!data.user.profile_complete) {
-        router.replace(PATHS.COMPLETE_PROFILE || "/auth/complete-profile");
+        router.replace(PATHS.COMPLETE_PROFILE || "/complete-profile");
       } else {
         router.replace(PATHS.STUDY_HOME || "/study");
       }
@@ -63,7 +63,7 @@ export default function ConfirmEmailPage() {
       } else if (user?.profile_complete) {
         router.replace(PATHS.STUDY_HOME || "/study");
       } else {
-        router.replace(PATHS.COMPLETE_PROFILE || "/auth/complete-profile");
+        router.replace(PATHS.COMPLETE_PROFILE || "/complete-profile");
       }
       return;
     }
@@ -122,9 +122,7 @@ export default function ConfirmEmailPage() {
             onClick={() => {
               const user = confirmEmailMutation.data?.user;
               if (user && !user.profile_complete) {
-                router.replace(
-                  PATHS.COMPLETE_PROFILE || "/auth/complete-profile"
-                );
+                router.replace(PATHS.COMPLETE_PROFILE || "/complete-profile");
               } else {
                 router.replace(PATHS.STUDY_HOME || "/study");
               }

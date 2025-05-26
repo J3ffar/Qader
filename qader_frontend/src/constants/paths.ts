@@ -8,7 +8,7 @@ export const PATHS = {
   TERMS_AND_CONDITIONS: "/conditions",
   LOGIN: "/auth/login",
   SIGNUP: "/auth/signup",
-  COMPLETE_PROFILE: "/auth/complete-profile",
+  COMPLETE_PROFILE: "/complete-profile",
   FORGOT_PASSWORD: "/auth/forgot-password",
   STUDY_HOME: "/student/level",
   ADMIN_DASHBOARD: "/admin/dashboard",

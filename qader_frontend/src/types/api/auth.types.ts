@@ -25,6 +25,11 @@ export interface User {
   language?: string; // e.g., "ar"
 }
 
+export interface UserProfile extends User {
+  // Assuming UserProfile has all fields of User plus potentially more
+  // Add any extra fields specific to UserProfile if they exist
+}
+
 export interface LoginResponse {
   access: string;
   refresh: string;

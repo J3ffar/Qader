@@ -1,9 +1,14 @@
 import { API_BASE_URL, API_VERSION } from "@/constants/api";
-import { LoginCredentials, ApiSignupData } from "@/types/forms/auth.schema"; // We will define these schemas
+import {
+  LoginCredentials,
+  ApiSignupData,
+  ApiCompleteProfileData,
+} from "@/types/forms/auth.schema"; // We will define these schemas
 import {
   LoginResponse,
   SignupResponse,
   ApiErrorDetail,
+  UserProfile,
 } from "@/types/api/auth.types";
 import { getLocaleFromPathname } from "@/utils/locale"; // Helper to get locale
 
@@ -108,4 +113,53 @@ export const confirmEmail = async ({
     }
   );
   return handleResponse<ConfirmEmailResponse>(response); // Re-use your existing robust handler
+};
+
+export const completeUserProfile = async (
+  data: ApiCompleteProfileData,
+  accessToken: string // Token needs to be passed
+): Promise<UserProfile> => {
+  // API returns UserProfile object
+  const locale = getLocaleFromPathname() || "ar";
+  const formData = new FormData();
+
+  // Append fields to FormData
+  // Required fields
+  formData.append("gender", data.gender);
+  formData.append("grade", data.grade);
+  formData.append(
+    "has_taken_qiyas_before",
+    String(data.has_taken_qiyas_before)
+  ); // Convert boolean to string
+  formData.append("language", data.language || locale);
+
+  // Optional fields
+  if (data.preferred_name) {
+    formData.append("preferred_name", data.preferred_name);
+  }
+  if (data.profile_picture) {
+    // data.profile_picture is File | null
+    formData.append("profile_picture", data.profile_picture);
+  }
+  if (data.serial_code) {
+    formData.append("serial_code", data.serial_code);
+  }
+  if (data.referral_code_used) {
+    formData.append("referral_code_used", data.referral_code_used);
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/${locale}/api/${API_VERSION}/users/me/complete-profile/`,
+    {
+      method: "PUT", // API Doc says PUT or PATCH. Let's use PUT as it replaces the profile subset.
+      // Check with backend if PATCH is preferred (sends only changed fields). Your current API doc title says PATCH.
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json", // Even with FormData, backend might respond with JSON
+        // 'Content-Type' is NOT set here for FormData; the browser sets it with the correct boundary
+      },
+      body: formData,
+    }
+  );
+  return handleResponse<UserProfile>(response);
 };
