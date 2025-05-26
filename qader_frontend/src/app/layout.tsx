@@ -28,10 +28,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-  params, // params will contain locale if you set up [locale] segment
 }: Readonly<{
   children: React.ReactNode;
-  params: { locale?: string }; // Example if locale is a param
 }>) {
   // const locale = params.locale || 'ar'; // Default to Arabic or get from params
 
@@ -46,7 +44,7 @@ export default function RootLayout({
   // }
 
   return (
-    <html lang={params.locale || "ar"} suppressHydrationWarning dir="rtl">
+    <html lang={"ar"} suppressHydrationWarning dir="rtl">
       <body
         className={`${ibm.variable} ${harmattan.variable} font-body bg-background text-foreground antialiased`}
       >
