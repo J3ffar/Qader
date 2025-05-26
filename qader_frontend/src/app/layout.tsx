@@ -60,7 +60,7 @@ export default function RootLayout({
         >
           {/* <NextIntlClientProvider locale={locale} messages={messages}> */}
           {children}
-          <Toaster richColors position="top-right" />{" "}
+          <Toaster richColors position="top-center" />{" "}
           {/* Or your preferred position */}
           {/* </NextIntlClientProvider> */}
         </Providers>

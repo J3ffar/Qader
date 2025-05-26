@@ -9,7 +9,15 @@ import { cn } from "@/lib/utils";
 function Dialog({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
+  return (
+    <>
+      <DialogPrimitive.Root data-slot="dialog" {...props} />
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[50]"
+        aria-hidden="true"
+      />
+    </>
+  );
 }
 
 function DialogTrigger({
