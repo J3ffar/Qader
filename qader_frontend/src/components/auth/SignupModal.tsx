@@ -1,14 +1,37 @@
 "use client";
-import React, { useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
-import { Button } from "@/components/ui/button";
+import React, { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
-import {
-  UserIcon,
-  EnvelopeIcon,
-  LockClosedIcon,
-} from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { User, Mail, Lock, XIcon, Eye, EyeOff } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+import {
+  SignupSchema,
+  type SignupFormValues,
+  type ApiSignupData,
+} from "@/types/forms/auth.schema"; // Ensure this type matches form fields
+import { signupUser } from "@/services/auth.service"; // Ensure service function expects correct data type
+import { PATHS } from "@/constants/paths";
+import { QUERY_KEYS } from "@/constants/queryKeys";
+
+// For i18n
+// import { useTranslations } from 'next-intl';
 
 interface SignupModalProps {
   show: boolean;
@@ -21,218 +44,320 @@ const SignupModal: React.FC<SignupModalProps> = ({
   onClose,
   onSwitchToLogin,
 }) => {
+  // const t = useTranslations('Auth');
   const router = useRouter();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
-  if (!show) return null;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError: setFormError,
+    reset,
+    control,
+  } = useForm<SignupFormValues>({
+    // Use the Zod inferred type for the form
+    resolver: zodResolver(SignupSchema),
+    defaultValues: {
+      full_name: "",
+      email: "",
+      password: "",
+      password_confirm: "",
+      termsAccepted: false,
+    },
+  });
 
-  const handleStartSignup = async () => {
-    setError(null);
-    setSuccessMessage(null);
-
-    if (password !== confirmPassword) {
-      setError("كلمتا المرور غير متطابقتين.");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const res = await fetch("https://qader.vip/ar/api/v1/auth/signup/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          full_name: fullName,
-          email,
-          password,
-          password_confirm: confirmPassword,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.status === 201) {
-        setSuccessMessage(data.detail || "تم إرسال رابط التفعيل إلى بريدك الإلكتروني.");
-        // optional: احفظ المعلومات مؤقتًا
-        localStorage.setItem("signup-step1", JSON.stringify({ full_name: fullName, email, password }));
-        // يمكنك إعادة التوجيه بعد ثوانٍ إن أردت
-        setTimeout(() => {
-          router.push("/completsignup");
-        }, 2000);
-      } else if (res.status === 400) {
-        if (data.email) setError(data.email[0]);
-        else if (data.detail) setError(data.detail);
-        else setError("حدث خطأ ما أثناء التسجيل.");
+  const signupMutation = useMutation({
+    mutationKey: [QUERY_KEYS.SIGNUP],
+    mutationFn: (data: SignupFormValues) => {
+      // The API expects data without 'termsAccepted'
+      // The SignupData type in auth.schema.ts already reflects this for the service
+      const apiData: ApiSignupData = {
+        full_name: data.full_name,
+        email: data.email,
+        password: data.password,
+        password_confirm: data.password_confirm,
+      };
+      return signupUser(apiData);
+    },
+    onSuccess: (data) => {
+      toast.success(
+        data.detail ||
+          "تم إرسال رابط التفعيل إلى بريدك الإلكتروني. يرجى التحقق من بريدك الوارد والمجلدات الأخرى."
+      ); // t('signupSuccessEmailSent')
+      reset();
+      onClose();
+      // The backend API doc says: "The user must click the link in the email to activate their account and log in."
+      // So, no automatic redirect to complete-profile yet, unless your flow has changed.
+      // If you want to guide them, maybe a message on the page they are on, or redirect to a "check your email" page.
+      // For now, we just close the modal.
+      // router.push(PATHS.CHECK_EMAIL_NOTICE); // Example: If you have such a page
+    },
+    onError: (error: any) => {
+      if (error.status === 400 && error.data) {
+        Object.keys(error.data).forEach((key) => {
+          const field = key as keyof SignupFormValues;
+          const message = Array.isArray(error.data[key])
+            ? error.data[key].join(", ")
+            : error.data[key];
+          if (
+            field === "email" ||
+            field === "full_name" ||
+            field === "password"
+          ) {
+            // Add other fields if backend returns errors for them
+            setFormError(field, { type: "server", message });
+          }
+        });
+        if (error.data.detail) {
+          toast.error(error.data.detail);
+        } else {
+          toast.error("فشل التسجيل. الرجاء التحقق من البيانات المدخلة."); // t('signupFailedCheckData')
+        }
       } else {
-        setError("فشل في إرسال البريد الإلكتروني. الرجاء المحاولة لاحقًا.");
+        toast.error(error.message || "فشل الاتصال بالخادم. حاول لاحقاً."); // t('signupErrorServer')
       }
-    } catch (e) {
-      setError("حدث خطأ غير متوقع. الرجاء المحاولة لاحقًا.");
-    } finally {
-      setIsLoading(false);
+    },
+  });
+
+  const onSubmit = (data: SignupFormValues) => {
+    signupMutation.mutate(data);
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      // Dialog is closing
+      reset(); // Reset React Hook Form state
+      signupMutation.reset(); // Reset TanStack Query mutation state
+      onClose(); // Call the passed onClose handler
     }
   };
 
+  if (!show && !signupMutation.isPending) {
+    return null;
+  }
+
   return (
-    <>
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]" onClick={onClose} />
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div
-          className="relative w-full max-w-md lg:max-w-3xl bg-background rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors z-10"
-            aria-label="Close popup"
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
-
-          {/* Form Content */}
-          <div className="w-full md:w-1/2 flex items-center justify-center">
-            <div className="w-full p-6 sm:p-8 space-y-6">
-              <div>
-                <h2 className="text-3xl font-bold text-center">أهلاً بك!!</h2>
-                <p className="text-xl text-gray-600 text-center">قادر ترحب بك.</p>
-              </div>
-              <div className="space-y-4">
-                {/* Full Name */}
-                <div className="space-y-1">
-                  <label htmlFor="signup-fullname" className="block text-sm font-medium text-foreground mr-3">
-                    الاسم الكامل
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="signup-fullname"
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full mt-1 pr-10 p-2 border rounded-md bg-input border-border focus:outline-none focus:ring focus:ring-primary"
-                      placeholder="الاسم الكامل"
-                    />
-                    <UserIcon className="w-5 h-5 absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400" />
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div className="space-y-1">
-                  <label htmlFor="signup-email" className="block text-sm font-medium text-foreground mr-3">
-                    البريد الإلكتروني
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="signup-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full mt-1 pr-10 p-2 border rounded-md bg-input border-border focus:outline-none focus:ring focus:ring-primary"
-                      placeholder="you@example.com"
-                    />
-                    <EnvelopeIcon className="w-5 h-5 absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400" />
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div className="space-y-1">
-                  <label htmlFor="signup-password" className="block text-sm font-medium text-foreground mr-3">
-                    كلمة المرور
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="signup-password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full mt-1 pr-10 p-2 border rounded-md bg-input border-border focus:outline-none focus:ring focus:ring-primary"
-                      placeholder="********"
-                    />
-                    <LockClosedIcon className="w-5 h-5 absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400" />
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div className="space-y-1">
-                  <label htmlFor="signup-confirm-password" className="block text-sm font-medium text-foreground mr-3">
-                    تأكيد كلمة المرور
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="signup-confirm-password"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full mt-1 pr-10 p-2 border rounded-md bg-input border-border focus:outline-none focus:ring focus:ring-primary"
-                      placeholder="********"
-                    />
-                    <LockClosedIcon className="w-5 h-5 absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400" />
-                  </div>
-                </div>
-
-                {/* Terms */}
-                <div className="flex items-start text-sm">
-                  <label className="flex items-center gap-2 text-muted-foreground">
-                    <input type="checkbox" className="accent-primary" required />
-                    <span>
-                      أوافق على{" "}
-                      <Link href="/conditions" className="text-primary hover:underline">
-                        الشروط والأحكام
-                      </Link>
-                    </span>
-                  </label>
-                </div>
-
-                {/* Error Message */}
-                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-                {/* Success Message */}
-                {successMessage && <p className="text-green-600 text-sm text-center">{successMessage}</p>}
-
-                {/* Submit Button */}
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleStartSignup}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "جاري التسجيل..." : "إنشاء حساب"}
-                </Button>
-              </div>
-
-              {/* Login Prompt */}
-              <p className="text-center text-sm text-muted-foreground">
-                لديك حساب بالفعل؟{" "}
-                {onSwitchToLogin ? (
-                  <button onClick={onSwitchToLogin} className="text-primary hover:underline font-medium">
-                    تسجيل الدخول
-                  </button>
-                ) : (
-                  <Link href="/login" className="text-primary hover:underline font-medium">
-                    تسجيل الدخول
-                  </Link>
-                )}
+    <Dialog open={show} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-md md:max-w-3xl flex flex-col md:flex-row p-0 overflow-hidden">
+        <div className="w-full md:w-1/2 flex items-center justify-center p-6 sm:p-8">
+          <div className="w-full space-y-6">
+            <DialogHeader className="text-center">
+              <DialogTitle className="text-3xl font-bold">
+                {/*t('welcome')*/}أهلاً بك!
+              </DialogTitle>
+              <p className="text-muted-foreground">
+                {/*t('qaderWelcomesYou')*/}قادر ترحب بك.
               </p>
-            </div>
-          </div>
+            </DialogHeader>
 
-          {/* Image */}
-          <div className="w-full md:w-1/2 h-64 md:h-auto hidden md:block">
-            <img
-              src="/images/login.jpg"
-              alt="إنشاء حساب"
-              className="h-full w-full object-cover"
-            />
+            {signupMutation.error && !signupMutation.error.data?.detail && (
+              <Alert variant="destructive">
+                <AlertTitle>خطأ في التسجيل</AlertTitle>
+                <AlertDescription>
+                  {(signupMutation.error as any)?.message ||
+                    "فشل التسجيل. الرجاء التحقق من البيانات المدخلة."}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <Label htmlFor="signup-fullname">
+                  {/*t('fullName')*/}الاسم الكامل
+                </Label>
+                <div className="relative mt-1">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3 rtl:left-auto" />
+                  <Input
+                    id="signup-fullname"
+                    type="text"
+                    placeholder="الاسم الثلاثي" //{t('fullNamePlaceholder')}
+                    {...register("full_name")}
+                    className="pl-10 rtl:pr-10 rtl:pl-4"
+                    aria-invalid={errors.full_name ? "true" : "false"}
+                  />
+                </div>
+                {errors.full_name && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.full_name.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="signup-email">
+                  {/*t('email')*/}البريد الإلكتروني
+                </Label>
+                <div className="relative mt-1">
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3 rtl:left-auto" />
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    {...register("email")}
+                    className="pl-10 rtl:pr-10 rtl:pl-4"
+                    aria-invalid={errors.email ? "true" : "false"}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="signup-password">
+                  {/*t('password')*/}كلمة المرور
+                </Label>
+                <div className="relative mt-1">
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3 rtl:left-auto" />
+                  <Input
+                    id="signup-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="********"
+                    {...register("password")}
+                    className="pl-10 pr-10 rtl:pr-10 rtl:pl-10"
+                    aria-invalid={errors.password ? "true" : "false"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rtl:left-3 rtl:right-auto"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="signup-confirm-password">
+                  {/*t('confirmPassword')*/}تأكيد كلمة المرور
+                </Label>
+                <div className="relative mt-1">
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3 rtl:left-auto" />
+                  <Input
+                    id="signup-confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="********"
+                    {...register("password_confirm")}
+                    className="pl-10 pr-10 rtl:pr-10 rtl:pl-10"
+                    aria-invalid={errors.password_confirm ? "true" : "false"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rtl:left-3 rtl:right-auto"
+                    aria-label={
+                      showConfirmPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.password_confirm && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.password_confirm.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-start space-x-2 rtl:space-x-reverse">
+                <Controller
+                  name="termsAccepted" // Name from your Zod schema
+                  control={control} // control object from useForm
+                  render={({ field }) => (
+                    <Checkbox
+                      id="termsAccepted"
+                      checked={field.value} // Use field.value for checked state
+                      onCheckedChange={field.onChange} // Use field.onChange for updates
+                      aria-invalid={errors.termsAccepted ? "true" : "false"}
+                      className={errors.termsAccepted ? "border-red-500" : ""} // Optional: add error styling
+                    />
+                  )}
+                />
+                <Label
+                  htmlFor="termsAccepted"
+                  className="text-sm font-normal text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {/*t('agreeTo')*/}أوافق على{" "}
+                  <Link
+                    href={PATHS.TERMS_AND_CONDITIONS || "/conditions"}
+                    className="font-medium text-primary hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {/*t('termsAndConditions')*/}الشروط والأحكام
+                  </Link>
+                </Label>
+              </div>
+              {errors.termsAccepted && (
+                <p className="mt-1 text-xs text-red-500">
+                  {errors.termsAccepted.message}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={signupMutation.isPending}
+              >
+                {signupMutation.isPending ? "جاري التسجيل..." : "إنشاء حساب"}
+              </Button>
+            </form>
+
+            <p className="text-center text-sm text-muted-foreground">
+              {/*t('alreadyHaveAccount')*/} لديك حساب بالفعل؟{" "}
+              {onSwitchToLogin ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onSwitchToLogin();
+                  }}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {/*t('login')*/}تسجيل الدخول
+                </button>
+              ) : (
+                <Link
+                  href={PATHS.LOGIN}
+                  className="font-medium text-primary hover:underline"
+                  onClick={onClose}
+                >
+                  {/*t('login')*/}تسجيل الدخول
+                </Link>
+              )}
+            </p>
           </div>
         </div>
-      </div>
-    </>
+
+        <div className="hidden md:block w-full md:w-1/2 h-64 md:h-auto">
+          <img
+            src="/images/login.jpg" // Re-use or use a different signup image
+            alt="Signup Visual"
+            className="h-full w-full object-cover"
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

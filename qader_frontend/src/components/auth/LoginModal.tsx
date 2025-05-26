@@ -1,9 +1,34 @@
 "use client";
-import React, { useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/solid";
-import { EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
-import { Button } from "@/components/ui/button";
+import React, { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
+import { Mail, Lock, XIcon, Eye, EyeOff } from "lucide-react"; // Replaced Eye icons
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose, // For explicit close button if needed outside of X
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox"; // For "Remember me"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For general error messages
+
+import { LoginSchema, type LoginCredentials } from "@/types/forms/auth.schema";
+import { loginUser } from "@/services/auth.service";
+import { useAuthStore } from "@/store/auth.store";
+import { PATHS } from "@/constants/paths";
+import { QUERY_KEYS } from "@/constants/queryKeys";
+
+// For i18n (assuming you have next-intl setup)
+// import { useTranslations } from 'next-intl';
 
 interface LoginModalProps {
   show: boolean;
@@ -16,181 +41,247 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   onSwitchToSignup,
 }) => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // const t = useTranslations('Auth'); // Example for i18n
+  const router = useRouter();
+  const { login: storeLogin, isAuthenticated } = useAuthStore();
+  const [showPassword, setShowPassword] = React.useState(false);
 
-  if (!show) return null;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError: setFormError, // For API errors related to specific fields
+    reset,
+  } = useForm<LoginCredentials>({
+    resolver: zodResolver(LoginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+      rememberMe: false,
+    },
+  });
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      setError("يرجى إدخال البريد الإلكتروني وكلمة المرور");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const res = await fetch("https://qader.vip/ar/api/v1/auth/login/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          username: email,
-          password: password,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 400) {
-          setError(data.detail || "بيانات الدخول غير صحيحة");
-        } else if (res.status === 401) {
-          setError("أنت غير مصرح لك. يرجى التحقق من بيانات الدخول.");
-        } else {
-          setError("حدث خطأ غير متوقع. حاول مرة أخرى.");
-        }
-        setIsSubmitting(false);
-        return;
+  const loginMutation = useMutation({
+    mutationKey: [QUERY_KEYS.LOGIN],
+    mutationFn: loginUser,
+    onSuccess: (data) => {
+      storeLogin({ access: data.access, refresh: data.refresh }, data.user);
+      toast.success("تم تسجيل الدخول بنجاح!"); // t('loginSuccess')
+      onClose(); // Close modal on success
+      reset(); // Reset form
+      // Redirect based on profile completion or other logic
+      if (data.user?.is_super || data.user?.is_staff) {
+        router.push(PATHS.ADMIN_DASHBOARD);
+      } else if (!data.user.profile_complete) {
+        router.push(PATHS.COMPLETE_PROFILE); // Or your specific path
+      } else {
+        router.push(PATHS.STUDY_HOME); // Or user's last visited page
       }
+    },
+    onError: (error: any) => {
+      // Handle API errors
+      if (error.status === 400 && error.data) {
+        // Example: if backend returns { username: ["error"], password: ["error"] }
+        Object.keys(error.data).forEach((key) => {
+          const field = key as keyof LoginCredentials;
+          const message = Array.isArray(error.data[key])
+            ? error.data[key].join(", ")
+            : error.data[key];
+          if (field === "username" || field === "password") {
+            setFormError(field, { type: "server", message });
+          }
+        });
+        if (error.data.detail) {
+          // General non-field error from backend
+          toast.error(error.data.detail);
+        } else {
+          toast.error("بيانات الدخول غير صحيحة أو حساب غير مفعل."); // t('loginFailed')
+        }
+      } else {
+        toast.error(error.message || "فشل الاتصال بالخادم. حاول لاحقاً."); // t('loginErrorServer')
+      }
+    },
+  });
 
-      // Store tokens and user info
-      localStorage.setItem("accessToken", data.access);
-      localStorage.setItem("refreshToken", data.refresh);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      // Optionally: log success or redirect
-      console.log("تم تسجيل الدخول بنجاح", data.user);
-
-      onClose();
-
-      // TODO: navigate to dashboard or refresh auth context
-    } catch (err) {
-      console.error(err);
-      setError("فشل الاتصال بالخادم. حاول لاحقاً.");
-    } finally {
-      setIsSubmitting(false);
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      // This means the dialog is about to close
+      reset(); // Reset React Hook Form state (fields and errors)
+      loginMutation.reset(); // Reset TanStack Query mutation state
+      onClose(); // Call the passed onClose handler to update parent state
+    } else {
+      // Dialog is opening. If `show` is managed by parent,
+      // `onClose` (which sets parent's show to false) isn't called here.
+      // The `show` prop directly controls the open state.
     }
   };
 
+  // Close modal if user is already authenticated and modal tries to show
+  useEffect(() => {
+    if (isAuthenticated && show) {
+      onClose();
+    }
+  }, [isAuthenticated, show, onClose]);
+
+  const onSubmit = (data: LoginCredentials) => {
+    loginMutation.mutate(data);
+  };
+
+  if (!show && !loginMutation.isPending) {
+    // Also ensure not to return null if a mutation is in progress after close (edge case)
+    return null;
+  }
+
   return (
-    <>
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div
-          className="relative w-full max-w-sm lg:max-w-3xl bg-background rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors z-10"
-            aria-label="Close popup"
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
-
-          <div className="w-full md:w-1/2 flex items-center justify-center max-md:flex-col">
-            <div className="w-full p-4 sm:p-6 lg:p-8 space-y-6">
-              <div>
-                <h2 className="text-3xl font-bold text-center">أهلاً بعودتك!!!</h2>
-                <p className="text-xl text-gray-600 text-center">اكمل السير معنا...</p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="login-email" className="block text-sm font-medium mr-3">
-                    البريد الإلكتروني
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="email"
-                      id="login-email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full mt-1 pr-10 p-2 border rounded-md bg-input border-border focus:outline-none focus:ring focus:ring-primary"
-                      placeholder="you@example.com"
-                    />
-                    <EnvelopeIcon className="w-5 h-5 absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400" />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="login-password" className="block text-sm font-medium mr-3">
-                    كلمة المرور
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      id="login-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full mt-1 pr-10 p-2 border rounded-md bg-input border-border focus:outline-none focus:ring focus:ring-primary"
-                      placeholder="********"
-                    />
-                    <LockClosedIcon className="w-5 h-5 absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400" />
-                  </div>
-                </div>
-
-                {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <label className="flex items-center space-x-2 rtl:space-x-reverse">
-                    <input type="checkbox" className="accent-primary" />
-                    <span>حفظ الجلسة</span>
-                  </label>
-                  <Link href="/forgot-password" className="text-[#2f80ed] underline">
-                    نسيت كلمة السر؟
-                  </Link>
-                </div>
-
-                <Button
-                  variant={"outline"}
-                  className="w-full"
-                  onClick={handleLogin}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "جارٍ الدخول..." : "دخول"}
-                </Button>
-              </div>
-
-              <p className="text-center text-sm text-muted-foreground">
-                ليس لديك حساب؟{" "}
-                {onSwitchToSignup ? (
-                  <button
-                    onClick={onSwitchToSignup}
-                    className="text-primary hover:underline font-medium"
-                  >
-                    إنشاء حساب
-                  </button>
-                ) : (
-                  <Link href="/signup" className="text-primary hover:underline font-medium">
-                    إنشاء حساب
-                  </Link>
-                )}
+    <Dialog open={show} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="max-w-sm md:max-w-3xl flex flex-col md:flex-row p-0 overflow-hidden"
+        onInteractOutside={(e) => e.preventDefault()} // Prevents closing on outside click if needed
+      >
+        <div className="w-full md:w-1/2 flex items-center justify-center p-6 sm:p-8">
+          <div className="w-full space-y-6">
+            <DialogHeader className="text-center">
+              <DialogTitle className="text-3xl font-bold">
+                {/*t('welcomeBack')*/}أهلاً بعودتك!
+              </DialogTitle>
+              <p className="text-muted-foreground">
+                {/*t('continueJourney')*/}اكمل السير معنا...
               </p>
-            </div>
-          </div>
+            </DialogHeader>
 
-          <div className="w-full md:w-1/2 h-64 md:h-auto hidden md:block">
-            <img
-              src="/images/login.jpg"
-              alt="تسجيل الدخول"
-              className="h-full w-full object-cover"
-            />
+            {loginMutation.error && !loginMutation.error.data?.detail && (
+              <Alert variant="destructive">
+                <AlertTitle>خطأ في تسجيل الدخول</AlertTitle>
+                <AlertDescription>
+                  {(loginMutation.error as any)?.message ||
+                    "بيانات الدخول غير صحيحة أو حساب غير مفعل."}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <Label htmlFor="login-username">
+                  {/*t('emailOrUsername')*/}البريد الإلكتروني أو اسم المستخدم
+                </Label>
+                <div className="relative mt-1">
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3 rtl:left-auto" />
+                  <Input
+                    id="login-username"
+                    type="text"
+                    placeholder="you@example.com" //{t('emailOrUsernamePlaceholder')}
+                    {...register("username")}
+                    className="pl-10 rtl:pr-10 rtl:pl-4"
+                    aria-invalid={errors.username ? "true" : "false"}
+                  />
+                </div>
+                {errors.username && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.username.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="login-password">
+                  {/*t('password')*/}كلمة المرور
+                </Label>
+                <div className="relative mt-1">
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3 rtl:left-auto" />
+                  <Input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="********"
+                    {...register("password")}
+                    className="pl-10 pr-10 rtl:pr-10 rtl:pl-10" // Space for both icons
+                    aria-invalid={errors.password ? "true" : "false"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rtl:left-3 rtl:right-auto"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                  <Checkbox id="rememberMe" {...register("rememberMe")} />
+                  <Label
+                    htmlFor="rememberMe"
+                    className="font-normal text-muted-foreground"
+                  >
+                    {/*t('rememberMe')*/}حفظ الجلسة
+                  </Label>
+                </div>
+                <Link
+                  href={PATHS.FORGOT_PASSWORD}
+                  className="text-primary hover:underline"
+                  onClick={onClose} // Close modal when navigating
+                >
+                  {/*t('forgotPassword')*/}نسيت كلمة السر؟
+                </Link>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loginMutation.isPending}
+              >
+                {loginMutation.isPending ? "جارٍ الدخول..." : "دخول"}
+              </Button>
+            </form>
+
+            <p className="text-center text-sm text-muted-foreground">
+              {/*t('noAccount')*/}ليس لديك حساب؟{" "}
+              {onSwitchToSignup ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose(); // Close current modal first
+                    onSwitchToSignup(); // Then open signup
+                  }}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {/*t('createAccount')*/}إنشاء حساب
+                </button>
+              ) : (
+                <Link
+                  href={PATHS.SIGNUP} // Fallback if it's a page route
+                  className="font-medium text-primary hover:underline"
+                  onClick={onClose}
+                >
+                  {/*t('createAccount')*/}إنشاء حساب
+                </Link>
+              )}
+            </p>
           </div>
         </div>
-      </div>
-    </>
+
+        {/* Image Section - remains the same */}
+        <div className="hidden md:block w-full md:w-1/2 h-64 md:h-auto">
+          <img
+            src="/images/login.jpg" // Ensure this path is correct from /public
+            alt="Login Visual"
+            className="h-full w-full object-cover"
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

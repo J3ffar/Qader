@@ -154,3 +154,49 @@ h6 {
 .font-body {
   font-family: var(--font-body);
 }
+
+#nprogress {
+  pointer-events: none;
+}
+
+#nprogress .bar {
+  background: var(--primary) !important; /* Use your primary color */
+  position: fixed !important;
+  z-index: 99999 !important; /* Extremely high z-index */
+  top: 0 !important;
+  left: 0 !important;
+  width: 100%; /* Start full for testing, NProgress will animate this */
+  height: 3px !important; /* Make it thicker */
+  opacity: 1 !important;
+  display: block !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--primary), 0 0 5px var(--primary) !important;
+  display: block;
+  position: absolute;
+  right: 0px;
+  width: 100px;
+  height: 100%;
+  opacity: 1;
+  transform: rotate(3deg) translate(0px, -4px);
+}
+
+#nprogress .spinner {
+  display: block !important; /* If you use spinner */
+  position: fixed !important;
+  z-index: 99999 !important;
+  top: 15px !important;
+  right: 15px !important;
+}
+
+#nprogress .spinner-icon {
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: solid 2px transparent;
+  border-top-color: var(--primary) !important; /* Make spinner obvious */
+  border-left-color: var(--primary) !important;
+  border-radius: 50%;
+  animation: nprogress-spinner 400ms linear infinite;
+}

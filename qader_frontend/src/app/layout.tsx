@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans_Arabic, Harmattan } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/ui/theme-provider";
+import { Providers } from "@/components/global/Providers";
+import { NProgressHandler } from "@/components/global/NProgressHandler";
+import { Toaster } from "@/components/ui/sonner";
+import { Suspense } from "react";
+// For next-intl, configuration is different in App Router
+// Usually, you create a [locale] dynamic segment and use NextIntlClientProvider there or use middleware.
+// For a basic setup without locale in path yet:
 
 const ibm = IBM_Plex_Sans_Arabic({
   subsets: ["arabic"],
@@ -18,6 +24,7 @@ export const metadata: Metadata = {
   title: "قادر | Qader - استعدادك لاختبار القدرات",
   description:
     "منصة قادر لمساعدتك على الاستعداد لاختبار القدرات العامة بفعالية.",
+  // Add more metadata: icons, openGraph, etc. from your target config/site.ts
 };
 
 export default function RootLayout({
@@ -25,19 +32,38 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // const locale = params.locale || 'ar'; // Default to Arabic or get from params
+
+  // For next-intl, you'd typically fetch messages here if not using middleware for everything
+  // let messages;
+  // try {
+  //   messages = (await import(`../../locales/${locale}.json`)).default;
+  // } catch (error) {
+  //   console.error("Could not load messages for locale:", locale, error);
+  //   // Fallback or handle error appropriately
+  //   messages = (await import(`../../locales/ar.json`)).default; // Fallback to Arabic
+  // }
+
   return (
-    <html lang="ar" suppressHydrationWarning dir="rtl">
+    <html lang={"ar"} suppressHydrationWarning dir="rtl">
       <body
-        className={`${ibm.variable} ${harmattan.variable} font-body bg-background text-foreground`}
+        className={`${ibm.variable} ${harmattan.variable} font-body bg-background text-foreground antialiased`}
       >
-        <ThemeProvider
+        <Providers
           attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
         >
+          <Suspense fallback={null}>
+            <NProgressHandler />
+          </Suspense>
+          {/* <NextIntlClientProvider locale={locale} messages={messages}> */}
           {children}
-        </ThemeProvider>
+          <Toaster richColors position="top-center" />{" "}
+          {/* Or your preferred position */}
+          {/* </NextIntlClientProvider> */}
+        </Providers>
       </body>
     </html>
   );
