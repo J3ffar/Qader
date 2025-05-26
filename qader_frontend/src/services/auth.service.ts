@@ -83,3 +83,29 @@ export const signupUser = async (
   );
   return handleResponse<SignupResponse>(response);
 };
+
+export interface ConfirmEmailParams {
+  uidb64: string;
+  token: string;
+}
+
+// The response from confirm-email is the same as LoginResponse
+export type ConfirmEmailResponse = LoginResponse;
+
+export const confirmEmail = async ({
+  uidb64,
+  token,
+}: ConfirmEmailParams): Promise<ConfirmEmailResponse> => {
+  const locale = getLocaleFromPathname() || "ar"; // Or however you determine current locale for API calls
+  const response = await fetch(
+    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/confirm-email/${uidb64}/${token}/`,
+    {
+      method: "GET", // As per API docs
+      headers: {
+        "Content-Type": "application/json", // Though GET usually doesn't have a body, it's good practice
+        Accept: "application/json",
+      },
+    }
+  );
+  return handleResponse<ConfirmEmailResponse>(response); // Re-use your existing robust handler
+};

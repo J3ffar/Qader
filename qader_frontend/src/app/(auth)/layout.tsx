@@ -1,4 +1,7 @@
 import React from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { PATHS } from "@/constants/paths";
 
 export default function AuthLayout({
   children,
@@ -6,9 +9,19 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/40 dark:bg-gradient-to-br dark:from-slate-900 dark:to-slate-800 p-4">
-      {/* The children will be the login or signup page component */}
-      {children}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-muted/40 p-4">
+      <div className="mb-8">
+        <Link href={PATHS.HOME || "/"}>
+          <Image
+            src="/images/logo.svg"
+            alt="Qader Logo"
+            width={150}
+            height={60}
+            priority
+          />
+        </Link>
+      </div>
+      <main className="w-full max-w-xl">{children}</main>
     </div>
   );
 }
