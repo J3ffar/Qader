@@ -485,7 +485,12 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for retrieving the full UserProfile details (/me/)."""
 
-    user = SimpleUserSerializer(read_only=True)
+    id = serializers.IntegerField(source="user.id", read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    is_staff = serializers.BooleanField(source="user.is_staff", read_only=True)
+    is_super = serializers.BooleanField(source="user.is_superuser", read_only=True)
+
     language = serializers.CharField(source="get_language_display", read_only=True)
     language_code = serializers.CharField(source="language", read_only=True)
     level_determined = serializers.BooleanField(read_only=True)
@@ -505,7 +510,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = (
-            "user",
+            "id",
+            "username",
+            "email",
+            "is_staff",
+            "is_super",
             "full_name",
             "preferred_name",
             "gender",
