@@ -230,3 +230,82 @@ export const resetPasswordWithOtp = async (
   );
   return handleResponse<ResetPasswordResponse>(response);
 };
+
+export interface LogoutPayload {
+  refresh: string;
+}
+// Logout API returns 204 No Content, so no specific response type needed beyond success/failure
+export const logoutUserApi = async (
+  payload: LogoutPayload,
+  accessToken: string
+): Promise<void> => {
+  const locale = getLocaleFromPathname() || "ar";
+  const response = await fetch(
+    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/logout/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${accessToken}`, // Logout itself might require auth
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+  // For 204 No Content, handleResponse might need adjustment if it expects JSON
+  // Let's create a specific handler for 204 or modify handleResponse
+  if (!response.ok) {
+    // Attempt to parse error details from backend if not 204
+    const contentType = response.headers.get("content-type");
+    let errorData: ApiErrorDetail | null = null;
+    if (contentType && contentType.includes("application/json")) {
+      errorData = await response.json();
+    }
+
+    let errorMessage =
+      errorData?.detail ||
+      `Logout failed: ${response.statusText || response.status}`;
+    if (
+      typeof errorData?.detail !== "string" &&
+      errorData &&
+      Object.keys(errorData).length > 0
+    ) {
+      // Handle cases where detail might be an object of field errors, though unlikely for logout
+      const firstKey = Object.keys(errorData)[0];
+      const firstError = errorData[firstKey];
+      errorMessage = Array.isArray(firstError)
+        ? `${firstKey}: ${firstError[0]}`
+        : `${firstKey}: ${firstError}`;
+    }
+
+    const error = new Error(errorMessage[0]) as any;
+    error.status = response.status;
+    error.data = errorData;
+    throw error;
+  }
+  // If response.ok and status is 204, it's a success, return void
+};
+
+export interface RefreshTokenPayload {
+  refresh: string;
+}
+export interface RefreshTokenResponse {
+  access: string;
+}
+export const refreshTokenApi = async (
+  payload: RefreshTokenPayload
+): Promise<RefreshTokenResponse> => {
+  const locale = getLocaleFromPathname() || "ar";
+  const response = await fetch(
+    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/token/refresh/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+  return handleResponse<RefreshTokenResponse>(response); // Existing handleResponse should work if it expects JSON
+};
