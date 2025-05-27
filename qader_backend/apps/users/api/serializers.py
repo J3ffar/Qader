@@ -13,6 +13,8 @@ from rest_framework import serializers
 from rest_framework.request import Request  # For type hinting context
 
 from typing import Dict, Any, Optional, Union
+
+from apps.users.utils import generate_unique_username_from_fullname
 from ..constants import (
     GenderChoices,
     RoleChoices,
@@ -157,50 +159,81 @@ class InitialSignupSerializer(serializers.ModelSerializer):
                 {"password_confirm": _("Password fields didn't match.")}
             )
         try:
-            validate_password(attrs["password"], user=None)
+            validate_password(attrs["password"], user=None)  # Validate password policy
         except DjangoValidationError as e:
             raise serializers.ValidationError({"password": list(e.messages)})
         return attrs
 
     @transaction.atomic
     def create(self, validated_data: Dict[str, Any]) -> User:
-        """Creates an inactive User and sets the full_name on the profile."""
+        """Creates an inactive User, sets username from full_name, and sets full_name on the profile."""
         email = validated_data["email"]
         password = validated_data["password"]
         full_name = validated_data["full_name"]
 
+        # Generate username from full_name, using email as a fallback
         try:
-            username = validated_data.get("username", email)
+            username = generate_unique_username_from_fullname(full_name, email)
+        except ValueError as e:  # Catch error from username generation utility
+            logger.error(f"Username generation failed for {full_name}/{email}: {e}")
+            raise serializers.ValidationError(
+                {
+                    "detail": _(
+                        "Could not generate a suitable username. Please try a different full name or contact support."
+                    )
+                }
+            )
+
+        try:
             user = User.objects.create_user(
-                username=username,
+                username=username,  # Use the new generated username
                 email=email,
                 password=password,
-                is_active=False,
+                is_active=False,  # User starts as inactive, activated by email confirmation
             )
             profile = user.profile
             profile.full_name = full_name
             profile.save(update_fields=["full_name"])
+
             logger.info(
-                f"Inactive user '{user.username}' created, pending email confirmation."
+                f"Inactive user '{user.username}' (derived from full_name '{full_name}') created successfully. Email: {email}. Pending email confirmation."
             )
             return user
         except IntegrityError as e:
-            logger.warning(f"IntegrityError during initial signup for {email}: {e}")
+            logger.error(
+                f"IntegrityError during initial signup for email {email} (generated username: {username}): {e}"
+            )
             error_msg = str(e).lower()
-            if "unique constraint" in error_msg and (
-                "username" in error_msg or "email" in error_msg
-            ):
+            # This specific username unique constraint should be rare now due to the utility,
+            # but race conditions or flaws in utility could still cause it.
+            if "unique constraint" in error_msg and "username" in error_msg:
+                logger.critical(
+                    f"Username '{username}' (from full_name '{full_name}') caused a unique constraint violation despite generation logic. Possible race condition or utility flaw."
+                )
+                raise serializers.ValidationError(
+                    {
+                        "detail": [
+                            _(
+                                "We encountered an issue creating your username. Please try a slightly different full name or try again later."
+                            )
+                        ]
+                    }
+                )
+            # Email unique constraint is handled by validate_email, but catch defensively
+            elif "unique constraint" in error_msg and "email" in error_msg:
                 raise serializers.ValidationError(
                     {"email": [_("This email address is already registered.")]}
                 )
             else:
                 raise serializers.ValidationError(
-                    _("Signup failed due to a data conflict.")
+                    _("Signup failed due to a data conflict. Please try again.")
                 )
-        except Exception as e:
-            logger.exception(f"Unexpected error during initial signup for {email}: {e}")
+        except Exception as e:  # Catch any other unexpected errors
+            logger.exception(
+                f"Unexpected error during initial signup for {email} (username: {username}): {e}"
+            )
             raise serializers.ValidationError(
-                _("An unexpected error occurred during signup.")
+                _("An unexpected error occurred during signup. Please try again later.")
             )
 
 

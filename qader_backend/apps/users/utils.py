@@ -17,6 +17,7 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _, override
 from decouple import config
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils.text import slugify
 
 # Avoid circular import for type checking
 if TYPE_CHECKING:
@@ -318,3 +319,104 @@ def get_user_from_uidb64(uidb64: str) -> Optional[User]:
     ) as e:
         logger.debug(f"Failed to get user from UIDB64 '{uidb64}': {e}")
         return None
+
+
+def generate_unique_username_from_fullname(full_name: str, email: str) -> str:
+    """
+    Generates a unique, sanitized username from a full name.
+    Falls back to an email-derived username if full_name is problematic or empty.
+    Ensures the username conforms to typical Django User model constraints.
+    """
+    if not full_name or not full_name.strip():
+        # Fallback if full_name is empty or only whitespace
+        candidate_name = email.split("@")[0]  # Use local part of email
+    else:
+        candidate_name = full_name
+
+    # 1. Slugify: handles spaces, non-ASCII, converts to lowercase, and uses hyphens.
+    # Example: "John Doe!" -> "john-doe"
+    base_username = slugify(candidate_name)
+
+    # 2. Replace hyphens with underscores (common preference for usernames)
+    # Example: "john-doe" -> "john_doe"
+    base_username = base_username.replace("-", "_")
+
+    # 3. Ensure base_username is not empty after slugification (e.g., if full_name was "!!!")
+    if not base_username:
+        # Fallback to a more robust email part if initial candidate_name yielded empty slug
+        email_prefix = email.split("@")[0]
+        base_username = slugify(email_prefix).replace("-", "_")
+        if not base_username:  # Ultimate fallback if email_prefix is also problematic
+            base_username = "user"
+
+    # 4. Truncate to avoid exceeding max_length, leaving space for a suffix.
+    # User.username.max_length is typically 150.
+    username_field = User._meta.get_field("username")
+    username_max_length = username_field.max_length
+
+    # Leave space for a suffix like "_1234"
+    # Adjust suffix_space if you expect very high number of collisions for the same base.
+    suffix_space = 7
+
+    if len(base_username) > username_max_length - suffix_space:
+        base_username = base_username[: username_max_length - suffix_space]
+
+    # Ensure base_username is not empty after truncation
+    if not base_username:  # Should be extremely rare if previous fallbacks worked
+        base_username = "user"
+
+    # 5. Check for uniqueness and append counter if necessary
+    original_base_for_suffixing = base_username  # Store the potentially truncated base
+    username_to_check = base_username
+    counter = 1
+
+    while User.objects.filter(username=username_to_check).exists():
+        suffix = f"_{counter}"
+        # Ensure the base + suffix doesn't exceed max_length
+        if len(original_base_for_suffixing) + len(suffix) > username_max_length:
+            # If too long, we need to shorten the original_base_for_suffixing part
+            allowed_base_len = username_max_length - len(suffix)
+            if (
+                allowed_base_len <= 0
+            ):  # This means suffix itself is too long (e.g. _100000 for short max_length)
+                # Fallback to a highly unique alternative
+                import uuid
+
+                username_to_check = (
+                    f"u_{uuid.uuid4().hex[:username_max_length-2]}"  # "u_" prefix
+                )
+                if User.objects.filter(
+                    username=username_to_check
+                ).exists():  # Extremely unlikely
+                    logger.error(
+                        f"CRITICAL: Could not generate unique username for {full_name}/{email} even with UUID."
+                    )
+                    raise ValueError(
+                        "Could not generate a unique username after extensive attempts."
+                    )
+                break  # Exit while loop with this UUID-based username
+
+            current_base_for_loop = original_base_for_suffixing[:allowed_base_len]
+            username_to_check = f"{current_base_for_loop}{suffix}"
+        else:
+            username_to_check = f"{original_base_for_suffixing}{suffix}"
+
+        counter += 1
+        if (
+            counter > 10000
+        ):  # Safety break for extreme edge cases or very short max_length
+            logger.error(
+                f"Exceeded 10000 attempts to generate unique username for {full_name}/{email}."
+            )
+            import uuid  # Fallback to a more random username
+
+            username_to_check = f"user_{uuid.uuid4().hex[:username_max_length-5]}"
+            if User.objects.filter(
+                username=username_to_check
+            ).exists():  # Extremely unlikely
+                raise ValueError(
+                    "Could not generate a unique username after extensive attempts (post-safety-break)."
+                )
+            break  # Exit while loop
+
+    return username_to_check
