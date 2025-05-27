@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-19 23:45+0300\n"
+"POT-Creation-Date: 2025-05-28 00:50+0300\n"
 "PO-Revision-Date: 2023-10-27 10:00+0000\n"
 "Last-Translator: Your Name <your.email@example.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -81,333 +81,358 @@ msgstr "مُنشأ بواسطة"
 msgid "You must have an active subscription to perform this action."
 msgstr "يجب أن يكون لديك اشتراك نشط لتنفيذ هذا الإجراء."
 
-#: .\apps\users\api\serializers.py:127
+#: .\apps\users\api\serializers.py:137
 msgid "Confirm Password"
 msgstr "تأكيد كلمة المرور"
 
-#: .\apps\users\api\serializers.py:145
+#: .\apps\users\api\serializers.py:155
 msgid "This email address is pending confirmation or already registered."
 msgstr "عنوان البريد الإلكتروني هذا بانتظار التأكيد أو مسجل بالفعل."
 
-#: .\apps\users\api\serializers.py:149
+#: .\apps\users\api\serializers.py:159
 msgid "A user with this email already exists."
 msgstr "مستخدم بهذا البريد الإلكتروني موجود بالفعل."
 
-#: .\apps\users\api\serializers.py:157
+#: .\apps\users\api\serializers.py:167
 msgid "Password fields didn't match."
 msgstr "حقلي كلمة المرور غير متطابقين."
 
-#: .\apps\users\api\serializers.py:194
+#: .\apps\users\api\serializers.py:190
+msgid ""
+"Could not generate a suitable username. Please try a different full name or "
+"contact support."
+msgstr "تعذر إنشاء اسم مستخدم مناسب. يرجى تجربة اسم كامل مختلف أو الاتصال بالدعم."
+
+#: .\apps\users\api\serializers.py:225
+msgid ""
+"We encountered an issue creating your username. Please try a slightly "
+"different full name or try again later."
+msgstr "واجهنا مشكلة في إنشاء اسم المستخدم الخاص بك. يرجى تجربة اسم كامل مختلف قليلاً أو المحاولة لاحقًا."
+
+#: .\apps\users\api\serializers.py:233
 msgid "This email address is already registered."
 msgstr "عنوان البريد الإلكتروني هذا مسجل بالفعل."
 
-#: .\apps\users\api\serializers.py:198
-msgid "Signup failed due to a data conflict."
-msgstr "فشل التسجيل بسبب تعارض في البيانات."
+#: .\apps\users\api\serializers.py:237
+msgid "Signup failed due to a data conflict. Please try again."
+msgstr "فشل التسجيل بسبب تعارض في البيانات. يرجى المحاولة مرة أخرى."
 
-#: .\apps\users\api\serializers.py:203
-msgid "An unexpected error occurred during signup."
-msgstr "حدث خطأ غير متوقع أثناء التسجيل."
+#: .\apps\users\api\serializers.py:244
+msgid "An unexpected error occurred during signup. Please try again later."
+msgstr "حدث خطأ غير متوقع أثناء التسجيل. يرجى المحاولة لاحقًا."
 
-#: .\apps\users\api\serializers.py:241
+#: .\apps\users\api\serializers.py:258
+msgid ""
+"Set or update your username. Must be unique. Allowed characters: letters, "
+"digits and './+/-/_' (see below for file content) only."
+msgstr "قم بتعيين أو تحديث اسم المستخدم الخاص بك. يجب أن يكون فريدًا. الأحرف المسموح بها: أحرف وأرقام و './+/-/_' (انظر أدناه لمحتوى الملف) فقط."
+
+#: .\apps\users\api\serializers.py:293
 msgid "Optional: Enter a serial code to activate a paid subscription."
 msgstr "اختياري: أدخل رمز تسلسلي لتفعيل اشتراك مدفوع."
 
-#: .\apps\users\api\serializers.py:306
+#: .\apps\users\api\serializers.py:379 .\apps\users\api\serializers.py:773
+msgid "This username is already taken. Please choose another one."
+msgstr "اسم المستخدم هذا مستخدم بالفعل. يرجى اختيار اسم آخر."
+
+#: .\apps\users\api\serializers.py:405
 msgid "This field is required to complete your profile."
 msgstr "هذا الحقل مطلوب لاستكمال ملفك الشخصي."
 
-#: .\apps\users\api\serializers.py:330 .\apps\users\api\serializers.py:924
+#: .\apps\users\api\serializers.py:429 .\apps\users\api\serializers.py:1074
 msgid "Invalid or already used serial code."
 msgstr "رمز تسلسلي غير صالح أو مستخدم بالفعل."
 
-#: .\apps\users\api\serializers.py:333 .\apps\users\api\serializers.py:929
+#: .\apps\users\api\serializers.py:432 .\apps\users\api\serializers.py:1079
 msgid "Error validating serial code."
 msgstr "خطأ في التحقق من صحة الرمز التسلسلي."
 
-#: .\apps\users\api\serializers.py:345
+#: .\apps\users\api\serializers.py:444
 msgid "You cannot use your own referral code."
 msgstr "لا يمكنك استخدام رمز الإحالة الخاص بك."
 
-#: .\apps\users\api\serializers.py:349
+#: .\apps\users\api\serializers.py:448
 msgid "Invalid referral code provided."
 msgstr "تم توفير رمز إحالة غير صالح."
 
-#: .\apps\users\api\serializers.py:352
+#: .\apps\users\api\serializers.py:451
 msgid "Error validating referral code."
 msgstr "خطأ في التحقق من صحة رمز الإحالة."
 
-#: .\apps\users\api\serializers.py:361 .\apps\users\api\serializers.py:622
+#: .\apps\users\api\serializers.py:460 .\apps\users\api\serializers.py:742
 #, python-brace-format
 msgid "Image size cannot exceed {size}MB."
 msgstr "حجم الصورة لا يمكن أن يتجاوز {size} ميجابايت."
 
-#: .\apps\users\api\serializers.py:434
+#: .\apps\users\api\serializers.py:533
 msgid "Number of unread notifications for the user."
 msgstr "عدد الإشعارات غير المقروءة للمستخدم."
 
-#: .\apps\users\api\serializers.py:647
+#: .\apps\users\api\serializers.py:684
+msgid ""
+"Update your username. Must be unique. Allowed characters: letters, digits "
+"and './+/-/_' (see below for file content) only."
+msgstr "قم بتحديث اسم المستخدم الخاص بك. يجب أن يكون فريدًا. الأحرف المسموح بها: أحرف وأرقام و './+/-/_' (انظر أدناه لمحتوى الملف) فقط."
+
+#: .\apps\users\api\serializers.py:797
 msgid "Auto dark mode start time must be before end time."
 msgstr "وقت بدء الوضع الداكن التلقائي يجب أن يكون قبل وقت الانتهاء."
 
-#: .\apps\users\api\serializers.py:650
+#: .\apps\users\api\serializers.py:800
 msgid "Auto dark mode end time must be after start time."
 msgstr "وقت انتهاء الوضع الداكن التلقائي يجب أن يكون بعد وقت البدء."
 
-#: .\apps\users\api\serializers.py:671
+#: .\apps\users\api\serializers.py:821
 msgid "Current Password"
 msgstr "كلمة المرور الحالية"
 
-#: .\apps\users\api\serializers.py:678 .\apps\users\api\serializers.py:747
-#: .\apps\users\api\serializers.py:851
+#: .\apps\users\api\serializers.py:828 .\apps\users\api\serializers.py:897
+#: .\apps\users\api\serializers.py:1001
 msgid "New Password"
 msgstr "كلمة المرور الجديدة"
 
-#: .\apps\users\api\serializers.py:684 .\apps\users\api\serializers.py:753
-#: .\apps\users\api\serializers.py:857
+#: .\apps\users\api\serializers.py:834 .\apps\users\api\serializers.py:903
+#: .\apps\users\api\serializers.py:1007
 msgid "Confirm New Password"
 msgstr "تأكيد كلمة المرور الجديدة"
 
-#: .\apps\users\api\serializers.py:692
+#: .\apps\users\api\serializers.py:842
 msgid "Incorrect current password."
 msgstr "كلمة المرور الحالية غير صحيحة."
 
-#: .\apps\users\api\serializers.py:699 .\apps\users\api\serializers.py:761
-#: .\apps\users\api\serializers.py:871
+#: .\apps\users\api\serializers.py:849 .\apps\users\api\serializers.py:911
+#: .\apps\users\api\serializers.py:1021
 msgid "New password fields didn't match."
 msgstr "حقلي كلمة المرور الجديدة غير متطابقين."
 
-#: .\apps\users\api\serializers.py:705
+#: .\apps\users\api\serializers.py:855
 msgid "New password cannot be the same as the current password."
 msgstr "كلمة المرور الجديدة لا يمكن أن تكون نفس كلمة المرور الحالية."
 
-#: .\apps\users\api\serializers.py:715 .\apps\users\api\serializers.py:771
+#: .\apps\users\api\serializers.py:865 .\apps\users\api\serializers.py:921
 msgid "Email or Username"
 msgstr "البريد الإلكتروني أو اسم المستخدم"
 
-#: .\apps\users\api\serializers.py:734
+#: .\apps\users\api\serializers.py:884
 msgid "An error occurred while validating the identifier."
 msgstr "حدث خطأ أثناء التحقق من صحة المعرّف."
 
-#: .\apps\users\api\serializers.py:772
+#: .\apps\users\api\serializers.py:922
 msgid "The email address or username used to request the OTP."
-msgstr "عنوان البريد الإلكتروني أو اسم المستخدم المستخدم لطلب رمز التحقق لمرة واحدة (OTP)."
+msgstr ""
+"عنوان البريد الإلكتروني أو اسم المستخدم المستخدم لطلب رمز التحقق لمرة واحدة "
+"(OTP)."
 
-#: .\apps\users\api\serializers.py:776
-#, fuzzy
-#| msgid "Code"
+#: .\apps\users\api\serializers.py:926
 msgid "OTP Code"
-msgstr "الرمز"
+msgstr "رمز التحقق لمرة واحدة (OTP)"
 
-#: .\apps\users\api\serializers.py:780
+#: .\apps\users\api\serializers.py:930
 #, python-brace-format
 msgid "The {otp_length}-digit OTP sent to your email."
-msgstr "رمز التحقق لمرة واحدة (OTP) المكون من {otp_length} أرقام المرسل إلى بريدك الإلكتروني."
+msgstr ""
+"رمز التحقق لمرة واحدة (OTP) المكون من {otp_length} أرقام المرسل إلى بريدك "
+"الإلكتروني."
 
-#: .\apps\users\api\serializers.py:795
+#: .\apps\users\api\serializers.py:945
 msgid "User account is inactive."
 msgstr "حساب المستخدم غير نشط."
 
-#: .\apps\users\api\serializers.py:797
-#, fuzzy
-#| msgid "User with the provided identifier not found."
+#: .\apps\users\api\serializers.py:947
 msgid "User with this identifier not found."
 msgstr "لم يتم العثور على مستخدم بهذا المعرّف."
 
-#: .\apps\users\api\serializers.py:802
-#, fuzzy
-#| msgid "Error validating serial code."
+#: .\apps\users\api\serializers.py:952
 msgid "Error identifying user account."
 msgstr "خطأ في تحديد حساب المستخدم."
 
-#: .\apps\users\api\serializers.py:814
+#: .\apps\users\api\serializers.py:964
 msgid "The OTP provided is invalid or has expired."
 msgstr "رمز التحقق لمرة واحدة (OTP) المقدم غير صالح أو انتهت صلاحيته."
 
-#: .\apps\users\api\serializers.py:826
+#: .\apps\users\api\serializers.py:976
 msgid ""
 "No active OTP found for this user or it has expired. Please request a new "
 "one."
-msgstr "لم يتم العثور على رمز تحقق لمرة واحدة (OTP) نشط لهذا المستخدم أو انتهت صلاحيته. يرجى طلب رمز جديد."
+msgstr ""
+"لم يتم العثور على رمز تحقق لمرة واحدة (OTP) نشط لهذا المستخدم أو انتهت "
+"صلاحيته. يرجى طلب رمز جديد."
 
-#: .\apps\users\api\serializers.py:835
+#: .\apps\users\api\serializers.py:985
 msgid "An error occurred during OTP verification."
 msgstr "حدث خطأ أثناء التحقق من رمز التحقق لمرة واحدة (OTP)."
 
-#: .\apps\users\api\serializers.py:844
+#: .\apps\users\api\serializers.py:994
 msgid "Reset Token"
 msgstr "رمز إعادة التعيين"
 
-#: .\apps\users\api\serializers.py:845
+#: .\apps\users\api\serializers.py:995
 msgid "The secure token received after OTP verification."
 msgstr "الرمز الآمن الذي تم استلامه بعد التحقق من رمز التحقق لمرة واحدة (OTP)."
 
-#: .\apps\users\api\serializers.py:895
+#: .\apps\users\api\serializers.py:1045
 msgid "Invalid or expired reset token. Please verify OTP again."
-msgstr "رمز إعادة التعيين غير صالح أو منتهي الصلاحية. يرجى التحقق من رمز التحقق لمرة واحدة (OTP) مرة أخرى."
+msgstr ""
+"رمز إعادة التعيين غير صالح أو منتهي الصلاحية. يرجى التحقق من رمز التحقق لمرة "
+"واحدة (OTP) مرة أخرى."
 
-#: .\apps\users\api\serializers.py:902
-#, fuzzy
-#| msgid "An error occurred while validating the identifier."
+#: .\apps\users\api\serializers.py:1052
 msgid "An error occurred while validating the reset token."
 msgstr "حدث خطأ أثناء التحقق من صحة رمز إعادة التعيين."
 
-#: .\apps\users\api\serializers.py:912 .\apps\users\api\serializers.py:942
+#: .\apps\users\api\serializers.py:1062 .\apps\users\api\serializers.py:1092
 #: .\apps\users\models.py:108
 msgid "Serial Code"
 msgstr "الرمز التسلسلي"
 
-#: .\apps\users\api\serializers.py:913
+#: .\apps\users\api\serializers.py:1063
 msgid "The new serial code to activate or extend subscription."
 msgstr "الرمز التسلسلي الجديد لتفعيل أو تمديد الاشتراك."
 
-#: .\apps\users\api\serializers.py:939
+#: .\apps\users\api\serializers.py:1089
 msgid "Plan Type"
 msgstr "نوع الخطة"
 
-#: .\apps\users\api\serializers.py:941
+#: .\apps\users\api\serializers.py:1091
 msgid "Redeemed On"
 msgstr "تم الاسترداد في"
 
-#: .\apps\users\api\serializers.py:943 .\apps\users\models.py:56
+#: .\apps\users\api\serializers.py:1093 .\apps\users\models.py:56
 msgid "Duration (Days)"
 msgstr "المدة (أيام)"
 
-#: .\apps\users\api\views.py:291
+#: .\apps\users\api\views.py:295
 msgid "Refresh token is required."
 msgstr "رمز التحديث مطلوب."
 
-#: .\apps\users\api\views.py:327
+#: .\apps\users\api\views.py:331
 msgid "Invalid refresh token or error during logout."
 msgstr "رمز التحديث غير صالح أو حدث خطأ أثناء تسجيل الخروج."
 
-#: .\apps\users\api\views.py:428
+#: .\apps\users\api\views.py:432
 msgid "Confirmation email sent. Please check your inbox."
 msgstr "تم إرسال بريد إلكتروني للتأكيد. يرجى التحقق من صندوق الوارد الخاص بك."
 
-#: .\apps\users\api\views.py:444
+#: .\apps\users\api\views.py:448
 msgid ""
 "Account created but failed to send confirmation email. Please contact "
 "support."
 msgstr ""
 "تم إنشاء الحساب ولكن فشل إرسال بريد إلكتروني للتأكيد. يرجى التواصل مع الدعم."
 
-#: .\apps\users\api\views.py:450
+#: .\apps\users\api\views.py:454
 msgid "An unexpected error occurred during registration."
 msgstr "حدث خطأ غير متوقع أثناء التسجيل."
 
-#: .\apps\users\api\views.py:511
+#: .\apps\users\api\views.py:515
 msgid "Invalid confirmation link."
 msgstr "رابط التأكيد غير صالح."
 
-#: .\apps\users\api\views.py:566
+#: .\apps\users\api\views.py:570
 msgid "Invalid or expired confirmation link."
 msgstr "رابط التأكيد غير صالح أو منتهي الصلاحية."
 
-#: .\apps\users\api\views.py:656
+#: .\apps\users\api\views.py:660
 msgid "Profile is already complete."
 msgstr "الملف الشخصي مكتمل بالفعل."
 
-#: .\apps\users\api\views.py:662 .\apps\users\api\views.py:974
-#: .\apps\users\api\views.py:1747
+#: .\apps\users\api\views.py:666 .\apps\users\api\views.py:1003
+#: .\apps\users\api\views.py:1810
 msgid "User profile not found."
 msgstr "لم يتم العثور على ملف المستخدم الشخصي."
 
-#: .\apps\users\api\views.py:714 .\apps\users\api\views.py:1551
+#: .\apps\users\api\views.py:694 .\apps\users\api\views.py:1028
+msgid "This username has just been taken. Please try another."
+msgstr ""
+
+#: .\apps\users\api\views.py:742 .\apps\users\api\views.py:1614
 msgid "Failed to process serial code. Please try again."
 msgstr "فشل معالجة الرمز التسلسلي. يرجى المحاولة مرة أخرى."
 
-#: .\apps\users\api\views.py:725
+#: .\apps\users\api\views.py:753
 msgid "Serial code became invalid during processing."
 msgstr "أصبح الرمز التسلسلي غير صالح أثناء المعالجة."
 
-#: .\apps\users\api\views.py:808
-#, fuzzy
-#| msgid "This field is required to complete your profile."
+#: .\apps\users\api\views.py:836
 msgid "completed your profile"
-msgstr "هذا الحقل مطلوب لاستكمال ملفك الشخصي."
+msgstr "أكمل ملفك الشخصي"
 
-#: .\apps\users\api\views.py:809
+#: .\apps\users\api\views.py:837
 msgid "Your profile is now complete! You can start exploring."
-msgstr ""
+msgstr "ملفك الشخصي مكتمل الآن! يمكنك البدء في الاستكشاف."
 
-#: .\apps\users\api\views.py:846
+#: .\apps\users\api\views.py:875
 msgid "An error occurred while completing the profile."
 msgstr "حدث خطأ أثناء إكمال الملف الشخصي."
 
-#: .\apps\users\api\views.py:1085
+#: .\apps\users\api\views.py:1148
 msgid "Password updated successfully."
 msgstr "تم تحديث كلمة المرور بنجاح."
 
-#: .\apps\users\api\views.py:1182
+#: .\apps\users\api\views.py:1245
 msgid ""
 "If your account exists and is active, an OTP has been sent to your email "
 "address."
 msgstr ""
 "إذا كان حسابك موجودًا ونشطًا، فقد تم إرسال OTP إلى عنوان بريدك الإلكتروني."
 
-#: .\apps\users\api\views.py:1199
+#: .\apps\users\api\views.py:1262
 msgid ""
 "We encountered an issue sending the OTP. Please try again later or contact "
 "support."
 msgstr ""
-"واجهنا مشكلة في إرسال كلمة المرور لمرة واحدة (OTP). يُرجى المحاولة لاحقًا أو التواصل مع فريق الدعم."
+"واجهنا مشكلة في إرسال كلمة المرور لمرة واحدة (OTP). يُرجى المحاولة لاحقًا أو "
+"التواصل مع فريق الدعم."
 
-#: .\apps\users\api\views.py:1207
-#, fuzzy
-#| msgid "An unexpected error occurred during registration."
+#: .\apps\users\api\views.py:1270
 msgid ""
 "An unexpected error occurred. Please try again later or contact support."
-msgstr "حدث خطأ غير متوقع أثناء التسجيل."
+msgstr "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى لاحقًا أو الاتصال بالدعم."
 
-#: .\apps\users\api\views.py:1269
+#: .\apps\users\api\views.py:1332
 msgid ""
 "OTP verified successfully. Please use the provided token to reset your "
 "password."
 msgstr ""
 
-#: .\apps\users\api\views.py:1283
-#, fuzzy
-#| msgid "An unexpected error occurred during registration."
+#: .\apps\users\api\views.py:1346
 msgid "An unexpected error occurred during OTP verification."
-msgstr "حدث خطأ غير متوقع أثناء التسجيل."
+msgstr "حدث خطأ غير متوقع أثناء التحقق من رمز التحقق لمرة واحدة (OTP)."
 
-#: .\apps\users\api\views.py:1341 .\apps\users\api\views.py:1419
+#: .\apps\users\api\views.py:1404 .\apps\users\api\views.py:1482
 msgid "Password has been reset successfully."
 msgstr "تمت إعادة تعيين كلمة المرور بنجاح."
 
-#: .\apps\users\api\views.py:1363
-#, fuzzy
-#| msgid "An unexpected error occurred during registration."
+#: .\apps\users\api\views.py:1426
 msgid ""
 "An unexpected error occurred while resetting your password. Please try again."
-msgstr "حدث خطأ غير متوقع أثناء التسجيل."
+msgstr "حدث خطأ غير متوقع أثناء إعادة تعيين كلمة المرور. يرجى المحاولة مرة أخرى."
 
-#: .\apps\users\api\views.py:1435
+#: .\apps\users\api\views.py:1498
 msgid "Invalid or expired password reset link."
 msgstr "رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية."
 
-#: .\apps\users\api\views.py:1447
+#: .\apps\users\api\views.py:1510
 msgid "An unexpected error occurred."
 msgstr "حدث خطأ غير متوقع."
 
-#: .\apps\users\api\views.py:1520
+#: .\apps\users\api\views.py:1583
 msgid "Serial code became invalid or used before application could complete."
 msgstr "أصبح الرمز التسلسلي غير صالح أو مستخدم قبل إكمال التطبيق."
 
-#: .\apps\users\api\views.py:1568
+#: .\apps\users\api\views.py:1631
 msgid "An error occurred while applying the serial code."
 msgstr "حدث خطأ أثناء تطبيق الرمز التسلسلي."
 
-#: .\apps\users\api\views.py:1712
+#: .\apps\users\api\views.py:1775
 msgid "No active subscription to cancel."
 msgstr "لا يوجد اشتراك نشط للإلغاء."
 
-#: .\apps\users\api\views.py:1736
+#: .\apps\users\api\views.py:1799
 msgid "Subscription cancelled successfully."
 msgstr "تم إلغاء الاشتراك بنجاح."
 
-#: .\apps\users\api\views.py:1755
+#: .\apps\users\api\views.py:1818
 msgid "An error occurred while cancelling the subscription."
 msgstr "حدث خطأ أثناء إلغاء الاشتراك."
 
@@ -591,10 +616,8 @@ msgid "Hashed version of the OTP code."
 msgstr "النسخة المشفرة من رمز التحقق لمرة واحدة (OTP)."
 
 #: .\apps\users\models.py:171
-#, fuzzy
-#| msgid "Created At"
 msgid "OTP Created At"
-msgstr "تاريخ الإنشاء"
+msgstr "تاريخ إنشاء OTP"
 
 #: .\apps\users\models.py:173
 msgid "OTP Expires At"
@@ -605,26 +628,18 @@ msgid "Reset Token (Hashed)"
 msgstr "رمز إعادة التعيين (مشفر)"
 
 #: .\apps\users\models.py:185
-#, fuzzy
-#| msgid "Subscription Expires At"
 msgid "Reset Token Expires At"
 msgstr "ينتهي رمز إعادة التعيين في"
 
 #: .\apps\users\models.py:192
-#, fuzzy
-#| msgid "Password has been reset successfully."
 msgid "True if password has been successfully reset using this record."
 msgstr "صحيح إذا تم إعادة تعيين كلمة المرور بنجاح باستخدام هذا السجل."
 
 #: .\apps\users\models.py:201
-#, fuzzy
-#| msgid "Password reset email sent."
 msgid "Password Reset OTP & Token"
 msgstr "رمز التحقق لمرة واحدة (OTP) ورمز إعادة تعيين كلمة المرور"
 
 #: .\apps\users\models.py:202
-#, fuzzy
-#| msgid "Password reset email sent."
 msgid "Password Reset OTPs & Tokens"
 msgstr "رموز التحقق لمرة واحدة (OTP) ورموز إعادة تعيين كلمة المرور"
 
@@ -829,10 +844,8 @@ msgid "User Profiles"
 msgstr "ملفات المستخدمين الشخصية"
 
 #: .\apps\users\models.py:567
-#, fuzzy
-#| msgid "No active subscription to cancel."
 msgid "activated a subscription"
-msgstr "لا يوجد اشتراك نشط للإلغاء."
+msgstr "تم تفعيل الاشتراك"
 
 #: .\apps\users\models.py:569
 #, python-brace-format

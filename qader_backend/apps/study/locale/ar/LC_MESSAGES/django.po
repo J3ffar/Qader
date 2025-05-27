@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-27 23:46+0300\n"
+"POT-Creation-Date: 2025-05-28 00:50+0300\n"
 "PO-Revision-Date: 2025-05-27 23:32+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -1037,8 +1037,7 @@ msgstr ""
 msgid ""
 "You've completed the test. Take some time to review your answers and "
 "identify areas for growth."
-msgstr ""
-"لقد أكملت الاختبار. خذ بعض الوقت لمراجعة إجاباتك وتحديد مجالات النمو."
+msgstr "لقد أكملت الاختبار. خذ بعض الوقت لمراجعة إجاباتك وتحديد مجالات النمو."
 
 #: .\apps\study\services\study.py:700
 msgid "Authentication required to complete a test attempt."
@@ -1052,20 +1051,17 @@ msgstr "محاولة الاختبار هذه ليست نشطة أو تم إكم�
 msgid ""
 "Good effort! Review your results to identify areas for improvement and keep "
 "practicing."
-msgstr ""
-"جهد جيد! راجع نتائجك لتحديد مجالات التحسين واستمر في الممارسة."
+msgstr "جهد جيد! راجع نتائجك لتحديد مجالات التحسين واستمر في الممارسة."
 
 #: .\apps\study\services\study.py:888
 msgid ""
 "Well done on completing the test! Check your detailed results for insights."
-msgstr ""
-"أحسنت في إكمال الاختبار! تحقق من نتائجك التفصيلية للحصول على رؤى."
+msgstr "أحسنت في إكمال الاختبار! تحقق من نتائجك التفصيلية للحصول على رؤى."
 
 #: .\apps\study\services\study.py:892
 msgid ""
 "Test completed. Scores are not available for detailed analysis at this time."
-msgstr ""
-"اكتمل الاختبار. النتائج غير متاحة للتحليل التفصيلي في هذا الوقت."
+msgstr "اكتمل الاختبار. النتائج غير متاحة للتحليل التفصيلي في هذا الوقت."
 
 #: .\apps\study\services\study.py:895
 msgid "Practice session ended."
