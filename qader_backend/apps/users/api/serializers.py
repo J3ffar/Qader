@@ -31,6 +31,14 @@ from ..models import (
 # Removed unused import: from ..utils import generate_unique_referral_code
 # Referral code generation is handled in the model's save method via signal
 
+# --- Define Username Field Properties (from User model) ---
+# This ensures consistency with the User model's username field definitions.
+_user_username_field = User._meta.get_field("username")
+USERNAME_MAX_LENGTH = _user_username_field.max_length
+USERNAME_VALIDATORS = (
+    _user_username_field.validators
+)  # List of validators like ASCIIUsernameValidator
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -240,6 +248,17 @@ class InitialSignupSerializer(serializers.ModelSerializer):
 class CompleteProfileSerializer(serializers.ModelSerializer):
     """Serializer for completing the user profile after email confirmation."""
 
+    # Add username field
+    username = serializers.CharField(
+        required=False,  # Optional to change if one was auto-generated
+        allow_blank=False,  # Usernames cannot be blank if provided
+        max_length=USERNAME_MAX_LENGTH,
+        # validators=USERNAME_VALIDATORS, # Django's model field validators
+        help_text=_(
+            "Set or update your username. Must be unique. Allowed characters: letters, digits and './+/-/_' (see below for file content) only."
+        ),
+    )
+
     gender = serializers.ChoiceField(
         choices=GenderChoices.choices, required=True, help_text="User's gender."
     )
@@ -294,6 +313,7 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = (
+            "username",  # Add username here
             "gender",
             "grade",
             "has_taken_qiyas_before",
@@ -311,7 +331,7 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
             "current_streak_days",
             "longest_streak_days",
         )
-        read_only_fields = (
+        read_only_fields = (  # username is not read-only here
             "full_name",
             "points",
             "current_streak_days",
@@ -319,9 +339,55 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
             "level_determined",
         )
 
+    def validate_username(self, value: str) -> str:
+        """
+        Validate the username for format (using Django's User model validators) and uniqueness.
+        """
+        # 1. Apply Django's built-in validators for the username field
+        for validator in USERNAME_VALIDATORS:
+            try:
+                validator(value)
+            except DjangoValidationError as e:
+                # Convert Django's ValidationError to DRF's for consistent error reporting
+                raise serializers.ValidationError(e.messages)
+
+        # 2. Check uniqueness (case-insensitive for user-friendliness in "taken" message)
+        # Django's default User model username is often case-sensitive at the DB level,
+        # but checking iexact prevents users from creating visually similar usernames
+        # like "john" if "John" exists.
+        query = User.objects.filter(username__iexact=value)
+
+        current_user = None
+        if self.instance and hasattr(self.instance, "user") and self.instance.user:
+            current_user = self.instance.user
+            # If the username (case-insensitive) is the same as the current user's,
+            # it's not a conflict *unless* it's taken by *another* user.
+            # This allows changing the case of one's own username, e.g., "MyUser" to "myuser".
+            if (
+                current_user.username.lower() == value.lower()
+            ):  # No change or only case change for self
+                # If it's exactly the same, no need to check for uniqueness against self.
+                # If only case differs, it's fine as long as new case not taken by OTHERS.
+                # The exclude below handles this.
+                pass
+            query = query.exclude(
+                pk=current_user.pk
+            )  # Exclude self from uniqueness check
+
+        if query.exists():
+            raise serializers.ValidationError(
+                _("This username is already taken. Please choose another one.")
+            )
+
+        return value
+
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+        # Ensure the base validate method is called if it exists or if you add one
+        # attrs = super().validate(attrs) # If inheriting from a class with a validate method
+
         instance: Optional[UserProfile] = getattr(self, "instance", None)
         if instance and not instance.is_profile_complete:
+            # ... (your existing logic for missing gender, grade, etc.) ...
             required_completion_fields = ["gender", "grade", "has_taken_qiyas_before"]
             missing_fields = []
             for field_name in required_completion_fields:
@@ -608,6 +674,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating allowed user profile fields via PATCH /me/."""
 
+    # Add username field
+    username = serializers.CharField(
+        required=False,  # Optional to change
+        allow_blank=False,
+        max_length=USERNAME_MAX_LENGTH,
+        # validators=USERNAME_VALIDATORS, # Django's model field validators
+        help_text=_(
+            "Update your username. Must be unique. Allowed characters: letters, digits and './+/-/_' (see below for file content) only."
+        ),
+    )
+
     full_name = serializers.CharField(required=False, max_length=255)
     language = serializers.ChoiceField(choices=settings.LANGUAGES, required=False)
     preferred_name = serializers.CharField(
@@ -637,6 +714,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = (
+            "username",  # Add username here
             "full_name",
             "language",
             "preferred_name",
@@ -666,6 +744,36 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
                     )
                 )
         return image
+
+    def validate_username(self, value: str) -> str:
+        """
+        Validate the username for format (using Django's User model validators) and uniqueness.
+        """
+        # 1. Apply Django's built-in validators for the username field
+        for validator in USERNAME_VALIDATORS:
+            try:
+                validator(value)
+            except DjangoValidationError as e:
+                raise serializers.ValidationError(e.messages)
+
+        # 2. Check uniqueness (case-insensitive for "taken" message)
+        query = User.objects.filter(username__iexact=value)
+
+        current_user = None
+        if self.instance and hasattr(self.instance, "user") and self.instance.user:
+            current_user = self.instance.user
+            if (
+                current_user.username.lower() == value.lower()
+            ):  # No change or only case change for self
+                pass
+            query = query.exclude(pk=current_user.pk)
+
+        if query.exists():
+            raise serializers.ValidationError(
+                _("This username is already taken. Please choose another one.")
+            )
+
+        return value
 
     def validate_dark_mode_auto_times(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """Validate that start time is before end time if auto mode is enabled."""

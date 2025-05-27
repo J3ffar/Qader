@@ -9,7 +9,11 @@ from django.utils.encoding import force_str
 from django.conf import settings
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
-from django.db import transaction, DatabaseError
+from django.db import (
+    transaction,
+    DatabaseError,
+    IntegrityError,
+)
 from django.db.utils import IntegrityError  # Import for specific exception handling
 from django.core.exceptions import (
     ValidationError as DjangoValidationError,
@@ -655,18 +659,42 @@ class CompleteProfileView(generics.UpdateAPIView):
             if profile.is_profile_complete:
                 raise PermissionDenied(_("Profile is already complete."))
             return profile
-        except UserProfile.DoesNotExist:
+        except UserProfile.DoesNotExist:  # pylint: disable=no-member
             logger.error(
                 f"CRITICAL: UserProfile.DoesNotExist for authenticated user '{self.request.user.username}'"
             )
             raise Http404(_("User profile not found."))
 
     @transaction.atomic  # Crucial for atomicity
+    @transaction.atomic  # Already here, good
     def perform_update(self, serializer: CompleteProfileSerializer):
-        """Saves profile, handles subscription, referral, and old picture deletion."""
-        profile: UserProfile = self.get_object()
-        user: User = profile.user
+        profile: UserProfile = self.get_object()  # This is UserProfile instance
+        user: User = profile.user  # Get the related User instance
         validated_data = serializer.validated_data
+
+        # --- Update username if provided ---
+        new_username = validated_data.get("username")
+        if new_username and new_username != user.username:
+            user.username = new_username
+            try:
+                # Save the User model separately for username change
+                user.save(update_fields=["username"])
+                logger.info(
+                    f"Username updated to '{user.username}' for user ID {user.id} during profile completion."
+                )
+            except IntegrityError:
+                # This should ideally be caught by serializer's validate_username,
+                # but a race condition could still occur.
+                logger.error(
+                    f"IntegrityError (race condition?) while updating username to '{new_username}' for user ID {user.id}."
+                )
+                raise DRFValidationError(
+                    {
+                        "username": [
+                            _("This username has just been taken. Please try another.")
+                        ]
+                    }
+                )
 
         # Extract optional codes before saving profile data
         serial_code_obj: Optional[SerialCode] = validated_data.get(
@@ -813,20 +841,23 @@ class CompleteProfileView(generics.UpdateAPIView):
         )
         logger.info(f"Profile completed successfully for user {user.username}")
 
-    # Override update to return full UserProfileSerializer data
     def update(self, request: Request, *args, **kwargs) -> Response:
-        partial = kwargs.pop("partial", True)  # Use partial=True for PATCH
-        instance = self.get_object()
-        # Use CompleteProfileSerializer for validation
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        # ... (existing update method structure) ...
+        # Ensure it calls perform_update and returns UserProfileSerializer data
+        partial = kwargs.pop("partial", True)
+        instance = self.get_object()  # UserProfile
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=partial
+        )  # CompleteProfileSerializer
         try:
             serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)  # Handles save, subscription, referral
+            self.perform_update(serializer)
 
-            # Refresh instance to get all latest data after updates
-            instance.refresh_from_db()
+            instance.refresh_from_db()  # Refresh UserProfile instance
+            # If user was updated (e.g. username), the user object related to profile also needs to be fresh.
+            # refresh_from_db on profile should also update related objects if they are accessed fresh.
+            # Or explicitly: instance.user.refresh_from_db() if needed, but usually not.
 
-            # Return response using the full UserProfileSerializer
             context = self.get_serializer_context()
             response_serializer = UserProfileSerializer(instance, context=context)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
@@ -837,11 +868,9 @@ class CompleteProfileView(generics.UpdateAPIView):
             )
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except (DatabaseError, IntegrityError, Exception) as e:
-            # Catch potential DB errors during transaction or other unexpected issues
             logger.exception(
                 f"Error during profile completion update for user '{request.user.username}': {e}"
             )
-            # Check specific errors if needed (e.g., trial grant failure)
             return Response(
                 {"detail": _("An error occurred while completing the profile.")},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -973,9 +1002,34 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
             )
             raise Http404(_("User profile not found."))
 
+    # Apply transaction.atomic to the update method for atomicity
+    @transaction.atomic
     def perform_update(self, serializer: UserProfileUpdateSerializer):
-        """Handle the update logic, including deleting the old profile picture if a new one is saved."""
-        profile: UserProfile = self.get_object()
+        profile: UserProfile = self.get_object()  # UserProfile instance
+        user: User = profile.user  # User instance
+        validated_data = serializer.validated_data
+
+        # --- Update username if provided ---
+        new_username = validated_data.get("username")
+        if new_username and new_username != user.username:
+            user.username = new_username
+            try:
+                user.save(update_fields=["username"])
+                logger.info(
+                    f"Username updated to '{user.username}' for user ID {user.id}."
+                )
+            except IntegrityError:
+                logger.error(
+                    f"IntegrityError (race condition?) while updating username to '{new_username}' for user ID {user.id}."
+                )
+                raise DRFValidationError(
+                    {
+                        "username": [
+                            _("This username has just been taken. Please try another.")
+                        ]
+                    }
+                )
+
         # Check if 'profile_picture' is part of the validated data to be saved
         new_picture_data = serializer.validated_data.get(
             "profile_picture", "NOT_PRESENT"
@@ -986,8 +1040,10 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
             profile.profile_picture if profile.profile_picture else None
         )
 
-        # Save the instance using the update serializer
-        instance: UserProfile = serializer.save()
+        # Save UserProfile fields using the serializer
+        instance: UserProfile = (
+            serializer.save()
+        )  # `instance` is the updated UserProfile
 
         # Delete old picture *after* successfully saving the new one or nulling the field
         if old_picture_instance and new_picture_provided:
@@ -1004,18 +1060,17 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
                         f"Could not delete old profile picture '{old_picture_instance.name}' for user '{profile.user.username}': {e}"
                     )
 
-        logger.info(
-            f"User profile updated for user '{self.request.user.username}' (ID: {self.request.user.id})"
-        )
+        logger.info(f"User profile updated for user '{user.username}' (ID: {user.id})")
 
-    # Override update to ensure the *response* uses the full UserProfileSerializer
+    # The update method itself can be kept as is, as perform_update is now transactional
+    # and handles both User and UserProfile updates.
     def update(self, request: Request, *args, **kwargs) -> Response:
-        partial = kwargs.pop("partial", False)  # True for PATCH
-        instance = self.get_object()
-        # Validate incoming data using the update serializer
+        partial = kwargs.pop("partial", True)  # PATCH implies partial=True
+        instance = self.get_object()  # UserProfile
         update_serializer = self.get_serializer(
             instance, data=request.data, partial=partial
-        )
+        )  # UserProfileUpdateSerializer
+
         try:
             update_serializer.is_valid(raise_exception=True)
         except DRFValidationError as e:
@@ -1024,15 +1079,23 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
             )
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-        # Perform the update (calls serializer.save() via perform_update)
-        self.perform_update(update_serializer)
+        # perform_update is now transactional
+        self.perform_update(
+            update_serializer
+        )  # This saves UserProfile and potentially User (username)
 
         # Ensure any prefetched data is cleared if necessary
         if getattr(instance, "_prefetched_objects_cache", None):
             instance._prefetched_objects_cache = {}
 
-        # Serialize the updated instance using the *read* serializer for the response
+        # instance might have been updated, refresh_from_db if necessary, though serializer.save() returns the updated one.
+        # For the response, we use the full UserProfileSerializer with the latest instance data.
+        # The instance from get_object() is what serializer.save() updates.
+
         context = self.get_serializer_context()
+        # After perform_update, 'instance' (the UserProfile) is up-to-date.
+        # Its related 'user' object (if username changed) is also up-to-date in the DB.
+        # When UserProfileSerializer accesses instance.user.username, it gets the fresh value.
         read_serializer = UserProfileSerializer(instance, context=context)
         return Response(read_serializer.data)
 
