@@ -155,17 +155,14 @@ msgstr "لديك إشعار جديد."
 
 #: .\templates\emails\generic_notification_email.html:8
 #: .\templates\emails\generic_notification_email.txt:5
-#, fuzzy
-#| msgid "Notification"
 msgid "New Notification"
 msgstr "إشعار جديد"
 
 #: .\templates\emails\generic_notification_email.html:11
 #: .\templates\emails\generic_notification_email.txt:7
-#, fuzzy, python-format
-#| msgid "Hi %(full_name)s,"
+#, python-format
 msgid "Hi %(recipient_name)s,"
-msgstr "مرحبًا %(full_name)s،"
+msgstr "مرحبًا %(recipient_name)s،"
 
 #: .\templates\emails\generic_notification_email.html:25
 #: .\templates\emails\generic_notification_email.txt:25
@@ -203,8 +200,6 @@ msgstr ""
 "إشعار النظام %(verb)s.\n"
 
 #: .\templates\emails\generic_notification_email.txt:21
-#, fuzzy
-#| msgid "Description"
 msgid "Description:"
 msgstr "الوصف:"
 
@@ -222,14 +217,10 @@ msgid "This is an automated notification."
 msgstr "هذا إشعار آلي."
 
 #: .\templates\emails\password_reset_body.html:4
-#, fuzzy
-#| msgid "Password Reset"
 msgid "Password Reset Request"
 msgstr "طلب إعادة تعيين كلمة المرور"
 
 #: .\templates\emails\password_reset_body.html:6
-#, fuzzy
-#| msgid "Please click the link below to set a new password:"
 msgid "Follow the link to reset your password."
 msgstr "اتبع الرابط لإعادة تعيين كلمة المرور الخاصة بك."
 
@@ -242,8 +233,7 @@ msgstr "إعادة تعيين كلمة المرور"
 #: .\templates\emails\password_reset_body.txt:3
 #: .\templates\emails\password_reset_otp\password_reset_otp_body.html:11
 #: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:2
-#, fuzzy, python-format
-#| msgid "Hi %(full_name)s,"
+#, python-format
 msgid "Hello %(full_name)s,"
 msgstr "مرحبًا %(full_name)s،"
 
@@ -257,10 +247,8 @@ msgid "You requested a password reset for your account on %(site_name)s."
 msgstr "لقد طلبت إعادة تعيين كلمة المرور لحسابك على %(site_name)s."
 
 #: .\templates\emails\password_reset_body.html:15
-#, fuzzy
-#| msgid "Please click the link below to set a new password:"
 msgid "Please click the button below to set a new password:"
-msgstr "يرجى النقر على الرابط أدناه لتعيين كلمة مرور جديدة:"
+msgstr "يرجى النقر على الزر أدناه لتعيين كلمة مرور جديدة:"
 
 #: .\templates\emails\password_reset_body.html:25
 #: .\templates\emails\password_reset_body.html:33
@@ -280,14 +268,10 @@ msgstr "يرجى الانتقال إلى الرابط التالي لتعيين 
 
 #: .\templates\emails\password_reset_otp\password_reset_otp_body.html:4
 #: .\templates\emails\password_reset_otp\password_reset_otp_body.html:8
-#, fuzzy
-#| msgid "Password Reset"
 msgid "Password Reset OTP"
 msgstr "رمز OTP لإعادة تعيين كلمة المرور"
 
 #: .\templates\emails\password_reset_otp\password_reset_otp_body.html:6
-#, fuzzy
-#| msgid "Your One-Time Password (OTP) is:"
 msgid "Your One-Time Password for password reset."
 msgstr "كلمة المرور لمرة واحدة (OTP) لإعادة تعيين كلمة المرور الخاصة بك."
 
@@ -308,10 +292,9 @@ msgid "Please use this OTP to complete your password reset process."
 msgstr "يرجى استخدام OTP هذا لإكمال عملية إعادة تعيين كلمة المرور الخاصة بك."
 
 #: .\templates\emails\password_reset_otp\password_reset_otp_subject.txt:2
-#, fuzzy, python-format
-#| msgid "Password Reset for %(site_name)s"
+#, python-format
 msgid "Password Reset OTP for %(site_name)s"
-msgstr "إعادة تعيين كلمة المرور لـ %(site_name)s"
+msgstr "رمز OTP لإعادة تعيين كلمة المرور لـ %(site_name)s"
 
 #: .\templates\emails\password_reset_subject.txt:2
 #, python-format
@@ -1970,9 +1953,7 @@ msgid "Django Documentation"
 msgstr "توثيق Django"
 
 #: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:218
-#, fuzzy
-#| msgid "Topics, references, & how-to’s"
-msgid "Topics, references, &amp; how-to’s"
+msgid "Topics, references, & how-to’s"
 msgstr "مواضيع، مراجع، وإرشادات"
 
 #: .\venv\Lib\site-packages\django\views\templates\default_urlconf.html:226
@@ -2040,22 +2021,3 @@ msgstr "تم الاتصال بـ qpid باستخدام آلية SASL %s"
 #, python-format
 msgid "Unable to connect to qpid with SASL mechanism %s"
 msgstr "غير قادر على الاتصال بـ qpid باستخدام آلية SASL %s"
-
-#, python-format
-#~ msgid "Hello %(username)s,"
-#~ msgstr "مرحبًا %(username)s،"
-
-#~ msgid "Last Message At"
-#~ msgstr "آخر رسالة في"
-
-#~ msgid "Conversation"
-#~ msgstr "المحادثة"
-
-#~ msgid "Timestamp"
-#~ msgstr "الختم الزمني"
-
-#~ msgid "Message"
-#~ msgstr "الرسالة"
-
-#~ msgid "Information"
-#~ msgstr "المعلومات"
