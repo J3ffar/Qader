@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-20 12:34+0300\n"
+"POT-Creation-Date: 2025-05-26 21:19+0300\n"
 "PO-Revision-Date: 2023-10-27 10:00+0000\n"
 "Last-Translator: Your Name <your.email@example.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -54,12 +54,12 @@ msgstr "العربية"
 msgid "English"
 msgstr "الإنجليزية"
 
-#: .\templates\emails\base_email.html:7
+#: .\templates\emails\base_email.html:8
 #: .\templates\emails\generic_notification_email.html:4
 msgid "Notification"
 msgstr "الإشعار"
 
-#: .\templates\emails\base_email.html:222
+#: .\templates\emails\base_email.html:223
 #: .\templates\emails\confirmation_body.txt:17
 #: .\templates\emails\generic_notification_email.txt:38
 #: .\templates\emails\password_reset_body.txt:13
@@ -67,7 +67,7 @@ msgstr "الإشعار"
 msgid "Thanks,"
 msgstr "شكرًا،"
 
-#: .\templates\emails\base_email.html:223
+#: .\templates\emails\base_email.html:224
 #: .\templates\emails\confirmation_body.txt:18
 #: .\templates\emails\generic_notification_email.txt:39
 #: .\templates\emails\password_reset_body.txt:14
@@ -76,7 +76,7 @@ msgstr "شكرًا،"
 msgid "The %(site_name)s Team"
 msgstr "فريق %(site_name)s"
 
-#: .\templates\emails\base_email.html:225
+#: .\templates\emails\base_email.html:226
 #: .\templates\emails\generic_notification_email.txt:43
 msgid "All rights reserved."
 msgstr "جميع الحقوق محفوظة."
@@ -242,9 +242,10 @@ msgstr "إعادة تعيين كلمة المرور"
 #: .\templates\emails\password_reset_body.txt:3
 #: .\templates\emails\password_reset_otp\password_reset_otp_body.html:11
 #: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:2
-#, python-format
-msgid "Hello %(username)s,"
-msgstr "مرحبًا %(username)s،"
+#, fuzzy, python-format
+#| msgid "Hi %(full_name)s,"
+msgid "Hello %(full_name)s,"
+msgstr "مرحبًا %(full_name)s،"
 
 #. Translators: Email body text confirming password reset request. site_name is the platform name.
 #: .\templates\emails\password_reset_body.html:13
@@ -2039,6 +2040,10 @@ msgstr "تم الاتصال بـ qpid باستخدام آلية SASL %s"
 #, python-format
 msgid "Unable to connect to qpid with SASL mechanism %s"
 msgstr "غير قادر على الاتصال بـ qpid باستخدام آلية SASL %s"
+
+#, python-format
+#~ msgid "Hello %(username)s,"
+#~ msgstr "مرحبًا %(username)s،"
 
 #~ msgid "Last Message At"
 #~ msgstr "آخر رسالة في"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-17 23:30+0300\n"
+"POT-Creation-Date: 2025-05-26 21:21+0300\n"
 "PO-Revision-Date: 2025-05-18 13:07+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -30,7 +30,9 @@ msgstr "نوع خطة الاشتراك"
 msgid ""
 "Select the plan type (e.g., 1 Month, 3 Months) for the codes. 'Custom' type "
 "cannot be batch generated here."
-msgstr "حدد نوع الخطة (مثل شهر واحد، 3 أشهر) للأكواد. لا يمكن إنشاء نوع 'مخصص' دفعة واحدة هنا."
+msgstr ""
+"حدد نوع الخطة (مثل شهر واحد، 3 أشهر) للأكواد. لا يمكن إنشاء نوع 'مخصص' دفعة "
+"واحدة هنا."
 
 #: .\apps\admin_panel\api\serializers\serial_code_management.py:103
 msgid "Number of Codes"
@@ -52,7 +54,9 @@ msgstr "ملاحظات اختيارية لهذه الدفعة (مثل 'لحمل�
 msgid ""
 "Generating 'Custom' type codes via this batch endpoint is not supported. Use "
 "the standard POST method to create individual custom codes."
-msgstr "إنشاء أكواد من نوع 'مخصص' عبر نقطة النهاية هذه غير مدعوم. استخدم طريقة POST القياسية لإنشاء أكواد مخصصة فردية."
+msgstr ""
+"إنشاء أكواد من نوع 'مخصص' عبر نقطة النهاية هذه غير مدعوم. استخدم طريقة POST "
+"القياسية لإنشاء أكواد مخصصة فردية."
 
 #: .\apps\admin_panel\api\serializers\serial_code_management.py:131
 msgid "Invalid plan type selected or configuration missing."
@@ -64,7 +68,9 @@ msgstr "تكوين نوع الخطة المحدد يفتقد 'duration_days'."
 
 #: .\apps\admin_panel\api\serializers\serial_code_management.py:148
 msgid "The unique serial code string (case-insensitive). Will be uppercased."
-msgstr "سلسلة الرمز التسلسلي الفريدة (غير حساسة لحالة الأحرف). سيتم تحويلها إلى أحرف كبيرة."
+msgstr ""
+"سلسلة الرمز التسلسلي الفريدة (غير حساسة لحالة الأحرف). سيتم تحويلها إلى أحرف "
+"كبيرة."
 
 #: .\apps\admin_panel\api\serializers\serial_code_management.py:154
 msgid "A serial code with this value already exists."
@@ -113,7 +119,9 @@ msgstr "لا يمكن تعيين الصلاحيات إلا للمسؤولين ا
 
 #: .\apps\admin_panel\api\serializers\user_management.py:232
 msgid "Failed to create user due to a data conflict (e.g., username/email)."
-msgstr "فشل إنشاء المستخدم بسبب تعارض في البيانات (مثل اسم المستخدم/البريد الإلكتروني)."
+msgstr ""
+"فشل إنشاء المستخدم بسبب تعارض في البيانات (مثل اسم المستخدم/البريد "
+"الإلكتروني)."
 
 #: .\apps\admin_panel\api\serializers\user_management.py:438
 msgid "Permissions can only be set for Sub-Admins."
@@ -129,7 +137,8 @@ msgstr "لا يمكن للمستخدم أن يكون مرشد نفسه."
 
 #: .\apps\admin_panel\api\serializers\user_management.py:574
 msgid "Username or Email of the user to reset password for."
-msgstr "اسم المستخدم أو البريد الإلكتروني للمستخدم المراد إعادة تعيين كلمة المرور له."
+msgstr ""
+"اسم المستخدم أو البريد الإلكتروني للمستخدم المراد إعادة تعيين كلمة المرور له."
 
 #: .\apps\admin_panel\api\serializers\user_management.py:586
 msgid "Number of points to add (positive) or subtract (negative)."
@@ -144,19 +153,23 @@ msgstr "سبب تعديل النقاط (سيتم تسجيله وقد يظهر ل
 msgid "Points change cannot be zero."
 msgstr "تغيير النقاط لا يمكن أن يكون صفرًا."
 
-#: .\apps\admin_panel\api\views\serial_code_management.py:344
+#: .\apps\admin_panel\api\views\serial_code_management.py:362
 msgid ""
 "{len(created_instances)} serial codes generated successfully for plan "
 "'{SUBSCRIPTION_PLANS_CONFIG[plan_enum_value]['name']}'."
-msgstr "تم إنشاء {len(created_instances)} رمز تسلسلي بنجاح للخطة '{SUBSCRIPTION_PLANS_CONFIG[plan_enum_value]['name']}'."
+msgstr ""
+"تم إنشاء {len(created_instances)} رمز تسلسلي بنجاح للخطة "
+"'{SUBSCRIPTION_PLANS_CONFIG[plan_enum_value]['name']}'."
 
-#: .\apps\admin_panel\api\views\serial_code_management.py:364
+#: .\apps\admin_panel\api\views\serial_code_management.py:382
 msgid ""
 "A database conflict occurred during code generation. This might be due to a "
 "code collision. Please try again."
-msgstr "حدث تعارض في قاعدة البيانات أثناء إنشاء الكود. قد يكون هذا بسبب تضارب في الكود. يرجى المحاولة مرة أخرى."
+msgstr ""
+"حدث تعارض في قاعدة البيانات أثناء إنشاء الكود. قد يكون هذا بسبب تضارب في "
+"الكود. يرجى المحاولة مرة أخرى."
 
-#: .\apps\admin_panel\api\views\serial_code_management.py:374
+#: .\apps\admin_panel\api\views\serial_code_management.py:392
 msgid "An unexpected error occurred during code generation."
 msgstr "حدث خطأ غير متوقع أثناء إنشاء الكود."
 
@@ -172,7 +185,9 @@ msgstr "ليس لديك إذن لإنشاء مستخدمين من نوع مسؤ�
 msgid ""
 "You do not have permission to edit Admin or Sub-Admin users other than "
 "yourself (if applicable)."
-msgstr "ليس لديك إذن لتعديل مستخدمين من نوع مسؤول أو مسؤول فرعي غير نفسك (إذا كان ذلك ينطبق)."
+msgstr ""
+"ليس لديك إذن لتعديل مستخدمين من نوع مسؤول أو مسؤول فرعي غير نفسك (إذا كان "
+"ذلك ينطبق)."
 
 #: .\apps\admin_panel\api\views\user_management.py:212
 msgid "You do not have permission to assign Admin or Sub-Admin roles."
@@ -209,7 +224,8 @@ msgstr "عرض جميع المستخدمين"
 #: .\apps\admin_panel\data\admin_permissions_data.py:9
 msgid ""
 "Allows viewing the list of all user accounts (students, sub-admins, etc.)."
-msgstr "يسمح بعرض قائمة بجميع حسابات المستخدمين (الطلاب، المسؤولين الفرعيين، إلخ)."
+msgstr ""
+"يسمح بعرض قائمة بجميع حسابات المستخدمين (الطلاب، المسؤولين الفرعيين، إلخ)."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:14
 msgid "View User Details & Progress"
@@ -219,7 +235,9 @@ msgstr "عرض تفاصيل المستخدم والتقدم"
 msgid ""
 "Allows viewing detailed profile information, statistics, and activity logs, "
 "test history, etc. for individual users."
-msgstr "يسمح بعرض معلومات الملف الشخصي التفصيلية، الإحصائيات، سجلات النشاط، سجل الاختبار، إلخ للمستخدمين الفرديين."
+msgstr ""
+"يسمح بعرض معلومات الملف الشخصي التفصيلية، الإحصائيات، سجلات النشاط، سجل "
+"الاختبار، إلخ للمستخدمين الفرديين."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:21
 msgid "Create Users"
@@ -229,7 +247,9 @@ msgstr "إنشاء مستخدمين"
 msgid ""
 "Allows creating new user accounts (e.g., Students, Teachers). Does not "
 "include creating Admins/Sub-Admins unless also a main Admin."
-msgstr "يسمح بإنشاء حسابات مستخدمين جديدة (مثل الطلاب، المعلمين). لا يشمل إنشاء المسؤولين/المسؤولين الفرعيين ما لم يكن أيضًا مسؤولًا رئيسيًا."
+msgstr ""
+"يسمح بإنشاء حسابات مستخدمين جديدة (مثل الطلاب، المعلمين). لا يشمل إنشاء "
+"المسؤولين/المسؤولين الفرعيين ما لم يكن أيضًا مسؤولًا رئيسيًا."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:28
 msgid "Edit User Details"
@@ -240,7 +260,9 @@ msgid ""
 "Allows modifying basic user profile fields (name, grade, gender, etc.) and "
 "account status (active/inactive). Does NOT include role or sensitive "
 "subscription details."
-msgstr "يسمح بتعديل حقول الملف الشخصي الأساسية للمستخدم (الاسم، الصف، الجنس، إلخ) وحالة الحساب (نشط/غير نشط). لا يشمل الدور أو تفاصيل الاشتراك الحساسة."
+msgstr ""
+"يسمح بتعديل حقول الملف الشخصي الأساسية للمستخدم (الاسم، الصف، الجنس، إلخ) "
+"وحالة الحساب (نشط/غير نشط). لا يشمل الدور أو تفاصيل الاشتراك الحساسة."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:35
 msgid "Trigger User Password Reset"
@@ -266,7 +288,9 @@ msgstr "إدارة المحتوى الثابت"
 msgid ""
 "Allows editing website static pages (Homepage components, About Us, Terms, "
 "Story)."
-msgstr "يسمح بتعديل صفحات الموقع الثابتة (مكونات الصفحة الرئيسية، من نحن، الشروط، القصة)."
+msgstr ""
+"يسمح بتعديل صفحات الموقع الثابتة (مكونات الصفحة الرئيسية، من نحن، الشروط، "
+"القصة)."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:55
 msgid "Manage FAQ Content"
@@ -292,7 +316,8 @@ msgstr "إدارة محتوى التعلم"
 msgid ""
 "Allows creating, editing, and deleting learning sections, subsections, "
 "skills, and questions."
-msgstr "يسمح بإنشاء وتعديل وحذف أقسام التعلم، الأقسام الفرعية، المهارات، والأسئلة."
+msgstr ""
+"يسمح بإنشاء وتعديل وحذف أقسام التعلم، الأقسام الفرعية، المهارات، والأسئلة."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:76
 msgid "Manage Serial Codes"
@@ -353,7 +378,8 @@ msgstr "الرد على تذاكر الدعم"
 msgid ""
 "Allows adding replies (visible to user or internal notes) to user support "
 "tickets."
-msgstr "يسمح بإضافة الردود (مرئية للمستخدم أو ملاحظات داخلية) لتذاكر دعم المستخدم."
+msgstr ""
+"يسمح بإضافة الردود (مرئية للمستخدم أو ملاحظات داخلية) لتذاكر دعم المستخدم."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:124
 msgid "Manage Support Tickets Workflow"
@@ -371,7 +397,9 @@ msgstr "عرض إحصائيات المنصة"
 msgid ""
 "Allows viewing aggregated platform analytics and dashboards (user counts, "
 "overall scores, usage trends)."
-msgstr "يسمح بعرض تحليلات المنصة المجمعة ولوحات المعلومات (عدد المستخدمين، الدرجات الإجمالية، اتجاهات الاستخدام)."
+msgstr ""
+"يسمح بعرض تحليلات المنصة المجمعة ولوحات المعلومات (عدد المستخدمين، الدرجات "
+"الإجمالية، اتجاهات الاستخدام)."
 
 #: .\apps\admin_panel\data\admin_permissions_data.py:139
 msgid "Export Data"
@@ -389,6 +417,118 @@ msgstr "إشراف المجتمع"
 msgid ""
 "Allows managing (hiding, deleting, editing) community posts and replies."
 msgstr "يسمح بإدارة (إخفاء، حذف، تعديل) منشورات المجتمع والردود."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:153
+msgid "List All Resources"
+msgstr "عرض جميع الموارد"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:154
+msgid "Allows listing all instances of any resource."
+msgstr "يسمح بعرض جميع مثيلات أي مورد."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:158
+msgid "Retrieve Any Resource"
+msgstr "استرداد أي مورد"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:159
+msgid "Allows retrieving details of any single resource."
+msgstr "يسمح باسترداد تفاصيل أي مورد فردي."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:163
+msgid "Create Any Resource"
+msgstr "إنشاء أي مورد"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:164
+msgid "Allows creating new instances of any resource."
+msgstr "يسمح بإنشاء مثيلات جديدة لأي مورد."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:168
+msgid "Update Any Resource"
+msgstr "تحديث أي مورد"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:169
+msgid "Allows updating any existing resource."
+msgstr "يسمح بتحديث أي مورد موجود."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:173
+msgid "Destroy Any Resource"
+msgstr "حذف أي مورد"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:174
+msgid "Allows deleting any resource."
+msgstr "يسمح بحذف أي مورد."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:179
+msgid "Manage Users"
+msgstr "إدارة المستخدمين"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:180
+msgid "Allows full CRUD operations on user accounts."
+msgstr "يسمح بعمليات CRUD الكاملة على حسابات المستخدمين."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:184
+msgid "Manage Content"
+msgstr "إدارة المحتوى"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:185
+msgid "Allows full CRUD operations on learning content."
+msgstr "يسمح بعمليات CRUD الكاملة على محتوى التعلم."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:189
+msgid "Manage Blog"
+msgstr "إدارة المدونة"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:190
+msgid "Allows full CRUD operations on blog posts and categories."
+msgstr "يسمح بعمليات CRUD الكاملة على منشورات وفئات المدونة."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:194
+msgid "Manage Challenges"
+msgstr "إدارة التحديات"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:195
+msgid "Allows full CRUD operations on challenges."
+msgstr "يسمح بعمليات CRUD الكاملة على التحديات."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:199
+msgid "Manage Community"
+msgstr "إدارة المجتمع"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:201
+msgid "Allows full CRUD operations on community posts and comments."
+msgstr "يسمح بعمليات CRUD الكاملة على منشورات وتعليقات المجتمع."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:206
+msgid "Manage Gamification"
+msgstr "إدارة التلعيب"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:208
+msgid "Allows full CRUD operations on gamification elements (badges, rewards)."
+msgstr "يسمح بعمليات CRUD الكاملة على عناصر التلعيب (الشارات، المكافآت)."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:213
+msgid "Manage Notifications"
+msgstr "إدارة الإشعارات"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:214
+msgid "Allows full CRUD operations on notifications."
+msgstr "يسمح بعمليات CRUD الكاملة على الإشعارات."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:218
+msgid "Manage Support"
+msgstr "إدارة الدعم"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:220
+msgid "Allows full CRUD operations on support tickets and messages."
+msgstr "يسمح بعمليات CRUD الكاملة على تذاكر ورسائل الدعم."
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:225
+msgid "Manage Settings"
+msgstr "إدارة الإعدادات"
+
+#: .\apps\admin_panel\data\admin_permissions_data.py:227
+msgid "Allows full CRUD operations on application settings and configurations."
+msgstr "يسمح بعمليات CRUD الكاملة على إعدادات وتكوينات التطبيق."
 
 #: .\apps\admin_panel\models.py:12
 msgid "Slug"
