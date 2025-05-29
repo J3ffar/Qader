@@ -1,5 +1,3 @@
-// src/types/api/auth.types.ts
-
 // From API Docs: Shared Serializer Structures
 export interface SubscriptionDetailResponse {
   is_active: boolean;

@@ -1,4 +1,3 @@
-// src/services/auth.service.ts
 import { apiClient } from "./apiClient"; // Use the main apiClient
 import { API_BASE_URL, API_VERSION } from "@/constants/api"; // Keep for refreshTokenApi direct call
 import { getLocaleFromPathname } from "@/utils/locale"; // Keep for refreshTokenApi direct call

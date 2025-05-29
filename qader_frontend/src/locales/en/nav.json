@@ -11,5 +11,17 @@
   "userAvatarAlt": "User Avatar",
   "dashboard": "Dashboard",
   "settings": "Settings",
-  "viewProfile": "View Profile"
+  "viewProfile": "View Profile",
+
+  "UserNav": {
+    "searchPlaceholder": "Type your question here...",
+    "greeting": "Good morning!"
+  },
+  "UserDropdown": {
+    "settings": "Settings",
+    "emergencyMode": "Emergency Mode",
+    "themes": "Themes",
+    "adminSupport": "Admin Support",
+    "logout": "Logout"
+  }
 }

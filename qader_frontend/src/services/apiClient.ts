@@ -1,4 +1,3 @@
-// src/services/apiClient.ts
 import { useAuthStore } from "@/store/auth.store";
 import { refreshTokenApi } from "./auth.service"; // This will now use apiClient internally for its call
 import { API_BASE_URL, API_VERSION } from "@/constants/api";

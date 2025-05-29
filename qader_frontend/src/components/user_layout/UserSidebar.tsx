@@ -39,86 +39,86 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const menuItems = [
     {
       label: "تحديد المستوى",
-      icon: <NewspaperIcon className="w-6 h-6" />,
-      link: "/student/level",
-      subLink : "/student/level/pic"
+      icon: <NewspaperIcon className="h-6 w-6" />,
+      link: "/study/determine-level",
+      subLink: "/study/determine-level/pic",
     },
     {
       label: "التعلم بالطرق التقليدية",
-      icon: <BookOpenIcon className="w-6 h-6" />,
-      link: "/student/traditional",
-      subLink : ""
+      icon: <BookOpenIcon className="h-6 w-6" />,
+      link: "/study/traditional-learning",
+      subLink: "",
     },
     {
       label: "التعلم عبر المحادثة",
-      icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />,
-      link: "/student/conversation-learning",
-      subLink : ""
+      icon: <ChatBubbleLeftRightIcon className="h-6 w-6" />,
+      link: "/study/conversation-learning",
+      subLink: "",
     },
     {
       label: "اختبارات المحاكاة",
-      icon: <PencilSquareIcon className="w-6 h-6" />,
-      link: "/student/simulation-tests",
-      subLink : ""
+      icon: <PencilSquareIcon className="h-6 w-6" />,
+      link: "/study/simulation-tests",
+      subLink: "",
     },
     {
       label: "المكافأت والمسابقات",
-      icon: <GiftIcon className="w-6 h-6" />,
-      link: "/student/rewards-and-competitions",
-      subLink : ""
+      icon: <GiftIcon className="h-6 w-6" />,
+      link: "/study/rewards-and-competitions",
+      subLink: "",
     },
     {
       label: "الاحصائيات",
-      icon: <ChartPieIcon className="w-6 h-6" />,
-      link: "/student/statistics",
-      subLink : ""
+      icon: <ChartPieIcon className="h-6 w-6" />,
+      link: "/study/statistics",
+      subLink: "",
     },
   ];
 
   const communityItems = [
     {
       label: "تحدى الزملاء",
-      icon: <ClockIcon className="w-6 h-6" />,
-      link: "/student/challenge-peers",
-      subLink : ""
+      icon: <ClockIcon className="h-6 w-6" />,
+      link: "/study/challenge-peers",
+      subLink: "",
     },
     {
       label: "مجتمع الطلاب",
-      icon: <UsersIcon className="w-6 h-6" />,
-      link: "/student/student-community",
-      subLink : ""
+      icon: <UsersIcon className="h-6 w-6" />,
+      link: "/study/study-community",
+      subLink: "",
     },
     {
       label: "المدونة",
-      icon: <BookmarkIcon className="w-6 h-6" />,
-      link: "/student/blog",
-      subLink : ""
+      icon: <BookmarkIcon className="h-6 w-6" />,
+      link: "/study/blog",
+      subLink: "",
     },
     {
       label: "الدعم الإدارى",
-      icon: <QuestionMarkCircleIcon className="w-6 h-6" />,
-      link: "/student/admin-support",
-      subLink : ""
+      icon: <QuestionMarkCircleIcon className="h-6 w-6" />,
+      link: "/study/admin-support",
+      subLink: "",
     },
   ];
 
   const settingsItems = [
     {
       label: "وضع الطوارئ",
-      icon: <ExclamationCircleIcon className="w-6 h-6" />,
-      link: "/student/emergency-mode",
-      subLink : ""
+      icon: <ExclamationCircleIcon className="h-6 w-6" />,
+      link: "/study/emergency-mode",
+      subLink: "",
     },
     {
       label: "الإعدادات",
-      icon: <Cog6ToothIcon className="w-6 h-6" />,
-      link: "/student/settings",
-      subLink : ""
+      icon: <Cog6ToothIcon className="h-6 w-6" />,
+      link: "/study/settings",
+      subLink: "",
     },
   ];
 
   const renderMenu = (
-    items: { label: string; icon: JSX.Element; link: string ; subLink : string }[]
+    items: { label: string; icon: JSX.Element; link: string; subLink: string }[]
   ) => {
     return items.map((item, index) => {
       const isActive = pathname === item.link;
@@ -169,26 +169,35 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
   return (
     <div
-      className="flex relative flex-col bg-[#074182] dark:bg-[#081028] min-h-screen text-white transition-all duration-300 ease-in-out z-50"
+      className="relative z-50 flex min-h-screen flex-col bg-[#074182] text-white transition-all duration-300 ease-in-out dark:bg-[#081028]"
       style={{ width: isOpen ? 220 : 100 }}
     >
       {/* زر الفتح/الإغلاق */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute cursor-pointer top-32 -left-3 bg-white dark:bg-transparent border text-[#074182] dark:text-white shadow-md rounded-md w-6 h-6 text-sm flex items-center justify-center"
+        className="absolute -left-3 top-32 flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border bg-white text-sm text-[#074182] shadow-md dark:bg-transparent dark:text-white"
       >
         {isOpen ? ">" : "<"}
       </button>
 
       {/* صورة المستخدم */}
-      <div className="flex flex-col items-center py-6 ">
-        <div className="mb-2 flex justify-center items-center">
-         {isOpen ?  <Image src="/images/logosidebar.png" width={120} height={120} alt="" /> :  <Image src="/images/logoside.png" width={71} height={71} alt="" /> }
+      <div className="flex flex-col items-center py-6">
+        <div className="mb-2 flex items-center justify-center">
+          {isOpen ? (
+            <Image
+              src="/images/logosidebar.png"
+              width={120}
+              height={120}
+              alt=""
+            />
+          ) : (
+            <Image src="/images/logoside.png" width={71} height={71} alt="" />
+          )}
         </div>
       </div>
 
       {/* القوائم */}
-      <nav className="flex-1 mt-6 space-y-3">
+      <nav className="mt-6 flex-1 space-y-3">
         <div>
           {renderTitle("التعلم")}
           {renderMenu(menuItems)}

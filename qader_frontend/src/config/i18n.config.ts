@@ -1,4 +1,3 @@
-// src/i18n.ts (or src/config/i18n.config.ts in target structure)
 import {
   getRequestConfig,
   GetRequestConfigParams,

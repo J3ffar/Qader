@@ -1,5 +1,4 @@
-// src/store/auth.store.ts
-import { create, StateCreator } from "zustand"; // Removed StoreApi, SetStateAction as they are not directly used now
+import { create, StateCreator } from "zustand";
 import {
   persist,
   createJSONStorage,

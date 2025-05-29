@@ -11,5 +11,17 @@
   "userAvatarAlt": "الصورة الرمزية للمستخدم",
   "dashboard": "لوحة التحكم",
   "settings": "الإعدادات",
-  "viewProfile": "عرض الملف الشخصي"
+  "viewProfile": "عرض الملف الشخصي",
+
+  "UserNav": {
+    "searchPlaceholder": "اكتب سؤالك هنا...",
+    "greeting": "صباح الخير!"
+  },
+  "UserDropdown": {
+    "settings": "الإعدادات",
+    "emergencyMode": "وضع الطوارئ",
+    "themes": "السمات",
+    "adminSupport": "الدعم الإدارى",
+    "logout": "تسجيل خروج"
+  }
 }
