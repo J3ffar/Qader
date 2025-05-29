@@ -22,7 +22,7 @@ import {
   type LoginCredentials,
 } from "@/types/forms/auth.schema";
 import { loginUser } from "@/services/auth.service";
-import { useAuth, useAuthActions, useAuthStore } from "@/store/auth.store"; // Added useAuth
+import { useAuthCore, useAuthActions, useAuthStore } from "@/store/auth.store"; // Added useAuthCore
 import { PATHS } from "@/constants/paths";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { AuthFormCard } from "@/components/auth/AuthFormCard";
@@ -34,7 +34,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams(); // For redirect_to
 
-  const { isAuthenticated, user: authUser } = useAuth(); // Use custom hook
+  const { isAuthenticated, user: authUser } = useAuthCore(); // Use custom hook
   const { login: storeLogin, setIsProfileComplete } = useAuthActions(); // Use custom hook
   const [showPassword, setShowPassword] = useState(false);
 

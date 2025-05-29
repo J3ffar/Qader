@@ -47,7 +47,7 @@ const processQueue = (error: ApiError | null, token: string | null = null) => {
           retryError.data = errorData;
           if (refreshedResponse.status === 401) {
             // If still 401 after refresh, means refresh token is likely bad or user was deactivated
-            useAuthStore.getState().actions.logout(); // Perform full logout
+            useAuthStore.getState().logout(); // Perform full logout
           }
           prom.reject(retryError);
           return;
@@ -71,7 +71,7 @@ export const apiClient = async <T = any>( // Default T to any if not specified
   options: CustomRequestInit = {}
 ): Promise<T> => {
   const { accessToken, refreshToken } = useAuthStore.getState();
-  const { logout, setTokens } = useAuthStore.getState().actions;
+  const { logout, setTokens } = useAuthStore.getState();
   const { setIsRefreshingToken } = useAuthStore.getState();
 
   // Determine locale: use explicit if provided, else from pathname, else default

@@ -34,7 +34,7 @@ import {
 import { signupUser } from "@/services/auth.service";
 import { PATHS } from "@/constants/paths";
 import { QUERY_KEYS } from "@/constants/queryKeys";
-import { useAuth, useAuthStore } from "@/store/auth.store"; // Added useAuth
+import { useAuthCore, useAuthStore } from "@/store/auth.store"; // Added useAuthCore
 import { AuthFormCard } from "@/components/auth/AuthFormCard";
 import type { ApiError, SignupResponse } from "@/types/api/auth.types";
 
@@ -52,7 +52,7 @@ export default function SignupPage() {
   const router = useRouter();
   const searchParams = useSearchParams(); // For redirect_to if applicable
 
-  const { isAuthenticated, user: authUser } = useAuth(); // Use custom hook
+  const { isAuthenticated, user: authUser } = useAuthCore(); // Use custom hook
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 

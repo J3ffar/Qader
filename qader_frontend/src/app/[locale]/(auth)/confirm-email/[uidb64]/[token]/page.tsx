@@ -14,7 +14,7 @@ import {
   ConfirmEmailParams,
   ConfirmEmailResponse,
 } from "@/services/auth.service";
-import { useAuth, useAuthActions, useAuthStore } from "@/store/auth.store"; // Added useAuth
+import { useAuthCore, useAuthActions, useAuthStore } from "@/store/auth.store"; // Added useAuthCore
 import { PATHS } from "@/constants/paths";
 import { Button } from "@/components/ui/button";
 import { QUERY_KEYS } from "@/constants/queryKeys";
@@ -25,7 +25,7 @@ export default function ConfirmEmailPage() {
   const router = useRouter();
   const params = useParams();
 
-  const { isAuthenticated, user } = useAuth(); // Use custom hook
+  const { isAuthenticated, user } = useAuthCore(); // Use custom hook
   const { login: storeLogin, setIsProfileComplete: storeSetIsProfileComplete } =
     useAuthActions(); // Use custom hook
 

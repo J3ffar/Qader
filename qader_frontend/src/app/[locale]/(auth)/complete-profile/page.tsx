@@ -39,7 +39,7 @@ import {
   type ApiCompleteProfileData,
 } from "@/types/forms/auth.schema";
 import { completeUserProfile } from "@/services/auth.service";
-import { useAuth, useAuthActions, useAuthStore } from "@/store/auth.store"; // Added useAuth
+import { useAuthCore, useAuthActions, useAuthStore } from "@/store/auth.store"; // Added useAuthCore
 import { PATHS } from "@/constants/paths";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import type { ApiError, UserProfile } from "@/types/api/auth.types";
@@ -70,7 +70,8 @@ export default function CompleteProfilePage() {
   const router = useRouter();
 
   // Use custom hooks for state and actions
-  const { user, isAuthenticated, accessToken, isProfileComplete } = useAuth();
+  const { user, isAuthenticated, accessToken, isProfileComplete } =
+    useAuthCore();
   const {
     setUser: storeSetUser,
     setIsProfileComplete: storeSetIsProfileComplete,
