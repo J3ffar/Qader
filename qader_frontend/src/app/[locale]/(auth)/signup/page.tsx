@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "next/link"; // Corrected import
+import { useRouter } from "next/navigation"; // Corrected import
 import { toast } from "sonner";
 import { User, Mail, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,13 +20,12 @@ import {
   SignupSchema,
   type SignupFormValues,
   type ApiSignupData,
-} from "@/types/forms/auth.schema";
-import { signupUser } from "@/services/auth.service";
-import { PATHS } from "@/constants/paths";
-import { QUERY_KEYS } from "@/constants/queryKeys";
-import { useAuthStore } from "@/store/auth.store";
-import { AuthFormCard } from "@/components/auth/AuthFormCard";
-// import { useTranslations } from 'next-intl';
+} from "@/types/forms/auth.schema"; // Adjust path
+import { signupUser } from "@/services/auth.service"; // Adjust path
+import { PATHS } from "@/constants/paths"; // Adjust path
+import { QUERY_KEYS } from "@/constants/queryKeys"; // Adjust path
+import { useAuthStore } from "@/store/auth.store"; // Adjust path
+import { AuthFormCard } from "@/components/auth/AuthFormCard"; // Adjust path
 
 const signupPageDefaultValues: SignupFormValues = {
   full_name: "",
@@ -36,12 +36,14 @@ const signupPageDefaultValues: SignupFormValues = {
 };
 
 export default function SignupPage() {
-  // const t = useTranslations('Auth.Signup');
-  // const tCommon = useTranslations('Common');
+  const tAuth = useTranslations("Auth");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const { isAuthenticated, user: authUser } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const CurrentSignupSchema = useMemo(() => SignupSchema(tAuth), [tAuth]);
 
   const {
     control,
@@ -51,25 +53,24 @@ export default function SignupPage() {
     setError: setFormError,
     reset,
   } = useForm<SignupFormValues>({
-    resolver: zodResolver(SignupSchema),
+    resolver: zodResolver(CurrentSignupSchema),
     defaultValues: signupPageDefaultValues,
   });
 
-  // Redirect if already authenticated (logic remains the same)
   useEffect(() => {
     if (isAuthenticated && authUser) {
-      toast.info("أنت مسجل الدخول بالفعل.");
+      toast.info(tAuth("alreadyLoggedIn"));
       if (authUser.profile_complete) {
         if (authUser.is_super || authUser.is_staff) {
-          router.replace(PATHS.ADMIN_DASHBOARD || "/admin/dashboard");
+          router.replace(PATHS.ADMIN_DASHBOARD);
         } else {
-          router.replace(PATHS.STUDY_HOME || "/study");
+          router.replace(PATHS.STUDY_HOME);
         }
       } else {
-        router.replace(PATHS.COMPLETE_PROFILE || "/auth/complete-profile");
+        router.replace(PATHS.COMPLETE_PROFILE);
       }
     }
-  }, [isAuthenticated, authUser, router]);
+  }, [isAuthenticated, authUser, router, tAuth]);
 
   const signupMutation = useMutation({
     mutationKey: [QUERY_KEYS.SIGNUP],
@@ -83,15 +84,10 @@ export default function SignupPage() {
       return signupUser(apiPayload);
     },
     onSuccess: (data) => {
-      toast.success(
-        data.detail ||
-          "تم إرسال رابط التفعيل إلى بريدك الإلكتروني. يرجى التحقق من بريدك الوارد والمجلدات الأخرى.",
-        { duration: 8000 }
-      );
+      toast.success(data.detail || tAuth("activationLinkSent"), {
+        duration: 8000,
+      });
       reset();
-      // Optionally, you might want to display a persistent message on the page
-      // or automatically redirect to login after a few seconds or to a "check your email" page.
-      // For now, we just show a toast and clear the form.
     },
     onError: (error: any) => {
       if (error.status === 400 && error.data) {
@@ -101,68 +97,64 @@ export default function SignupPage() {
           const message = Array.isArray(error.data[key])
             ? error.data[key].join(", ")
             : String(error.data[key]);
-
           if (Object.keys(signupPageDefaultValues).includes(field)) {
             setFormError(field, { type: "server", message });
             specificErrorSet = true;
           }
         });
-
         if (error.data.detail) {
           toast.error(String(error.data.detail));
         } else if (!specificErrorSet) {
-          // If no specific field errors were mapped from error.data and no detail message
-          toast.error("فشل التسجيل. الرجاء التحقق من البيانات المدخلة.");
+          toast.error(tAuth("signupFailedCheckData"));
         }
       } else {
-        toast.error(error.message || "فشل الاتصال بالخادم. حاول لاحقاً.");
+        toast.error(error.message || tAuth("signupErrorServer"));
       }
     },
   });
 
-  const onSubmit = (data: SignupFormValues) => {
-    signupMutation.mutate(data);
-  };
+  const onSubmit = (data: SignupFormValues) => signupMutation.mutate(data);
 
   if (isAuthenticated) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
-        <Sparkles className="w-12 h-12 text-primary animate-pulse mb-4" />
-        <p className="text-muted-foreground">جاري التوجيه...</p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
+        <Sparkles className="mb-4 h-12 w-12 animate-pulse text-primary" />
+        <p className="text-muted-foreground">{tAuth("redirecting")}</p>
       </div>
     );
   }
 
   return (
     <AuthFormCard
-      title="إنشاء حساب جديد" // t('createAccountTitle')
-      description="املأ النموذج أدناه لإنشاء حسابك." // t('signupPrompt')
-      footerPromptText="لديك حساب بالفعل؟" // t('alreadyHaveAccount')
-      footerLinkText="تسجيل الدخول" // t('login')
-      footerLinkHref={PATHS.LOGIN || "/login"}
-      showLogo={true} // Show logo on signup
+      title={tAuth("createAccountTitle")}
+      description={tAuth("signupPrompt")}
+      footerPromptText={tAuth("alreadyHaveAccount")}
+      footerLinkText={tAuth("login")}
+      footerLinkHref={PATHS.LOGIN}
+      showLogo={true}
     >
       {signupMutation.isSuccess ? (
         <Alert
           variant="default"
-          className="mb-4 bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300"
+          className="mb-4 border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300"
         >
           <Sparkles className="h-5 w-5 text-green-600 dark:text-green-400" />
-          <AlertTitle className="font-semibold">تم بنجاح!</AlertTitle>
+          <AlertTitle className="font-semibold">
+            {tAuth("successMessageTitle")}
+          </AlertTitle>
           <AlertDescription>
-            {signupMutation.data?.detail ||
-              "تم إرسال رابط التفعيل. يرجى التحقق من بريدك الإلكتروني."}
+            {signupMutation.data?.detail || tAuth("activationLinkSent")}
           </AlertDescription>
         </Alert>
       ) : (
         signupMutation.error &&
         !(signupMutation.error as any).data?.detail &&
-        !(signupMutation.error as any).data?.email && ( // Add other fields if needed
+        !(signupMutation.error as any).data?.email && (
           <Alert variant="destructive" className="mb-4">
-            <AlertTitle>خطأ في التسجيل</AlertTitle>
+            <AlertTitle>{tAuth("errorAlertTitle")}</AlertTitle>
             <AlertDescription>
               {(signupMutation.error as any)?.message ||
-                "فشل التسجيل. الرجاء التحقق من البيانات المدخلة."}
+                tAuth("signupFailedCheckData")}
             </AlertDescription>
           </Alert>
         )
@@ -170,13 +162,13 @@ export default function SignupPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div>
-          <Label htmlFor="signup-fullname">الاسم الكامل</Label>
+          <Label htmlFor="signup-page-fullname">{tAuth("fullName")}</Label>
           <div className="relative mt-1">
-            <User className="absolute left-3 rtl:right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3" />
             <Input
-              id="signup-fullname"
+              id="signup-page-fullname"
               type="text"
-              placeholder="الاسم الثلاثي"
+              placeholder={tAuth("fullNamePlaceholder")}
               {...register("full_name")}
               className="pl-10 rtl:pr-10"
               aria-invalid={errors.full_name ? "true" : "false"}
@@ -191,13 +183,13 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <Label htmlFor="signup-email">البريد الإلكتروني</Label>
+          <Label htmlFor="signup-page-email">{tAuth("email")}</Label>
           <div className="relative mt-1">
-            <Mail className="absolute left-3 rtl:right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3" />
             <Input
-              id="signup-email"
+              id="signup-page-email"
               type="email"
-              placeholder="you@example.com"
+              placeholder={tAuth("emailPlaceholder")}
               {...register("email")}
               className="pl-10 rtl:pr-10"
               aria-invalid={errors.email ? "true" : "false"}
@@ -210,24 +202,24 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <Label htmlFor="signup-password">كلمة المرور</Label>
+          <Label htmlFor="signup-page-password">{tAuth("password")}</Label>
           <div className="relative mt-1">
-            <Lock className="absolute left-3 rtl:right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3" />
             <Input
-              id="signup-password"
+              id="signup-page-password"
               type={showPassword ? "text" : "password"}
-              placeholder="********"
+              placeholder={tAuth("passwordPlaceholder")}
               {...register("password")}
-              className="pl-10 rtl:pr-10 pr-10 rtl:pl-10"
+              className="pl-10 pr-10 rtl:pl-10 rtl:pr-10"
               aria-invalid={errors.password ? "true" : "false"}
               disabled={signupMutation.isSuccess}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rtl:left-3"
               aria-label={
-                showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"
+                showPassword ? tCommon("hidePassword") : tCommon("showPassword")
               }
               disabled={signupMutation.isSuccess}
             >
@@ -246,24 +238,28 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <Label htmlFor="signup-confirm-password">تأكيد كلمة المرور</Label>
+          <Label htmlFor="signup-page-confirm-password">
+            {tAuth("confirmPassword")}
+          </Label>
           <div className="relative mt-1">
-            <Lock className="absolute left-3 rtl:right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3" />
             <Input
-              id="signup-confirm-password"
+              id="signup-page-confirm-password"
               type={showConfirmPassword ? "text" : "password"}
-              placeholder="********"
+              placeholder={tAuth("passwordPlaceholder")}
               {...register("password_confirm")}
-              className="pl-10 rtl:pr-10 pr-10 rtl:pl-10"
+              className="pl-10 pr-10 rtl:pl-10 rtl:pr-10"
               aria-invalid={errors.password_confirm ? "true" : "false"}
               disabled={signupMutation.isSuccess}
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rtl:left-3"
               aria-label={
-                showConfirmPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"
+                showConfirmPassword
+                  ? tCommon("hidePassword")
+                  : tCommon("showPassword")
               }
               disabled={signupMutation.isSuccess}
             >
@@ -281,40 +277,38 @@ export default function SignupPage() {
           )}
         </div>
 
-        <div className="flex items-start space-x-2 rtl:space-x-reverse pt-1">
+        <div className="flex items-start space-x-2 pt-1 rtl:space-x-reverse">
           <Controller
             name="termsAccepted"
             control={control}
             render={({ field }) => (
               <Checkbox
-                id="termsAccepted"
+                id="termsAcceptedSignupPage"
                 checked={field.value}
-                onCheckedChange={field.onChange}
+                onCheckedChange={field.onChange} // Unique ID
                 aria-invalid={errors.termsAccepted ? "true" : "false"}
                 disabled={signupMutation.isSuccess}
-                className="mt-0.5" // Align better with label
+                className="mt-0.5"
               />
             )}
           />
           <Label
-            htmlFor="termsAccepted"
-            className="text-sm font-normal text-muted-foreground leading-snug cursor-pointer"
+            htmlFor="termsAcceptedSignupPage"
+            className="cursor-pointer text-sm font-normal leading-snug text-muted-foreground"
           >
-            أوافق على{" "}
+            {tAuth("agreeTo")}{" "}
             <Link
-              href={PATHS.TERMS_AND_CONDITIONS || "/conditions"}
+              href={PATHS.TERMS_AND_CONDITIONS}
               className="font-medium text-primary hover:underline"
               target="_blank"
               rel="noopener noreferrer"
             >
-              الشروط والأحكام
+              {tAuth("termsAndConditions")}
             </Link>
           </Label>
         </div>
         {errors.termsAccepted && (
-          <p className="text-xs text-red-500 -mt-4">
-            {" "}
-            {/* Adjusted margin */}
+          <p className="-mt-4 text-xs text-red-500">
             {errors.termsAccepted.message}
           </p>
         )}
@@ -327,10 +321,10 @@ export default function SignupPage() {
           {signupMutation.isPending ? (
             <>
               <Sparkles className="mr-2 h-4 w-4 animate-spin rtl:ml-2 rtl:mr-0" />
-              جارٍ التسجيل...
+              {tAuth("creatingAccountLoading")}
             </>
           ) : (
-            "إنشاء حساب"
+            tAuth("createAccount")
           )}
         </Button>
       </form>

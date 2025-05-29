@@ -5,5 +5,9 @@
   "loading": "Loading...",
   "errorOccurred": "An error occurred",
   "showPassword": "Show password",
-  "hidePassword": "Hide password"
+  "hidePassword": "Hide password",
+
+  "language": "Language",
+  "arabic": "العربية",
+  "english": "English"
 }

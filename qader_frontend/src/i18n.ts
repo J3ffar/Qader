@@ -25,6 +25,8 @@ export default getRequestConfig(
       const authMessages = (
         await import(`./locales/${resolvedLocale}/auth.json`)
       ).default;
+      const navMessages = (await import(`./locales/${resolvedLocale}/nav.json`))
+        .default;
       // Add other namespaces here
 
       return {
@@ -32,6 +34,7 @@ export default getRequestConfig(
         messages: {
           Common: commonMessages,
           Auth: authMessages,
+          Nav: navMessages,
           // Add other namespaces here
         },
       };

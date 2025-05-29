@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import Image from "next/image"; // Keep for potential non-Avatar images
+import Link from "next/link"; // Use next's Link
+import { useRouter } from "next/navigation"; // Use next's Router
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -11,11 +11,11 @@ import { toast } from "sonner";
 import {
   Loader2,
   AlertCircle,
-  CheckCircle2,
   UploadCloud,
   User as UserIconLucide,
   Sparkles,
-} from "lucide-react"; // Using Lucide
+} from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,23 +27,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // For Yes/No
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import {
-  CompleteProfileSchema,
+  createCompleteProfileSchema,
   type CompleteProfileFormValues,
   type ApiCompleteProfileData,
-} from "@/types/forms/auth.schema";
-import { completeUserProfile } from "@/services/auth.service";
-import { useAuthStore } from "@/store/auth.store";
-import { PATHS } from "@/constants/paths";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { QUERY_KEYS } from "@/constants/queryKeys";
-// import { useTranslations } from 'next-intl';
+} from "@/types/forms/auth.schema"; // Adjust path
+import { completeUserProfile } from "@/services/auth.service"; // Adjust path
+import { useAuthStore } from "@/store/auth.store"; // Adjust path
+import { PATHS } from "@/constants/paths"; // Adjust path
+import { QUERY_KEYS } from "@/constants/queryKeys"; // Adjust path
 
 const grades = [
-  // You can move this to a constants file or fetch from API if dynamic
   "أولى ابتدائي",
   "ثانية ابتدائي",
   "ثالثة ابتدائي",
@@ -60,11 +58,11 @@ const grades = [
   "طالب جامعي",
   "خريج",
   "أخرى",
-];
+]; // This list itself might need translation if you want it dynamic per locale
 
 export default function CompleteProfilePage() {
-  // const t = useTranslations('Auth.CompleteProfile');
-  // const tCommon = useTranslations('Common');
+  const tAuth = useTranslations("Auth");
+  const tCommon = useTranslations("Common"); // For generic common terms if any
   const router = useRouter();
   const {
     accessToken,
@@ -77,8 +75,14 @@ export default function CompleteProfilePage() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true); // Set to true once component has mounted on the client
+    setIsClient(true);
   }, []);
+
+  // Memoize the schema creation
+  const CurrentCompleteProfileSchema = useMemo(
+    () => createCompleteProfileSchema(tAuth),
+    [tAuth]
+  );
 
   const {
     control,
@@ -89,54 +93,55 @@ export default function CompleteProfilePage() {
     formState: { errors },
     setError: setFormError,
   } = useForm<CompleteProfileFormValues>({
-    resolver: zodResolver(CompleteProfileSchema),
+    resolver: zodResolver(CurrentCompleteProfileSchema),
     defaultValues: {
-      gender: undefined, // Let placeholder show
+      gender: undefined,
       grade: "",
-      has_taken_qiyas_before: undefined, // Let placeholder show or default to false
+      has_taken_qiyas_before: undefined,
       preferred_name: user?.preferred_name || "",
       profile_picture: null,
       serial_code: "",
       referral_code_used: "",
-      language: "ar", // Default to Arabic or get from user profile if available
+      language: user?.language_code || "ar", // Default to user's current lang or 'ar'
     },
   });
 
-  // Redirect if not authenticated or profile already complete
+  // Update defaultValues when user data is available
+  useEffect(() => {
+    if (user) {
+      setValue("preferred_name", user.preferred_name || "");
+      setValue("language", user.language_code || "ar");
+      // If you store gender, grade, etc. in user object before profile completion, set them here too.
+    }
+  }, [user, setValue]);
+
   useEffect(() => {
     if (!isClient) return;
-
     if (!isAuthenticated || !accessToken) {
-      toast.error("الرجاء تسجيل الدخول أولاً للمتابعة."); // t('loginRequired')
-      router.replace(PATHS.HOME || "/"); // Redirect to login if not authenticated
+      toast.error(tAuth("loginRequired"));
+      router.replace(PATHS.LOGIN); // PATHS.LOGIN should be non-localized base path
       return;
     }
     if (user?.profile_complete) {
-      toast.info("ملفك الشخصي مكتمل بالفعل."); // t('profileAlreadyComplete')
-      router.replace(PATHS.STUDY_HOME || "/study"); // Redirect if profile is already complete
+      toast.info(tAuth("profileAlreadyComplete"));
+      router.replace(PATHS.STUDY_HOME);
     }
-  }, [isClient, isAuthenticated, accessToken, user, router]);
+  }, [isClient, isAuthenticated, accessToken, user, router, tAuth]);
 
   const completeProfileMutation = useMutation({
-    mutationKey: QUERY_KEYS.COMPLETE_PROFILE,
+    mutationKey: [QUERY_KEYS.COMPLETE_PROFILE],
     mutationFn: (formDataValues: CompleteProfileFormValues) => {
-      if (!accessToken) {
-        throw new Error("Access token not found."); // Should be caught by useEffect ideally
-      }
-      // Transform form data for the API
+      if (!accessToken) throw new Error(tAuth("accessTokenNotFound"));
       const apiData: ApiCompleteProfileData = {
         ...formDataValues,
-        profile_picture: formDataValues.profile_picture?.[0] || null, // Get the File object
+        profile_picture: formDataValues.profile_picture?.[0] || null,
       };
       return completeUserProfile(apiData, accessToken);
     },
     onSuccess: (updatedUser) => {
-      storeSetUser(updatedUser); // Update user in Zustand store
-      toast.success("تم تحديث ملفك الشخصي بنجاح!"); // t('profileUpdateSuccess')
-      // The API response contains the updated user profile.
-      // It also indicates if a trial was activated or serial code applied.
-      // The backend should handle subscription activation messages via notifications if needed.
-      router.push(PATHS.STUDY_HOME || "/study"); // Navigate to study page
+      storeSetUser(updatedUser);
+      toast.success(tAuth("profileUpdateSuccess"));
+      router.push(PATHS.STUDY_HOME);
     },
     onError: (error: any) => {
       if (error.status === 400 && error.data) {
@@ -144,7 +149,7 @@ export default function CompleteProfilePage() {
           const field = key as keyof CompleteProfileFormValues;
           const message = Array.isArray(error.data[key])
             ? error.data[key].join(", ")
-            : error.data[key];
+            : String(error.data[key]);
           try {
             setFormError(field, { type: "server", message });
           } catch (e) {
@@ -152,14 +157,19 @@ export default function CompleteProfilePage() {
           }
         });
         if (error.data.detail) {
-          toast.error(error.data.detail);
+          toast.error(String(error.data.detail));
         } else {
-          toast.error(
-            "فشل تحديث الملف الشخصي. الرجاء التحقق من البيانات المدخلة."
-          ); // t('profileUpdateFailed')
+          let hasFieldErrors = false;
+          Object.keys(createCompleteProfileSchema(tAuth).shape).forEach(
+            (formKey) => {
+              // Check against schema keys
+              if (error.data[formKey]) hasFieldErrors = true;
+            }
+          );
+          if (!hasFieldErrors) toast.error(tAuth("profileUpdateFailed"));
         }
       } else {
-        toast.error(error.message || "فشل الاتصال بالخادم. حاول لاحقاً."); // t('serverError')
+        toast.error(error.message || tAuth("serverError"));
       }
     },
   });
@@ -168,11 +178,9 @@ export default function CompleteProfilePage() {
     const files = event.target.files;
     if (files && files.length > 0) {
       const file = files[0];
-      setValue("profile_picture", files as FileList, { shouldValidate: true }); // Update RHF state
+      setValue("profile_picture", files as FileList, { shouldValidate: true });
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePreview(reader.result as string);
-      };
+      reader.onloadend = () => setProfilePreview(reader.result as string);
       reader.readAsDataURL(file);
     } else {
       setValue("profile_picture", null, { shouldValidate: true });
@@ -180,80 +188,81 @@ export default function CompleteProfilePage() {
     }
   };
 
-  const onSubmit = (data: CompleteProfileFormValues) => {
+  const onSubmit = (data: CompleteProfileFormValues) =>
     completeProfileMutation.mutate(data);
-  };
 
-  // Loading state for page if user data is not yet available from store
   if (!isClient || (!isAuthenticated && !user)) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
-        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
-  // If user is loaded but profile is complete, useEffect will redirect. Show loading until then.
   if (user?.profile_complete) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
-        <Loader2 className="w-12 h-12 text-primary animate-spin" />
-        <p className="mt-4 text-muted-foreground">
-          جاري التحقق من الملف الشخصي...
-        </p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">{tAuth("checkingProfile")}</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-xl mx-auto p-4 sm:p-6 md:p-8 space-y-6 bg-card shadow-xl rounded-xl border">
+    <div className="mx-auto my-8 w-full max-w-xl space-y-6 rounded-xl border bg-card p-4 shadow-xl sm:p-6 md:p-8">
       <div className="text-center">
-        <Sparkles className="mx-auto h-12 w-12 text-primary mb-3" />
+        <Sparkles className="mx-auto mb-3 h-12 w-12 text-primary" />
         <h1 className="text-3xl font-bold tracking-tight">
-          أكمل ملفك الشخصي
-        </h1>{" "}
-        {/* t('pageTitle') */}
-        <p className="text-muted-foreground mt-2">
-          {/* t('pageSubtitle') */}الرجاء إدخال التفاصيل المتبقية لبدء رحلتك
-          التعليمية.
+          {tAuth("completeProfilePageTitle")}
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          {tAuth("completeProfilePageSubtitle")}
         </p>
       </div>
 
       {completeProfileMutation.isError &&
-        !completeProfileMutation.error.data?.detail && (
+        !completeProfileMutation.error.data?.detail &&
+        !Object.keys(createCompleteProfileSchema(tAuth).shape).some(
+          (key) => (completeProfileMutation.error as any).data?.[key]
+        ) && (
           <Alert variant="destructive" className="mt-4">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>خطأ</AlertTitle>
+            <AlertTitle>{tAuth("errorTitle")}</AlertTitle>
             <AlertDescription>
               {(completeProfileMutation.error as any)?.message ||
-                "فشل تحديث الملف الشخصي. الرجاء التحقق من البيانات المدخلة."}
+                tAuth("profileUpdateFailed")}
             </AlertDescription>
           </Alert>
         )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Profile Picture Upload */}
         <div className="flex flex-col items-center gap-3">
-          <Label htmlFor="profile_picture_input" className="cursor-pointer">
+          <Label
+            htmlFor="profile_picture_input_page"
+            className="cursor-pointer"
+          >
+            {" "}
+            {/* Unique ID */}
             <Avatar className="h-24 w-24 ring-2 ring-primary/50 ring-offset-2 ring-offset-background">
               <AvatarImage
                 src={
                   profilePreview ||
                   user?.profile_picture_url ||
-                  "/images/signup.png"
+                  "/images/default-avatar.png"
                 }
-                alt="Profile Preview"
-              />
+                alt={tAuth("profilePictureAlt")}
+              />{" "}
+              {/* Use a default avatar */}
               <AvatarFallback>
                 <UserIconLucide className="h-12 w-12 text-muted-foreground" />
               </AvatarFallback>
             </Avatar>
           </Label>
           <input
-            id="profile_picture_input"
+            id="profile_picture_input_page"
             type="file"
             accept="image/*"
             className="hidden"
-            {...register("profile_picture", { onChange: handleFileChange })} // RHF handles the FileList
+            {...register("profile_picture", { onChange: handleFileChange })}
             ref={fileInputRef}
           />
           <Button
@@ -263,22 +272,21 @@ export default function CompleteProfilePage() {
             onClick={() => fileInputRef.current?.click()}
             className="text-sm"
           >
-            <UploadCloud className="mr-2 h-4 w-4" />
-            {/* t('uploadPicture') */}تغيير الصورة
+            <UploadCloud className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
+            {tAuth("uploadPicture")}
           </Button>
           {errors.profile_picture && (
-            <p className="text-xs text-red-500 text-center">
+            <p className="text-center text-xs text-red-500">
               {errors.profile_picture.message}
             </p>
           )}
         </div>
 
-        {/* Gender */}
         <div>
-          <Label htmlFor="gender" className="font-semibold">
-            الجنس <span className="text-destructive">*</span>
+          <Label htmlFor="gender_page" className="font-semibold">
+            {tAuth("genderLabel")} <span className="text-destructive">*</span>
           </Label>{" "}
-          {/* t('gender') */}
+          {/* Unique ID */}
           <Controller
             name="gender"
             control={control}
@@ -286,18 +294,16 @@ export default function CompleteProfilePage() {
               <RadioGroup
                 onValueChange={field.onChange}
                 defaultValue={field.value}
-                className="flex space-x-4 rtl:space-x-reverse mt-2"
-                dir="rtl" // For RTL layout of radio items
+                className="mt-2 flex space-x-4 rtl:space-x-reverse"
+                dir={tCommon("dir") as "ltr" | "rtl"}
               >
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                  <RadioGroupItem value="male" id="male" />
-                  <Label htmlFor="male">ذكر</Label>
-                  {/* t('male') */}
+                  <RadioGroupItem value="male" id="male_page" />{" "}
+                  <Label htmlFor="male_page">{tAuth("male")}</Label>
                 </div>
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                  <RadioGroupItem value="female" id="female" />
-                  <Label htmlFor="female">أنثى</Label>
-                  {/* t('female') */}
+                  <RadioGroupItem value="female" id="female_page" />{" "}
+                  <Label htmlFor="female_page">{tAuth("female")}</Label>
                 </div>
               </RadioGroup>
             )}
@@ -307,16 +313,15 @@ export default function CompleteProfilePage() {
           )}
         </div>
 
-        {/* Preferred Name */}
         <div>
-          <Label htmlFor="preferred_name" className="font-semibold">
-            الاسم المفضل (اختياري)
-          </Label>
-          {/* t('preferredName') */}
+          <Label htmlFor="preferred_name_page" className="font-semibold">
+            {tAuth("preferredNameLabel")}
+          </Label>{" "}
+          {/* Unique ID */}
           <Input
-            id="preferred_name"
+            id="preferred_name_page"
             type="text"
-            placeholder="سالم" //{t('preferredNamePlaceholder')}
+            placeholder={tAuth("preferredNamePlaceholder")}
             {...register("preferred_name")}
             className="mt-1"
           />
@@ -327,12 +332,11 @@ export default function CompleteProfilePage() {
           )}
         </div>
 
-        {/* Grade */}
         <div>
-          <Label htmlFor="grade" className="font-semibold">
-            الصف الدراسي <span className="text-destructive">*</span>
-          </Label>
-          {/* t('grade') */}
+          <Label htmlFor="grade_page" className="font-semibold">
+            {tAuth("gradeLabel")} <span className="text-destructive">*</span>
+          </Label>{" "}
+          {/* Unique ID */}
           <Controller
             name="grade"
             control={control}
@@ -340,11 +344,10 @@ export default function CompleteProfilePage() {
               <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}
-                dir="rtl"
+                dir={tCommon("dir") as "ltr" | "rtl"}
               >
-                <SelectTrigger className="w-full mt-1">
-                  <SelectValue placeholder="اختر الصف الدراسي" />
-                  {/* t('selectGradePlaceholder') */}
+                <SelectTrigger className="mt-1 w-full">
+                  <SelectValue placeholder={tAuth("selectGradePlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {grades.map((gradeItem) => (
@@ -361,33 +364,30 @@ export default function CompleteProfilePage() {
           )}
         </div>
 
-        {/* Has Taken Qiyas Before */}
         <div>
           <Label className="font-semibold">
-            هل اختبرت قدرات من قبل؟ <span className="text-destructive">*</span>
+            {tAuth("hasTakenQiyasLabel")}{" "}
+            <span className="text-destructive">*</span>
           </Label>
-          {/* t('hasTakenQiyas') */}
           <Controller
             name="has_taken_qiyas_before"
             control={control}
             render={({ field }) => (
               <RadioGroup
-                onValueChange={(value) => field.onChange(value === "true")} // Convert string "true"/"false" to boolean
+                onValueChange={(value) => field.onChange(value === "true")}
                 defaultValue={
                   field.value === undefined ? undefined : String(field.value)
                 }
-                className="flex space-x-4 rtl:space-x-reverse mt-2"
-                dir="rtl"
+                className="mt-2 flex space-x-4 rtl:space-x-reverse"
+                dir={tCommon("dir") as "ltr" | "rtl"}
               >
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                  <RadioGroupItem value="true" id="qiyas_yes" />
-                  <Label htmlFor="qiyas_yes">نعم</Label>
-                  {/* t('yes') */}
+                  <RadioGroupItem value="true" id="qiyas_yes_page" />{" "}
+                  <Label htmlFor="qiyas_yes_page">{tAuth("yes")}</Label>
                 </div>
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                  <RadioGroupItem value="false" id="qiyas_no" />
-                  <Label htmlFor="qiyas_no">لا</Label>
-                  {/* t('no') */}
+                  <RadioGroupItem value="false" id="qiyas_no_page" />{" "}
+                  <Label htmlFor="qiyas_no_page">{tAuth("no")}</Label>
                 </div>
               </RadioGroup>
             )}
@@ -399,34 +399,25 @@ export default function CompleteProfilePage() {
           )}
         </div>
 
-        {/* Language (hidden but required by API) */}
-        <input type="hidden" {...register("language")} defaultValue="ar" />
-        {/* Or make it a visible select if users should choose
-         <div>
-          <Label htmlFor="language">Language</Label>
-          <Controller name="language" control={control} render={({ field }) => (
-            <Select onValueChange={field.onChange} defaultValue={field.value || "ar"}>
-              <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ar">العربية</SelectItem>
-                <SelectItem value="en">English</SelectItem>
-              </SelectContent>
-            </Select>
-          )} />
-          {errors.language && <p className="text-xs text-red-500">{errors.language.message}</p>}
-        </div>
+        {/* Language: This should ideally be set from user's preference or locale,
+            and might not need to be a user-editable field here if it's already determined.
+            If it's just for API submission, the hidden input is fine.
+            Ensure `user?.language_code` is correctly populated.
         */}
+        <input type="hidden" {...register("language")} />
+        {errors.language && (
+          <p className="mt-1 text-xs text-red-500">{errors.language.message}</p>
+        )}
 
-        {/* Serial Code */}
         <div>
-          <Label htmlFor="serial_code" className="font-semibold">
-            الرمز التسلسلي (اختياري)
-          </Label>
-          {/* t('serialCode') */}
+          <Label htmlFor="serial_code_page" className="font-semibold">
+            {tAuth("serialCodeLabel")}
+          </Label>{" "}
+          {/* Unique ID */}
           <Input
-            id="serial_code"
+            id="serial_code_page"
             type="text"
-            placeholder="QADER-ABC123" //{t('serialCodePlaceholder')}
+            placeholder={tAuth("serialCodePlaceholder")}
             {...register("serial_code")}
             className="mt-1"
           />
@@ -436,22 +427,19 @@ export default function CompleteProfilePage() {
             </p>
           )}
           <p className="mt-1 text-xs text-muted-foreground">
-            {/* t('serialCodeHint') */}إذا كان لديك رمز تسلسلي للاشتراك، أدخله
-            هنا. وفي حال لم تدخل رمز تسلسلي, تستطيع تجربة المنصة ليوم واحد مع
-            بعض القيود.
+            {tAuth("serialCodeHint")}
           </p>
         </div>
 
-        {/* Referral Code */}
         <div>
-          <Label htmlFor="referral_code_used" className="font-semibold">
-            رمز الإحالة (اختياري)
-          </Label>
-          {/* t('referralCode') */}
+          <Label htmlFor="referral_code_used_page" className="font-semibold">
+            {tAuth("referralCodeLabel")}
+          </Label>{" "}
+          {/* Unique ID */}
           <Input
-            id="referral_code_used"
+            id="referral_code_used_page"
             type="text"
-            placeholder="REF-XYZ789" //{t('referralCodePlaceholder')}
+            placeholder={tAuth("referralCodePlaceholder")}
             {...register("referral_code_used")}
             className="mt-1"
           />
@@ -461,29 +449,27 @@ export default function CompleteProfilePage() {
             </p>
           )}
           <p className="mt-1 text-xs text-muted-foreground">
-            {/* t('referralCodeHint') */}إذا دعاك صديق، أدخل رمز الإحالة الخاص
-            به هنا.
+            {tAuth("referralCodeHint")}
           </p>
         </div>
 
         <div className="pt-4">
           <Button
             type="submit"
-            className="w-full text-lg py-6"
+            className="w-full py-3 text-base sm:py-6 sm:text-lg"
             disabled={completeProfileMutation.isPending}
           >
             {completeProfileMutation.isPending ? (
               <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                {/* t('savingButton') */}جارٍ الحفظ...
+                <Loader2 className="mr-2 h-5 w-5 animate-spin rtl:ml-2 rtl:mr-0" />
+                {tAuth("savingButton")}
               </>
             ) : (
-              //t('completeSignupButton')
-              "إكمال التسجيل وحفظ البيانات"
+              tAuth("completeSignupButton")
             )}
           </Button>
-          <Button variant="link" asChild className="w-full mt-2">
-            <Link href={PATHS.HOME || "/"}>العودة إلى الرئيسية لاحقًا</Link>
+          <Button variant="link" asChild className="mt-2 w-full">
+            <Link href={PATHS.HOME}>{tAuth("backToHomeLater")}</Link>
           </Button>
         </div>
       </form>

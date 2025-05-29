@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation"; // Use next's Router
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ import {
   EyeOff,
   ArrowLeft,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,30 +28,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSeparator,
   InputOTPSlot,
-} from "@/components/ui/input-otp"; // Shadcn UI component for OTP
+} from "@/components/ui/input-otp";
 
 import {
-  RequestOtpSchema,
+  createRequestOtpSchema,
   type RequestOtpFormValues,
-  VerifyOtpSchema,
+  createVerifyOtpSchema,
   type VerifyOtpFormValues,
-  ResetPasswordSchema,
+  createResetPasswordSchema,
   type ResetPasswordFormValues,
-} from "@/types/forms/auth.schema";
+} from "@/types/forms/auth.schema"; // Adjust path
 import {
   requestOtp,
   verifyOtp,
   resetPasswordWithOtp,
-} from "@/services/auth.service";
-import { PATHS } from "@/constants/paths";
-import Link from "next/link";
-// import { useTranslations } from 'next-intl';
+} from "@/services/auth.service"; // Adjust path
+import { PATHS } from "@/constants/paths"; // Adjust path
+import Link from "next/link"; // Use next's Link
 
 type Step = "request" | "verify" | "reset";
 
@@ -59,29 +58,38 @@ const VERIFY_OTP_KEY = ["verifyPasswordOtp"];
 const RESET_PASSWORD_KEY = ["resetPasswordWithOtp"];
 
 export default function ForgotPasswordPage() {
-  // const t = useTranslations('Auth.ForgotPassword');
+  const tAuth = useTranslations("Auth");
+  const tCommon = useTranslations("Common"); // For generic texts like show/hide password
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<Step>("request");
-  const [identifier, setIdentifier] = useState<string>(""); // To pass to verify and reset steps
-  const [resetToken, setResetToken] = useState<string>(""); // From verify step
+  const [identifier, setIdentifier] = useState<string>("");
+  const [resetTokenState, setResetTokenState] = useState<string>(""); // Renamed to avoid conflict
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Form for Requesting OTP
+  const CurrentRequestOtpSchema = useMemo(
+    () => createRequestOtpSchema(tAuth),
+    [tAuth]
+  );
+  const CurrentVerifyOtpSchema = useMemo(
+    () => createVerifyOtpSchema(tAuth),
+    [tAuth]
+  );
+  const CurrentResetPasswordSchema = useMemo(
+    () => createResetPasswordSchema(tAuth),
+    [tAuth]
+  );
+
   const requestOtpForm = useForm<RequestOtpFormValues>({
-    resolver: zodResolver(RequestOtpSchema),
+    resolver: zodResolver(CurrentRequestOtpSchema),
     defaultValues: { identifier: "" },
   });
-
-  // Form for Verifying OTP
   const verifyOtpForm = useForm<VerifyOtpFormValues>({
-    resolver: zodResolver(VerifyOtpSchema),
+    resolver: zodResolver(CurrentVerifyOtpSchema),
     defaultValues: { identifier: "", otp: "" },
   });
-
-  // Form for Resetting Password
   const resetPasswordForm = useForm<ResetPasswordFormValues>({
-    resolver: zodResolver(ResetPasswordSchema),
+    resolver: zodResolver(CurrentResetPasswordSchema),
     defaultValues: {
       reset_token: "",
       new_password: "",
@@ -89,26 +97,24 @@ export default function ForgotPasswordPage() {
     },
   });
 
-  // Mutations
   const requestOtpMutation = useMutation({
     mutationKey: REQUEST_OTP_KEY,
     mutationFn: requestOtp,
     onSuccess: (data, variables) => {
-      toast.success(data.detail); // API gives generic success message
+      toast.success(data.detail || tAuth("activationLinkSent")); // Using generic success message from API or a fallback
       setIdentifier(variables.identifier);
-      verifyOtpForm.setValue("identifier", variables.identifier); // Pre-fill for next step
+      verifyOtpForm.setValue("identifier", variables.identifier);
       setCurrentStep("verify");
-      requestOtpForm.reset(); // Reset this form
+      requestOtpForm.reset();
     },
     onError: (error: any) => {
-      if (error.data?.identifier) {
+      if (error.data?.identifier)
         requestOtpForm.setError("identifier", {
           type: "server",
           message: error.data.identifier.join(", "),
         });
-      } else {
-        toast.error(error.message || "فشل طلب رمز OTP. حاول لاحقًا.");
-      }
+      else
+        toast.error(error.message || tAuth("forgotPasswordOtpRequestFailed"));
     },
   });
 
@@ -116,24 +122,26 @@ export default function ForgotPasswordPage() {
     mutationKey: VERIFY_OTP_KEY,
     mutationFn: verifyOtp,
     onSuccess: (data) => {
-      toast.success(data.detail);
-      setResetToken(data.reset_token);
-      resetPasswordForm.setValue("reset_token", data.reset_token); // Pre-fill for next step
+      toast.success(data.detail || tAuth("otpVerified")); // Assuming 'otpVerified' key
+      setResetTokenState(data.reset_token);
+      resetPasswordForm.setValue("reset_token", data.reset_token);
       setCurrentStep("reset");
-      verifyOtpForm.reset(); // Reset this form
+      verifyOtpForm.reset();
     },
     onError: (error: any) => {
-      if (error.data?.otp) {
+      if (error.data?.otp)
         verifyOtpForm.setError("otp", {
           type: "server",
           message: error.data.otp.join(", "),
         });
-      } else if (error.data?.identifier) {
-        // This might indicate an issue if identifier changed between steps, though unlikely here
-        toast.error(`خطأ في المعرف: ${error.data.identifier.join(", ")}`);
-      } else {
-        toast.error(error.message || "فشل التحقق من رمز OTP. حاول لاحقًا.");
-      }
+      else if (error.data?.identifier)
+        toast.error(
+          `${tAuth("identifierInvalid")}: ${error.data.identifier.join(", ")}`
+        );
+      else
+        toast.error(
+          error.message || tAuth("forgotPasswordOtpVerificationFailed")
+        );
     },
   });
 
@@ -141,37 +149,31 @@ export default function ForgotPasswordPage() {
     mutationKey: RESET_PASSWORD_KEY,
     mutationFn: resetPasswordWithOtp,
     onSuccess: (data) => {
-      toast.success(data.detail);
-      router.push(PATHS.HOME || "/"); // Redirect to login page
+      toast.success(data.detail || tAuth("passwordResetSuccess")); // Assuming 'passwordResetSuccess' key
+      router.push(PATHS.LOGIN);
       resetPasswordForm.reset();
-      setCurrentStep("request"); // Reset flow
+      setCurrentStep("request");
       setIdentifier("");
-      setResetToken("");
+      setResetTokenState("");
     },
     onError: (error: any) => {
-      if (error.data?.new_password) {
+      if (error.data?.new_password)
         resetPasswordForm.setError("new_password", {
           type: "server",
           message: error.data.new_password.join(", "),
         });
-      } else if (error.data?.new_password_confirm) {
+      else if (error.data?.new_password_confirm)
         resetPasswordForm.setError("new_password_confirm", {
           type: "server",
           message: error.data.new_password_confirm.join(", "),
         });
-      } else if (error.data?.reset_token) {
+      else if (error.data?.reset_token)
         toast.error(
-          `خطأ في رمز إعادة التعيين: ${error.data.reset_token.join(
-            ", "
-          )}. الرجاء البدء من جديد.`
+          tAuth("forgotPasswordResetTokenError", {
+            error: error.data.reset_token.join(", "),
+          })
         );
-        // Optionally force back to step 1
-        // setCurrentStep("request");
-      } else {
-        toast.error(
-          error.message || "فشل إعادة تعيين كلمة المرور. حاول لاحقًا."
-        );
-      }
+      else toast.error(error.message || tAuth("forgotPasswordResetFailed"));
     },
   });
 
@@ -188,37 +190,42 @@ export default function ForgotPasswordPage() {
       verifyOtpForm.reset();
     } else if (currentStep === "reset") {
       setCurrentStep("verify");
-      // Do not reset resetToken here as it's needed if user just wants to re-enter passwords
       resetPasswordForm.reset({
-        reset_token: resetToken,
+        reset_token: resetTokenState,
         new_password: "",
         new_password_confirm: "",
       });
     }
   };
 
+  // Add a key to your common.json for dir: "dir": "rtl" for ar, "dir": "ltr" for en
+  const dir = tCommon("dir") as "ltr" | "rtl";
+
   return (
-    <div className="flex items-center justify-center p-4">
+    <div
+      className="flex min-h-screen items-center justify-center p-4 bg-muted/30"
+      dir={dir}
+    >
       <Card className="w-full max-w-md">
         {currentStep !== "request" && (
           <Button
             variant="ghost"
             size="sm"
             onClick={goBack}
-            className="absolute top-4 left-4 rtl:right-4 rtl:left-auto"
+            className="absolute top-4 left-4 rtl:right-4 rtl:left-auto m-2"
           >
-            <ArrowLeft className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />
-            رجوع
+            <ArrowLeft className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />{" "}
+            {tAuth("goBack")}
           </Button>
         )}
         {currentStep === "request" && (
           <>
             <CardHeader>
-              <CardTitle className="text-2xl">نسيت كلمة المرور؟</CardTitle>{" "}
-              {/*t('title')*/}
+              <CardTitle className="text-2xl">
+                {tAuth("forgotPasswordTitle")}
+              </CardTitle>
               <CardDescription>
-                {/*t('requestSubtitle')*/}أدخل بريدك الإلكتروني أو اسم المستخدم
-                لإرسال رمز إعادة التعيين.
+                {tAuth("forgotPasswordRequestSubtitle")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -227,15 +234,15 @@ export default function ForgotPasswordPage() {
                 className="space-y-4"
               >
                 <div>
-                  <Label htmlFor="identifier">
-                    البريد الإلكتروني / اسم المستخدم
-                  </Label>
-                  {/*t('identifierLabel')*/}
+                  <Label htmlFor="fp-identifier">
+                    {tAuth("forgotPasswordIdentifierLabel")}
+                  </Label>{" "}
+                  {/* Unique ID */}
                   <div className="relative mt-1">
                     <Mail className="absolute left-3 rtl:right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      id="identifier"
-                      placeholder="you@example.com أو username" //{t('identifierPlaceholder')}
+                      id="fp-identifier"
+                      placeholder={tAuth("forgotPasswordIdentifierPlaceholder")}
                       {...requestOtpForm.register("identifier")}
                       className="pl-10 rtl:pr-10"
                     />
@@ -253,27 +260,25 @@ export default function ForgotPasswordPage() {
                 >
                   {requestOtpMutation.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                      {/*t('sending')*/}جارٍ الإرسال...
+                      <Loader2 className="mr-2 rtl:ml-2 h-4 w-4 animate-spin" />{" "}
+                      {tAuth("forgotPasswordSendingOtp")}
                     </>
                   ) : (
-                    //t('sendOtpButton')
-                    "إرسال الرمز"
+                    tAuth("forgotPasswordSendOtpButton")
                   )}
                 </Button>
               </form>
             </CardContent>
           </>
         )}
-
         {currentStep === "verify" && (
           <>
             <CardHeader>
-              <CardTitle className="text-2xl">التحقق من الرمز</CardTitle>{" "}
-              {/*t('verifyTitle')*/}
+              <CardTitle className="text-2xl">
+                {tAuth("forgotPasswordVerifyTitle")}
+              </CardTitle>
               <CardDescription>
-                {/*t('verifySubtitle', { identifier })*/}تم إرسال رمز OTP إلى{" "}
-                {identifier}. الرجاء إدخاله أدناه.
+                {tAuth("forgotPasswordVerifySubtitle", { identifier })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -285,20 +290,23 @@ export default function ForgotPasswordPage() {
                   name="otp"
                   control={verifyOtpForm.control}
                   render={({ field, fieldState }) => (
-                    <div dir="ltr">
-                      <Label htmlFor="otp" className="sr-only">
-                        رمز OTP
-                      </Label>
-                      <InputOTP maxLength={6} {...field}>
-                        <InputOTPGroup dir="ltr">
-                          {" "}
-                          {/* OTP usually LTR */}
+                    // OTP input is usually LTR by design for digit entry
+                    <div
+                      dir="ltr"
+                      className="w-full flex flex-col items-center"
+                    >
+                      <Label htmlFor="fp-otp" className="sr-only">
+                        {tAuth("forgotPasswordOtpLabel")}
+                      </Label>{" "}
+                      {/* Unique ID */}
+                      <InputOTP id="fp-otp" maxLength={6} {...field}>
+                        <InputOTPGroup>
                           <InputOTPSlot index={0} />
                           <InputOTPSlot index={1} />
                           <InputOTPSlot index={2} />
                         </InputOTPGroup>
                         <InputOTPSeparator />
-                        <InputOTPGroup dir="ltr">
+                        <InputOTPGroup>
                           <InputOTPSlot index={3} />
                           <InputOTPSlot index={4} />
                           <InputOTPSlot index={5} />
@@ -319,28 +327,25 @@ export default function ForgotPasswordPage() {
                 >
                   {verifyOtpMutation.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                      {/*t('verifying')*/}جارٍ التحقق...
+                      <Loader2 className="mr-2 rtl:ml-2 h-4 w-4 animate-spin" />{" "}
+                      {tAuth("forgotPasswordVerifyingOtp")}
                     </>
                   ) : (
-                    //t('verifyOtpButton')
-                    "التحقق من الرمز"
+                    tAuth("forgotPasswordVerifyOtpButton")
                   )}
                 </Button>
               </form>
             </CardContent>
           </>
         )}
-
         {currentStep === "reset" && (
           <>
             <CardHeader>
               <CardTitle className="text-2xl">
-                إعادة تعيين كلمة المرور
-              </CardTitle>{" "}
-              {/*t('resetTitle')*/}
+                {tAuth("forgotPasswordResetTitle")}
+              </CardTitle>
               <CardDescription>
-                {/*t('resetSubtitle')*/}أدخل كلمة المرور الجديدة.
+                {tAuth("forgotPasswordResetSubtitle")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -349,23 +354,27 @@ export default function ForgotPasswordPage() {
                 className="space-y-4"
               >
                 <div>
-                  <Label htmlFor="new_password">كلمة المرور الجديدة</Label>
-                  {/*t('newPasswordLabel')*/}
+                  <Label htmlFor="fp-new_password">
+                    {tAuth("forgotPasswordNewPasswordLabel")}
+                  </Label>{" "}
+                  {/* Unique ID */}
                   <div className="relative mt-1">
                     <KeyRound className="absolute left-3 rtl:right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      id="new_password"
+                      id="fp-new_password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="********"
+                      placeholder={tAuth("passwordPlaceholder")}
                       {...resetPasswordForm.register("new_password")}
-                      className="pl-10 rtl:pr-10 pr-10 rtl:pl-10" // Space for both icons
+                      className="pl-10 rtl:pr-10 pr-10 rtl:pl-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 rtl:left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       aria-label={
-                        showPassword ? "Hide password" : "Show password"
+                        showPassword
+                          ? tCommon("hidePassword")
+                          : tCommon("showPassword")
                       }
                     >
                       {showPassword ? (
@@ -382,16 +391,16 @@ export default function ForgotPasswordPage() {
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="new_password_confirm">
-                    تأكيد كلمة المرور الجديدة
-                  </Label>
-                  {/*t('confirmNewPasswordLabel')*/}
+                  <Label htmlFor="fp-new_password_confirm">
+                    {tAuth("forgotPasswordConfirmNewPasswordLabel")}
+                  </Label>{" "}
+                  {/* Unique ID */}
                   <div className="relative mt-1">
                     <ShieldCheck className="absolute left-3 rtl:right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      id="new_password_confirm"
+                      id="fp-new_password_confirm"
                       type={showConfirmPassword ? "text" : "password"}
-                      placeholder="********"
+                      placeholder={tAuth("passwordPlaceholder")}
                       {...resetPasswordForm.register("new_password_confirm")}
                       className="pl-10 rtl:pr-10 pr-10 rtl:pl-10"
                     />
@@ -400,9 +409,11 @@ export default function ForgotPasswordPage() {
                       onClick={() =>
                         setShowConfirmPassword(!showConfirmPassword)
                       }
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 rtl:left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       aria-label={
-                        showConfirmPassword ? "Hide password" : "Show password"
+                        showConfirmPassword
+                          ? tCommon("hidePassword")
+                          : tCommon("showPassword")
                       }
                     >
                       {showConfirmPassword ? (
@@ -428,12 +439,11 @@ export default function ForgotPasswordPage() {
                 >
                   {resetPasswordMutation.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                      {/*t('resetting')*/}جارٍ التعيين...
+                      <Loader2 className="mr-2 rtl:ml-2 h-4 w-4 animate-spin" />{" "}
+                      {tAuth("forgotPasswordResetting")}
                     </>
                   ) : (
-                    //t('resetPasswordButton')
-                    "إعادة تعيين كلمة المرور"
+                    tAuth("forgotPasswordResetPasswordButton")
                   )}
                 </Button>
               </form>
@@ -441,11 +451,8 @@ export default function ForgotPasswordPage() {
           </>
         )}
         <CardFooter className="text-sm text-center block pt-6">
-          <Link
-            href={PATHS.HOME || "/"}
-            className="text-primary hover:underline"
-          >
-            {/* t('backToLogin') */}العودة إلى تسجيل الدخول
+          <Link href={PATHS.LOGIN} className="text-primary hover:underline">
+            {tAuth("forgotPasswordBackToLogin")}
           </Link>
         </CardFooter>
       </Card>

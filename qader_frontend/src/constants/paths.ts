@@ -11,6 +11,7 @@ export const PATHS = {
   COMPLETE_PROFILE: "/complete-profile",
   FORGOT_PASSWORD: "/forgot-password",
   STUDY_HOME: "/study",
+  SETTINGS: "/settings",
   ADMIN_DASHBOARD: "/admin/dashboard",
   // ... other paths
 };

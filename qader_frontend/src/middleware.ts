@@ -6,7 +6,15 @@ const intlMiddleware = createMiddleware({
   locales,
   defaultLocale,
   localePrefix: "as-needed",
-  localeDetection: false,
+  pathnames: {
+    // Optional: if you want to translate pathnames themselves
+    // Example:
+    // '/about': {
+    //   en: '/about-us',
+    //   ar: '/من-نحن'
+    // }
+  },
+  localeDetection: true,
 });
 
 export default function middleware(req: NextRequest): NextResponse {

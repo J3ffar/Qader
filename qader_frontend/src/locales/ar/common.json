@@ -5,5 +5,9 @@
   "loading": "جار التحميل...",
   "errorOccurred": "حدث خطأ ما",
   "showPassword": "إظهار كلمة المرور",
-  "hidePassword": "إخفاء كلمة المرور"
+  "hidePassword": "إخفاء كلمة المرور",
+
+  "language": "اللغة",
+  "arabic": "العربية",
+  "english": "English"
 }

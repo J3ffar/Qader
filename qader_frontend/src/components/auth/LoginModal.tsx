@@ -1,12 +1,13 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useRouter } from "next/navigation"; // Use next-intl's router
+import Link from "next/link"; // Use next-intl's Link
 import { toast } from "sonner";
-import { Mail, Lock, XIcon, Eye, EyeOff } from "lucide-react"; // Replaced Eye icons
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,21 +15,20 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose, // For explicit close button if needed outside of X
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox"; // For "Remember me"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For general error messages
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-import { LoginSchema, type LoginCredentials } from "@/types/forms/auth.schema";
-import { loginUser } from "@/services/auth.service";
-import { useAuthStore } from "@/store/auth.store";
-import { PATHS } from "@/constants/paths";
-import { QUERY_KEYS } from "@/constants/queryKeys";
-
-// For i18n (assuming you have next-intl setup)
-// import { useTranslations } from 'next-intl';
+import {
+  createLoginSchema,
+  type LoginCredentials,
+} from "@/types/forms/auth.schema"; // Adjust path
+import { loginUser } from "@/services/auth.service"; // Adjust path
+import { useAuthStore } from "@/store/auth.store"; // Adjust path
+import { PATHS } from "@/constants/paths"; // Adjust path
+import { QUERY_KEYS } from "@/constants/queryKeys"; // Adjust path
 
 interface LoginModalProps {
   show: boolean;
@@ -41,24 +41,23 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   onSwitchToSignup,
 }) => {
-  // const t = useTranslations('Auth'); // Example for i18n
+  const tAuth = useTranslations("Auth");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const { login: storeLogin, isAuthenticated } = useAuthStore();
   const [showPassword, setShowPassword] = React.useState(false);
+
+  const CurrentLoginSchema = useMemo(() => createLoginSchema(tAuth), [tAuth]);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setError: setFormError, // For API errors related to specific fields
+    setError: setFormError,
     reset,
   } = useForm<LoginCredentials>({
-    resolver: zodResolver(LoginSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-      rememberMe: false,
-    },
+    resolver: zodResolver(CurrentLoginSchema),
+    defaultValues: { username: "", password: "", rememberMe: false },
   });
 
   const loginMutation = useMutation({
@@ -66,95 +65,77 @@ const LoginModal: React.FC<LoginModalProps> = ({
     mutationFn: loginUser,
     onSuccess: (data) => {
       storeLogin({ access: data.access, refresh: data.refresh }, data.user);
-      toast.success("تم تسجيل الدخول بنجاح!"); // t('loginSuccess')
-      onClose(); // Close modal on success
-      reset(); // Reset form
-      // Redirect based on profile completion or other logic
+      toast.success(tAuth("loginSuccess"));
+      onClose();
+      reset();
       if (data.user?.is_super || data.user?.is_staff) {
         router.push(PATHS.ADMIN_DASHBOARD);
       } else if (!data.user.profile_complete) {
-        router.push(PATHS.COMPLETE_PROFILE); // Or your specific path
+        router.push(PATHS.COMPLETE_PROFILE);
       } else {
-        router.push(PATHS.STUDY_HOME); // Or user's last visited page
+        router.push(PATHS.STUDY_HOME);
       }
     },
     onError: (error: any) => {
-      // Handle API errors
       if (error.status === 400 && error.data) {
-        // Example: if backend returns { username: ["error"], password: ["error"] }
         Object.keys(error.data).forEach((key) => {
           const field = key as keyof LoginCredentials;
           const message = Array.isArray(error.data[key])
             ? error.data[key].join(", ")
-            : error.data[key];
+            : String(error.data[key]);
           if (field === "username" || field === "password") {
             setFormError(field, { type: "server", message });
           }
         });
         if (error.data.detail) {
-          // General non-field error from backend
-          toast.error(error.data.detail);
+          toast.error(String(error.data.detail));
         } else {
-          toast.error("بيانات الدخول غير صحيحة أو حساب غير مفعل."); // t('loginFailed')
+          toast.error(tAuth("loginFailed"));
         }
       } else {
-        toast.error(error.message || "فشل الاتصال بالخادم. حاول لاحقاً."); // t('loginErrorServer')
+        toast.error(error.message || tAuth("loginErrorServer"));
       }
     },
   });
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
-      // This means the dialog is about to close
-      reset(); // Reset React Hook Form state (fields and errors)
-      loginMutation.reset(); // Reset TanStack Query mutation state
-      onClose(); // Call the passed onClose handler to update parent state
-    } else {
-      // Dialog is opening. If `show` is managed by parent,
-      // `onClose` (which sets parent's show to false) isn't called here.
-      // The `show` prop directly controls the open state.
+      reset();
+      loginMutation.reset();
+      onClose();
     }
   };
 
-  // Close modal if user is already authenticated and modal tries to show
   useEffect(() => {
     if (isAuthenticated && show) {
       onClose();
     }
   }, [isAuthenticated, show, onClose]);
 
-  const onSubmit = (data: LoginCredentials) => {
-    loginMutation.mutate(data);
-  };
+  const onSubmit = (data: LoginCredentials) => loginMutation.mutate(data);
 
-  if (!show && !loginMutation.isPending) {
-    // Also ensure not to return null if a mutation is in progress after close (edge case)
-    return null;
-  }
+  if (!show && !loginMutation.isPending) return null;
 
   return (
     <Dialog open={show} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="max-w-sm md:max-w-3xl flex flex-col md:flex-row p-0 overflow-hidden"
-        onInteractOutside={(e) => e.preventDefault()} // Prevents closing on outside click if needed
-      >
-        <div className="w-full md:w-1/2 flex items-center justify-center p-6 sm:p-8">
+      <DialogContent className="flex max-w-sm flex-col overflow-hidden p-0 md:max-w-3xl md:flex-row">
+        <div className="flex w-full items-center justify-center p-6 sm:p-8 md:w-1/2">
           <div className="w-full space-y-6">
             <DialogHeader className="text-center">
               <DialogTitle className="text-3xl font-bold">
-                {/*t('welcomeBack')*/}أهلاً بعودتك!
+                {tAuth("welcomeBack")}
               </DialogTitle>
               <p className="text-muted-foreground">
-                {/*t('continueJourney')*/}اكمل السير معنا...
+                {tAuth("continueJourney")}
               </p>
             </DialogHeader>
 
             {loginMutation.error && !loginMutation.error.data?.detail && (
               <Alert variant="destructive">
-                <AlertTitle>خطأ في تسجيل الدخول</AlertTitle>
+                <AlertTitle>{tAuth("loginErrorAlertTitle")}</AlertTitle>
                 <AlertDescription>
                   {(loginMutation.error as any)?.message ||
-                    "بيانات الدخول غير صحيحة أو حساب غير مفعل."}
+                    tAuth("loginFailed")}
                 </AlertDescription>
               </Alert>
             )}
@@ -162,16 +143,16 @@ const LoginModal: React.FC<LoginModalProps> = ({
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <Label htmlFor="login-username">
-                  {/*t('emailOrUsername')*/}البريد الإلكتروني أو اسم المستخدم
+                  {tAuth("emailOrUsername")}
                 </Label>
                 <div className="relative mt-1">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3 rtl:left-auto" />
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                   <Input
                     id="login-username"
                     type="text"
-                    placeholder="you@example.com" //{t('emailOrUsernamePlaceholder')}
+                    placeholder={tAuth("emailOrUsernamePlaceholder")}
                     {...register("username")}
-                    className="pl-10 rtl:pr-10 rtl:pl-4"
+                    className="pl-10 rtl:pl-4 rtl:pr-10"
                     aria-invalid={errors.username ? "true" : "false"}
                   />
                 </div>
@@ -183,17 +164,15 @@ const LoginModal: React.FC<LoginModalProps> = ({
               </div>
 
               <div>
-                <Label htmlFor="login-password">
-                  {/*t('password')*/}كلمة المرور
-                </Label>
+                <Label htmlFor="login-password">{tAuth("password")}</Label>
                 <div className="relative mt-1">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3 rtl:left-auto" />
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                   <Input
                     id="login-password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="********"
+                    placeholder={tAuth("passwordPlaceholder")}
                     {...register("password")}
-                    className="pl-10 pr-10 rtl:pr-10 rtl:pl-10" // Space for both icons
+                    className="pl-10 pr-10 rtl:pl-10 rtl:pr-10"
                     aria-invalid={errors.password ? "true" : "false"}
                   />
                   <button
@@ -201,7 +180,9 @@ const LoginModal: React.FC<LoginModalProps> = ({
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rtl:left-3 rtl:right-auto"
                     aria-label={
-                      showPassword ? "Hide password" : "Show password"
+                      showPassword
+                        ? tCommon("hidePassword")
+                        : tCommon("showPassword")
                     }
                   >
                     {showPassword ? (
@@ -220,20 +201,24 @@ const LoginModal: React.FC<LoginModalProps> = ({
 
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                  <Checkbox id="rememberMe" {...register("rememberMe")} />
+                  <Checkbox
+                    id="rememberMeLoginModal"
+                    {...register("rememberMe")}
+                  />{" "}
+                  {/* Unique ID for modal context */}
                   <Label
-                    htmlFor="rememberMe"
+                    htmlFor="rememberMeLoginModal"
                     className="font-normal text-muted-foreground"
                   >
-                    {/*t('rememberMe')*/}حفظ الجلسة
+                    {tAuth("rememberMe")}
                   </Label>
                 </div>
                 <Link
                   href={PATHS.FORGOT_PASSWORD}
                   className="text-primary hover:underline"
-                  onClick={onClose} // Close modal when navigating
+                  onClick={onClose}
                 >
-                  {/*t('forgotPassword')*/}نسيت كلمة السر؟
+                  {tAuth("forgotPassword")}
                 </Link>
               </div>
 
@@ -242,41 +227,41 @@ const LoginModal: React.FC<LoginModalProps> = ({
                 className="w-full"
                 disabled={loginMutation.isPending}
               >
-                {loginMutation.isPending ? "جارٍ الدخول..." : "دخول"}
+                {loginMutation.isPending
+                  ? tAuth("loggingInLoading")
+                  : tAuth("login")}
               </Button>
             </form>
 
             <p className="text-center text-sm text-muted-foreground">
-              {/*t('noAccount')*/}ليس لديك حساب؟{" "}
+              {tAuth("noAccount")}{" "}
               {onSwitchToSignup ? (
                 <button
                   type="button"
                   onClick={() => {
-                    onClose(); // Close current modal first
-                    onSwitchToSignup(); // Then open signup
+                    onClose();
+                    onSwitchToSignup();
                   }}
                   className="font-medium text-primary hover:underline"
                 >
-                  {/*t('createAccount')*/}إنشاء حساب
+                  {tAuth("createAccount")}
                 </button>
               ) : (
                 <Link
-                  href={PATHS.SIGNUP} // Fallback if it's a page route
+                  href={PATHS.SIGNUP}
                   className="font-medium text-primary hover:underline"
                   onClick={onClose}
                 >
-                  {/*t('createAccount')*/}إنشاء حساب
+                  {tAuth("createAccount")}
                 </Link>
               )}
             </p>
           </div>
         </div>
-
-        {/* Image Section - remains the same */}
-        <div className="hidden md:block w-full md:w-1/2 h-64 md:h-auto">
+        <div className="hidden h-64 w-full md:block md:h-auto md:w-1/2">
           <img
-            src="/images/login.jpg" // Ensure this path is correct from /public
-            alt="Login Visual"
+            src="/images/login.jpg"
+            alt={tAuth("loginVisualAltText")}
             className="h-full w-full object-cover"
           />
         </div>
@@ -284,5 +269,4 @@ const LoginModal: React.FC<LoginModalProps> = ({
     </Dialog>
   );
 };
-
 export default LoginModal;
