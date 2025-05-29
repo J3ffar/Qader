@@ -7,7 +7,7 @@ import { IBM_Plex_Sans_Arabic, Harmattan } from "next/font/google";
 import { Providers } from "@/components/global/Providers";
 import { NProgressHandler } from "@/components/global/NProgressHandler";
 import { Toaster } from "@/components/ui/sonner";
-import { locales as appLocales } from "@/i18n";
+import { locales as appLocales } from "@/config/i18n.config";
 import "@/app/globals.css";
 
 // Fonts
@@ -99,7 +99,7 @@ export default async function LocaleLayout({
               <NProgressHandler />
             </Suspense>
             {children}
-            <Toaster richColors position="top-center" />
+            <Toaster richColors position="top-center" closeButton />
           </Providers>
         </NextIntlClientProvider>
       </body>

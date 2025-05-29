@@ -1,4 +1,3 @@
-// src/types/i18n.d.ts
 import type enAuthMessages from "@/locales/en/auth.json";
 import type enCommonMessages from "@/locales/en/common.json";
 // Import types from other namespaces if you have them, e.g.:

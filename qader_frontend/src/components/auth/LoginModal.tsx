@@ -26,7 +26,7 @@ import {
   type LoginCredentials,
 } from "@/types/forms/auth.schema"; // Adjust path
 import { loginUser } from "@/services/auth.service"; // Adjust path
-import { useAuthStore } from "@/store/auth.store"; // Adjust path
+import { useAuthActions, useAuthStore } from "@/store/auth.store"; // Adjust path
 import { PATHS } from "@/constants/paths"; // Adjust path
 import { QUERY_KEYS } from "@/constants/queryKeys"; // Adjust path
 
@@ -44,7 +44,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const tAuth = useTranslations("Auth");
   const tCommon = useTranslations("Common");
   const router = useRouter();
-  const { login: storeLogin, isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
+  const { login: storeLogin } = useAuthActions();
   const [showPassword, setShowPassword] = React.useState(false);
 
   const CurrentLoginSchema = useMemo(() => createLoginSchema(tAuth), [tAuth]);

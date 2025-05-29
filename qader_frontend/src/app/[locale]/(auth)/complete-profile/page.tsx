@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import Image from "next/image"; // Keep for potential non-Avatar images
-import Link from "next/link"; // Use next's Link
-import { useRouter } from "next/navigation"; // Use next's Router
+// Image from next/image is good if you have static images, otherwise Avatar is fine.
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -14,6 +14,7 @@ import {
   UploadCloud,
   User as UserIconLucide,
   Sparkles,
+  CheckCircle, // For success indication
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -30,18 +31,21 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton"; // For loading state
 
 import {
   createCompleteProfileSchema,
   type CompleteProfileFormValues,
   type ApiCompleteProfileData,
-} from "@/types/forms/auth.schema"; // Adjust path
-import { completeUserProfile } from "@/services/auth.service"; // Adjust path
-import { useAuthStore } from "@/store/auth.store"; // Adjust path
-import { PATHS } from "@/constants/paths"; // Adjust path
-import { QUERY_KEYS } from "@/constants/queryKeys"; // Adjust path
+} from "@/types/forms/auth.schema";
+import { completeUserProfile } from "@/services/auth.service";
+import { useAuth, useAuthActions, useAuthStore } from "@/store/auth.store"; // Added useAuth
+import { PATHS } from "@/constants/paths";
+import { QUERY_KEYS } from "@/constants/queryKeys";
+import type { ApiError, UserProfile } from "@/types/api/auth.types";
 
 const grades = [
+  // This list should ideally come from backend or be localized via i18n
   "أولى ابتدائي",
   "ثانية ابتدائي",
   "ثالثة ابتدائي",
@@ -58,29 +62,30 @@ const grades = [
   "طالب جامعي",
   "خريج",
   "أخرى",
-]; // This list itself might need translation if you want it dynamic per locale
+];
 
 export default function CompleteProfilePage() {
   const tAuth = useTranslations("Auth");
-  const tCommon = useTranslations("Common"); // For generic common terms if any
+  const tCommon = useTranslations("Common");
   const router = useRouter();
+
+  // Use custom hooks for state and actions
+  const { user, isAuthenticated, accessToken, isProfileComplete } = useAuth();
   const {
-    accessToken,
-    user,
     setUser: storeSetUser,
-    isAuthenticated,
-  } = useAuthStore();
+    setIsProfileComplete: storeSetIsProfileComplete,
+  } = useAuthActions();
+
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isClient, setIsClient] = useState(false);
+  const [isClientHydrated, setIsClientHydrated] = useState(false); // Renamed for clarity
 
   useEffect(() => {
-    setIsClient(true);
+    setIsClientHydrated(true);
   }, []);
 
-  // Memoize the schema creation
   const CurrentCompleteProfileSchema = useMemo(
-    () => createCompleteProfileSchema(tAuth),
+    () => createCompleteProfileSchema(tAuth), // Assuming tAuth has all necessary keys
     [tAuth]
   );
 
@@ -88,85 +93,126 @@ export default function CompleteProfilePage() {
     control,
     register,
     handleSubmit,
-    watch,
+    watch, // Keep if you use it for dynamic UI based on form values
     setValue,
-    formState: { errors },
+    formState: { errors, isSubmitting }, // isSubmitting can be useful
     setError: setFormError,
+    reset, // For resetting form after successful submission if needed
   } = useForm<CompleteProfileFormValues>({
     resolver: zodResolver(CurrentCompleteProfileSchema),
-    defaultValues: {
-      gender: undefined,
-      grade: "",
-      has_taken_qiyas_before: undefined,
-      preferred_name: user?.preferred_name || "",
-      profile_picture: null,
-      serial_code: "",
-      referral_code_used: "",
-      language: user?.language_code || "ar", // Default to user's current lang or 'ar'
-    },
+    // Default values will be set/updated by useEffect below
   });
 
-  // Update defaultValues when user data is available
+  // Initialize form with user data or defaults
   useEffect(() => {
     if (user) {
-      setValue("preferred_name", user.preferred_name || "");
-      setValue("language", user.language_code || "ar");
-      // If you store gender, grade, etc. in user object before profile completion, set them here too.
+      reset({
+        // Use reset to update all defaultValues at once
+        gender: user.gender || undefined,
+        grade: user.grade || "",
+        has_taken_qiyas_before:
+          user.has_taken_qiyas_before === null
+            ? undefined
+            : user.has_taken_qiyas_before,
+        preferred_name: user.preferred_name || "",
+        serial_code: "", // Usually not pre-filled unless editing
+        referral_code_used: "", // Usually not pre-filled
+        username: user.username || "", // Add username if it's part of the form
+      });
+      if (user.profile_picture_url) {
+        setProfilePreview(user.profile_picture_url);
+      }
+    } else {
+      // Default values if no user (though redirect should prevent this state)
+      reset({
+        gender: undefined,
+        grade: "",
+        has_taken_qiyas_before: undefined,
+        preferred_name: "",
+        serial_code: "",
+        referral_code_used: "",
+        language: "ar",
+        username: "",
+      });
     }
-  }, [user, setValue]);
+  }, [user, reset]); // reset is stable
 
+  // Auth and profile completion checks
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClientHydrated) return; // Wait for client hydration
+
     if (!isAuthenticated || !accessToken) {
       toast.error(tAuth("loginRequired"));
-      router.replace(PATHS.LOGIN); // PATHS.LOGIN should be non-localized base path
+      router.replace(PATHS.LOGIN);
       return;
     }
-    if (user?.profile_complete) {
-      toast.info(tAuth("profileAlreadyComplete"));
+    if (isProfileComplete) {
+      // Use isProfileComplete from store
+      // toast.info(tAuth("profileAlreadyComplete"));
       router.replace(PATHS.STUDY_HOME);
     }
-  }, [isClient, isAuthenticated, accessToken, user, router, tAuth]);
+  }, [
+    isClientHydrated,
+    isAuthenticated,
+    accessToken,
+    isProfileComplete,
+    router,
+    tAuth,
+  ]);
 
-  const completeProfileMutation = useMutation({
+  const completeProfileMutation = useMutation<
+    UserProfile, // Expected success response type
+    ApiError, // Error type
+    CompleteProfileFormValues // Variables type
+  >({
     mutationKey: [QUERY_KEYS.COMPLETE_PROFILE],
     mutationFn: (formDataValues: CompleteProfileFormValues) => {
-      if (!accessToken) throw new Error(tAuth("accessTokenNotFound"));
+      // accessToken is already checked by the useEffect above or available from useAuth()
+      if (!useAuthStore.getState().accessToken)
+        throw new Error(tAuth("accessTokenNotFound"));
+
+      // Transform form data to API data
       const apiData: ApiCompleteProfileData = {
-        ...formDataValues,
-        profile_picture: formDataValues.profile_picture?.[0] || null,
+        gender: formDataValues.gender!, // Should be guaranteed by schema
+        grade: formDataValues.grade!, // Should be guaranteed by schema
+        has_taken_qiyas_before: formDataValues.has_taken_qiyas_before!, // Should be guaranteed
+        language: formDataValues.language || "ar", // Default if somehow empty
+        preferred_name: formDataValues.preferred_name || null,
+        profile_picture: formDataValues.profile_picture_filelist?.[0] || null, // Use filelist field
+        serial_code: formDataValues.serial_code || null,
+        referral_code_used: formDataValues.referral_code_used || null,
+        username: formDataValues.username || null,
       };
-      return completeUserProfile(apiData, accessToken);
+      // The service function `completeUserProfile` should not require accessToken as a param
+      // if apiClient handles it. The refactored service in previous step does this.
+      return completeUserProfile(apiData);
     },
     onSuccess: (updatedUser) => {
-      storeSetUser(updatedUser);
+      storeSetUser(updatedUser); // This updates the user in the store
+      storeSetIsProfileComplete(updatedUser.profile_complete); // Explicitly set profile completion
       toast.success(tAuth("profileUpdateSuccess"));
       router.push(PATHS.STUDY_HOME);
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       if (error.status === 400 && error.data) {
+        let hasFieldErrors = false;
         Object.keys(error.data).forEach((key) => {
-          const field = key as keyof CompleteProfileFormValues;
-          const message = Array.isArray(error.data[key])
-            ? error.data[key].join(", ")
-            : String(error.data[key]);
-          try {
+          // Ensure key is a valid form field before setting error
+          if (key in CurrentCompleteProfileSchema.shape) {
+            const field = key as keyof CompleteProfileFormValues;
+            const message = Array.isArray(error.data![key])
+              ? (error.data![key] as string[]).join(", ")
+              : String(error.data![key]);
             setFormError(field, { type: "server", message });
-          } catch (e) {
-            console.warn(`Could not set error for field: ${field}`);
+            hasFieldErrors = true;
           }
         });
+
         if (error.data.detail) {
           toast.error(String(error.data.detail));
-        } else {
-          let hasFieldErrors = false;
-          Object.keys(createCompleteProfileSchema(tAuth).shape).forEach(
-            (formKey) => {
-              // Check against schema keys
-              if (error.data[formKey]) hasFieldErrors = true;
-            }
-          );
-          if (!hasFieldErrors) toast.error(tAuth("profileUpdateFailed"));
+        } else if (!hasFieldErrors) {
+          // Only show generic if no field errors and no detail
+          toast.error(tAuth("profileUpdateFailed"));
         }
       } else {
         toast.error(error.message || tAuth("serverError"));
@@ -178,27 +224,49 @@ export default function CompleteProfilePage() {
     const files = event.target.files;
     if (files && files.length > 0) {
       const file = files[0];
-      setValue("profile_picture", files as FileList, { shouldValidate: true });
+      // Use the correct field name from Zod schema for FileList
+      setValue("profile_picture_filelist", files, { shouldValidate: true });
       const reader = new FileReader();
       reader.onloadend = () => setProfilePreview(reader.result as string);
       reader.readAsDataURL(file);
     } else {
-      setValue("profile_picture", null, { shouldValidate: true });
-      setProfilePreview(null);
+      setValue("profile_picture_filelist", null, { shouldValidate: true });
+      setProfilePreview(user?.profile_picture_url || null); // Revert to original if cleared
     }
   };
 
-  const onSubmit = (data: CompleteProfileFormValues) =>
+  const onSubmit = (data: CompleteProfileFormValues) => {
     completeProfileMutation.mutate(data);
+  };
 
-  if (!isClient || (!isAuthenticated && !user)) {
+  // Loading state while checking auth or if user data is not yet loaded
+  if (
+    !isClientHydrated ||
+    (!isAuthenticated && !user && !completeProfileMutation.isError)
+  ) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        {/* Skeleton for the form card */}
+        <div className="w-full max-w-xl space-y-6 rounded-xl border bg-card p-8 shadow-xl">
+          <div className="mb-6 text-center">
+            <Skeleton className="mx-auto mb-3 h-12 w-12 rounded-full" />
+            <Skeleton className="mx-auto mb-2 h-8 w-3/4" />
+            <Skeleton className="mx-auto h-4 w-1/2" />
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="mx-auto mb-2 h-24 w-24 rounded-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="mt-4 h-12 w-full" />
+          </div>
+        </div>
       </div>
     );
   }
-  if (user?.profile_complete) {
+
+  // This state means user.profile_complete was true initially, redirecting...
+  if (isClientHydrated && isProfileComplete) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -219,50 +287,44 @@ export default function CompleteProfilePage() {
         </p>
       </div>
 
+      {/* Non-field specific error display */}
       {completeProfileMutation.isError &&
-        !completeProfileMutation.error.data?.detail &&
-        !Object.keys(createCompleteProfileSchema(tAuth).shape).some(
-          (key) => (completeProfileMutation.error as any).data?.[key]
-        ) && (
+        completeProfileMutation.error.data?.detail && (
           <Alert variant="destructive" className="mt-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>{tAuth("errorTitle")}</AlertTitle>
             <AlertDescription>
-              {(completeProfileMutation.error as any)?.message ||
-                tAuth("profileUpdateFailed")}
+              {String(completeProfileMutation.error.data.detail)}
             </AlertDescription>
           </Alert>
         )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Profile Picture */}
         <div className="flex flex-col items-center gap-3">
           <Label
             htmlFor="profile_picture_input_page"
             className="cursor-pointer"
           >
-            {" "}
-            {/* Unique ID */}
             <Avatar className="h-24 w-24 ring-2 ring-primary/50 ring-offset-2 ring-offset-background">
               <AvatarImage
-                src={
-                  profilePreview ||
-                  user?.profile_picture_url ||
-                  "/images/default-avatar.png"
-                }
+                src={profilePreview || "/images/default-avatar.png"} // API sends full URL
                 alt={tAuth("profilePictureAlt")}
-              />{" "}
-              {/* Use a default avatar */}
+              />
               <AvatarFallback>
                 <UserIconLucide className="h-12 w-12 text-muted-foreground" />
               </AvatarFallback>
             </Avatar>
           </Label>
           <input
-            id="profile_picture_input_page"
+            id="profile_picture_input_page" // Unique ID
             type="file"
             accept="image/*"
             className="hidden"
-            {...register("profile_picture", { onChange: handleFileChange })}
+            // Use Controller for file inputs for better integration with RHF validation
+            // Or use `register` but ensure `profile_picture_filelist` matches Zod schema
+            {...register("profile_picture_filelist")} // Changed to profile_picture_filelist
+            onChange={handleFileChange} // Keep custom onChange if needed
             ref={fileInputRef}
           />
           <Button
@@ -275,36 +337,61 @@ export default function CompleteProfilePage() {
             <UploadCloud className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
             {tAuth("uploadPicture")}
           </Button>
-          {errors.profile_picture && (
+          {errors.profile_picture_filelist && ( // Check errors for profile_picture_filelist
             <p className="text-center text-xs text-red-500">
-              {errors.profile_picture.message}
+              {errors.profile_picture_filelist.message}
             </p>
           )}
         </div>
 
+        {/* Username (Optional based on your schema) */}
         <div>
-          <Label htmlFor="gender_page" className="font-semibold">
+          <Label htmlFor="username_page" className="font-semibold">
+            {tAuth("usernameLabel")}
+          </Label>
+          <Input
+            id="username_page"
+            type="text"
+            placeholder={tAuth("usernamePlaceholder")}
+            {...register("username")}
+            className="mt-1"
+            aria-invalid={errors.username ? "true" : "false"}
+          />
+          {errors.username && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.username.message}
+            </p>
+          )}
+        </div>
+
+        {/* Gender */}
+        <div>
+          <Label htmlFor="gender_page_male" className="font-semibold">
+            {" "}
+            {/* Point to first option */}
             {tAuth("genderLabel")} <span className="text-destructive">*</span>
-          </Label>{" "}
-          {/* Unique ID */}
+          </Label>
           <Controller
             name="gender"
             control={control}
             render={({ field }) => (
               <RadioGroup
                 onValueChange={field.onChange}
-                defaultValue={field.value}
+                value={field.value} // Use value for controlled component
                 className="mt-2 flex space-x-4 rtl:space-x-reverse"
                 dir={tCommon("dir") as "ltr" | "rtl"}
               >
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                  <RadioGroupItem value="male" id="male_page" />{" "}
-                  <Label htmlFor="male_page">{tAuth("male")}</Label>
+                  <RadioGroupItem value="male" id="gender_page_male" />{" "}
+                  {/* Unique ID */}
+                  <Label htmlFor="gender_page_male">{tAuth("male")}</Label>
                 </div>
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                  <RadioGroupItem value="female" id="female_page" />{" "}
-                  <Label htmlFor="female_page">{tAuth("female")}</Label>
+                  <RadioGroupItem value="female" id="gender_page_female" />{" "}
+                  {/* Unique ID */}
+                  <Label htmlFor="gender_page_female">{tAuth("female")}</Label>
                 </div>
+                {/* Add "other" and "prefer_not_to_say" if your schema supports them */}
               </RadioGroup>
             )}
           />
@@ -313,17 +400,18 @@ export default function CompleteProfilePage() {
           )}
         </div>
 
+        {/* Preferred Name */}
         <div>
           <Label htmlFor="preferred_name_page" className="font-semibold">
             {tAuth("preferredNameLabel")}
-          </Label>{" "}
-          {/* Unique ID */}
+          </Label>
           <Input
-            id="preferred_name_page"
+            id="preferred_name_page" // Unique ID
             type="text"
             placeholder={tAuth("preferredNamePlaceholder")}
             {...register("preferred_name")}
             className="mt-1"
+            aria-invalid={errors.preferred_name ? "true" : "false"}
           />
           {errors.preferred_name && (
             <p className="mt-1 text-xs text-red-500">
@@ -332,21 +420,25 @@ export default function CompleteProfilePage() {
           )}
         </div>
 
+        {/* Grade */}
         <div>
-          <Label htmlFor="grade_page" className="font-semibold">
+          <Label htmlFor="grade_page_trigger" className="font-semibold">
+            {" "}
+            {/* Point to trigger */}
             {tAuth("gradeLabel")} <span className="text-destructive">*</span>
-          </Label>{" "}
-          {/* Unique ID */}
+          </Label>
           <Controller
             name="grade"
             control={control}
             render={({ field }) => (
               <Select
                 onValueChange={field.onChange}
-                defaultValue={field.value}
+                value={field.value} // Use value for controlled
                 dir={tCommon("dir") as "ltr" | "rtl"}
               >
-                <SelectTrigger className="mt-1 w-full">
+                <SelectTrigger id="grade_page_trigger" className="mt-1 w-full">
+                  {" "}
+                  {/* Unique ID */}
                   <SelectValue placeholder={tAuth("selectGradePlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -364,8 +456,11 @@ export default function CompleteProfilePage() {
           )}
         </div>
 
+        {/* Has Taken Qiyas Before */}
         <div>
-          <Label className="font-semibold">
+          <Label className="font-semibold" htmlFor="qiyas_yes_page">
+            {" "}
+            {/* Point to first option */}
             {tAuth("hasTakenQiyasLabel")}{" "}
             <span className="text-destructive">*</span>
           </Label>
@@ -375,19 +470,21 @@ export default function CompleteProfilePage() {
             render={({ field }) => (
               <RadioGroup
                 onValueChange={(value) => field.onChange(value === "true")}
-                defaultValue={
+                value={
                   field.value === undefined ? undefined : String(field.value)
-                }
+                } // Use value
                 className="mt-2 flex space-x-4 rtl:space-x-reverse"
                 dir={tCommon("dir") as "ltr" | "rtl"}
               >
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
                   <RadioGroupItem value="true" id="qiyas_yes_page" />{" "}
-                  <Label htmlFor="qiyas_yes_page">{tAuth("yes")}</Label>
+                  {/* Unique ID */}
+                  <Label htmlFor="qiyas_yes_page">{tCommon("yes")}</Label>
                 </div>
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
                   <RadioGroupItem value="false" id="qiyas_no_page" />{" "}
-                  <Label htmlFor="qiyas_no_page">{tAuth("no")}</Label>
+                  {/* Unique ID */}
+                  <Label htmlFor="qiyas_no_page">{tCommon("no")}</Label>
                 </div>
               </RadioGroup>
             )}
@@ -399,27 +496,25 @@ export default function CompleteProfilePage() {
           )}
         </div>
 
-        {/* Language: This should ideally be set from user's preference or locale,
-            and might not need to be a user-editable field here if it's already determined.
-            If it's just for API submission, the hidden input is fine.
-            Ensure `user?.language_code` is correctly populated.
-        */}
+        {/* Language - if it's always based on user's settings or current locale, can be hidden */}
+        {/* If user can CHOOSE language for their profile separate from UI, use a Select */}
         <input type="hidden" {...register("language")} />
         {errors.language && (
           <p className="mt-1 text-xs text-red-500">{errors.language.message}</p>
         )}
 
+        {/* Serial Code */}
         <div>
           <Label htmlFor="serial_code_page" className="font-semibold">
             {tAuth("serialCodeLabel")}
-          </Label>{" "}
-          {/* Unique ID */}
+          </Label>
           <Input
-            id="serial_code_page"
+            id="serial_code_page" // Unique ID
             type="text"
             placeholder={tAuth("serialCodePlaceholder")}
             {...register("serial_code")}
             className="mt-1"
+            aria-invalid={errors.serial_code ? "true" : "false"}
           />
           {errors.serial_code && (
             <p className="mt-1 text-xs text-red-500">
@@ -431,17 +526,18 @@ export default function CompleteProfilePage() {
           </p>
         </div>
 
+        {/* Referral Code */}
         <div>
           <Label htmlFor="referral_code_used_page" className="font-semibold">
             {tAuth("referralCodeLabel")}
-          </Label>{" "}
-          {/* Unique ID */}
+          </Label>
           <Input
-            id="referral_code_used_page"
+            id="referral_code_used_page" // Unique ID
             type="text"
             placeholder={tAuth("referralCodePlaceholder")}
             {...register("referral_code_used")}
             className="mt-1"
+            aria-invalid={errors.referral_code_used ? "true" : "false"}
           />
           {errors.referral_code_used && (
             <p className="mt-1 text-xs text-red-500">
@@ -456,8 +552,8 @@ export default function CompleteProfilePage() {
         <div className="pt-4">
           <Button
             type="submit"
-            className="w-full py-3 text-base sm:py-6 sm:text-lg"
-            disabled={completeProfileMutation.isPending}
+            className="w-full py-3 text-base sm:py-3 sm:text-lg" // Adjusted padding for sm
+            disabled={completeProfileMutation.isPending || isSubmitting}
           >
             {completeProfileMutation.isPending ? (
               <>

@@ -23,7 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import {
-  SignupSchema, // Using the factory function
+  createSignupSchema, // Using the factory function
   type SignupFormValues,
   type ApiSignupData,
 } from "@/types/forms/auth.schema"; // Adjust path
@@ -57,7 +57,7 @@ const SignupModal: React.FC<SignupModalProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   // Create the schema instance with the translation function
-  const CurrentSignupSchema = useMemo(() => SignupSchema(tAuth), [tAuth]);
+  const CurrentSignupSchema = useMemo(() => createSignupSchema(tAuth), [tAuth]);
 
   const {
     register,

@@ -1,6 +1,5 @@
 import { z } from "zod";
-
-import type { AppMessages } from "@/types/i18n"; // Import the central AppMessages type
+import type { AppMessages } from "@/types/i18n"; // Use the central AppMessages type
 
 // Derives the keys specifically from the 'Auth' namespace within AppMessages
 type AuthNamespaceKeys = keyof AppMessages["Auth"];
@@ -16,7 +15,7 @@ export type AuthTFunction = (
   values?: Record<string, string | number> // For Zod, values usually resolve to simple types.
   // next-intl's t can accept ReactNode for rich text,
   // but Zod messages need to be strings.
-) => string; // Zod error messages must be strings.
+) => string;
 
 // --- Login Schema ---
 export const createLoginSchema = (t: AuthTFunction) =>
@@ -41,8 +40,8 @@ export const createLoginSchema = (t: AuthTFunction) =>
   });
 export type LoginCredentials = z.infer<ReturnType<typeof createLoginSchema>>;
 
-// --- Signup Schema ---
-export const SignupSchema = (t: AuthTFunction) =>
+// --- Signup Schema---
+export const createSignupSchema = (t: AuthTFunction) =>
   z
     .object({
       full_name: z
@@ -73,8 +72,16 @@ export const SignupSchema = (t: AuthTFunction) =>
       message: t("passwordsMismatch"),
       path: ["password_confirm"],
     });
-export type SignupFormValues = z.infer<ReturnType<typeof SignupSchema>>;
-export type ApiSignupData = Omit<SignupFormValues, "termsAccepted">;
+export type SignupFormValues = z.infer<ReturnType<typeof createSignupSchema>>;
+// API data for signup: full_name, email, password, password_confirm
+export type ApiSignupData = Omit<
+  SignupFormValues,
+  "termsAccepted" | "password_confirm"
+> & {
+  password_confirm: string; // Ensure it's sent if backend expects it for validation, otherwise omit
+};
+// Based on API docs for POST /auth/signup/: email, full_name, password, password_confirm
+// So the current ApiSignupData is nearly correct, just ensure password_confirm is included.
 
 // --- Helper for profile picture validation (remains the same) ---
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -86,39 +93,34 @@ const ACCEPTED_IMAGE_TYPES = [
 ];
 
 // --- Complete Profile Schema ---
+// Based on API docs for PATCH /users/me/complete-profile/
+// Required: gender, grade, has_taken_qiyas_before
+// Optional: username, language, preferred_name, profile_picture, serial_code, referral_code_used
 export const createCompleteProfileSchema = (t: AuthTFunction) =>
   z.object({
-    gender: z.enum(["male", "female"], {
-      required_error: t("genderRequired"),
-      invalid_type_error: t("genderInvalid"),
-    }),
-    grade: z
+    // Optional fields that can be set during profile completion
+    username: z
       .string()
-      .min(1, { message: t("gradeRequired") })
-      .max(50, { message: t("gradeMaxLength") }),
-    has_taken_qiyas_before: z.boolean({
-      required_error: t("qiyasTakenRequired"),
-      invalid_type_error: t("qiyasTakenInvalid"),
-    }),
+      .min(3, { message: t("usernameMinLength", { min: 3 }) })
+      .max(50, { message: t("usernameMaxLength", { max: 50 }) })
+      .regex(/^[a-zA-Z0-9_.-]+$/, { message: t("usernameInvalidFormat") })
+      .optional()
+      .nullable(),
     preferred_name: z
       .string()
       .max(100, { message: t("preferredNameMaxLength") })
       .optional()
       .nullable(),
-    profile_picture: z
+    profile_picture_filelist: z // Keep FileList for form handling
       .custom<FileList>()
       .refine(
         (files) =>
-          files === undefined ||
-          files === null ||
-          files.length === 0 ||
-          files?.[0]?.size <= MAX_FILE_SIZE,
+          !files || files.length === 0 || files?.[0]?.size <= MAX_FILE_SIZE,
         t("profilePictureSizeLimit")
       )
       .refine(
         (files) =>
-          files === undefined ||
-          files === null ||
+          !files ||
           files.length === 0 ||
           (files?.[0]?.type && ACCEPTED_IMAGE_TYPES.includes(files[0].type)),
         t("profilePictureInvalidFormat")
@@ -135,19 +137,45 @@ export const createCompleteProfileSchema = (t: AuthTFunction) =>
       .max(50, { message: t("referralCodeMaxLength") })
       .optional()
       .nullable(),
-    language: z.enum(["ar", "en"], {
-      // Ensure these values match your `locales` array in i18n.ts
-      required_error: t("languageRequired"),
+    language: z
+      .enum(["ar", "en"], {
+        // Ensure these values match your `locales` array in i18n.config.ts
+        // This field is optional in API, but if provided, must be valid
+        errorMap: (issue, ctx) => ({ message: t("languageInvalid") }),
+      })
+      .optional(),
+
+    // Required fields for the API
+    gender: z.enum(["male", "female"], {
+      // Match API choices
+      required_error: t("genderRequired"),
+      invalid_type_error: t("genderInvalid"),
+    }),
+    grade: z
+      .string()
+      .min(1, { message: t("gradeRequired") })
+      .max(50, { message: t("gradeMaxLength") }), // Define max length if any
+    has_taken_qiyas_before: z.boolean({
+      required_error: t("qiyasTakenRequired"),
+      invalid_type_error: t("qiyasTakenInvalid"),
     }),
   });
+
 export type CompleteProfileFormValues = z.infer<
   ReturnType<typeof createCompleteProfileSchema>
 >;
-export type ApiCompleteProfileData = Omit<
-  CompleteProfileFormValues,
-  "profile_picture"
-> & {
-  profile_picture?: File | null;
+
+// Data structure for the API call (multipart/form-data if profile_picture is included)
+export type ApiCompleteProfileData = {
+  username?: string | null;
+  gender: "male" | "female" | "other" | "prefer_not_to_say";
+  grade: string;
+  has_taken_qiyas_before: boolean;
+  language?: "ar" | "en" | string;
+  preferred_name?: string | null;
+  profile_picture?: File | null; // Single File for API
+  serial_code?: string | null;
+  referral_code_used?: string | null;
 };
 
 // --- Request OTP Schema ---
@@ -172,11 +200,11 @@ export type RequestOtpFormValues = z.infer<
 // --- Verify OTP Schema ---
 export const createVerifyOtpSchema = (t: AuthTFunction) =>
   z.object({
-    identifier: z.string(), // Usually pre-filled, no validation message needed from schema
+    identifier: z.string(), // Usually pre-filled from previous step
     otp: z
       .string()
       .min(6, { message: t("otpMinLength") })
-      .max(6, { message: t("otpMaxLength") }) // Redundant with min(6) if regex also checks length
+      .max(6, { message: t("otpMaxLength") })
       .regex(/^\d{6}$/, { message: t("otpInvalidFormat") }),
   });
 export type VerifyOtpFormValues = z.infer<
@@ -184,16 +212,18 @@ export type VerifyOtpFormValues = z.infer<
 >;
 
 // --- Reset Password Schema ---
+// API endpoint: /auth/password/reset/confirm-otp/
+// API body: reset_token, new_password, new_password_confirm
 export const createResetPasswordSchema = (t: AuthTFunction) =>
   z
     .object({
-      reset_token: z.string(), // Pre-filled
+      reset_token: z.string(), // This will come from verifyOtp response
       new_password: z
         .string()
         .min(8, { message: t("newPasswordMinLength") })
         .regex(
           /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&._-])[A-Za-z\d@$!%*?&._-]+$/,
-          { message: t("passwordComplexity") } // Reusing existing key
+          { message: t("passwordComplexity") }
         ),
       new_password_confirm: z
         .string()

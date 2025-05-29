@@ -1,4 +1,5 @@
 {
+  "dir": "ltr",
   "appName": "Qader",
   "siteDescription": "منصة قادر لمساعدتك على الاستعداد لاختبار القدرات العامة بفعالية.",
   "allRightsReserved": "All rights reserved for the Qader platform.",
@@ -6,6 +7,8 @@
   "errorOccurred": "An error occurred",
   "showPassword": "Show password",
   "hidePassword": "Hide password",
+  "yes": "yes",
+  "no": "no",
 
   "language": "Language",
   "arabic": "العربية",

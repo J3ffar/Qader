@@ -1,301 +1,155 @@
-import { API_BASE_URL, API_VERSION } from "@/constants/api";
-import {
+// src/services/auth.service.ts
+import { apiClient } from "./apiClient"; // Use the main apiClient
+import { API_BASE_URL, API_VERSION } from "@/constants/api"; // Keep for refreshTokenApi direct call
+import { getLocaleFromPathname } from "@/utils/locale"; // Keep for refreshTokenApi direct call
+
+import type {
   LoginCredentials,
   ApiSignupData,
   ApiCompleteProfileData,
   RequestOtpFormValues,
   VerifyOtpFormValues,
   ResetPasswordFormValues,
-} from "@/types/forms/auth.schema"; // We will define these schemas
-import {
+} from "@/types/forms/auth.schema";
+import type {
   LoginResponse,
   SignupResponse,
-  ApiErrorDetail,
   UserProfile,
+  RequestOtpResponse,
+  VerifyOtpResponse,
+  ResetPasswordResponse,
+  RefreshTokenPayload,
+  RefreshTokenResponse,
+  LogoutPayload,
+  // ApiError, // apiClient will throw this
 } from "@/types/api/auth.types";
-import { getLocaleFromPathname } from "@/utils/locale"; // Helper to get locale
 
-// Helper function to handle API errors
-async function handleResponse<T>(response: Response): Promise<T> {
-  const contentType = response.headers.get("content-type");
-  let data;
+// No need for separate handleResponse, apiClient does this.
 
-  if (contentType && contentType.includes("application/json")) {
-    data = await response.json();
-  } else {
-    // Handle non-JSON responses if necessary, or assume error if not JSON
-    if (!response.ok) {
-      throw new Error(
-        response.statusText || `HTTP error! status: ${response.status}`
-      );
-    }
-    return {} as T; // Or handle appropriately
-  }
-
-  if (!response.ok) {
-    // Attempt to parse error details from backend
-    const errorData = data as ApiErrorDetail;
-    let errorMessage = "An unexpected error occurred.";
-    if (errorData.detail && typeof errorData.detail === "string") {
-      errorMessage = errorData.detail;
-    } else if (Object.keys(errorData).length > 0) {
-      // Grab the first field error if available
-      const firstKey = Object.keys(errorData)[0];
-      const firstError = errorData[firstKey];
-      if (Array.isArray(firstError) && firstError.length > 0) {
-        errorMessage = `${firstKey}: ${firstError[0]}`;
-      } else if (typeof firstError === "string") {
-        errorMessage = `${firstKey}: ${firstError}`;
-      }
-    }
-    const error = new Error(errorMessage) as any;
-    error.status = response.status;
-    error.data = errorData; // Attach full error data
-    throw error;
-  }
-  return data as T;
-}
-
-export const loginUser = async (
+export const loginUser = (
   credentials: LoginCredentials
 ): Promise<LoginResponse> => {
-  const locale = getLocaleFromPathname() || "ar"; // Get current locale
-  const response = await fetch(
-    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/login/`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(credentials), // Zod schema ensures username is present
-    }
-  );
-  return handleResponse<LoginResponse>(response);
+  return apiClient<LoginResponse>("/auth/login/", {
+    method: "POST",
+    body: JSON.stringify(credentials),
+    isPublic: true, // Login doesn't require a pre-existing token
+  });
 };
 
-export const signupUser = async (
-  data: ApiSignupData
-): Promise<SignupResponse> => {
-  const locale = getLocaleFromPathname() || "ar";
-  const response = await fetch(
-    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/signup/`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(data),
-    }
-  );
-  return handleResponse<SignupResponse>(response);
+export const signupUser = (data: ApiSignupData): Promise<SignupResponse> => {
+  return apiClient<SignupResponse>("/auth/signup/", {
+    method: "POST",
+    body: JSON.stringify(data),
+    isPublic: true,
+  });
 };
 
 export interface ConfirmEmailParams {
   uidb64: string;
   token: string;
 }
+export type ConfirmEmailResponse = LoginResponse; // API doc says it returns LoginResponse structure
 
-// The response from confirm-email is the same as LoginResponse
-export type ConfirmEmailResponse = LoginResponse;
-
-export const confirmEmail = async ({
+export const confirmEmail = ({
   uidb64,
   token,
 }: ConfirmEmailParams): Promise<ConfirmEmailResponse> => {
-  const locale = getLocaleFromPathname() || "ar"; // Or however you determine current locale for API calls
-  const response = await fetch(
-    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/confirm-email/${uidb64}/${token}/`,
+  return apiClient<ConfirmEmailResponse>(
+    `/auth/confirm-email/${uidb64}/${token}/`,
     {
-      method: "GET", // As per API docs
-      headers: {
-        "Content-Type": "application/json", // Though GET usually doesn't have a body, it's good practice
-        Accept: "application/json",
-      },
+      method: "GET",
+      isPublic: true,
     }
   );
-  return handleResponse<ConfirmEmailResponse>(response); // Re-use your existing robust handler
 };
 
-export const completeUserProfile = async (
-  data: ApiCompleteProfileData,
-  accessToken: string // Token needs to be passed
+// UserProfile is returned by the API upon successful completion
+export const completeUserProfile = (
+  data: ApiCompleteProfileData
 ): Promise<UserProfile> => {
-  // API returns UserProfile object
-  const locale = getLocaleFromPathname() || "ar";
   const formData = new FormData();
 
-  // Append fields to FormData
   // Required fields
   formData.append("gender", data.gender);
   formData.append("grade", data.grade);
   formData.append(
     "has_taken_qiyas_before",
     String(data.has_taken_qiyas_before)
-  ); // Convert boolean to string
-  formData.append("language", data.language || locale);
+  );
 
   // Optional fields
-  if (data.preferred_name) {
+  if (data.username) formData.append("username", data.username);
+  if (data.preferred_name)
     formData.append("preferred_name", data.preferred_name);
-  }
-  if (data.profile_picture) {
-    // data.profile_picture is File | null
+  if (data.profile_picture)
     formData.append("profile_picture", data.profile_picture);
-  }
-  if (data.serial_code) {
-    formData.append("serial_code", data.serial_code);
-  }
-  if (data.referral_code_used) {
+  if (data.serial_code) formData.append("serial_code", data.serial_code);
+  if (data.referral_code_used)
     formData.append("referral_code_used", data.referral_code_used);
+  if (data.language) formData.append("language", data.language);
+  else {
+    // Default to current UI locale if not specified in form
+    const locale = getLocaleFromPathname() || "ar";
+    formData.append("language", locale);
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}/${locale}/api/${API_VERSION}/users/me/complete-profile/`,
-    {
-      method: "PUT", // API Doc says PUT or PATCH. Let's use PUT as it replaces the profile subset.
-      // Check with backend if PATCH is preferred (sends only changed fields). Your current API doc title says PATCH.
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: "application/json", // Even with FormData, backend might respond with JSON
-        // 'Content-Type' is NOT set here for FormData; the browser sets it with the correct boundary
-      },
-      body: formData,
-    }
-  );
-  return handleResponse<UserProfile>(response);
+  // apiClient handles token attachment. Method is PATCH according to API Doc.
+  return apiClient<UserProfile>("/users/me/complete-profile/", {
+    method: "PATCH", // API Doc for /users/me/complete-profile/ says PATCH
+    body: formData, // apiClient will handle FormData content type
+    // isPublic is false by default, so token will be attached
+  });
 };
 
-export interface RequestOtpResponse {
-  detail: string;
-}
-export const requestOtp = async (
+export const requestOtp = (
   data: RequestOtpFormValues
 ): Promise<RequestOtpResponse> => {
-  const locale = getLocaleFromPathname() || "ar";
-  const response = await fetch(
-    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/password/reset/request-otp/`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(data),
-    }
-  );
-  return handleResponse<RequestOtpResponse>(response);
+  return apiClient<RequestOtpResponse>("/auth/password/reset/request-otp/", {
+    method: "POST",
+    body: JSON.stringify(data),
+    isPublic: true,
+  });
 };
 
-export interface VerifyOtpResponse {
-  reset_token: string;
-  detail: string;
-}
-export const verifyOtp = async (
+export const verifyOtp = (
   data: VerifyOtpFormValues
 ): Promise<VerifyOtpResponse> => {
-  const locale = getLocaleFromPathname() || "ar";
-  const response = await fetch(
-    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/password/reset/verify-otp/`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(data),
-    }
-  );
-  return handleResponse<VerifyOtpResponse>(response);
+  return apiClient<VerifyOtpResponse>("/auth/password/reset/verify-otp/", {
+    method: "POST",
+    body: JSON.stringify(data),
+    isPublic: true,
+  });
 };
 
-export interface ResetPasswordResponse {
-  detail: string;
-}
-export const resetPasswordWithOtp = async (
+export const resetPasswordWithOtp = (
   data: ResetPasswordFormValues
 ): Promise<ResetPasswordResponse> => {
-  const locale = getLocaleFromPathname() || "ar";
-  const response = await fetch(
-    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/password/reset/confirm-otp/`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(data),
-    }
-  );
-  return handleResponse<ResetPasswordResponse>(response);
+  // Endpoint: /auth/password/reset/confirm-otp/
+  return apiClient<ResetPasswordResponse>("/auth/password/reset/confirm-otp/", {
+    method: "POST",
+    body: JSON.stringify(data),
+    isPublic: true,
+  });
 };
 
-export interface LogoutPayload {
-  refresh: string;
-}
-// Logout API returns 204 No Content, so no specific response type needed beyond success/failure
-export const logoutUserApi = async (
-  payload: LogoutPayload,
-  accessToken: string
-): Promise<void> => {
-  const locale = getLocaleFromPathname() || "ar";
-  const response = await fetch(
-    `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/logout/`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${accessToken}`, // Logout itself might require auth
-      },
-      body: JSON.stringify(payload),
-    }
-  );
-  // For 204 No Content, handleResponse might need adjustment if it expects JSON
-  // Let's create a specific handler for 204 or modify handleResponse
-  if (!response.ok) {
-    // Attempt to parse error details from backend if not 204
-    const contentType = response.headers.get("content-type");
-    let errorData: ApiErrorDetail | null = null;
-    if (contentType && contentType.includes("application/json")) {
-      errorData = await response.json();
-    }
-
-    let errorMessage =
-      errorData?.detail ||
-      `Logout failed: ${response.statusText || response.status}`;
-    if (
-      typeof errorData?.detail !== "string" &&
-      errorData &&
-      Object.keys(errorData).length > 0
-    ) {
-      // Handle cases where detail might be an object of field errors, though unlikely for logout
-      const firstKey = Object.keys(errorData)[0];
-      const firstError = errorData[firstKey];
-      errorMessage = Array.isArray(firstError)
-        ? `${firstKey}: ${firstError[0]}`
-        : `${firstKey}: ${firstError}`;
-    }
-
-    const error = new Error(errorMessage[0]) as any;
-    error.status = response.status;
-    error.data = errorData;
-    throw error;
-  }
-  // If response.ok and status is 204, it's a success, return void
+// For logout, API expects refresh token in body and Authorization header with access token.
+// apiClient will add the Authorization header.
+export const logoutUserApi = (payload: LogoutPayload): Promise<void> => {
+  return apiClient<void>("/auth/logout/", {
+    // Expects 204 No Content
+    method: "POST",
+    body: JSON.stringify(payload),
+    // isPublic: false (default), token will be attached
+  });
 };
 
-export interface RefreshTokenPayload {
-  refresh: string;
-}
-export interface RefreshTokenResponse {
-  access: string;
-}
+// CRITICAL: refreshTokenApi should NOT use the main apiClient that has refresh logic,
+// to avoid infinite loops if the refresh token itself is invalid.
+// It should use a direct fetch or a simplified client.
 export const refreshTokenApi = async (
   payload: RefreshTokenPayload
 ): Promise<RefreshTokenResponse> => {
-  const locale = getLocaleFromPathname() || "ar";
+  const locale = getLocaleFromPathname() || "ar"; // Or from a global config
   const response = await fetch(
     `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/token/refresh/`,
     {
@@ -307,5 +161,61 @@ export const refreshTokenApi = async (
       body: JSON.stringify(payload),
     }
   );
-  return handleResponse<RefreshTokenResponse>(response); // Existing handleResponse should work if it expects JSON
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ detail: "Refresh token failed" }));
+    const error = new Error(
+      errorData.detail || `Token refresh failed: ${response.status}`
+    ) as any; // Cast to any for custom props
+    error.status = response.status;
+    error.data = errorData;
+    throw error;
+  }
+  return response.json();
 };
+
+// Other user profile related services (can be in a user.service.ts later)
+export const getCurrentUserProfile = (): Promise<UserProfile> => {
+  return apiClient<UserProfile>("/users/me/");
+};
+
+export const updateUserProfile = (
+  data: Partial<ApiCompleteProfileData>
+): Promise<UserProfile> => {
+  // Similar to completeUserProfile, decide if it's JSON or FormData
+  let bodyContent: string | FormData;
+  let headers: HeadersInit = {};
+
+  if (
+    data.profile_picture ||
+    Object.values(data).some((val) => val instanceof File)
+  ) {
+    // Check if any value is a File
+    const formData = new FormData();
+    for (const key in data) {
+      const value = data[key as keyof ApiCompleteProfileData];
+      if (value !== undefined && value !== null) {
+        // FormData cannot directly append boolean, convert to string
+        if (typeof value === "boolean") {
+          formData.append(key, String(value));
+        } else {
+          formData.append(key, value as string | Blob);
+        }
+      }
+    }
+    bodyContent = formData;
+  } else {
+    bodyContent = JSON.stringify(data);
+    headers["Content-Type"] = "application/json";
+  }
+
+  return apiClient<UserProfile>("/users/me/", {
+    method: "PATCH",
+    body: bodyContent,
+    headers, // apiClient will merge these with its defaults (and remove Content-Type for FormData)
+  });
+};
+
+// Add other auth-related or user-related services here using apiClient
+// e.g., changePassword, applySerialCode etc.

@@ -37,10 +37,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuthStore } from "@/store/auth.store"; // Adjust path
+import { useAuthActions, useAuthStore } from "@/store/auth.store"; // Adjust path
 import { PATHS } from "@/constants/paths"; // Adjust path
 import { toast } from "sonner";
-import { locales as appLocales } from "@/i18n";
+import { locales as appLocales } from "@/config/i18n.config";
 import { CheckIcon } from "lucide-react";
 
 // NavLinks structure will now be generated inside the component using translations
@@ -68,7 +68,8 @@ const Navbar = () => {
 
   const { theme } = useTheme();
 
-  const { isAuthenticated, user, logout: storeLogout } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const { logout: storeLogout } = useAuthActions();
 
   useEffect(() => {
     setIsClient(true);
