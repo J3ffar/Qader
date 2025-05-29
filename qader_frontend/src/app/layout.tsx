@@ -1,30 +1,10 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans_Arabic, Harmattan } from "next/font/google";
-import "./globals.css";
-import { Providers } from "@/components/global/Providers";
-import { NProgressHandler } from "@/components/global/NProgressHandler";
-import { Toaster } from "@/components/ui/sonner";
-import { Suspense } from "react";
-// For next-intl, configuration is different in App Router
-// Usually, you create a [locale] dynamic segment and use NextIntlClientProvider there or use middleware.
-// For a basic setup without locale in path yet:
+import "./globals.css"; // Keep global styles
 
-const ibm = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic"],
-  weight: ["400", "700"],
-  variable: "--font-body",
-});
-const harmattan = Harmattan({
-  subsets: ["arabic"],
-  weight: ["400", "700"],
-  variable: "--font-heading",
-});
-
+// Metadata here is a fallback, real localized metadata will be in [locale] layout or pages.
 export const metadata: Metadata = {
-  title: "قادر | Qader - استعدادك لاختبار القدرات",
-  description:
-    "منصة قادر لمساعدتك على الاستعداد لاختبار القدرات العامة بفعالية.",
-  // Add more metadata: icons, openGraph, etc. from your target config/site.ts
+  title: "Qader Platform", // Generic non-localized title
+  description: "Qader E-learning platform.",
 };
 
 export default function RootLayout({
@@ -32,39 +12,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // const locale = params.locale || 'ar'; // Default to Arabic or get from params
-
-  // For next-intl, you'd typically fetch messages here if not using middleware for everything
-  // let messages;
-  // try {
-  //   messages = (await import(`../../locales/${locale}.json`)).default;
-  // } catch (error) {
-  //   console.error("Could not load messages for locale:", locale, error);
-  //   // Fallback or handle error appropriately
-  //   messages = (await import(`../../locales/ar.json`)).default; // Fallback to Arabic
-  // }
-
+  // This RootLayout must render <html> and <body>.
+  // `next-intl` will work with the `[locale]` layout to set `lang` and `dir`.
   return (
-    <html lang={"ar"} suppressHydrationWarning dir="rtl">
-      <body
-        className={`${ibm.variable} ${harmattan.variable} font-body bg-background text-foreground antialiased`}
-      >
-        <Providers
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Suspense fallback={null}>
-            <NProgressHandler />
-          </Suspense>
-          {/* <NextIntlClientProvider locale={locale} messages={messages}> */}
-          {children}
-          <Toaster richColors position="top-center" />{" "}
-          {/* Or your preferred position */}
-          {/* </NextIntlClientProvider> */}
-        </Providers>
-      </body>
+    // suppressHydrationWarning is good practice with dynamic lang/dir and themes
+    <html suppressHydrationWarning>
+      <body>{children}</body>
     </html>
   );
 }

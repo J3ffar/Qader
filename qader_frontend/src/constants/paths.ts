@@ -10,7 +10,7 @@ export const PATHS = {
   SIGNUP: "/signup",
   COMPLETE_PROFILE: "/complete-profile",
   FORGOT_PASSWORD: "/forgot-password",
-  STUDY_HOME: "/student/level",
+  STUDY_HOME: "/study",
   ADMIN_DASHBOARD: "/admin/dashboard",
   // ... other paths
 };
