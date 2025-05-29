@@ -12,5 +12,13 @@
 
   "language": "اللغة",
   "arabic": "العربية",
-  "english": "English"
+  "english": "English",
+
+  "NotFound": {
+    "title": "صفحة غير موجودة",
+    "description": "عذرًا، لم نتمكن من العثور على الصفحة التي تبحث عنها. ربما تم نقلها أو حذفها، أو قد يكون هناك خطأ في العنوان.",
+    "goHomeButton": "العودة إلى الرئيسية",
+    "contactSupportButton": "اتصل بالدعم",
+    "errorCode": "رمز الخطأ: 404"
+  }
 }

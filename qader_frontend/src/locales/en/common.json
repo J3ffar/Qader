@@ -12,5 +12,13 @@
 
   "language": "Language",
   "arabic": "العربية",
-  "english": "English"
+  "english": "English",
+
+  "NotFound": {
+    "title": "Page Not Found",
+    "description": "Sorry, we couldn't find the page you're looking for. It might have been moved, deleted, or there might be a typo in the URL.",
+    "goHomeButton": "Go Back Home",
+    "contactSupportButton": "Contact Support",
+    "errorCode": "Error Code: 404"
+  }
 }
