@@ -80,7 +80,7 @@ export default function SignupPage() {
         (authUser.profile_complete
           ? authUser.is_super || authUser.is_staff
             ? PATHS.ADMIN_DASHBOARD
-            : PATHS.STUDY_HOME
+            : PATHS.STUDY.HOME
           : PATHS.COMPLETE_PROFILE);
       router.replace(redirectTo);
     }

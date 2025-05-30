@@ -59,7 +59,7 @@ export default function LoginPage() {
         (authUser.profile_complete
           ? authUser.is_super || authUser.is_staff
             ? PATHS.ADMIN_DASHBOARD
-            : PATHS.STUDY_HOME
+            : PATHS.STUDY.HOME
           : PATHS.COMPLETE_PROFILE);
       router.replace(redirectTo);
     }
@@ -82,7 +82,7 @@ export default function LoginPage() {
       } else if (!data.user.profile_complete) {
         router.replace(PATHS.COMPLETE_PROFILE);
       } else {
-        router.replace(PATHS.STUDY_HOME);
+        router.replace(PATHS.STUDY.HOME);
       }
     },
     onError: (error: ApiError) => {

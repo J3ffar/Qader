@@ -55,27 +55,27 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ user }) => {
         ? "continueLearningDescription"
         : "startTraditionalLearningDescription",
       href: user.last_visited_study_option
-        ? `${PATHS.STUDY_HOME}/${user.last_visited_study_option}`
-        : `${PATHS.STUDY_HOME}/traditional-learning`, // Default to traditional learning
+        ? `${PATHS.STUDY.HOME}/${user.last_visited_study_option}`
+        : `${PATHS.STUDY.HOME}/traditional-learning`, // Default to traditional learning
       icon: PlayCircle,
     },
     {
       titleKey: "traditionalLearningTitle",
       descriptionKey: "traditionalLearningDescription",
-      href: `${PATHS.STUDY_HOME}/traditional-learning`,
+      href: `${PATHS.STUDY.HOME}/traditional-learning`,
       icon: BookOpenText,
       showCondition: (currentUser) => !!currentUser.last_visited_study_option, // Show if "Continue" is different
     },
     {
       titleKey: "viewStatisticsTitle",
       descriptionKey: "viewStatisticsDescription",
-      href: `${PATHS.STUDY_HOME}/statistics`,
+      href: `${PATHS.STUDY.HOME}/statistics`,
       icon: BarChart3,
     },
     {
       titleKey: "checkRewardsTitle",
       descriptionKey: "checkRewardsDescription",
-      href: `${PATHS.STUDY_HOME}/rewards-and-competitions`, // Assuming this path exists
+      href: `${PATHS.STUDY.HOME}/rewards-and-competitions`, // Assuming this path exists
       icon: Gift,
     },
   ];

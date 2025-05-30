@@ -175,7 +175,7 @@ function Shapcontain({ showShapContain }: { showShapContain: boolean }) {
 
       <div className="mt-5 flex justify-center">
         <Link
-          href={`/${locale}${PATHS.STUDY_HOME}/statistics`}
+          href={`/${locale}${PATHS.STUDY.HOME}/statistics`}
           passHref
           legacyBehavior
         >

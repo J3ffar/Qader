@@ -36,5 +36,107 @@
         "checkRewardsDescription": "Explore badges and rewards you've earned."
       }
     }
+  },
+
+  "determineLevel": {
+    "title": "Determine Level",
+    "description": "Test your level with us before you start, so a personalized learning model can be built for you.",
+    "startTest": "Start Level Assessment",
+    "retakeTest": "Retake Level Assessment",
+    "noAttemptsTitle": "Determine Your Level",
+    "noAttemptsDescription": "Test your level with us before you start, so a personalized learning model can be built for you that identifies strengths and weaknesses. You can retake the test more than once.",
+    "attemptsLogTitle": "Level Assessment Log",
+    "attemptsTable": {
+      "date": "Date",
+      "numQuestions": "No. of Questions",
+      "percentage": "Percentage",
+      "quantitativePerformance": "Quantitative Performance",
+      "verbalPerformance": "Verbal Performance",
+      "status": "Status",
+      "statusInProgress": "In Progress",
+      "actions": "Actions",
+      "reviewTest": "Review Test",
+      "viewDetails": "View Details",
+      "cancelTest": "Cancel Test"
+    },
+    "cancelDialog": {
+      "title": "Confirm Cancellation",
+      "description": "Are you sure you want to cancel test attempt #{attemptId}? This action cannot be undone.",
+      "confirmButton": "Yes, Cancel",
+      "successToast": "Test attempt #{attemptId} has been successfully canceled.",
+      "errorToastGeneric": "Failed to cancel test attempt. Please try again."
+    },
+    "errors": {
+      "fetchFailedTitle": "Failed to Fetch Data",
+      "fetchFailedDescription": "An error occurred while loading level assessment attempts. Please try again later."
+    },
+    "sortBy": "Sort By",
+    "latestDate": "Latest Date",
+    "highestPercentage": "Highest Percentage",
+    "startForm": {
+      "pageTitle": "Start Level Assessment Test",
+      "pageDescription": "Choose the sections you wish to be tested on and select the appropriate number of questions to begin an accurate assessment of your current level.",
+      "title": "Level Assessment Test Settings",
+      "selectSectionsAndCount": "Select Sections and Number of Questions",
+      "selectSectionsDescription": "Select at least one main section or subsection.",
+      "numQuestions": "Number of Questions:",
+      "submit": "Start Test",
+      "validation": {
+        "atLeastOneSection": "Please select at least one main section (by selecting at least one subsection).",
+        "selectAtLeastOneSubsection": "Please select at least one subsection.",
+        "numQuestionsMin": "The number of questions must be at least 5.",
+        "numQuestionsMax": "The number of questions must not exceed 100."
+      },
+      "api": {
+        "startSuccess": "Level assessment test started successfully!",
+        "startError": "Failed to start level assessment test. Please try again."
+      },
+      "errors": {
+        "fetchSectionsFailedTitle": "Failed to Fetch Sections",
+        "fetchSectionsFailedDescription": "We couldn't load the learning sections. Please refresh the page or try again later.",
+        "noSectionsAvailableTitle": "No Sections Available",
+        "noSectionsAvailableDescription": "Sorry, there are currently no learning sections available to start a level assessment test."
+      }
+    },
+    "quiz": {
+      "question": "Question",
+      "outOf": "of",
+      "next": "Next",
+      "previous": "Previous",
+      "submitAnswers": "Submit Answers",
+      "confirmAnswer": "Confirm Answer",
+      "endTest": "End Test",
+      "timeLeft": "Time Left:",
+      "timeOver": "Time's Up!"
+    },
+    "review": {
+      "title": "Review Test",
+      "yourAnswer": "Your Answer:",
+      "correctAnswer": "Correct Answer:",
+      "explanation": "Explanation:",
+      "questionNavigation": "Browse Questions",
+      "viewScore": "View Final Score"
+    },
+    "score": {
+      "title": "Test Result",
+      "yourScoreIsReady": "Your test result is ready!",
+      "overallScore": "Overall Score:",
+      "verbalScore": "Verbal Section:",
+      "quantitativeScore": "Quantitative Section:",
+      "timeTaken": "Time Taken",
+      "currentLevel": "Your Current Level",
+      "adviceDefault": "Keep progressing!",
+      "adviceReviewVerbal": "It is recommended to review the verbal rules section.",
+      "adviceReviewQuantitative": "It is recommended to review the quantitative problems section.",
+      "minutes": "minute(s)"
+    },
+    "badgeColors": {
+      "excellent": "Excellent",
+      "veryGood": "Very Good",
+      "good": "Good",
+      "weak": "Weak",
+      "default": "Not Specified"
+    },
+    "apiError": "An error occurred while fetching data. Please try again."
   }
 }

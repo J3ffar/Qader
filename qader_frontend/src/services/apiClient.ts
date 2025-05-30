@@ -8,6 +8,7 @@ interface CustomRequestInit extends RequestInit {
   isPublic?: boolean; // To mark routes that don't need auth
   isRetry?: boolean; // Internal flag to prevent infinite retry loops for token refresh
   locale?: string; // Allow explicit locale override
+  params?: Record<string, string | number | boolean | string[]>;
 }
 
 let isCurrentlyRefreshing = false;
@@ -75,9 +76,28 @@ export const apiClient = async <T = any>( // Default T to any if not specified
 
   // Determine locale: use explicit if provided, else from pathname, else default
   const currentLocale = options.locale || getLocaleFromPathname() || "ar";
-  const fullUrl = `${API_BASE_URL}/${currentLocale}/api/${API_VERSION}${
+  let baseUrl = `${API_BASE_URL}/${currentLocale}/api/${API_VERSION}${
     endpoint.startsWith("/") ? endpoint : `/${endpoint}`
   }`;
+
+  if (options.params) {
+    const queryParams = new URLSearchParams();
+    for (const key in options.params) {
+      const value = options.params[key];
+      if (Array.isArray(value)) {
+        // Handle array parameters (e.g., for __in filters)
+        value.forEach((item) => queryParams.append(key, String(item)));
+      } else if (value !== undefined && value !== null) {
+        // Append only if value is not undefined/null
+        queryParams.append(key, String(value));
+      }
+    }
+    const queryString = queryParams.toString();
+    if (queryString) {
+      baseUrl += `?${queryString}`;
+    }
+  }
+  const fullUrl = baseUrl;
 
   const defaultHeaders: HeadersInit = {
     "Content-Type": "application/json", // Default, can be overridden for FormData

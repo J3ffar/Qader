@@ -100,7 +100,7 @@ const StudyPage = () => {
           title={tS("determineLevel.title")}
           description={tS("determineLevel.description")}
           buttonText={tS("determineLevel.button")}
-          buttonHref={`${PATHS.STUDY_HOME}/determine-level`}
+          buttonHref={`${PATHS.STUDY.HOME}/determine-level`}
           icon={Target}
         />
       </div>

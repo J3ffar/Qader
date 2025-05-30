@@ -36,5 +36,107 @@
         "checkRewardsDescription": "استكشف الأوسمة والمكافآت التي حصلت عليها."
       }
     }
+  },
+
+  "determineLevel": {
+    "title": "تحديد المستوى",
+    "description": "اختبر مستواك معنا قبل البدء، ليتم بناء نموذج تعليمي شخصي لك.",
+    "startTest": "ابدأ تحديد المستوى",
+    "retakeTest": "إعادة تحديد المستوى",
+    "noAttemptsTitle": "حدد مستواك",
+    "noAttemptsDescription": "اختبر مستواك معنا قبل البدء، ليتم بناء نموذج تعليمي شخصي لك يحدد نقاط القوة والضعف، بإمكانك إعادة الاختبار أكثر من مرة.",
+    "attemptsLogTitle": "سجل تحديد المستوى",
+    "attemptsTable": {
+      "date": "التاريخ",
+      "numQuestions": "عدد الأسئلة",
+      "percentage": "النسبة",
+      "quantitativePerformance": "الأداء الكمي",
+      "verbalPerformance": "الأداء اللفظي",
+      "status": "الحالة",
+      "statusInProgress": "جارٍ",
+      "actions": "إجراءات",
+      "reviewTest": "مراجعة الاختبار",
+      "viewDetails": "عرض التفاصيل",
+      "cancelTest": "إلغاء الاختبار"
+    },
+    "cancelDialog": {
+      "title": "تأكيد الإلغاء",
+      "description": "هل أنت متأكد أنك تريد إلغاء محاولة الاختبار رقم {attemptId}؟ لا يمكن التراجع عن هذا الإجراء.",
+      "confirmButton": "نعم، إلغاء",
+      "successToast": "تم إلغاء محاولة الاختبار رقم {attemptId} بنجاح.",
+      "errorToastGeneric": "فشل إلغاء محاولة الاختبار. يرجى المحاولة مرة أخرى."
+    },
+    "errors": {
+      "fetchFailedTitle": "فشل جلب البيانات",
+      "fetchFailedDescription": "حدث خطأ أثناء تحميل محاولات تحديد المستوى. يرجى المحاولة مرة أخرى لاحقاً."
+    },
+    "sortBy": "الفرز حسب",
+    "latestDate": "التاريخ الأحدث",
+    "highestPercentage": "النسبة الأعلى",
+    "startForm": {
+      "pageTitle": "ابدأ اختبار تحديد المستوى",
+      "pageDescription": "اختر الأقسام التي ترغب في اختبارها وحدد عدد الأسئلة المناسب لك لبدء تقييم دقيق لمستواك الحالي.",
+      "title": "إعدادات اختبار تحديد المستوى",
+      "selectSectionsAndCount": "اختر الأقسام وعدد الأسئلة",
+      "selectSectionsDescription": "اختر قسمًا واحدًا على الأقل من الأقسام الرئيسية أو الفرعية.",
+      "numQuestions": "عدد الأسئلة:",
+      "submit": "ابدأ الاختبار",
+      "validation": {
+        "atLeastOneSection": "يرجى اختيار قسم رئيسي واحد على الأقل (عن طريق تحديد قسم فرعي واحد على الأقل).",
+        "selectAtLeastOneSubsection": "يرجى تحديد قسم فرعي واحد على الأقل.",
+        "numQuestionsMin": "يجب أن يكون عدد الأسئلة 5 على الأقل.",
+        "numQuestionsMax": "يجب ألا يتجاوز عدد الأسئلة 100."
+      },
+      "api": {
+        "startSuccess": "تم بدء اختبار تحديد المستوى بنجاح!",
+        "startError": "فشل بدء اختبار تحديد المستوى. يرجى المحاولة مرة أخرى."
+      },
+      "errors": {
+        "fetchSectionsFailedTitle": "فشل جلب الأقسام",
+        "fetchSectionsFailedDescription": "لم نتمكن من تحميل أقسام التعلم. يرجى تحديث الصفحة أو المحاولة لاحقاً.",
+        "noSectionsAvailableTitle": "لا توجد أقسام متاحة",
+        "noSectionsAvailableDescription": "عذرًا، لا توجد أقسام تعلم متاحة حاليًا لبدء اختبار تحديد المستوى."
+      }
+    },
+    "quiz": {
+      "question": "سؤال",
+      "outOf": "من",
+      "next": "التالي",
+      "previous": "السابق",
+      "submitAnswers": "إرسال الإجابات",
+      "confirmAnswer": "تأكيد الإجابة",
+      "endTest": "إنهاء الاختبار",
+      "timeLeft": "الوقت المتبقي:",
+      "timeOver": "الوقت انتهى!"
+    },
+    "review": {
+      "title": "مراجعة الاختبار",
+      "yourAnswer": "إجابتك:",
+      "correctAnswer": "الإجابة الصحيحة:",
+      "explanation": "الشرح:",
+      "questionNavigation": "تصفح الأسئلة",
+      "viewScore": "عرض النتيجة النهائية"
+    },
+    "score": {
+      "title": "نتيجة الاختبار",
+      "yourScoreIsReady": "نتيجتك في الاختبار جاهزة!",
+      "overallScore": "النتيجة الإجمالية:",
+      "verbalScore": "القسم اللفظي:",
+      "quantitativeScore": "القسم الكمي:",
+      "timeTaken": "الوقت المستغرق",
+      "currentLevel": "مستواك الحالي",
+      "adviceDefault": "واصل التقدم!",
+      "adviceReviewVerbal": "ينصح بمراجعة قسم القواعد اللفظية",
+      "adviceReviewQuantitative": "ينصح بمراجعة قسم المسائل الكمية",
+      "minutes": "دقيقة"
+    },
+    "badgeColors": {
+      "excellent": "ممتاز",
+      "veryGood": "جيد جداً",
+      "good": "جيد",
+      "weak": "ضعيف",
+      "default": "غير محدد"
+    },
+    "apiError": "حدث خطأ أثناء جلب البيانات. يرجى المحاولة مرة أخرى."
   }
 }

@@ -1,275 +1,534 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import Image from "next/image";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { PencilSquareIcon } from "@heroicons/react/24/solid";
-import { Button } from "@/components/ui/button";
-import axios from "axios";
 
-const getBadgeColor = (level: string) => {
-  switch (level) {
+import React, { useState, useMemo } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { PencilLine, ListFilter, FileText, Loader2, Ban } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import { getTestAttempts, cancelTestAttempt } from "@/services/study.service";
+import { QUERY_KEYS } from "@/constants/queryKeys";
+import { PATHS } from "@/constants/paths";
+import { UserTestAttemptBrief } from "@/types/api/study.types";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
+
+// Helper to map API level terms (if they exist) or scores to colors/text
+// For now, using the existing logic and assuming performance object might contain keys like 'verbal_level_display'
+const getBadgeStyle = (level?: string): string => {
+  if (!level)
+    return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200";
+  switch (level.toLowerCase()) {
     case "ممتاز":
-      return "bg-green-100 text-green-700";
+    case "excellent":
+      return "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100";
     case "جيد جداً":
-      return "bg-yellow-100 text-yellow-700";
+    case "very good":
+      return "bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-100";
+    case "جيد":
+    case "good":
+      return "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100";
     case "ضعيف":
-      return "bg-red-100 text-red-700";
+    case "weak":
+      return "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100";
     default:
-      return "bg-gray-100 text-gray-700";
+      return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200";
   }
 };
 
-const defaultMockData = [
-  {
-    date: "25/2/23",
-    totalQuestions: 30,
-    percentage: 90,
-    verbal: "ممتاز",
-    quantitative: "ممتاز",
-    weakestSection: "لا يوجد",
-    highlighted: false,
-  },
-  {
-    date: "25/2/23",
-    totalQuestions: 30,
-    percentage: 70,
-    verbal: "جيد جداً",
-    quantitative: "ممتاز",
-    weakestSection: "لا يوجد",
-    highlighted: false,
-  },
-];
-
 const LevelAssessmentPage = () => {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  
-    const toggleExpand = (index: number) => {
-      setExpandedIndex(prev => (prev === index ? null : index));
-    };
+  const t = useTranslations("Study.determineLevel");
+  const tBadge = useTranslations("Study.determineLevel.badgeColors");
+  const queryClient = useQueryClient();
 
-  const fetchAttempts = async () => {
-    setLoading(true);
-    try {
-      const accessToken = localStorage.getItem("accessToken");
+  const [sortBy, setSortBy] = useState<"date" | "percentage">("date");
 
-      const response = await axios.get("https://qader.vip/ar/api/v1/study/attempts", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+  const {
+    data: attemptsData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: [
+      QUERY_KEYS.USER_TEST_ATTEMPTS,
+      { attempt_type: "level_assessment" },
+    ],
+    queryFn: () => getTestAttempts({ attempt_type: "level_assessment" }),
+  });
+
+  const cancelAttemptMutation = useMutation({
+    mutationFn: cancelTestAttempt,
+    onSuccess: (_, attemptId) => {
+      toast.success(t("cancelDialog.successToast", { attemptId }));
+      queryClient.invalidateQueries({
+        queryKey: [
+          QUERY_KEYS.USER_TEST_ATTEMPTS,
+          { attempt_type: "level_assessment" },
+        ],
       });
+    },
+    onError: (err: any, attemptId) => {
+      const errorMessage = getApiErrorMessage(
+        err,
+        t("cancelDialog.errorToastGeneric")
+      );
+      toast.error(errorMessage);
+    },
+  });
 
-      if (response.data?.results?.length) {
-        setData(response.data.results);
+  const attempts = useMemo(() => {
+    if (!attemptsData?.results) return [];
+    const sorted = [...attemptsData.results].sort((a, b) => {
+      if (sortBy === "date") {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
       }
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        // Token might be expired, attempt refresh
-        try {
-          const refreshToken = localStorage.getItem("refreshToken");
-          const refreshResponse = await axios.post("https://qader.vip/ar/api/v1/auth/token/refresh/", {
-            refresh: refreshToken,
-          });
-
-          const newAccessToken = refreshResponse.data.access;
-          localStorage.setItem("accessToken", newAccessToken);
-
-          // Retry the original request with new token
-          const retryResponse = await axios.get("https://qader.vip/ar/api/v1/study/attempts?attempt_type=level_assessment", {
-            headers: {
-              Authorization: `Bearer ${newAccessToken}`,
-            },
-          });
-
-          if (retryResponse.data?.results?.length) {
-            setData(retryResponse.data.results);
-          }
-        } catch (refreshError) {
-          console.error("Token refresh failed", refreshError);
-        }
-      } else {
-        console.error("API Error", error);
+      if (sortBy === "percentage") {
+        return (b.score_percentage || 0) - (a.score_percentage || 0);
       }
-    } finally {
-      setLoading(false);
-    }
+      return 0;
+    });
+    // The API might return verbal/quantitative performance as numeric.
+    // If we need to display qualitative levels ("ممتاز", "ضعيف"),
+    // we'd need a mapping function here or expect the API to provide display strings.
+    // For now, let's assume `performance` object might have `verbal_level_display` etc.
+    return sorted.map((attempt) => ({
+      ...attempt,
+      verbal_level_display:
+        (attempt.performance?.verbal_level_display as string) ||
+        tBadge("default"),
+      quantitative_level_display:
+        (attempt.performance?.quantitative_level_display as string) ||
+        tBadge("default"),
+    }));
+  }, [attemptsData, sortBy, tBadge]);
+
+  const renderActionButtons = (attempt: UserTestAttemptBrief) => {
+    const isCancelable = attempt.status === "started"; // Or other cancelable statuses from backend
+
+    return (
+      <div className="flex flex-col justify-center gap-2 sm:flex-row">
+        <Button variant="outline" size="sm" asChild>
+          <Link href={PATHS.STUDY.DETERMINE_LEVEL.REVIEW(attempt.attempt_id)}>
+            <FileText className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
+            {attempt.status === "completed"
+              ? t("attemptsTable.reviewTest")
+              : t("attemptsTable.viewDetails")}
+          </Link>
+        </Button>
+        {isCancelable && (
+          <ConfirmationDialog
+            triggerButton={
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={
+                  cancelAttemptMutation.isPending &&
+                  cancelAttemptMutation.variables === attempt.attempt_id
+                }
+              >
+                {cancelAttemptMutation.isPending &&
+                cancelAttemptMutation.variables === attempt.attempt_id ? (
+                  <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
+                ) : (
+                  <Ban className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
+                )}
+                {t("attemptsTable.cancelTest")}
+              </Button>
+            }
+            title={t("cancelDialog.title")}
+            description={t("cancelDialog.description", {
+              attemptId: attempt.attempt_id,
+            })}
+            confirmActionText={t("cancelDialog.confirmButton")}
+            onConfirm={() => cancelAttemptMutation.mutate(attempt.attempt_id)}
+            isConfirming={
+              cancelAttemptMutation.isPending &&
+              cancelAttemptMutation.variables === attempt.attempt_id
+            }
+            confirmButtonVariant="destructive"
+          />
+        )}
+      </div>
+    );
   };
 
-  useEffect(() => {
-    fetchAttempts();
-  }, []);
+  if (isLoading) {
+    return <DetermineLevelPageSkeleton />;
+  }
 
-  if (loading || data.length === 1) {
+  if (error) {
     return (
-      <div className="flex min-h-screen dark:bg-[#081028] text-white">
-        <div className="flex-1 flex items-center justify-center flex-col">
-          <Image src="/images/search.png" width={100} height={100} alt="حدد مستواك" />
-          <p className="font-semibold text-xl text-black dark:text-white mt-6">حدد مستواك</p>
-          <p className="text-gray-500 w-[280px] text-center dark:text-[#D9E1FA]">
-            اختبر مستواك معنا قبل البدء، ليتم بناء نموذج تعليمي شخصي لك يحدد نقاط القوة والضعف، بامكانك اعادة الاختبار اكثر من مرة.
-          </p>
-          <a href="/student/level/questions">
-            <button className="mt-4 flex justify-center gap-2 w-[220px] py-3 p-2 rounded-[8px] bg-[#074182] text-white font-semibold hover:bg-[#074182DF]">
-              <PencilSquareIcon className="w-5 h-5" />
-              <span>ابدأ تحديد المستوى</span>
-            </button>
-          </a>
-        </div>
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+        <Alert variant="destructive">
+          <AlertTitle>{t("errors.fetchFailedTitle")}</AlertTitle>
+          <AlertDescription>
+            {t("errors.fetchFailedDescription")}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Show prompt if no attempts or if specifically required (e.g., only 1 attempt logic from old code)
+  if (!attempts || attempts.length === 0) {
+    // Simplified: show if no attempts
+    return (
+      <div className="flex min-h-[calc(100vh-150px)] flex-col items-center justify-center p-4 text-center">
+        <Image
+          src="/images/search.png" // Ensure this image exists in public/images
+          width={120}
+          height={120}
+          alt={t("noAttemptsTitle")}
+          className="mb-6"
+        />
+        <h2 className="mb-2 text-2xl font-semibold dark:text-white">
+          {t("noAttemptsTitle")}
+        </h2>
+        <p className="mb-6 max-w-md text-muted-foreground dark:text-gray-300">
+          {t("noAttemptsDescription")}
+        </p>
+        <Button asChild size="lg">
+          <Link href={PATHS.STUDY.DETERMINE_LEVEL.START}>
+            <PencilLine className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
+            {t("startTest")}
+          </Link>
+        </Button>
       </div>
     );
   }
 
   return (
-     <div className="w-full p-6 space-y-6 dark:bg-[#081028]">
-      {/* Top header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="text-right space-y-1">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-[#FDFDFD]">إعادة تحديد المستوى</h2>
-          <p className="text-sm text-gray-500 dark:text-[#D9E1FA]">
-            بإمكانك إعادة اختبار تحديد المستوى في أي وقت.
-            <br />
-            سيتم إعادة بناء نموذج مخصص لك مع زيادة عدد الاختبارات.
-          </p>
-        </div>
-        <a href="/student/level/questions">
-            <button className="mt-4 flex justify-center gap-2 w-[180px] py-3 p-2 rounded-[8px] bg-[#074182] text-white font-semibold hover:bg-[#074182DF]">
-              <PencilSquareIcon className="w-5 h-5" />
-              <span>ابدأ تحديد المستوى</span>
-            </button>
-          </a>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-[#0B1739] p-4 rounded-xl border text-sm">
-  
-  <div className="font-bold text-[18px] text-[#333333] dark:text-[#FDFDFD] text-right md:text-left">
-    سجل تحديد المستوى
-  </div>
-
-  <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-6 w-full md:w-auto">
-    
-    {/* <label className="flex items-center gap-2 font-medium text-gray-700">
-      <input type="checkbox" className="accent-blue-600" />
-      عرض اختبارات الأداء الضعيف
-    </label> */}
-    
-    <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-2 ">
-      <label className="text-gray-700 font-semibold whitespace-nowrap dark:text-[#D9E1FA]">الفرز حسب</label>
-      <select className="border rounded-md px-3 py-1 text-gray-700 dark:text-[#D9E1FA] dark:bg-[#0B1739]">
-        <option>التاريخ الأحدث</option>
-        <option>النسبة الأعلى</option>
-      </select>
-    </div>
-
-  </div>
-</div>
-
-<div className="hidden md:block">
-      <div className="overflow-x-auto bg-white border rounded-xl">
-  <table className="min-w-full text-sm text-right text-gray-800">
-    <thead className="bg-gray-50 font-bold text-gray-600 dark:bg-[#7E89AC] dark:text-[#FDFDFD]">
-      <tr>
-        <th className="p-4">التاريخ</th> 
-        <th className="p-4">عدد الأسئلة</th>
-        <th className="p-4">النسبة</th>
-        <th className="p-4">الأداء في القسم الكمي</th>
-        <th className="p-4">الأداء في القسم اللفظي</th>
-        <th className="p-4">إعادة الاختبار</th>
-      </tr>
-    </thead>
-    <tbody className=" ">
-      {(data.length > 0 ? data : defaultMockData).map((item, i) => (
-                <tr
-                  key={i}
-                  className={`border-b ${item.highlighted ? "bg-yellow-50 font-bold dark:bg-[#0B1739] dark:text-[#FDFDFD]" : "dark:bg-[#0B1739] dark:text-[#FDFDFD]"}`}
-                >
-                  <td className="p-4">{item.date}</td>
-                  <td className="p-4">{item.totalQuestions} سؤال</td>
-                  <td className="p-4">{item.percentage}%</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-md text-xs ${getBadgeColor(item.quantitative)}`}>
-                      {item.quantitative}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-md text-xs ${getBadgeColor(item.verbal)}`}>
-                      {item.verbal}
-                    </span>
-                  </td>
-                  
-                  <td className="p-4">
-                    <a href="/student/level/questions/undefined">
-                      <button className=" flex justify-center gap-2 w-full  p-2 rounded-[8px] bg-[#074182] text-white font-semibold hover:bg-[#074182DF]">
-                      مراجعة الاختبار
-                    </button>
-                    </a>
-                  </td>
-                </tr>
-              ))}
-    </tbody>
-  </table>
-</div>
-
-    </div>
-
-     {/* Collapsible Cards for small screens */}
-          <div className="md:hidden flex flex-col gap-3">
-            {(data.length > 0 ? data : defaultMockData).map((item, i) => {
-              const isOpen = expandedIndex === i;
-              return (
-                <div
-                  key={i}
-                  className={`bg-white dark:bg-[#081028] border rounded-xl shadow-sm ${
-                    item.highlighted ? "border-yellow-400" : ""
-                  }`}
-                >
-                  <div
-                    className="flex justify-between items-center p-4 cursor-pointer"
-                    onClick={() => toggleExpand(i)}
-                  >
-                    <div className="flex flex-col text-right">
-                      <span className="text-sm text-gray-500 dark:text-gray-100">{item.date}</span>
-                      {/* <span className="text-sm font-bold text-gray-800">{item.percentage}%</span> */}
-                    </div>
-                    {isOpen ? <ChevronUp className="text-gray-600" /> : <ChevronDown className="text-gray-600" />}
-                  </div>
-    
-                  {isOpen && (
-                    <div className="px-4 pb-4 text-sm text-right dark:bg-[rgb(126,137,172)] py-3">
-                      <div className="flex justify-center items-center gap-6 my-3">
-                        <div className="mb-1 text-gray-700 dark:text-[#FDFDFD]">
-                          <strong>عدد الأسئلة:</strong> {item.totalQuestions} سؤال
-                        </div>
-                        <div className="mb-1 text-gray-700 dark:text-[#FDFDFD]">
-                          <strong>النسبة :</strong> {item.percentage}%
-                        </div>
-                      </div>
-                      <div className="flex justify-center items-center gap-6 my-3">
-                        <div className="mb-1 text-gray-700 dark:text-[#FDFDFD]">
-                        <strong>القسم الكمي:</strong>{" "}
-                        <span className={`px-2 py-1 rounded-md ${getBadgeColor(item.quantitative)}`}>
-                          {item.quantitative}
-                        </span>
-                      </div>
-                      <div className="mb-1 text-gray-700 dark:text-[#FDFDFD]">
-                        <strong>القسم اللفظي:</strong>{" "}
-                        <span className={`px-2 py-1 rounded-md ${getBadgeColor(item.verbal)}`}>
-                          {item.verbal}
-                        </span>
-                      </div>
-                      </div>
-                      
-                      <button className="mt-4 flex justify-center gap-2 w-full py-3 p-2 rounded-[8px] bg-[#074182] text-white font-semibold hover:bg-[#074182DF]">
-                        مراجعة الاختبار
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+    <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
+      <Card>
+        <CardHeader className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <CardTitle className="text-2xl font-bold">{t("title")}</CardTitle>
+            <p className="text-sm text-muted-foreground">{t("description")}</p>
           </div>
-</div>
+          <Button asChild className="text-white">
+            <Link href={PATHS.STUDY.DETERMINE_LEVEL.START}>
+              <PencilLine className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
+              {t("retakeTest")}
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 flex flex-col justify-between gap-4 rounded-lg border bg-card p-4 md:flex-row md:items-center">
+            <h3 className="text-lg font-semibold">{t("attemptsLogTitle")}</h3>
+            <div className="flex items-center gap-2">
+              <ListFilter className="h-5 w-5 text-muted-foreground" />
+              <Select
+                value={sortBy}
+                onValueChange={(value: "date" | "percentage") =>
+                  setSortBy(value)
+                }
+                dir={document.documentElement.dir as "rtl" | "ltr"}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder={t("sortBy")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date">{t("latestDate")}</SelectItem>
+                  <SelectItem value="percentage">
+                    {t("highestPercentage")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="rtl:text-right">
+                    {t("attemptsTable.date")}
+                  </TableHead>
+                  <TableHead className="text-center">
+                    {t("attemptsTable.numQuestions")}
+                  </TableHead>
+                  <TableHead className="text-center">
+                    {t("attemptsTable.percentage")}
+                  </TableHead>
+                  <TableHead className="rtl:text-right">
+                    {t("attemptsTable.quantitativePerformance")}
+                  </TableHead>
+                  <TableHead className="rtl:text-right">
+                    {t("attemptsTable.verbalPerformance")}
+                  </TableHead>
+                  <TableHead className="text-center">
+                    {t("attemptsTable.status")}
+                  </TableHead>
+                  <TableHead className="w-[280px] text-center">
+                    {t("attemptsTable.actions")}
+                  </TableHead>{" "}
+                  {/* Adjusted width for actions */}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {attempts.map((attempt) => (
+                  <TableRow key={attempt.attempt_id}>
+                    <TableCell>
+                      {new Date(attempt.date).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {attempt.num_questions}
+                    </TableCell>
+                    <TableCell className="text-center font-medium">
+                      {attempt.score_percentage !== null
+                        ? `${attempt.score_percentage.toFixed(0)}%`
+                        : attempt.status === "started"
+                        ? t("attemptsTable.statusInProgress")
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={cn(
+                          "px-2 py-1 rounded-md text-xs font-medium",
+                          getBadgeStyle(attempt.quantitative_level_display)
+                        )}
+                      >
+                        {attempt.quantitative_level_display ||
+                          tBadge("default")}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={cn(
+                          "px-2 py-1 rounded-md text-xs font-medium",
+                          getBadgeStyle(attempt.verbal_level_display)
+                        )}
+                      >
+                        {attempt.verbal_level_display || tBadge("default")}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span
+                        className={`px-2 py-1 rounded-md text-xs font-medium ${
+                          attempt.status === "completed"
+                            ? "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
+                            : attempt.status === "started"
+                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100"
+                            : "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100" // for 'abandoned' or other
+                        }`}
+                      >
+                        {attempt.status_display || attempt.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {renderActionButtons(attempt)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Accordion */}
+          <div className="space-y-3 md:hidden">
+            <Accordion type="single" collapsible className="w-full">
+              {attempts.map((attempt) => (
+                <AccordionItem
+                  value={`item-${attempt.attempt_id}`}
+                  key={attempt.attempt_id}
+                  className="rounded-lg border dark:border-gray-700"
+                >
+                  <AccordionTrigger className="p-4 hover:no-underline">
+                    <div className="flex w-full items-center justify-between">
+                      <div className="text-start rtl:text-right">
+                        <p className="font-medium">
+                          {new Date(attempt.date).toLocaleDateString(
+                            undefined,
+                            {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            }
+                          )}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {t("attemptsTable.percentage")}:{" "}
+                          {attempt.score_percentage !== null
+                            ? `${attempt.score_percentage.toFixed(0)}%`
+                            : attempt.status === "started"
+                            ? t("attemptsTable.statusInProgress")
+                            : "-"}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-2 py-1 rounded-md text-xs font-medium ${
+                          attempt.status === "completed"
+                            ? "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
+                            : attempt.status === "started"
+                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100"
+                            : "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100"
+                        } me-2 rtl:ms-2 rtl:me-0`}
+                      >
+                        {attempt.status_display || attempt.status}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-4 pt-0">
+                    <div className="space-y-2 text-sm">
+                      <p>
+                        <strong>{t("attemptsTable.numQuestions")}:</strong>{" "}
+                        {attempt.num_questions}
+                      </p>
+                      <p>
+                        <strong>
+                          {t("attemptsTable.quantitativePerformance")}:
+                        </strong>{" "}
+                        <span
+                          className={cn(
+                            "px-2 py-1 rounded-md text-xs",
+                            getBadgeStyle(attempt.quantitative_level_display)
+                          )}
+                        >
+                          {attempt.quantitative_level_display ||
+                            tBadge("default")}
+                        </span>
+                      </p>
+                      <p>
+                        <strong>{t("attemptsTable.verbalPerformance")}:</strong>{" "}
+                        <span
+                          className={cn(
+                            "px-2 py-1 rounded-md text-xs",
+                            getBadgeStyle(attempt.verbal_level_display)
+                          )}
+                        >
+                          {attempt.verbal_level_display || tBadge("default")}
+                        </span>
+                      </p>
+                      <div className="mt-3">{renderActionButtons(attempt)}</div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const DetermineLevelPageSkeleton = () => {
+  const t = useTranslations("Study.determineLevel");
+  return (
+    <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
+      <Card>
+        <CardHeader className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <Skeleton className="mb-2 h-8 w-48" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+          <Skeleton className="h-10 w-48" />
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 flex flex-col justify-between gap-4 rounded-lg border bg-background p-4 md:flex-row md:items-center">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-10 w-[180px]" />
+          </div>
+
+          {/* Desktop Table Skeleton */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {[...Array(6)].map((_, i) => (
+                    <TableHead key={i}>
+                      <Skeleton className="h-5 w-24" />
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...Array(3)].map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <Skeleton className="h-5 w-20" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Skeleton className="inline-block h-5 w-10" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Skeleton className="inline-block h-5 w-10" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-16" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-16" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Skeleton className="h-9 w-32" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Accordion Skeleton */}
+          <div className="space-y-3 md:hidden">
+            <Accordion type="single" collapsible className="w-full">
+              {[...Array(3)].map((_, i) => (
+                <AccordionItem
+                  value={`item-skeleton-${i}`}
+                  key={`skeleton-${i}`}
+                  className="rounded-lg border dark:border-gray-700"
+                >
+                  <AccordionTrigger className="p-4 hover:no-underline">
+                    <div className="flex w-full items-center justify-between">
+                      <div className="text-start rtl:text-right">
+                        <Skeleton className="mb-1 h-5 w-24" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                      <Skeleton className="h-6 w-6" />{" "}
+                      {/* Chevron placeholder */}
+                    </div>
+                  </AccordionTrigger>
+                  {/* No need to skeletonize AccordionContent as it's hidden by default */}
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

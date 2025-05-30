@@ -10,7 +10,20 @@ export const PATHS = {
   SIGNUP: "/signup",
   COMPLETE_PROFILE: "/complete-profile",
   FORGOT_PASSWORD: "/forgot-password",
-  STUDY_HOME: "/study",
+  STUDY: {
+    HOME: "/study", // Main study dashboard
+    DETERMINE_LEVEL: {
+      LIST: "/study/determine-level",
+      START: "/study/determine-level/start",
+      ATTEMPT: (attemptId: number | string) =>
+        `/study/determine-level/attempt/${attemptId}`,
+      REVIEW: (attemptId: number | string) =>
+        `/study/determine-level/attempt/${attemptId}/review`,
+      SCORE: (attemptId: number | string) =>
+        `/study/determine-level/attempt/${attemptId}/score`,
+    },
+    // ... other study sections
+  },
   SETTINGS: "/settings",
   ADMIN_DASHBOARD: "/admin/dashboard",
   // ... other paths

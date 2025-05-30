@@ -58,7 +58,7 @@ export default function ConfirmEmailPage() {
       } else if (data.user.is_super || data.user.is_staff) {
         router.replace(PATHS.ADMIN_DASHBOARD);
       } else {
-        router.replace(PATHS.STUDY_HOME);
+        router.replace(PATHS.STUDY.HOME);
       }
     },
     onError: (error: ApiError) => {
@@ -76,7 +76,7 @@ export default function ConfirmEmailPage() {
       if (user?.is_super || user?.is_staff) {
         router.replace(PATHS.ADMIN_DASHBOARD);
       } else if (user?.profile_complete) {
-        router.replace(PATHS.STUDY_HOME);
+        router.replace(PATHS.STUDY.HOME);
       } else {
         router.replace(PATHS.COMPLETE_PROFILE);
       }
@@ -156,7 +156,7 @@ export default function ConfirmEmailPage() {
               } else if (confirmedUser?.is_super || confirmedUser?.is_staff) {
                 router.replace(PATHS.ADMIN_DASHBOARD);
               } else {
-                router.replace(PATHS.STUDY_HOME);
+                router.replace(PATHS.STUDY.HOME);
               }
             }}
             className="mt-4"

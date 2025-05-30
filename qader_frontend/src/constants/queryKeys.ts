@@ -15,5 +15,10 @@ export const QUERY_KEYS = {
   REWARD_STORE_ITEMS: "rewardStoreItems",
   WEEKLY_POINTS_SUMMARY: "weeklyPointsSummary",
   STUDY_DAYS_LOG: "studyDaysLog",
+
+  LEARNING_SECTIONS: "learningSections",
+  USER_TEST_ATTEMPTS: "userTestAttempts",
+  USER_TEST_ATTEMPT_DETAIL: "userTestAttemptDetail", // (attemptId: number | string) => [USER_TEST_ATTEMPT_DETAIL, attemptId]
+  USER_TEST_ATTEMPT_REVIEW: "userTestAttemptReview",
   // ... other query keys
 };

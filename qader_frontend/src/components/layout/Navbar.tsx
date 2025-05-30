@@ -109,7 +109,7 @@ const Navbar = () => {
 
   const userNavigationAction = () => {
     if (user?.is_super || user?.is_staff) router.push(PATHS.ADMIN_DASHBOARD);
-    else router.push(PATHS.STUDY_HOME);
+    else router.push(PATHS.STUDY.HOME);
     closeMobileMenu();
   };
 

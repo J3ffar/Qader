@@ -149,7 +149,7 @@ const StarContain = ({ showStarContainer }: { showStarContainer: boolean }) => {
       </div>
 
       <div className="mt-5 flex justify-center">
-        <Link href={`${PATHS.STUDY_HOME}/statistics`} passHref legacyBehavior>
+        <Link href={`${PATHS.STUDY.HOME}/statistics`} passHref legacyBehavior>
           {/* Or a dedicated streak page */}
           <Button
             variant="outline"

@@ -150,7 +150,7 @@ export default function CompleteProfilePage() {
     if (isProfileComplete) {
       // Use isProfileComplete from store
       // toast.info(tAuth("profileAlreadyComplete"));
-      router.replace(PATHS.STUDY_HOME);
+      router.replace(PATHS.STUDY.HOME);
     }
   }, [
     isClientHydrated,
@@ -192,7 +192,7 @@ export default function CompleteProfilePage() {
       storeSetUser(updatedUser); // This updates the user in the store
       storeSetIsProfileComplete(updatedUser.profile_complete); // Explicitly set profile completion
       toast.success(tAuth("profileUpdateSuccess"));
-      router.push(PATHS.STUDY_HOME);
+      router.push(PATHS.STUDY.HOME);
     },
     onError: (error: ApiError) => {
       if (error.status === 400 && error.data) {

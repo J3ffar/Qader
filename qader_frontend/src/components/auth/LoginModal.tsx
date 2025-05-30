@@ -74,7 +74,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
       } else if (!data.user.profile_complete) {
         router.push(PATHS.COMPLETE_PROFILE);
       } else {
-        router.push(PATHS.STUDY_HOME);
+        router.push(PATHS.STUDY.HOME);
       }
     },
     onError: (error: any) => {

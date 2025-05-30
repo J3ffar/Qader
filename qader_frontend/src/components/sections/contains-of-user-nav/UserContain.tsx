@@ -59,18 +59,18 @@ const UserContain = ({ showUserContain }: UserContainProps) => {
     {
       label: t("settings"),
       icon: Cog6ToothIcon,
-      href: `/${locale}${PATHS.STUDY_HOME}/settings`,
+      href: `/${locale}${PATHS.STUDY.HOME}/settings`,
     },
     {
       label: t("emergencyMode"),
       icon: ExclamationCircleIcon,
-      href: `/${locale}${PATHS.STUDY_HOME}/emergency-mode`,
+      href: `/${locale}${PATHS.STUDY.HOME}/emergency-mode`,
     },
 
     {
       label: t("adminSupport"),
       icon: QuestionMarkCircleIcon,
-      href: `/${locale}${PATHS.STUDY_HOME}/admin-support`,
+      href: `/${locale}${PATHS.STUDY.HOME}/admin-support`,
     },
   ];
 
