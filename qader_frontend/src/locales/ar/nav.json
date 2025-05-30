@@ -15,7 +15,77 @@
 
   "UserNav": {
     "searchPlaceholder": "اكتب سؤالك هنا...",
-    "greeting": "صباح الخير!"
+    "greeting": "صباح الخير!",
+
+    "BellDropdown": {
+      "title": "الإشعارات",
+      "markAllRead": "وضع علامة مقروء للجميع",
+      "marking": "جاري التحديث...",
+      "allReadSuccess": "تم تحديد جميع الإشعارات كمقروءة!",
+      "allReadError": "فشل تحديد الكل كمقروء.",
+      "noNotifications": "لا توجد إشعارات جديدة.",
+      "errorLoading": "خطأ في تحميل الإشعارات.",
+      "viewAll": "عرض كل الإشعارات"
+    },
+
+    "GiftContain": {
+      "inviteFriend": {
+        "title": "دعوة صديق",
+        "header": "احصل على 3 أيام مجانية!",
+        "description": "قم بمشاركة رابط الدعوة الخاص بك للحصول على أيام مجانية عند تسجيل أصدقائك.",
+        "referralLink": "رابط الدعوة الخاص بك:",
+        "noCode": "رمز الدعوة غير متوفر حالياً.",
+        "copiedSuccess": "تم نسخ الرابط!",
+        "copiedError": "فشل نسخ الرابط."
+      },
+      "store": {
+        "title": "المتجر",
+        "hasOffersHeader": "عرض مميز لك!",
+        "hasOffersDescription": "استبدل نقاطك بمكافآت قيمة.",
+        "noOffersHeader": "لا توجد عروض خاصة حالياً",
+        "noOffersDescription": "قم بإجراء المزيد من الأنشطة للحصول على عروض.",
+        "giftAlt": "هدية",
+        "noSpecialOffers": "لا توجد عروض خاصة",
+        "willBeNotified": "سيتم إبلاغك عبر الإشعارات في حال تواجد عروض خاصة لك.",
+        "pointsCost": "{count} نقطة",
+        "redeemButton": "استبدال",
+        "errorLoading": "خطأ في تحميل عناصر المتجر."
+      }
+    },
+
+    "ShapContain": {
+      "title": "ابدأ التعلم لكسب المزيد من النقاط",
+      "description": "هذه هى جميع نقاط الاسبوع التى جمعتها.",
+      "pointsSuffix": "نقطة",
+      "viewAllButton": "عرض الكل",
+      "errorLoading": "خطأ في تحميل بيانات النقاط.",
+      "days": {
+        "sun": "الأحد",
+        "mon": "الاثنين",
+        "tue": "الثلاثاء",
+        "wed": "الأربعاء",
+        "thu": "الخميس",
+        "fri": "الجمعة",
+        "sat": "السبت"
+      }
+    },
+
+    "StarContain": {
+      "title": "استمر لتحسين نقاط الأيام",
+      "description": "هذه هى جميع نقاط الاسبوع من الالتزام.",
+      "streakDays": "{count, plural, =0 {لا يوجد تتابع حالي} one {يوم واحد متتالي} two {يومان متتاليان} few {{count} أيام متتالية} many {{count} يوماً متتالياً} other {{count} يوم متتالي}}",
+      "viewAllButton": "عرض الكل",
+      "errorLoading": "خطأ في تحميل بيانات التتابع.",
+      "days": {
+        "mon": "الاثنين",
+        "tue": "الثلاثاء",
+        "wed": "الأربعاء",
+        "thu": "الخميس",
+        "fri": "الجمعة",
+        "sat": "السبت",
+        "sun": "الأحد"
+      }
+    }
   },
   "UserDropdown": {
     "settings": "الإعدادات",

@@ -15,7 +15,74 @@
 
   "UserNav": {
     "searchPlaceholder": "Type your question here...",
-    "greeting": "Good morning!"
+    "greeting": "Good morning!",
+
+    "BellDropdown": {
+      "title": "Notifications",
+      "markAllRead": "Mark all as read",
+      "marking": "Updating...",
+      "allReadSuccess": "All notifications marked as read!",
+      "allReadError": "Failed to mark all as read.",
+      "noNotifications": "No new notifications.",
+      "errorLoading": "Error loading notifications.",
+      "viewAll": "View all notifications"
+    },
+    "GiftContain": {
+      "inviteFriend": {
+        "title": "Invite a Friend",
+        "header": "Get 3 Free Days!",
+        "description": "Share your referral link to get free days when your friends sign up.",
+        "referralLink": "Your referral link:",
+        "noCode": "Referral code currently unavailable.",
+        "copiedSuccess": "Link copied!",
+        "copiedError": "Failed to copy link."
+      },
+      "store": {
+        "title": "Store",
+        "hasOffersHeader": "Special Offer for You!",
+        "hasOffersDescription": "Redeem your points for valuable rewards.",
+        "noOffersHeader": "No Special Offers Currently",
+        "noOffersDescription": "Engage in more activities to get offers.",
+        "giftAlt": "Gift",
+        "noSpecialOffers": "No special offers",
+        "willBeNotified": "You will be notified if special offers become available for you.",
+        "pointsCost": "{count} points",
+        "redeemButton": "Redeem",
+        "errorLoading": "Error loading store items."
+      }
+    },
+    "ShapContain": {
+      "title": "Start Learning to Earn More Points",
+      "description": "These are all the points you've collected this week.",
+      "pointsSuffix": "points",
+      "viewAllButton": "View All",
+      "errorLoading": "Error loading points data.",
+      "days": {
+        "sun": "Sunday",
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday"
+      }
+    },
+    "StarContain": {
+      "title": "Keep Going to Improve Your Daily Streak",
+      "description": "This is your commitment streak for the week.",
+      "streakDays": "{count, plural, =0 {No current streak} one {1 day streak} other {# days streak}}",
+      "viewAllButton": "View All",
+      "errorLoading": "Error loading streak data.",
+      "days": {
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday",
+        "sun": "Sunday"
+      }
+    }
   },
   "UserDropdown": {
     "settings": "Settings",

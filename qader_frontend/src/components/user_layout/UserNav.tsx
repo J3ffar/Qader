@@ -93,7 +93,7 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
           {/* Streak (Stars) */}
           <span
             className={cn(
-              "flex items-center gap-1 cursor-pointer rounded-xl p-2",
+              "flex items-center gap-1 cursor-pointer rounded-xl p-2 border",
               showStarContainer
                 ? "bg-muted dark:bg-muted/50"
                 : "hover:bg-muted dark:hover:bg-muted/50"
@@ -111,7 +111,7 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
           {/* Points (Hexagon/Gems) */}
           <span
             className={cn(
-              "flex items-center gap-1 cursor-pointer rounded-xl p-2",
+              "flex items-center gap-1 cursor-pointer rounded-xl p-2 border",
               showShapContain
                 ? "bg-muted dark:bg-muted/50"
                 : "hover:bg-muted dark:hover:bg-muted/50"
@@ -134,7 +134,7 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
           {/* Gift */}
           <span
             className={cn(
-              "relative cursor-pointer rounded-xl p-2",
+              "relative cursor-pointer rounded-xl p-2 border",
               isVisible
                 ? "bg-muted dark:bg-muted/50"
                 : "hover:bg-muted dark:hover:bg-muted/50"
@@ -143,7 +143,7 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
           >
             <GiftIcon className="h-6 w-6 text-pink-500" />
             {/* Assuming gift notification logic is separate */}
-            <span className="absolute bottom-6 left-4 h-3 w-3 rounded-full border-2 border-background bg-red-500"></span>
+            <span className="absolute right-1 top-1 h-3 w-3 rounded-full border-2 border-background bg-red-500"></span>
           </span>
         </div>
 
@@ -152,7 +152,7 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
           {/* Bell Icon */}
           <span
             className={cn(
-              "relative cursor-pointer rounded-xl p-2",
+              "relative cursor-pointer rounded-xl p-2 rtl:mr-4 ltr:ml-4 border",
               showBellDropdown
                 ? "bg-muted dark:bg-muted/50"
                 : "hover:bg-muted dark:hover:bg-muted/50"
@@ -177,7 +177,7 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
           <div
             onClick={toggleUserContain}
             className={cn(
-              "relative flex items-center gap-2 cursor-pointer rounded-xl p-2",
+              "relative flex items-center gap-2 cursor-pointer rounded-xl p-2 border",
               showUserContain
                 ? "bg-muted dark:bg-muted/50"
                 : "hover:bg-muted dark:hover:bg-muted/50"
@@ -201,7 +201,7 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
             )}
             {/* Online status indicator - assuming logic is external or fixed for now */}
             {isAuthenticated && user && (
-              <span className="absolute top-1 h-3 w-3 rounded-full border-2 border-background bg-green-500 ltr:left-0 rtl:right-0"></span>
+              <span className="absolute top-1 h-3 w-3 rounded-full border-2 border-background bg-green-500 ltr:left-1 rtl:right-1"></span>
             )}
 
             {isAuthenticated && !user ? (

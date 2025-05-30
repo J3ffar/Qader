@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation"; // For redirection
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner"; // For notifications
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,7 +30,7 @@ const UserContain = ({ showUserContain }: UserContainProps) => {
   const { user, isAuthenticated } = useAuthCore();
   const { logout } = useAuthActions();
   // Add translations if needed for menu items
-  // const t = useTranslations("UserDropdown");
+  const t = useTranslations("Nav.UserDropdown");
 
   if (!showUserContain) return null;
 
@@ -38,7 +38,7 @@ const UserContain = ({ showUserContain }: UserContainProps) => {
     try {
       await logout();
       toast.success("تم تسجيل الخروج بنجاح!"); // "Logged out successfully!"
-      router.push(`/${locale}${PATHS.LOGIN}`);
+      router.push(`/${PATHS.HOME}`);
     } catch (error) {
       console.error("Logout failed:", error);
       toast.error("فشل تسجيل الخروج. حاول مرة أخرى."); // "Logout failed. Please try again."
@@ -57,25 +57,25 @@ const UserContain = ({ showUserContain }: UserContainProps) => {
 
   const menuItems = [
     {
-      label: "الإعدادات", // t("settings")
+      label: t("settings"),
       icon: Cog6ToothIcon,
-      href: `/${locale}${PATHS.STUDY_HOME}/settings`, // Example path
+      href: `/${locale}${PATHS.STUDY_HOME}/settings`,
     },
     {
-      label: "وضع الطوارئ", // t("emergencyMode")
+      label: t("emergencyMode"),
       icon: ExclamationCircleIcon,
-      href: `/${locale}${PATHS.STUDY_HOME}/emergency-mode`, // Example path
+      href: `/${locale}${PATHS.STUDY_HOME}/emergency-mode`,
     },
-    // Theme toggle is separate
+
     {
-      label: "الدعم الإدارى", // t("adminSupport")
+      label: t("adminSupport"),
       icon: QuestionMarkCircleIcon,
-      href: `/${locale}${PATHS.STUDY_HOME}/admin-support`, // Example path
+      href: `/${locale}${PATHS.STUDY_HOME}/admin-support`,
     },
   ];
 
   return (
-    <div className="Usercontain absolute left-2 top-16 z-50 mt-2 flex w-72 flex-col items-center rounded-2xl border bg-popover text-popover-foreground shadow-lg md:w-80">
+    <div className="Usercontain absolute top-16 z-50 mt-2 flex w-72 flex-col items-center rounded-2xl border bg-popover text-popover-foreground shadow-lg ltr:right-2 rtl:left-2 md:w-80">
       <div className="flex w-full flex-col items-center border-b py-4">
         {isAuthenticated && !user ? (
           <Skeleton className="h-12 w-12 rounded-full" />
@@ -89,7 +89,6 @@ const UserContain = ({ showUserContain }: UserContainProps) => {
               {getInitials(user.full_name || user.username)}
             </AvatarFallback>
             {/* Online status indicator - can be conditional */}
-            <span className="absolute right-0 top-1 h-3 w-3 rounded-full border-2 border-popover bg-green-500"></span>
           </Avatar>
         ) : (
           <div className="relative h-12 w-12 rounded-full bg-muted">
@@ -123,7 +122,7 @@ const UserContain = ({ showUserContain }: UserContainProps) => {
 
         <div className="flex w-full items-center justify-between gap-2 border-b border-t px-4 py-3 text-sm">
           <p className="flex items-center gap-3">
-            <Squares2X2Icon className="h-5 w-5" /> السمات {/* t("themes") */}
+            <Squares2X2Icon className="h-5 w-5" /> {t("themes")}
           </p>
           <ThemesToggles />
         </div>
@@ -134,7 +133,7 @@ const UserContain = ({ showUserContain }: UserContainProps) => {
           onClick={handleLogout}
         >
           <ArrowLeftStartOnRectangleIcon className="h-5 w-5" />
-          <span>تسجيل خروج</span> {/* t("logout") */}
+          <span>{t("logout")}</span>
         </Button>
       </nav>
     </div>
