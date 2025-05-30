@@ -112,7 +112,7 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
 
   return (
     <div
-      className="fixed top-0 z-40 flex h-auto flex-col border-b-[0.5px] border-border bg-background pl-5 pr-5 shadow-sm transition-all duration-300 dark:border-gray-700 max-md:py-3"
+      className="top-0 z-40 flex h-auto flex-col border-b-[0.5px] border-border bg-background pl-5 pr-5 shadow-sm transition-all duration-300 dark:border-gray-700 max-md:py-3"
       style={navbarStyle}
     >
       {/* Input + Search Button */}
