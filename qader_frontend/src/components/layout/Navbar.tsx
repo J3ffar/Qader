@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect, useCallback, useTransition } from "react";
-import Link from "next/link"; // Use next's Link
+import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation"; // Use next's navigation
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   Bars3Icon,
@@ -21,6 +21,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { UserCircleIcon } from "@heroicons/react/24/outline";
 import { useLocale, useTranslations } from "next-intl";
+import NProgress from "nprogress"; // Import NProgress
 
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -37,19 +38,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuthActions, useAuthStore } from "@/store/auth.store"; // Adjust path
-import { PATHS } from "@/constants/paths"; // Adjust path
+import { useAuthActions, useAuthStore } from "@/store/auth.store";
+import { PATHS } from "@/constants/paths";
 import { toast } from "sonner";
-import { locales as appLocales } from "@/config/i18n.config";
+import { locales as appLocales, Locale } from "@/config/i18n.config"; // Import Locale type
 import { CheckIcon } from "lucide-react";
-
-// NavLinks structure will now be generated inside the component using translations
-// type NavLinkItem = {
-//   key: keyof import('@/locales/en/nav.json'); // Use a key from your nav.json for the name
-//   ref: string;
-//   isHidden: boolean;
-//   icon: React.ElementType; // For HeroIcons
-// };
+import { join } from "path";
 
 const Navbar = () => {
   const tNav = useTranslations("Nav");
@@ -61,10 +55,10 @@ const Navbar = () => {
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  const currentLocale = useLocale(); // Get the current active locale
+  const currentLocale = useLocale() as Locale; // Cast to your Locale type
   const router = useRouter();
-  const pathname = usePathname();
-  const [isPending, startTransition] = useTransition(); // For smooth locale change
+  const pathname = usePathname(); // This is the path *without* locale prefix
+  const [isPending, startTransition] = useTransition();
 
   const { theme } = useTheme();
 
@@ -74,6 +68,19 @@ const Navbar = () => {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Effect to handle NProgress state based on isPending from useTransition
+  useEffect(() => {
+    if (isPending) {
+      NProgress.start();
+    } else {
+      NProgress.done();
+    }
+    // Cleanup function for NProgress when component unmounts or isPending changes
+    return () => {
+      NProgress.done();
+    };
+  }, [isPending]);
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
@@ -103,7 +110,7 @@ const Navbar = () => {
   const handleLogout = () => {
     storeLogout();
     toast.success(tAuth("logoutSuccess"));
-    router.push(PATHS.HOME); // PATHS.HOME should be base path
+    router.push(PATHS.HOME);
     closeMobileMenu();
   };
 
@@ -113,8 +120,8 @@ const Navbar = () => {
     closeMobileMenu();
   };
 
-  // Define navLinks dynamically using translations
   const navLinks = [
+    // ... (your navLinks definition remains the same)
     {
       nameKey: "home" as const,
       ref: PATHS.HOME,
@@ -157,15 +164,22 @@ const Navbar = () => {
   const desktopLogoSrc = isDarkTheme
     ? "/images/logodrk.png"
     : "/images/logo.svg";
-  const mobileLogoSrc = "/images/logo.png";
+  const mobileLogoSrc = "/images/logo.png"; // Assuming this is a universal mobile logo
 
   const handleLocaleChange = (newLocale: string) => {
+    let newPathname = "";
+
+    if (pathname.startsWith("/en")) newPathname = pathname.slice(3);
+    else if (pathname.startsWith("/ar")) newPathname = pathname.slice(3);
+    else newPathname = pathname;
     startTransition(() => {
-      router.replace(pathname, { locale: newLocale } as any);
+      router.replace(join(newLocale, newPathname));
+      // router.refresh(); // Optional: if you need to re-fetch server components on the same page
     });
-    closeMobileMenu(); // Close mobile menu if open
+    // NProgress is handled by the useEffect watching `isPending`
+    closeMobileMenu();
   };
-  // Language Switcher Component
+
   const LanguageSwitcher = ({
     inMobileMenu = false,
   }: {
@@ -174,36 +188,48 @@ const Navbar = () => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
+          variant="default" // Changed to ghost for better visual consistency with ThemeToggle
           size={inMobileMenu ? "default" : "icon"}
-          className={inMobileMenu ? "w-full justify-start gap-2" : ""}
+          className={
+            inMobileMenu
+              ? "w-full justify-start gap-2 text-foreground"
+              : "text-foreground"
+          }
+          aria-label={tCommon("language")}
         >
-          <LanguageIcon className="h-5 w-5" />
+          <LanguageIcon className="h-5 w-5 text-white" />
           {inMobileMenu && <span>{tCommon("language")}</span>}
           <span className="sr-only">{tCommon("language")}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>{tCommon("language")}</DropdownMenuLabel>
+        <DropdownMenuLabel>{tCommon("selectLanguage")}</DropdownMenuLabel>{" "}
+        {/* More specific label */}
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup
           value={currentLocale}
-          onValueChange={handleLocaleChange}
+          onValueChange={(newLocale) => {
+            if (newLocale !== currentLocale) {
+              handleLocaleChange(newLocale);
+            }
+          }}
         >
           {appLocales.map((locale) => (
             <DropdownMenuRadioItem
               key={locale}
               value={locale}
               disabled={isPending}
+              className="cursor-pointer"
             >
-              {/* Display nicer names if available, otherwise the locale code */}
               {locale === "ar"
                 ? tCommon("arabic")
                 : locale === "en"
                 ? tCommon("english")
                 : locale.toUpperCase()}
-              {currentLocale === locale && (
-                <CheckIcon className="ml-auto h-4 w-4 rtl:ml-0 rtl:mr-auto" />
+              {/* Shadcn's DropdownMenuRadioItem should handle the checkmark internally based on value match */}
+              {/* If not, your explicit CheckIcon logic is fine: */}
+              {currentLocale === locale && !isPending && (
+                <CheckIcon className="ms-auto h-4 w-4 rtl:me-auto rtl:ms-0" />
               )}
             </DropdownMenuRadioItem>
           ))}
@@ -213,7 +239,7 @@ const Navbar = () => {
   );
 
   if (!isClient) {
-    // Skeleton remains the same
+    // ... (Skeleton remains the same)
     return (
       <div className="relative z-50">
         <nav className="flex h-[76px] w-full animate-pulse items-center justify-between bg-background px-4 py-4 shadow-lg max-md:bg-[#074182] sm:px-8 md:bg-[#FDFDFD] md:px-16">
@@ -228,7 +254,10 @@ const Navbar = () => {
                 className="h-5 w-20 rounded bg-gray-300 dark:bg-gray-700"
               ></li>
             ))}
-            <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-700"></div>
+            <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-700"></div>{" "}
+            {/* Language Switcher Skeleton */}
+            <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-700"></div>{" "}
+            {/* Theme Toggle Skeleton */}
           </ul>
           <div className="hidden items-center gap-3 md:flex">
             <div className="h-10 w-24 rounded-lg bg-gray-300 dark:bg-gray-700"></div>
@@ -243,6 +272,7 @@ const Navbar = () => {
     <>
       <div className="relative z-50">
         <nav className="flex w-full items-center justify-between bg-background px-4 py-4 shadow-lg max-md:flex-row-reverse max-md:gap-6 max-md:bg-[#074182] dark:max-md:bg-[#053061] sm:px-8 md:bg-[#FDFDFD] md:px-16 dark:md:bg-[#081028]">
+          {/* ... (Mobile menu button and Logo remain the same) ... */}
           <div className="md:hidden">
             <button
               onClick={toggleMobileMenu}
@@ -299,14 +329,16 @@ const Navbar = () => {
             ))}
           </ul>
 
-          <div className="hidden items-center gap-3 md:flex">
-            {/* <LanguageSwitcher /> */}
+          <div className="hidden items-center gap-2 md:flex">
+            {" "}
+            {/* Reduced gap slightly */}
             <ThemeToggle />
+            <LanguageSwitcher /> {/* Ensure this is rendered */}
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     className="relative h-10 w-10 rounded-full p-0"
                   >
                     <Avatar className="h-9 w-9 text-black dark:text-white">
@@ -324,11 +356,9 @@ const Navbar = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   className="w-56"
-                  align={currentLocale == "ar" ? "start" : "end"}
+                  align={currentLocale === "ar" ? "start" : "end"}
                   forceMount
                 >
-                  {" "}
-                  {/* Changed align to end for better LTR/RTL */}
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
@@ -346,25 +376,24 @@ const Navbar = () => {
                   >
                     {user.is_super || user.is_staff ? (
                       <>
-                        <UserCircleIcon className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
+                        <UserCircleIcon className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
                         <span>{tNav("dashboard")}</span>
                       </>
                     ) : (
                       <>
-                        <PencilIcon className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
+                        <PencilIcon className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
                         <span>{tNav("studyPreview")}</span>
                       </>
                     )}
                   </DropdownMenuItem>
-                  {/* Example: Add Settings Link */}
                   <DropdownMenuItem
                     onClick={() => {
-                      router.push(PATHS.SETTINGS);
+                      router.push(PATHS.SETTINGS.HOME);
                       closeMobileMenu();
                     }}
                     className="cursor-pointer"
                   >
-                    <Cog6ToothIcon className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />{" "}
+                    <Cog6ToothIcon className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />{" "}
                     <span>{tNav("settings")}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -372,7 +401,7 @@ const Navbar = () => {
                     onClick={handleLogout}
                     className="cursor-pointer text-red-600 focus:bg-red-500/10 focus:text-red-600"
                   >
-                    <ArrowRightOnRectangleIcon className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
+                    <ArrowRightOnRectangleIcon className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
                     <span>{tAuth("logout")}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -384,7 +413,7 @@ const Navbar = () => {
                   onClick={openSignup}
                   aria-label={tAuth("signup")}
                 >
-                  <UserPlusIcon className="ml-1 h-5 w-5 rtl:ml-0 rtl:mr-1" />
+                  <UserPlusIcon className="ms-1 h-5 w-5 rtl:me-1 rtl:ms-0" />
                   <span className="hidden lg:inline">{tAuth("signup")}</span>
                 </button>
                 <button
@@ -392,7 +421,7 @@ const Navbar = () => {
                   onClick={openLogin}
                   aria-label={tAuth("login")}
                 >
-                  <UserSolidIcon className="ml-1 h-5 w-5 rtl:ml-0 rtl:mr-1" />
+                  <UserSolidIcon className="ms-1 h-5 w-5 rtl:me-1 rtl:ms-0" />
                   <span className="lg:inline">{tAuth("login")}</span>
                 </button>
               </>
@@ -402,6 +431,7 @@ const Navbar = () => {
 
         {isMobileMenuOpen && (
           <div className="absolute left-0 top-full z-40 w-full bg-background shadow-md transition-transform duration-300 ease-in-out dark:bg-[#081028] md:hidden">
+            {/* ... (Mobile nav links remain the same) ... */}
             <ul className="flex flex-col items-start gap-1 px-5 py-4">
               {navLinks.map((item) => {
                 const Icon = item.icon;
@@ -434,6 +464,7 @@ const Navbar = () => {
             </ul>
 
             <div className="flex flex-col items-center gap-4 border-t border-border p-5">
+              {/* ... (Mobile auth buttons / User info remain the same) ... */}
               {isAuthenticated && user ? (
                 <>
                   <div className="mb-3 flex w-full items-center justify-center gap-3">
@@ -448,9 +479,9 @@ const Navbar = () => {
                           .toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="text-right rtl:text-left">
+                    <div className="text-start rtl:text-end">
                       {" "}
-                      {/* Adjust text alignment for RTL */}
+                      {/* Ensure text alignment respects LTR/RTL */}
                       <p className="text-sm font-semibold text-foreground">
                         {user.preferred_name || user.full_name}
                       </p>
@@ -468,12 +499,24 @@ const Navbar = () => {
                       ? tNav("dashboard")
                       : tNav("studyPreview")}
                   </Button>
+                  {/* Add Settings Link to Mobile Menu */}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      router.push(PATHS.SETTINGS.HOME);
+                      closeMobileMenu();
+                    }}
+                  >
+                    <Cog6ToothIcon className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />{" "}
+                    {tNav("settings")}
+                  </Button>
                   <Button
                     variant="destructive"
                     className="w-full"
                     onClick={handleLogout}
                   >
-                    <ArrowRightOnRectangleIcon className="ml-2 h-5 w-5 rtl:ml-0 rtl:mr-2" />
+                    <ArrowRightOnRectangleIcon className="ms-2 h-5 w-5 rtl:me-2 rtl:ms-0" />
                     {tAuth("logout")}
                   </Button>
                 </>
@@ -484,7 +527,8 @@ const Navbar = () => {
                     onClick={openLogin}
                     aria-label={tAuth("login")}
                   >
-                    <UserSolidIcon className="h-5 w-5" />
+                    {" "}
+                    <UserSolidIcon className="h-5 w-5" />{" "}
                     <span>{tAuth("login")}</span>
                   </button>
                   <button
@@ -492,13 +536,21 @@ const Navbar = () => {
                     onClick={openSignup}
                     aria-label={tAuth("signup")}
                   >
-                    <UserPlusIcon className="h-5 w-5" />
+                    {" "}
+                    <UserPlusIcon className="h-5 w-5" />{" "}
                     <span>{tAuth("signup")}</span>
                   </button>
                 </>
               )}
-              <div className="flex w-full justify-center pt-2">
-                <ThemeToggle />
+              {/* Language Switcher and Theme Toggle in Mobile Menu */}
+              <div className="mt-4 w-full space-y-3 border-t border-border pt-4">
+                <LanguageSwitcher inMobileMenu={true} />
+                <div className="flex w-full justify-start">
+                  {" "}
+                  {/* Align theme toggle like language switcher */}
+                  <ThemeToggle />{" "}
+                  {/* Assuming ThemeToggle also has a "full width" or similar mode if needed, or style appropriately */}
+                </div>
               </div>
             </div>
           </div>

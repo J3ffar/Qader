@@ -46,7 +46,7 @@ const UserSidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       : locale === "ar"
       ? ChevronLeftIcon
       : ChevronRightIcon;
-    return <Icon className="h-8 w-8" />;
+    return <Icon className="h-4 w-4" />;
   };
 
   const renderMenuItem = (item: SidebarNavItem) => {
@@ -121,8 +121,8 @@ const UserSidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
           // Let's try to replicate original `-left-3 top-32` which means it was always on the left of the sidebar.
           // This implies the sidebar itself might have been on the right, or the button was meant to be on the viewport's left edge.
           // For simplicity and common pattern, placing it on the *outer edge* of the sidebar:
-          "top-40 -translate-y-1/2", // Centered vertically
-          "ltr:-right-3 rtl:-left-3" // Original intention seems to be this relative to sidebar body
+          "top-30 -translate-y-1/2", // Centered vertically
+          "ltr:-right-3 rtl:-left-3 transition-all" // Original intention seems to be this relative to sidebar body
         )}
         aria-label={
           isOpen

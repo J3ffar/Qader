@@ -124,7 +124,7 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
             <input
               type="text"
               placeholder={tNav("searchPlaceholder")}
-              className="flex-1 bg-transparent p-2 text-right placeholder:text-muted-foreground focus:outline-none"
+              className="flex-1 bg-transparent p-2 placeholder:text-muted-foreground focus:outline-none ltr:text-left rtl:text-right"
             />
           </div>
           <button className="ml-2 mr-2 rounded-lg bg-primary p-2 text-primary-foreground transition hover:bg-primary/70">
