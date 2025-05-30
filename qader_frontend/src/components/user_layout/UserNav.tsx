@@ -118,16 +118,16 @@ const UserNavbar = ({ isOpen }: UserNavbarProps) => {
       {/* Input + Search Button */}
       <div className="flex flex-col-reverse items-center justify-between gap-6 p-4 lg:h-[70px] lg:flex-row lg:gap-0">
         {/* Search Bar */}
-        <div className="flex w-full flex-1 items-center justify-center lg:w-auto">
+        <div className="flex w-full flex-1 items-center justify-start lg:w-auto">
           <div className="flex w-full max-w-md items-center overflow-hidden rounded-lg border bg-card dark:bg-transparent">
-            <MagnifyingGlassIcon className="mr-2 h-5 w-5 text-muted-foreground" />
+            <MagnifyingGlassIcon className="h-5 w-5 text-muted-foreground ltr:ml-2 rtl:mr-2" />
             <input
               type="text"
               placeholder={tNav("searchPlaceholder")}
               className="flex-1 bg-transparent p-2 text-right placeholder:text-muted-foreground focus:outline-none"
             />
           </div>
-          <button className="ml-2 mr-2 rounded-lg bg-primary p-2 text-primary-foreground transition hover:bg-primary/90">
+          <button className="ml-2 mr-2 rounded-lg bg-primary p-2 text-primary-foreground transition hover:bg-primary/70">
             <MagnifyingGlassIcon className="h-6 w-6" />
           </button>
         </div>

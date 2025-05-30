@@ -13,6 +13,14 @@
   "settings": "الإعدادات",
   "viewProfile": "عرض الملف الشخصي",
 
+  "UserDropdown": {
+    "settings": "الإعدادات",
+    "emergencyMode": "وضع الطوارئ",
+    "themes": "السمات",
+    "adminSupport": "الدعم الإدارى",
+    "logout": "تسجيل خروج"
+  },
+
   "UserNav": {
     "searchPlaceholder": "اكتب سؤالك هنا...",
     "greeting": "صباح الخير!",
@@ -56,6 +64,7 @@
     "ShapContain": {
       "title": "ابدأ التعلم لكسب المزيد من النقاط",
       "description": "هذه هى جميع نقاط الاسبوع التى جمعتها.",
+      "noActivity": "لم يتم الحصول على اي نقاط خلال هذه الفترة",
       "pointsSuffix": "نقطة",
       "viewAllButton": "عرض الكل",
       "errorLoading": "خطأ في تحميل بيانات النقاط.",
@@ -87,11 +96,20 @@
       }
     }
   },
-  "UserDropdown": {
-    "settings": "الإعدادات",
-    "emergencyMode": "وضع الطوارئ",
-    "themes": "السمات",
-    "adminSupport": "الدعم الإدارى",
-    "logout": "تسجيل خروج"
+  "UserSideBar": {
+    "study": {
+      "determine-level": "تحديد المستوى",
+      "traditional-learning": "التعلم التقليدي",
+      "emergency-mode": "وضع الطوارئ",
+      "conversational-learning": "التعلم عبر المحادثة",
+      "tests": "الاختبارات",
+      "blog": "المدونة",
+      "statistics": "الإحصائيات",
+      "settings": "الإعدادات والاشتراك",
+      "rewards-and-competitions": "مكافآت ومسابقات المذاكرة",
+      "challenge-colleagues": "تحدي الزملاء",
+      "community": "مجتمع الطلاب",
+      "admin-support": "دعم الإدارة"
+    }
   }
 }

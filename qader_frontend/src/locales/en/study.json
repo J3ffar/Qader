@@ -1,0 +1,40 @@
+{
+  "StudyPage": {
+    "completeProfile": {
+      "title": "Complete Your Profile",
+      "description": "Welcome to Qader! Please complete your profile to get started with your personalized learning journey.",
+      "button": "Complete Profile"
+    },
+    "determineLevel": {
+      "title": "Determine Your Level",
+      "description": "Great! Your profile is set up. Now, let's determine your current academic level to tailor your study plan.",
+      "button": "Determine Level"
+    },
+    "errorLoadingUserTitle": "Error Loading User Data",
+    "errorLoadingUserMessage": "We couldn't load your information. Please try logging in again.",
+    "dashboard": {
+      "welcomeMessage": "Welcome back, {name}!",
+      "welcomeSubMessage": "Ready to conquer your goals today?",
+      "quickStats": {
+        "pointsTitle": "Your Points",
+        "pointsSubtitle": "Keep earning by engaging!",
+        "streakTitle": "Study Streak",
+        "streakSubtitle": "Keep the flame alive!",
+        "days": "Days"
+      },
+      "quickActions": {
+        "title": "What's Next?",
+        "continueLearningTitle": "Continue: {section}",
+        "continueLearningDescription": "Pick up where you left off in your studies.",
+        "startTraditionalLearningTitle": "Traditional Learning",
+        "startTraditionalLearningDescription": "Practice questions by topic and skill.",
+        "traditionalLearningTitle": "Traditional Learning",
+        "traditionalLearningDescription": "Master concepts with targeted practice.",
+        "viewStatisticsTitle": "View Your Statistics",
+        "viewStatisticsDescription": "Track your progress and performance.",
+        "checkRewardsTitle": "Study Rewards",
+        "checkRewardsDescription": "Explore badges and rewards you've earned."
+      }
+    }
+  }
+}

@@ -27,6 +27,7 @@ export default getRequestConfig(
           .default,
         Auth: (await import(`@/locales/${resolvedLocale}/auth.json`)).default,
         Nav: (await import(`@/locales/${resolvedLocale}/nav.json`)).default,
+        Study: (await import(`@/locales/${resolvedLocale}/study.json`)).default,
         // Add other namespaces as they are created
         // Example: Study: (await import(`../locales/${resolvedLocale}/study.json`)).default,
       };

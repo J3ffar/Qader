@@ -1,0 +1,40 @@
+{
+  "StudyPage": {
+    "completeProfile": {
+      "title": "أكمل ملفك الشخصي",
+      "description": "مرحباً بك في قادر! يرجى إكمال ملفك الشخصي لتبدأ رحلتك التعليمية المخصصة.",
+      "button": "إكمال الملف الشخصي"
+    },
+    "determineLevel": {
+      "title": "تحديد مستواك",
+      "description": "رائع! تم إعداد ملفك الشخصي. الآن، دعنا نحدد مستواك الأكاديمي الحالي لتصميم خطتك الدراسية.",
+      "button": "تحديد المستوى"
+    },
+    "errorLoadingUserTitle": "خطأ في تحميل بيانات المستخدم",
+    "errorLoadingUserMessage": "لم نتمكن من تحميل معلوماتك. يرجى محاولة تسجيل الدخول مرة أخرى.",
+    "dashboard": {
+      "welcomeMessage": "أهلاً بعودتك، {name}!",
+      "welcomeSubMessage": "هل أنت مستعد لتحقيق أهدافك اليوم؟",
+      "quickStats": {
+        "pointsTitle": "نقاطك",
+        "pointsSubtitle": "استمر في الكسب عبر التفاعل!",
+        "streakTitle": "أيام المذاكرة المتتالية",
+        "streakSubtitle": "حافظ على هذا الحماس!",
+        "days": "أيام"
+      },
+      "quickActions": {
+        "title": "خطوتك التالية؟",
+        "continueLearningTitle": "أكمل: {section}",
+        "continueLearningDescription": "أكمل من حيث توقفت في دراستك.",
+        "startTraditionalLearningTitle": "التعلم التقليدي",
+        "startTraditionalLearningDescription": "تدرب على الأسئلة حسب الموضوع والمهارة.",
+        "traditionalLearningTitle": "التعلم التقليدي",
+        "traditionalLearningDescription": "أتقن المفاهيم عبر التدريب الموجّه.",
+        "viewStatisticsTitle": "عرض إحصائياتك",
+        "viewStatisticsDescription": "تتبع تقدمك وأدائك.",
+        "checkRewardsTitle": "مكافآت المذاكرة",
+        "checkRewardsDescription": "استكشف الأوسمة والمكافآت التي حصلت عليها."
+      }
+    }
+  }
+}

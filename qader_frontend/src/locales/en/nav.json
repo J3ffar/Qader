@@ -13,6 +13,13 @@
   "settings": "Settings",
   "viewProfile": "View Profile",
 
+  "UserDropdown": {
+    "settings": "Settings",
+    "emergencyMode": "Emergency Mode",
+    "themes": "Themes",
+    "adminSupport": "Admin Support",
+    "logout": "Logout"
+  },
   "UserNav": {
     "searchPlaceholder": "Type your question here...",
     "greeting": "Good morning!",
@@ -54,6 +61,7 @@
     "ShapContain": {
       "title": "Start Learning to Earn More Points",
       "description": "These are all the points you've collected this week.",
+      "noActivity": "No points were earned during this period.",
       "pointsSuffix": "points",
       "viewAllButton": "View All",
       "errorLoading": "Error loading points data.",
@@ -84,11 +92,20 @@
       }
     }
   },
-  "UserDropdown": {
-    "settings": "Settings",
-    "emergencyMode": "Emergency Mode",
-    "themes": "Themes",
-    "adminSupport": "Admin Support",
-    "logout": "Logout"
+  "UserSideBar": {
+    "study": {
+      "determine-level": "Determine Level",
+      "traditional-learning": "Traditional Learning",
+      "emergency-mode": "Emergency Mode",
+      "conversational-learning": "Learning via Conversation",
+      "tests": "Tests",
+      "blog": "Blog",
+      "statistics": "Statistics",
+      "settings": "Settings and Subscription",
+      "rewards-and-competitions": "Study Rewards and Competitions",
+      "challenge-colleagues": "Challenge Colleagues",
+      "community": "Student Community",
+      "admin-support": "Admin Support"
+    }
   }
 }
