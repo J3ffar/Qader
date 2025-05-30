@@ -136,9 +136,7 @@ const BellShap = ({ showBellDropdown }: { showBellDropdown: boolean }) => {
         {" "}
         {/* Adjust height as needed */}
         {isLoading &&
-          Array.from({ length: 3 }).map((_, index) =>
-            renderSkeletonItem(index)
-          )}
+          Array.from({ length: 3 }).map((_, index) => renderSkeletonItem())}
         {!isLoading && !isError && notifications.length === 0 && (
           <p className="py-10 text-center text-muted-foreground">
             {t("noNotifications")}
