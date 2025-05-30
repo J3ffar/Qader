@@ -73,22 +73,21 @@ const BellShap = ({ showBellDropdown }: { showBellDropdown: boolean }) => {
       legacyBehavior
     >
       <a className="block rounded-md border-t border-border px-2 py-3 transition-colors hover:bg-muted dark:hover:bg-muted/50">
-        <div className="flex items-center gap-2">
+        <div className="flex items-start justify-between gap-2">
           {/* You might want a generic notification icon or one based on notification.actor.profile_picture_url */}
           <Image
             src={
-              notification.actor?.profile_picture_url ||
-              "/images/qader_logo_placeholder.png"
+              notification.actor?.profile_picture_url || "/images/logoside.png"
             } // Fallback icon
-            width={30}
-            height={30}
+            width={42}
+            height={42}
             alt={notification.actor?.full_name || "Notification"}
-            className="rounded-full"
+            className="rounded-full border"
           />
-          <div className="flex-1">
+          <div className="flex-1 ltr:text-left rtl:text-right">
             <p className="text-sm font-semibold">{notification.verb}</p>
             {notification.description && (
-              <p className="max-w-xs truncate text-xs text-muted-foreground">
+              <p className="max-w-xs text-xs text-muted-foreground">
                 {notification.description}
               </p>
             )}
