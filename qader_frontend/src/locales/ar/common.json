@@ -10,8 +10,10 @@
   "hidePassword": "إخفاء كلمة المرور",
   "yes": "نعم",
   "no": "لا",
+  "reviewTest": "مراجعة الاختبار",
 
   "language": "اللغة",
+  "selectLanguage": "اختر لغة",
   "arabic": "العربية",
   "english": "English",
 

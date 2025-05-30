@@ -141,22 +141,33 @@
       "viewScore": "عرض النتيجة النهائية"
     },
     "score": {
-      "title": "نتيجة الاختبار",
+      "title": "نتيجة اختبار تحديد المستوى",
       "yourScoreIsReady": "نتيجتك في الاختبار جاهزة!",
       "overallScore": "النتيجة الإجمالية:",
-      "verbalScore": "القسم اللفظي:",
-      "quantitativeScore": "القسم الكمي:",
+      "verbalSection": "القسم اللفظي",
+      "quantitativeSection": "القسم الكمي",
+      "scoreDistribution": "توزيع الدرجات",
       "timeTaken": "الوقت المستغرق",
       "currentLevel": "مستواك الحالي",
-      "adviceDefault": "واصل التقدم!",
-      "adviceReviewVerbal": "ينصح بمراجعة قسم القواعد اللفظية",
-      "adviceReviewQuantitative": "ينصح بمراجعة قسم المسائل الكمية",
-      "minutes": "دقيقة"
+      "adviceDefault": "أداء رائع! استمر في التقدم والتعلم.",
+      "adviceReviewVerbal": "تحتاج إلى التركيز أكثر على القسم اللفظي. قم بمراجعة الأسئلة المتعلقة به.",
+      "adviceReviewQuantitative": "تحتاج إلى التركيز أكثر على القسم الكمي. قم بمراجعة الأسئلة المتعلقة به.",
+      "minutes": "دقيقة",
+      "retakeTest": "إعادة الاختبار",
+      "noScoreDataForChart": "لا توجد بيانات درجات كافية لعرض المخطط.",
+      "errors": {
+        "fetchReviewFailed": "فشل تحميل بيانات مراجعة الاختبار. قد يكون الاختبار غير مكتمل أو حدث خطأ."
+      },
+      "api": {
+        "retakeSuccess": "تم إنشاء اختبار جديد بنجاح! جاري توجيهك...",
+        "retakeError": "فشل إنشاء اختبار جديد: {error}"
+      }
     },
     "badgeColors": {
       "excellent": "ممتاز",
       "veryGood": "جيد جداً",
       "good": "جيد",
+      "acceptable": "مقبول",
       "weak": "ضعيف",
       "default": "غير محدد"
     },

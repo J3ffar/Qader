@@ -141,22 +141,33 @@
       "viewScore": "View Final Score"
     },
     "score": {
-      "title": "Test Result",
+      "title": "Level Assessment Test Result",
       "yourScoreIsReady": "Your test result is ready!",
       "overallScore": "Overall Score:",
-      "verbalScore": "Verbal Section:",
-      "quantitativeScore": "Quantitative Section:",
+      "verbalSection": "Verbal Section",
+      "quantitativeSection": "Quantitative Section",
+      "scoreDistribution": "Score Distribution",
       "timeTaken": "Time Taken",
       "currentLevel": "Your Current Level",
-      "adviceDefault": "Keep progressing!",
-      "adviceReviewVerbal": "It is recommended to review the verbal rules section.",
-      "adviceReviewQuantitative": "It is recommended to review the quantitative problems section.",
-      "minutes": "minute(s)"
+      "adviceDefault": "Great performance! Keep progressing and learning.",
+      "adviceReviewVerbal": "You need to focus more on the Verbal section. Review the related questions.",
+      "adviceReviewQuantitative": "You need to focus more on the Quantitative section. Review the related questions.",
+      "minutes": "minute(s)",
+      "retakeTest": "Retake Test",
+      "noScoreDataForChart": "Not enough score data to display the chart.",
+      "errors": {
+        "fetchReviewFailed": "Failed to load test review data. The test might be incomplete or an error occurred."
+      },
+      "api": {
+        "retakeSuccess": "New test created successfully! Redirecting you...",
+        "retakeError": "Failed to create a new test: {error}"
+      }
     },
     "badgeColors": {
       "excellent": "Excellent",
       "veryGood": "Very Good",
       "good": "Good",
+      "acceptable": "Acceptable",
       "weak": "Weak",
       "default": "Not Specified"
     },

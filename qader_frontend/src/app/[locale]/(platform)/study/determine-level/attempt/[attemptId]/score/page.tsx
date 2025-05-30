@@ -1,160 +1,279 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { ClockIcon } from "@heroicons/react/24/outline";
-import { BadgeCheck, RefreshCcw } from "lucide-react";
+import React from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Clock,
+  FileText,
+  Loader2,
+  RefreshCcw,
+  ArrowLeft,
+  ArrowRight,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import ScorePieChart from "@/components/features/study/determine-level/ScorePieChart";
 
+import {
+  getTestAttemptReview,
+  retakeTestAttempt,
+} from "@/services/study.service";
+import { QUERY_KEYS } from "@/constants/queryKeys";
+import { PATHS } from "@/constants/paths";
+import { UserTestAttemptReview } from "@/types/api/study.types";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
+// Helper to determine qualitative level from percentage
+const getQualitativeLevel = (
+  percentage: number | null | undefined,
+  tBadge: any
+): string => {
+  if (percentage === null || percentage === undefined) return tBadge("default");
+  if (percentage >= 90) return tBadge("excellent");
+  if (percentage >= 80) return tBadge("veryGood");
+  if (percentage >= 70) return tBadge("good");
+  if (percentage >= 50) return tBadge("acceptable"); // Added acceptable
+  return tBadge("weak");
+};
 
-const TestResultOverview: React.FC<any> = () => {
-  const [score, setScore] = useState(70);
-  const [verbalScore, setVerbalScore] = useState(25);
-  const [quantScore, setQuantScore] = useState(62);
+const LevelAssessmentScorePage = () => {
+  const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const t = useTranslations("Study.determineLevel.score");
+  const tBadge = useTranslations("Study.determineLevel.badgeColors");
+  const tCommon = useTranslations("Common");
+  const locale = params.locale as string;
 
-  // Fallback ID for dev/test
-  const id = 1234;
+  const attemptId = params.attemptId as string;
 
-  const pieData = [
-    { name: "الكمي", value: quantScore, color: "#074182" },
-    { name: "اللفظي", value: verbalScore, color: "#E6B11D" },
-  ];
+  const {
+    data: reviewData,
+    isLoading,
+    error,
+  } = useQuery<UserTestAttemptReview, Error, UserTestAttemptReview, string[]>({
+    queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_REVIEW, attemptId],
+    queryFn: () => getTestAttemptReview(attemptId),
+    enabled: !!attemptId,
+    staleTime: 5 * 60 * 1000, // Scores don't change often for a completed attempt
+  });
 
-  useEffect(() => {
-    const fetchReviewData = async () => {
-      try {
-        const token = localStorage.getItem("accessToken");
-        const response = await axios.get(
-          `https://qader.vip/ar/api/v1/study/attempts/${id}/review/`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+  const retakeMutation = useMutation({
+    mutationFn: () => retakeTestAttempt(attemptId),
+    onSuccess: (data) => {
+      toast.success(t("api.retakeSuccess"));
+      // Invalidate list to show new "started" attempt if API updates it.
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
+      });
+      // Navigate to the new attempt
+      router.push(PATHS.STUDY.DETERMINE_LEVEL.ATTEMPT(data.attempt_id));
+    },
+    onError: (err: any) => {
+      const errorMsg = getApiErrorMessage(err, tCommon("errors.generic"));
+      toast.error(t("api.retakeError", { error: errorMsg }));
+    },
+  });
 
-        const data = response.data;
-        setScore(data.score_percentage || 70);
-        setVerbalScore(data.score_verbal || 25);
-        setQuantScore(data.score_quantitative || 62);
-      } catch (error) {
-        console.error("Error fetching review data:", error);
-      }
-    };
-
-    fetchReviewData();
-  }, [id]);
-
-  const handleRetake = async () => {
-    try {
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.post(
-        `https://qader.vip/ar/api/v1/study/attempts/${id}/retake/`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const newAttemptId = response.data.attempt_id;
-      router.push(`/student/level/questions/${newAttemptId}`);
-    } catch (error) {
-      console.error("Failed to retake test:", error);
-    }
+  const handleRetakeTest = () => {
+    retakeMutation.mutate();
   };
 
-  return (
-    <div className="mx-auto p-4 space-y-6 bg-white shadow-md rounded-xl dark:bg-[#081028]">
-      <h2 className="text-center text-lg font-bold text-gray-900 dark:text-white">
-        نتيجتك في الاختبار جاهزة!
-      </h2>
+  if (isLoading) return <ScorePageSkeleton />;
 
-      {/* Score Display */}
-      <div className="flex justify-center">
-        <div className="bg-[#0D99FF] text-white font-bold py-2 px-6 rounded-full text-lg">
-          {score}/100
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
-        <div className="border rounded-lg py-4 px-2 text-sm shadow-sm">
-          <ClockIcon className="w-5 h-5 mx-auto text-gray-600 dark:text-gray-300" />
-          <p className="text-gray-700 dark:text-gray-300 mt-1">الوقت المستغرق</p>
-          <p className="font-bold text-[#0D99FF]">20 دقيقة</p>
-        </div>
-        <div className="border rounded-lg py-4 px-2 text-sm shadow-sm">
-          <BadgeCheck className="w-5 h-5 mx-auto text-gray-600 dark:text-gray-300" />
-          <p className="text-gray-700 dark:text-gray-300 mt-1">مستواك الحالي</p>
-          <p className="font-bold text-[#E6B11D]">جيد</p>
-        </div>
-      </div>
-
-      {/* Chart + Labels */}
-      <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
-        <div className="w-full lg:w-1/2 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={pieData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-              >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="flex text-sm gap-6 justify-center items-center">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-[#074182]"></div>
-          <p>الكمي - {quantScore}%</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-[#E6B11D]"></div>
-          <p>اللفظي - {verbalScore}%</p>
-        </div>
-      </div>
-
-      <div className="text-center">
-        <p className="text-red-600 font-semibold mt-4">
-          ينصح بمراجعة قسم القواعد اللفظية
-        </p>
-      </div>
-
-      <div className="flex justify-center flex-wrap gap-4 mt-4">
-        <a href={`/student/level/questions/${id}/results`}>
-          <button className="flex justify-center items-center gap-2 min-[1120px]:py-3 min-[1120px]:px-4 p-2 rounded-[8px] bg-[#074182] dark:bg-[#074182] text-[#FDFDFD] font-[600] hover:bg-[#074182DF] dark:hover:bg-[#074182DF] transition-all cursor-pointer">
-            مراجعة الاختبار
-          </button>
-        </a>
-        <a href="/student/level/questions">
-        <button
-          onClick={handleRetake}
-          className="flex justify-center items-center gap-2 min-[1120px]:py-2.5 min-[1120px]:px-4 p-2 rounded-[8px] bg-transparent border-[1.5px] border-[#074182] text-[#074182] dark:border-[#3D93F5] dark:text-[#3D93F5] font-[600] hover:bg-[#07418211] dark:hover:bg-[#3D93F511] transition-all cursor-pointer"
+  if (error || !reviewData) {
+    return (
+      <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
+        <Alert variant="destructive" className="max-w-md text-center">
+          <AlertTriangle className="mx-auto mb-2 h-5 w-5" />
+          <AlertTitle>{tCommon("errors.fetchFailedTitle")}</AlertTitle>
+          <AlertDescription>
+            {getApiErrorMessage(error, t("errors.fetchReviewFailed"))}
+          </AlertDescription>
+        </Alert>
+        <Button
+          onClick={() => router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST)}
+          variant="outline"
+          className="mt-6"
         >
-          <RefreshCcw className="w-4 h-4 ml-2" />
-          إعادة الاختبار
-        </button>
-        </a>
+          {locale === "ar" ? (
+            <ArrowRight className="me-2 h-4 w-4" />
+          ) : (
+            <ArrowLeft className="me-2 h-4 w-4" />
+          )}
+          {tCommon("backToList")}
+        </Button>
       </div>
+    );
+  }
+
+  // Extract data - API might put these in reviewData.results_summary or directly
+  const overallScore = reviewData.score_percentage;
+  const verbalScore = reviewData.score_verbal;
+  const quantitativeScore = reviewData.score_quantitative;
+
+  // These might need to be derived or come from results_summary
+  const timeTakenMinutes = reviewData.results_summary?.time_taken_minutes || 20; // Default or calculate
+  const currentLevelDisplay = getQualitativeLevel(overallScore, tBadge); // Use helper
+
+  let advice = reviewData.results_summary?.smart_analysis || t("adviceDefault");
+  if (!advice && overallScore !== null && overallScore !== undefined) {
+    if (
+      verbalScore !== null &&
+      quantitativeScore !== null &&
+      verbalScore < quantitativeScore &&
+      verbalScore < 70
+    ) {
+      advice = t("adviceReviewVerbal");
+    } else if (
+      quantitativeScore !== null &&
+      verbalScore !== null &&
+      quantitativeScore < verbalScore &&
+      quantitativeScore < 70
+    ) {
+      advice = t("adviceReviewQuantitative");
+    }
+  }
+
+  return (
+    <div className="container mx-auto p-4 md:p-6 lg:p-8">
+      <Card className="mx-auto max-w-3xl shadow-xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">
+            {t("yourScoreIsReady")}
+          </CardTitle>
+          {overallScore !== null && overallScore !== undefined && (
+            <div className="mt-4">
+              <span className="rounded-full bg-primary px-6 py-2 text-xl font-bold text-primary-foreground">
+                {overallScore.toFixed(0)}/100
+              </span>
+            </div>
+          )}
+        </CardHeader>
+
+        <CardContent className="space-y-8">
+          <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2">
+            <Card className="p-4">
+              <Clock className="mx-auto mb-2 h-7 w-7 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">{t("timeTaken")}</p>
+              <p className="text-lg font-bold text-primary">
+                {timeTakenMinutes} {t("minutes")}
+              </p>
+            </Card>
+            <Card className="p-4">
+              <BadgeCheck className="mx-auto mb-2 h-7 w-7 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                {t("currentLevel")}
+              </p>
+              <p className="text-lg font-bold text-yellow-500">
+                {currentLevelDisplay}
+              </p>
+            </Card>
+          </div>
+
+          {(verbalScore !== null || quantitativeScore !== null) && (
+            <div className="mt-6">
+              <h3 className="mb-4 text-center text-xl font-semibold">
+                {t("scoreDistribution")}
+              </h3>
+              <ScorePieChart
+                verbalScore={verbalScore}
+                quantitativeScore={quantitativeScore}
+              />
+            </div>
+          )}
+
+          {advice && (
+            <Alert
+              variant={
+                advice === t("adviceDefault") ? "default" : "destructive"
+              }
+              className="text-center"
+            >
+              <AlertTriangle className="me-1 inline h-4 w-4" />
+              <AlertDescription>{advice}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+
+        <CardFooter className="flex flex-col justify-center gap-4 pt-8 sm:flex-row">
+          <Button asChild variant="default" size="lg">
+            <Link href={PATHS.STUDY.DETERMINE_LEVEL.REVIEW(attemptId)}>
+              <FileText className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />{" "}
+              {tCommon("reviewTest")}
+            </Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleRetakeTest}
+            disabled={retakeMutation.isPending}
+          >
+            {retakeMutation.isPending && (
+              <Loader2 className="me-2 h-5 w-5 animate-spin rtl:me-0 rtl:ms-2" />
+            )}
+            <RefreshCcw className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />{" "}
+            {t("retakeTest")}
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 };
 
-export default TestResultOverview;
+const ScorePageSkeleton = () => {
+  return (
+    <div className="container mx-auto p-4 md:p-6 lg:p-8">
+      <Card className="mx-auto max-w-3xl">
+        <CardHeader className="text-center">
+          <Skeleton className="mx-auto mb-4 h-8 w-3/5" /> {/* Title */}
+          <Skeleton className="mx-auto h-10 w-28 rounded-full" />{" "}
+          {/* Score badge */}
+        </CardHeader>
+        <CardContent className="space-y-8">
+          <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2">
+            <Card className="p-4">
+              <Skeleton className="mx-auto mb-2 h-7 w-7 rounded-full" />
+              <Skeleton className="mx-auto mb-1 h-4 w-20" />
+              <Skeleton className="mx-auto h-6 w-16" />
+            </Card>
+            <Card className="p-4">
+              <Skeleton className="mx-auto mb-2 h-7 w-7 rounded-full" />
+              <Skeleton className="mx-auto mb-1 h-4 w-24" />
+              <Skeleton className="mx-auto h-6 w-12" />
+            </Card>
+          </div>
+          <div>
+            <Skeleton className="mx-auto mb-4 h-6 w-1/3" /> {/* Chart title */}
+            <Skeleton className="h-64 w-full rounded-md" />{" "}
+            {/* Chart placeholder */}
+          </div>
+          <Skeleton className="h-10 w-full rounded-md" />{" "}
+          {/* Advice placeholder */}
+        </CardContent>
+        <CardFooter className="flex flex-col justify-center gap-4 pt-8 sm:flex-row">
+          <Skeleton className="h-12 w-36" />
+          <Skeleton className="h-12 w-36" />
+        </CardFooter>
+      </Card>
+    </div>
+  );
+};
+
+export default LevelAssessmentScorePage;
