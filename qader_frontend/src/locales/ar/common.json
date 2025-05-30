@@ -21,5 +21,10 @@
     "goHomeButton": "العودة إلى الرئيسية",
     "contactSupportButton": "اتصل بالدعم",
     "errorCode": "رمز الخطأ: 404"
+  },
+
+  "errors": {
+    "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "fetchFailedTitle": "فشل جلب البيانات"
   }
 }

@@ -99,6 +99,7 @@
       }
     },
     "quiz": {
+      "title": "اختبار تحديد المستوى",
       "question": "سؤال",
       "outOf": "من",
       "next": "التالي",
@@ -107,7 +108,29 @@
       "confirmAnswer": "تأكيد الإجابة",
       "endTest": "إنهاء الاختبار",
       "timeLeft": "الوقت المتبقي:",
-      "timeOver": "الوقت انتهى!"
+      "timeOver": "انتهى الوقت المخصص للاختبار!",
+      "testAlreadyCompletedRedirecting": "تم إكمال هذا الاختبار بالفعل. جاري إعادة توجيهك...",
+      "noQuestionsTitle": "لا توجد أسئلة",
+      "noQuestionsDescription": "تعذر تحميل أسئلة هذا الاختبار. قد يكون الاختبار غير صالح أو حدث خطأ ما.",
+      "loadingQuestionDetails": "جاري تحميل تفاصيل السؤال...",
+      "noQuestionsApiError": "حدث خطأ أثناء جلب أسئلة الاختبار من الخادم.",
+      "api": {
+        "answerSubmitError": "فشل إرسال إجابة السؤال {questionId}: {error}",
+        "testCompletedSuccess": "تم إكمال الاختبار بنجاح!",
+        "testCompleteError": "فشل إكمال الاختبار: {error}",
+        "testCancelledSuccess": "تم إلغاء الاختبار بنجاح.",
+        "testCancelError": "فشل إلغاء الاختبار: {error}"
+      },
+      "cancelDialog": {
+        "title": "إنهاء الاختبار؟",
+        "description": "هل أنت متأكد أنك تريد إنهاء الاختبار الحالي؟ سيتم حفظ تقدمك.",
+        "confirmButton": "نعم، إنهاء"
+      },
+      "completeDialog": {
+        "title": "إرسال الإجابات؟",
+        "description": "هل أنت متأكد أنك تريد إرسال جميع إجاباتك وإنهاء الاختبار؟",
+        "confirmButton": "نعم، إرسال"
+      }
     },
     "review": {
       "title": "مراجعة الاختبار",

@@ -57,9 +57,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
             onClick={onConfirm}
             disabled={isConfirming}
             className={
-              confirmButtonVariant
-                ? `bg-${confirmButtonVariant} hover:bg-${confirmButtonVariant}/90`
-                : ""
+              confirmButtonVariant ? `hover:bg-${confirmButtonVariant}/90` : ""
             }
           >
             {isConfirming && (

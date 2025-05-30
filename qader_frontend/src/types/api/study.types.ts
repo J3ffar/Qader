@@ -37,13 +37,10 @@ export type PaginatedUserTestAttempts = PaginatedResponse<UserTestAttemptBrief>;
 /**
  * Represents choices for a multiple-choice question.
  */
-export interface QuestionChoices {
-  A: string;
-  B: string;
-  C: string;
-  D: string;
-}
-
+export type QuestionOptionKey = "A" | "B" | "C" | "D";
+export type QuestionChoicesMap = {
+  [key in QuestionOptionKey]: string;
+};
 /**
  * Represents a question's structure.
  * API: Part of UserTestAttemptStartResponse, UserTestAttemptDetail, UserTestAttemptReviewQuestion
@@ -51,12 +48,21 @@ export interface QuestionChoices {
 export interface QuestionSchema {
   id: number; // question_id
   question_text: string;
-  choices: QuestionChoices; // Assuming options come as an object A, B, C, D
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
   // The following are typically available during/after an attempt or review
-  correct_answer?: keyof QuestionChoices; // "A", "B", "C", "D"
+  correct_answer?: keyof QuestionOptionKey; // "A", "B", "C", "D"
   explanation?: string | null;
   subsection_name?: string | null;
   skill_name?: string | null;
+  difficulty?: number;
+  hint?: string | null;
+  is_starred?: boolean;
+  solution_method_summary?: string | null;
+  subsection?: string; // Slug or name
+  skill?: string; // Slug or name
 }
 
 /**
@@ -84,7 +90,7 @@ export interface UserTestAttemptDetail extends UserTestAttemptBrief {
   attempted_questions: Array<{
     question_id: number;
     question_text_preview: string;
-    selected_answer: keyof QuestionChoices | null;
+    selected_answer: keyof QuestionOptionKey | null;
     is_correct: boolean | null;
     attempted_at: string; // ISO datetime
   }>;
@@ -98,7 +104,7 @@ export interface UserTestAttemptDetail extends UserTestAttemptBrief {
  */
 export interface SubmitAnswerPayload {
   question_id: number;
-  selected_answer: keyof QuestionChoices; // "A", "B", "C", "D"
+  selected_answer: keyof QuestionOptionKey; // "A", "B", "C", "D"
   time_taken_seconds?: number | null;
 }
 
@@ -109,7 +115,7 @@ export interface SubmitAnswerPayload {
 export interface SubmitAnswerResponse {
   question_id: number;
   is_correct: boolean;
-  correct_answer?: keyof QuestionChoices | null; // Revealed in some modes (e.g., Traditional)
+  correct_answer?: keyof QuestionOptionKey | null; // Revealed in some modes (e.g., Traditional)
   explanation?: string | null; // Revealed in some modes (e.g., Traditional)
   feedback_message: string; // General feedback like "Answer recorded"
 }
@@ -149,7 +155,7 @@ export interface TestAttemptCompletionResponse {
  * API: Part of UserTestAttemptReview
  */
 export interface UserTestAttemptReviewQuestion extends QuestionSchema {
-  user_answer: keyof QuestionChoices | null;
+  user_answer: keyof QuestionOptionKey | null;
   user_is_correct: boolean | null;
   // Fields specific to traditional mode or review context
   used_hint?: boolean | null;
@@ -194,6 +200,6 @@ export interface StartLevelAssessmentFormValues {
 // For the quiz page [attemptId]/page.tsx
 export interface QuizUserAnswer {
   questionId: number;
-  selectedOption: keyof QuestionChoices | null; // A, B, C, D
+  selectedOption: keyof QuestionOptionKey | null; // A, B, C, D
   isConfirmed?: boolean; // If using a two-step confirm like the old UI
 }

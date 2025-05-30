@@ -21,5 +21,10 @@
     "goHomeButton": "Go Back Home",
     "contactSupportButton": "Contact Support",
     "errorCode": "Error Code: 404"
+  },
+
+  "errors": {
+    "generic": "An error occurred. Please try again.",
+    "fetchFailedTitle": "Failed to fetch data"
   }
 }

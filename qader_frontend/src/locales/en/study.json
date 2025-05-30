@@ -99,6 +99,7 @@
       }
     },
     "quiz": {
+      "title": "Level Assessment Test",
       "question": "Question",
       "outOf": "of",
       "next": "Next",
@@ -107,7 +108,29 @@
       "confirmAnswer": "Confirm Answer",
       "endTest": "End Test",
       "timeLeft": "Time Left:",
-      "timeOver": "Time's Up!"
+      "timeOver": "The time allotted for the test has ended!",
+      "testAlreadyCompletedRedirecting": "This test has already been completed. Redirecting you...",
+      "noQuestionsTitle": "No Questions Available",
+      "noQuestionsDescription": "Could not load questions for this test. The test may be invalid or an error occurred.",
+      "loadingQuestionDetails": "Loading question details...",
+      "noQuestionsApiError": "An error occurred while fetching test questions from the server.",
+      "api": {
+        "answerSubmitError": "Failed to submit answer for question {questionId}: {error}",
+        "testCompletedSuccess": "Test completed successfully!",
+        "testCompleteError": "Failed to complete the test: {error}",
+        "testCancelledSuccess": "Test cancelled successfully.",
+        "testCancelError": "Failed to cancel the test: {error}"
+      },
+      "cancelDialog": {
+        "title": "End Test?",
+        "description": "Are you sure you want to end the current test? Your progress will be saved.",
+        "confirmButton": "Yes, End"
+      },
+      "completeDialog": {
+        "title": "Submit Answers?",
+        "description": "Are you sure you want to submit all your answers and finish the test?",
+        "confirmButton": "Yes, Submit"
+      }
     },
     "review": {
       "title": "Review Test",
