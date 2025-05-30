@@ -93,19 +93,27 @@
     }
   },
   "UserSideBar": {
+    "sections": {
+      "learning": "Learning",
+      "community": "Qader Community",
+      "settings": "Settings"
+    },
     "study": {
+      "home": "Dashboard",
       "determine-level": "Determine Level",
       "traditional-learning": "Traditional Learning",
       "emergency-mode": "Emergency Mode",
       "conversational-learning": "Learning via Conversation",
-      "tests": "Tests",
+      "tests": "Simulation Tests",
       "blog": "Blog",
       "statistics": "Statistics",
-      "settings": "Settings and Subscription",
-      "rewards-and-competitions": "Study Rewards and Competitions",
+      "settings": "Settings & Subscription",
+      "rewards-and-competitions": "Rewards & Competitions",
       "challenge-colleagues": "Challenge Colleagues",
       "community": "Student Community",
       "admin-support": "Admin Support"
-    }
+    },
+    "toggleOpen": "Open sidebar",
+    "toggleClose": "Close sidebar"
   }
 }

@@ -97,19 +97,27 @@
     }
   },
   "UserSideBar": {
+    "sections": {
+      "learning": "التعلم",
+      "community": "مجتمع قادر",
+      "settings": "الإعدادات"
+    },
     "study": {
+      "home": "لوحة التحكم",
       "determine-level": "تحديد المستوى",
       "traditional-learning": "التعلم التقليدي",
       "emergency-mode": "وضع الطوارئ",
       "conversational-learning": "التعلم عبر المحادثة",
-      "tests": "الاختبارات",
+      "tests": "اختبارات المحاكاة",
       "blog": "المدونة",
       "statistics": "الإحصائيات",
       "settings": "الإعدادات والاشتراك",
-      "rewards-and-competitions": "مكافآت ومسابقات المذاكرة",
+      "rewards-and-competitions": "مكافآت ومسابقات",
       "challenge-colleagues": "تحدي الزملاء",
       "community": "مجتمع الطلاب",
       "admin-support": "دعم الإدارة"
-    }
+    },
+    "toggleOpen": "فتح الشريط الجانبي",
+    "toggleClose": "إغلاق الشريط الجانبي"
   }
 }
