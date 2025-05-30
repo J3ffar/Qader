@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://api.qader.vip"; // Ensure this is your actual API backend
+  process.env.NEXT_PUBLIC_API_URL || "https://qader.vip"; // Ensure this is your actual API backend
 export const API_VERSION = "v1";
 
 export const API_ENDPOINTS = {
