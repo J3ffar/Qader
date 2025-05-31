@@ -144,9 +144,7 @@ function Shapcontain({ showShapContain }: { showShapContain: boolean }) {
                 title={`${day.name}: ${day.points} ${t("pointsSuffix")}`}
               >
                 <div
-                  className={`w-full ${
-                    day.isToday ? "bg-primary" : "bg-accent"
-                  } rounded-t-md transition-all duration-500 ease-out`} // Bar itself
+                  className={`w-full rounded-t-md bg-primary transition-all duration-500 ease-out`} // Bar itself
                   style={{
                     height: `${Math.max(
                       day.percent,
