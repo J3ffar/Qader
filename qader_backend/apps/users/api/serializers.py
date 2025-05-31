@@ -16,6 +16,7 @@ from typing import Dict, Any, Optional, Union
 
 from apps.users.utils import generate_unique_username_from_fullname
 from ..constants import (
+    AccountTypeChoices,
     GenderChoices,
     RoleChoices,
     DarkModePrefChoices,
@@ -75,14 +76,80 @@ class SubscriptionDetailSerializer(serializers.Serializer):
     )
     account_type = serializers.CharField(
         read_only=True,
-        source="get_account_type_display",  # Assumes model method returns display string
+        source="get_account_type_display",
         help_text="Display name of the user's current account type (e.g., 'Free Trial', 'Subscribed').",
+    )
+    plan_name = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="The name of the current subscription plan (e.g., '1 Month Access', 'Free Trial').",
+    )
+
+    account_type_key = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="The key/enum member name for the user's account type (e.g., 'FREE_TRIAL', 'SUBSCRIBED').",
+    )
+    plan_identifier_key = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="The key/enum member name for the subscription plan linked to the active serial code (e.g., 'MONTH_1', 'CUSTOM').",
     )
 
     def get_serial_code(self, profile: UserProfile) -> Optional[str]:
-        """Safely return the code of the last used serial."""
         if profile.serial_code_used and hasattr(profile.serial_code_used, "code"):
             return profile.serial_code_used.code
+        return None
+
+    def get_plan_name(self, profile: UserProfile) -> Optional[str]:
+        """
+        Determines the human-readable name of the user's current subscription plan.
+        """
+        if (
+            profile.account_type == AccountTypeChoices.FREE_TRIAL.value
+        ):  # Compare with .value
+            return str(AccountTypeChoices.FREE_TRIAL.label)
+
+        if profile.is_subscribed:
+            if profile.serial_code_used and profile.serial_code_used.subscription_type:
+                code_subscription_type_value = (
+                    profile.serial_code_used.subscription_type
+                )
+
+                matching_enum_member = None
+                for choice_member in SubscriptionTypeChoices:
+                    if choice_member.value == code_subscription_type_value:
+                        matching_enum_member = choice_member
+                        break
+
+                if matching_enum_member:
+                    plan_config = SUBSCRIPTION_PLANS_CONFIG.get(matching_enum_member)
+                    if plan_config and "name" in plan_config:
+                        return str(plan_config["name"])
+
+                    if matching_enum_member == SubscriptionTypeChoices.CUSTOM:
+                        return str(_("Custom Subscription"))
+
+            return str(AccountTypeChoices.SUBSCRIBED.label)
+        return None
+
+    def get_account_type_key(self, profile: UserProfile) -> Optional[str]:
+        """
+        Returns the enum member name (key) for the UserProfile's account_type.
+        """
+        account_type_value = profile.account_type
+        for member in AccountTypeChoices:
+            if member.value == account_type_value:
+                return member.name  # .name is the enum member's Python identifier
+        return None
+
+    def get_plan_identifier_key(self, profile: UserProfile) -> Optional[str]:
+        """
+        Returns the enum member name (key) for the subscription_type of the
+        SerialCode used by the UserProfile, if applicable.
+        """
+        if profile.serial_code_used and profile.serial_code_used.subscription_type:
+            code_subscription_type_value = profile.serial_code_used.subscription_type
+            for member in SubscriptionTypeChoices:
+                if member.value == code_subscription_type_value:
+                    return member.name  # .name is the enum member's Python identifier
         return None
 
 
@@ -486,76 +553,125 @@ class MentorInfoSerializer(serializers.ModelSerializer):
 
 # --- Update AuthUserResponseSerializer ---
 class AuthUserResponseSerializer(serializers.ModelSerializer):
-    """Serializer for the 'user' object in Login/ConfirmEmail responses."""
+    """
+    Serializer for the 'user' object in Login/ConfirmEmail responses.
+    Now includes the full set of fields comparable to UserProfileSerializer.
+    """
 
+    # Fields from User model (via profile.user)
     id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
-    full_name = serializers.CharField(read_only=True)  # Sourced from profile.full_name
-    preferred_name = serializers.CharField(
-        read_only=True, allow_null=True
-    )  # Sourced from profile.preferred_name
-    role = serializers.CharField(read_only=True)  # Sourced from profile.role
-    subscription = SubscriptionDetailSerializer(source="*", read_only=True)
-    profile_picture_url = serializers.SerializerMethodField()
-    level_determined = serializers.BooleanField(
-        read_only=True
-    )  # Sourced from profile.level_determined (property)
-    profile_complete = serializers.BooleanField(
-        source="is_profile_complete",
-        read_only=True,  # Sourced from profile.is_profile_complete (property)
-    )
+    is_staff = serializers.BooleanField(source="user.is_staff", read_only=True)
+    is_super = serializers.BooleanField(source="user.is_superuser", read_only=True)
 
-    # --- Added fields as per request ---
-    is_super = serializers.BooleanField(
-        source="user.is_superuser",
-        read_only=True,
-        help_text="Indicates if the user is a superuser.",
+    # Direct fields from UserProfile model
+    full_name = serializers.CharField(read_only=True)
+    preferred_name = serializers.CharField(read_only=True, allow_null=True)
+    gender = serializers.CharField(read_only=True, allow_null=True)  # Added
+    grade = serializers.CharField(read_only=True, allow_null=True)  # Added
+    has_taken_qiyas_before = serializers.BooleanField(
+        read_only=True, allow_null=True
+    )  # Added
+    role = serializers.CharField(read_only=True)
+    points = serializers.IntegerField(read_only=True)
+    current_streak_days = serializers.IntegerField(read_only=True)
+    longest_streak_days = serializers.IntegerField(read_only=True)  # Added
+    last_study_activity_at = serializers.DateTimeField(
+        read_only=True, allow_null=True
+    )  # Added
+    current_level_verbal = serializers.FloatField(
+        read_only=True, allow_null=True
+    )  # Added
+    current_level_quantitative = serializers.FloatField(
+        read_only=True, allow_null=True
+    )  # Added
+    language = serializers.CharField(source="get_language_display", read_only=True)
+    language_code = serializers.CharField(source="language", read_only=True)
+    last_visited_study_option = serializers.CharField(
+        read_only=True, allow_null=True
+    )  # Added
+    dark_mode_preference = serializers.CharField(read_only=True)  # Added
+    dark_mode_auto_enabled = serializers.BooleanField(read_only=True)  # Added
+    dark_mode_auto_time_start = serializers.TimeField(
+        read_only=True, allow_null=True
+    )  # Added
+    dark_mode_auto_time_end = serializers.TimeField(
+        read_only=True, allow_null=True
+    )  # Added
+    notify_reminders_enabled = serializers.BooleanField(read_only=True)  # Added
+    upcoming_test_date = serializers.DateField(read_only=True, allow_null=True)  # Added
+    study_reminder_time = serializers.TimeField(
+        read_only=True, allow_null=True
+    )  # Added
+    created_at = serializers.DateTimeField(read_only=True)  # Added (profile created_at)
+    updated_at = serializers.DateTimeField(read_only=True)  # Added (profile updated_at)
+
+    # Properties from UserProfile model
+    level_determined = serializers.BooleanField(read_only=True)
+    profile_complete = serializers.BooleanField(
+        source="is_profile_complete", read_only=True
     )
-    is_staff = serializers.BooleanField(
-        source="user.is_staff",
-        read_only=True,
-        help_text="Indicates if the user has staff permissions.",
-    )
-    points = serializers.IntegerField(
-        read_only=True, help_text="User's current gamification points."
-    )  # Sourced from profile.points
-    current_streak_days = serializers.IntegerField(
-        read_only=True, help_text="User's current study streak in days."
-    )  # Sourced from profile.current_streak_days
-    assigned_mentor = serializers.SerializerMethodField(
-        help_text="Information about the student's assigned mentor (if any)."
-    )
-    mentees_count = serializers.SerializerMethodField(
-        help_text="Number of students assigned to this teacher/trainer (if applicable)."
-    )
-    unread_notifications_count = serializers.IntegerField(
-        read_only=True, help_text=_("Number of unread notifications for the user.")
-    )
+    unread_notifications_count = serializers.IntegerField(read_only=True)
+
+    # SerializerMethodFields (methods defined below)
+    profile_picture_url = serializers.SerializerMethodField()
+    assigned_mentor = serializers.SerializerMethodField()
+    mentees_count = serializers.SerializerMethodField()
+
+    # Nested Serializers
+    subscription = SubscriptionDetailSerializer(source="*", read_only=True)
+    referral = ReferralDetailSerializer(source="*", read_only=True)  # Added
 
     class Meta:
         model = UserProfile
         fields = (
+            # User derived fields
             "id",
             "username",
             "email",
+            "is_staff",
+            "is_super",
+            # Profile direct fields
             "full_name",
             "preferred_name",
+            "gender",
+            "grade",
+            "has_taken_qiyas_before",
             "role",
-            "subscription",
-            "profile_picture_url",
-            "level_determined",
-            "profile_complete",
-            # --- Added fields to Meta.fields ---
-            "is_super",
-            "is_staff",
             "points",
             "current_streak_days",
+            "longest_streak_days",
+            "last_study_activity_at",
+            "current_level_verbal",
+            "current_level_quantitative",
+            "language",
+            "language_code",
+            "last_visited_study_option",
+            "dark_mode_preference",
+            "dark_mode_auto_enabled",
+            "dark_mode_auto_time_start",
+            "dark_mode_auto_time_end",
+            "notify_reminders_enabled",
+            "upcoming_test_date",
+            "study_reminder_time",
+            "created_at",
+            "updated_at",
+            # Profile properties
+            "level_determined",
+            "profile_complete",
+            "unread_notifications_count",
+            # Method fields
+            "profile_picture_url",
             "assigned_mentor",
             "mentees_count",
-            "unread_notifications_count",
+            # Nested serializers
+            "subscription",
+            "referral",
         )
-        read_only_fields = fields  # This ensures all fields listed above are read-only
+        read_only_fields = (
+            fields  # All fields are read-only in this response serializer
+        )
 
     def get_profile_picture_url(self, profile: UserProfile) -> Optional[str]:
         request: Optional[Request] = self.context.get("request")
@@ -568,7 +684,6 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
 
     def get_assigned_mentor(self, profile: UserProfile) -> Optional[Dict[str, Any]]:
         if profile.role == RoleChoices.STUDENT and profile.assigned_mentor:
-            # Pass context (like request) if MentorInfoSerializer needs it
             return MentorInfoSerializer(
                 profile.assigned_mentor, context=self.context
             ).data
@@ -576,7 +691,7 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
 
     def get_mentees_count(self, profile: UserProfile) -> Optional[int]:
         if profile.role in [RoleChoices.TEACHER, RoleChoices.TRAINER]:
-            return profile.mentees.count()  # Uses related_name='mentees'
+            return profile.mentees.count()
         return None
 
 
