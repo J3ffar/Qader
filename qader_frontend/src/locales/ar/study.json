@@ -148,7 +148,9 @@
       "allQuestionsOpt": "جميع الأسئلة",
       "incorrectOnlyOpt": "الخاطئة فقط",
       "skippedOnlyOpt": "غير المجاب عليها فقط",
+      "allQuestionsOptFull": "جميع الأسئلة",
       "questionXofY": "السؤال {current} من {total}",
+      "questionXofYShort": "{current} / {total}",
       "details": "التفاصيل",
       "subsection": "القسم الفرعي",
       "skill": "المهارة",
@@ -160,6 +162,9 @@
       "notAnswered": "لم تتم الإجابة",
       "correct": "صحيحة",
       "incorrect": "خاطئة",
+      "statusSkipped": "مُتخطى",
+      "statusCorrect": "صحيحة",
+      "statusIncorrect": "خاطئة",
       "errors": {
         "fetchReviewFailed": "تعذر تحميل مراجعة الاختبار. يرجى المحاولة مرة أخرى أو العودة للخلف."
       }
@@ -176,6 +181,8 @@
       "adviceDefault": "أداء رائع! استمر في التقدم والتعلم.",
       "adviceReviewVerbal": "تحتاج إلى التركيز أكثر على القسم اللفظي. قم بمراجعة الأسئلة المتعلقة به.",
       "adviceReviewQuantitative": "تحتاج إلى التركيز أكثر على القسم الكمي. قم بمراجعة الأسئلة المتعلقة به.",
+      "verbalSectionShort": "ل",
+      "quantitativeSectionShort": "ك",
       "minutes": "دقيقة",
       "retakeTest": "إعادة الاختبار",
       "noScoreDataForChart": "لا توجد بيانات درجات كافية لعرض المخطط.",
@@ -184,12 +191,23 @@
       },
       "api": {
         "retakeSuccess": "تم إنشاء اختبار جديد بنجاح! جاري توجيهك...",
+        "retakeSuccessNewTest": "تم إنشاء اختبار جديد ({attemptId}) بنجاح! جاري توجيهك...",
         "retakeError": "فشل إنشاء اختبار جديد: {error}"
       },
       "correctAnswers": "الإجابات الصحيحة",
       "incorrectAnswers": "الإجابات الخاطئة",
       "skipped": "متخطاة",
-      "backToOverview": "العودة للمحة عامة"
+      "backToOverview": "العودة للمحة عامة",
+      "pointsEarned": "النقاط المكتسبة",
+      "currentStreak": "أيام المذاكرة المتتالية",
+      "days": "أيام",
+      "badgesUnlocked": "الأوسمة المحصلة",
+      "detailedPerformance": "الأداء التفصيلي",
+      "section": "القسم",
+      "correct": "صحيحة",
+      "total": "المجموع",
+      "score": "النتيجة",
+      "smartAnalysisTitle": "التحليل الذكي"
     },
     "badgeColors": {
       "excellent": "ممتاز",

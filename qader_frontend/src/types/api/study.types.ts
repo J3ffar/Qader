@@ -120,73 +120,108 @@ export interface SubmitAnswerResponse {
   feedback_message: string; // General feedback like "Answer recorded"
 }
 
+export interface UserTestAttemptReviewScore {
+  overall: number | null;
+  verbal: number | null;
+  quantitative: number | null;
+}
+
+export interface ResultsSummaryItem {
+  correct: number;
+  total: number;
+  name: string; // e.g., "استيعاب المقروء"
+  score: number; // Percentage for this specific sub-skill, e.g., 0 for 0%
+}
+
+export interface BadgeWon {
+  slug: string;
+  name: string;
+  description: string;
+  // Consider adding icon_url if your backend can provide it for badges
+  // icon_url?: string;
+}
+
+export interface StreakInfo {
+  updated: boolean;
+  current_days: number;
+}
+
 /**
- * Response after completing a test attempt.
- * API: POST /study/attempts/{attempt_id}/complete/
+ * Full review details for a completed test attempt.
+ * API: GET /study/attempts/{attempt_id}/review/
+ * This type is enhanced to include fields typically available after test completion,
+ * assuming the review endpoint can provide this rich summary.
  */
+export interface UserTestAttemptReview {
+  attempt_id: number;
+  status?: string; // e.g., "completed", from completion data
+
+  score: UserTestAttemptReviewScore; // Nested score object, preferred
+
+  // For backward compatibility or if API sends both nested and flat scores:
+  score_percentage: number | null; // Overall score as percentage
+  score_verbal: number | null; // Verbal score as percentage
+  score_quantitative: number | null; // Quantitative score as percentage
+
+  // Detailed breakdown by sub-skill/category
+  results_summary: Record<string, ResultsSummaryItem> | null;
+
+  answered_question_count?: number;
+  total_questions_api?: number; // Renamed to avoid conflict with questions.length
+  correct_answers_in_test_count?: number;
+
+  smart_analysis: string | null;
+  points_from_test_completion_event?: number;
+  points_from_correct_answers_this_test?: number;
+  badges_won?: BadgeWon[];
+  streak_info?: StreakInfo;
+
+  // Questions for detailed review page
+  questions: UserTestAttemptReviewQuestion[];
+
+  time_taken_minutes?: number; // If available from review endpoint
+  // current_level_display is handled by getQualitativeLevelInfo
+}
+
+// Ensure TestAttemptCompletionResponse is also defined if it's used elsewhere,
+// (it was already provided in the prompt for context)
 export interface TestAttemptCompletionResponse {
   attempt_id: number;
-  status: string; // e.g., "completed"
+  status: string;
   score: {
     overall: number | null;
     verbal: number | null;
     quantitative: number | null;
   };
-  results_summary: Record<string, any> | null;
+  results_summary: Record<string, ResultsSummaryItem> | null;
   answered_question_count: number;
   total_questions: number;
   correct_answers_in_test_count: number;
   smart_analysis: string | null;
   points_from_test_completion_event: number;
   points_from_correct_answers_this_test: number;
-  badges_won: Array<{
-    slug: string;
-    name: string;
-    description: string;
-  }>;
-  streak_info: {
-    updated: boolean;
-    current_days: number;
-  };
+  badges_won: BadgeWon[];
+  streak_info: StreakInfo;
 }
 
 /**
  * Structure for a question during review.
- * API: Part of UserTestAttemptReview
+ * API: Part of UserTestAttemptReview (GET /study/attempts/{attempt_id}/review/)
  */
 export interface UserTestAttemptReviewQuestion {
-  question_id: number; // Matches API doc for review `question_id`
+  question_id: number;
   question_text: string;
-  choices: QuestionChoicesMap; // Correctly uses the map for { A: "text", B: "text", ... }
-  user_answer: QuestionOptionKey | null; // Assuming API sends 'A', 'B', 'C', 'D' or null
-  correct_answer: QuestionOptionKey; // Assuming API sends 'A', 'B', 'C', 'D'
+  options: QuestionChoicesMap; // Changed from 'choices' to 'options'
+  user_selected_choice: QuestionOptionKey | null; // Changed from 'user_answer'
+  correct_answer_choice: QuestionOptionKey; // Changed from 'correct_answer'
   user_is_correct: boolean | null;
   explanation?: string | null;
   subsection_name?: string | null;
   skill_name?: string | null;
-  // Fields specific to traditional mode or review context, may or may not be present in all review responses
   used_hint?: boolean | null;
   used_elimination?: boolean | null;
   revealed_answer?: boolean | null;
   revealed_explanation?: boolean | null;
-}
-
-/**
- * Full review details for a completed test attempt.
- * API: GET /study/attempts/{attempt_id}/review/
- */
-export interface UserTestAttemptReview {
-  attempt_id: number;
-  questions: UserTestAttemptReviewQuestion[];
-  score_percentage: number | null;
-  score_verbal: number | null;
-  score_quantitative: number | null;
-  results_summary: Record<string, any> | null; // Detailed breakdown
-  // These fields were in the old score page, API docs for review don't explicitly list them
-  // but they might be part of results_summary or calculated from score_percentage
-  time_taken_minutes?: number; // Example
-  current_level_display?: string; // Example
-  advice?: string; // Example: "ينصح بمراجعة قسم القواعد اللفظية"
 }
 
 /**

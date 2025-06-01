@@ -22,6 +22,11 @@ import {
   Info,
   ListTree,
   TrendingUp,
+  Award, // For Badges
+  Sparkles, // For Points
+  Flame, // For Streak
+  Target, // For performance breakdown
+  BookOpenCheck, // For sub-skill details
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +39,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge"; // Shadcn Badge
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import ScorePieChart from "@/components/features/platform/study/determine-level/ScorePieChart";
 
@@ -43,10 +50,14 @@ import {
 } from "@/services/study.service";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
-import { UserTestAttemptReview } from "@/types/api/study.types";
+import {
+  UserTestAttemptReview,
+  BadgeWon,
+  ResultsSummaryItem,
+} from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
-// Helper to determine qualitative level info from percentage
+// Helper to determine qualitative level info from percentage (remains largely the same)
 interface QualitativeLevelInfo {
   text: string;
   colorClass: string;
@@ -55,8 +66,9 @@ interface QualitativeLevelInfo {
 
 const getQualitativeLevelInfo = (
   percentage: number | null | undefined,
-  tLevel: any // Translations for "Excellent", "Good" etc.
+  tLevel: any
 ): QualitativeLevelInfo => {
+  // ... (implementation remains the same as provided)
   const defaultLevel = {
     text: tLevel("notAvailable"),
     colorClass: "text-muted-foreground",
@@ -114,16 +126,20 @@ const LevelAssessmentScorePage = () => {
     queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_REVIEW, attemptId],
     queryFn: () => getTestAttemptReview(attemptId),
     enabled: !!attemptId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 1 * 60 * 1000, // Reduced stale time as score page is usually viewed once right after
+    refetchOnWindowFocus: false, // Usually score doesn't change
   });
 
   const retakeMutation = useMutation({
     mutationFn: () => retakeTestAttempt(attemptId),
     onSuccess: (data) => {
-      toast.success(t("api.retakeSuccess"));
+      toast.success(
+        t("api.retakeSuccessNewTest", { attemptId: data.attempt_id })
+      );
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
       });
+      // NProgress will handle visual loading bar for this navigation
       router.push(PATHS.STUDY.DETERMINE_LEVEL.ATTEMPT(data.attempt_id));
     },
     onError: (err: any) => {
@@ -136,7 +152,7 @@ const LevelAssessmentScorePage = () => {
     retakeMutation.mutate();
   };
 
-  if (isLoading) return <ScorePageSkeleton />;
+  if (isLoading) return <ScorePageSkeletonV2 />; // Use updated skeleton
 
   if (error || !reviewData) {
     return (
@@ -164,77 +180,51 @@ const LevelAssessmentScorePage = () => {
     );
   }
 
-  const overallScore = reviewData.score_percentage;
-  const verbalScore = reviewData.score_verbal;
-  const quantitativeScore = reviewData.score_quantitative;
-  const timeTakenMinutes = reviewData.results_summary?.time_taken_minutes;
+  // Prioritize nested score object if available, otherwise use flat scores
+  const overallScore = reviewData.score?.overall ?? reviewData.score_percentage;
+  const verbalScore = reviewData.score?.verbal ?? reviewData.score_verbal;
+  const quantitativeScore =
+    reviewData.score?.quantitative ?? reviewData.score_quantitative;
+
+  const timeTakenMinutes = reviewData.time_taken_minutes; // Assuming this remains available
   const levelInfo = getQualitativeLevelInfo(overallScore, tLevel);
 
-  const totalQuestions = reviewData.questions.length;
-  const correctAnswers = reviewData.questions.filter(
-    (q) => q.user_is_correct === true
-  ).length;
+  const totalQuestions =
+    reviewData.total_questions_api ?? reviewData.questions.length;
+  const correctAnswers =
+    reviewData.correct_answers_in_test_count ??
+    reviewData.questions.filter((q) => q.user_is_correct === true).length;
+
+  // Calculate incorrect and skipped based on fetched questions if specific counts aren't available directly for these two
+  const answeredQuestionsCount =
+    reviewData.answered_question_count ??
+    reviewData.questions.filter((q) => q.user_selected_choice !== null).length;
   const incorrectAnswers = reviewData.questions.filter(
     (q) => q.user_is_correct === false
-  ).length;
-  // Assuming user_answer is null if skipped, and not an empty string.
-  const answeredQuestionsCount = reviewData.questions.filter(
-    (q) => q.user_answer !== null
-  ).length;
+  ).length; // This might be different from (total - correct - skipped) if API counts unattempted as incorrect
   const skippedAnswers = totalQuestions - answeredQuestionsCount;
 
-  let adviceText =
-    reviewData.results_summary?.smart_analysis || t("adviceDefault");
-  let AdviceIconComponent: React.ElementType = Info;
-  let adviceAlertVariant: "default" | "destructive" = "default";
-
-  // This logic for advice generation if smart_analysis is missing is from original code
-  if (
-    !reviewData.results_summary?.smart_analysis &&
+  const smartAnalysis = reviewData.smart_analysis || t("adviceDefault");
+  let AdviceIconComponent: React.ElementType = ThumbsUp;
+  if (reviewData.smart_analysis) {
+    if (overallScore !== null && overallScore < 50)
+      AdviceIconComponent = AlertTriangle;
+    else AdviceIconComponent = ThumbsUp;
+  } else if (
+    !reviewData.smart_analysis &&
     overallScore !== null &&
-    overallScore !== undefined
+    overallScore < 70
   ) {
-    if (
-      verbalScore !== null &&
-      quantitativeScore !== null &&
-      verbalScore < quantitativeScore &&
-      verbalScore < 70
-    ) {
-      adviceText = t("adviceReviewVerbal");
-    } else if (
-      quantitativeScore !== null &&
-      verbalScore !== null &&
-      quantitativeScore < verbalScore &&
-      quantitativeScore < 70
-    ) {
-      adviceText = t("adviceReviewQuantitative");
-    }
+    AdviceIconComponent = Info; // Default advice is more like info
   }
 
-  if (adviceText) {
-    if (adviceText === t("adviceDefault")) {
-      AdviceIconComponent = Info;
-    } else if (
-      adviceText === t("adviceReviewVerbal") ||
-      adviceText === t("adviceReviewQuantitative")
-    ) {
-      AdviceIconComponent = AlertTriangle; // Warning/Needs attention
-      // adviceAlertVariant could be 'destructive' if we want to strongly highlight it,
-      // but 'default' with a warning icon is less alarming.
-    } else if (
-      reviewData.results_summary?.smart_analysis &&
-      adviceText === reviewData.results_summary.smart_analysis
-    ) {
-      AdviceIconComponent = ThumbsUp; // Positive or constructive feedback
-    }
-    // Fallback to Info icon if not matched
-  }
+  const totalPointsEarned =
+    (reviewData.points_from_test_completion_event ?? 0) +
+    (reviewData.points_from_correct_answers_this_test ?? 0);
 
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
       <Card className="mx-auto max-w-4xl shadow-xl">
-        {" "}
-        {/* Increased max-width for more content */}
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold md:text-3xl">
             {t("yourScoreIsReady")}
@@ -256,7 +246,65 @@ const LevelAssessmentScorePage = () => {
             </div>
           )}
         </CardHeader>
+
         <CardContent className="space-y-8 pt-6">
+          {/* Gamification Stats Row */}
+          {(totalPointsEarned > 0 ||
+            reviewData.badges_won?.length ||
+            reviewData.streak_info) && (
+            <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-3">
+              {totalPointsEarned > 0 && (
+                <Card className="p-4">
+                  <Sparkles className="mx-auto mb-2 h-8 w-8 text-yellow-500" />
+                  <p className="text-sm text-muted-foreground">
+                    {t("pointsEarned")}
+                  </p>
+                  <p className="text-xl font-bold">{totalPointsEarned}</p>
+                </Card>
+              )}
+              {reviewData.streak_info && (
+                <Card className="p-4">
+                  <Flame className="mx-auto mb-2 h-8 w-8 text-orange-500" />
+                  <p className="text-sm text-muted-foreground">
+                    {t("currentStreak")}
+                  </p>
+                  <p className="text-xl font-bold">
+                    {reviewData.streak_info.current_days} {t("days")}
+                    {reviewData.streak_info.updated && (
+                      <CheckCircle className="ms-1 inline-block h-5 w-5 text-green-500" />
+                    )}
+                  </p>
+                </Card>
+              )}
+              {reviewData.badges_won && reviewData.badges_won.length > 0 && (
+                <Card className="p-4 sm:col-span-2 lg:col-span-1">
+                  {" "}
+                  {/* Adjust span for badges */}
+                  <Award className="mx-auto mb-2 h-8 w-8 text-indigo-500" />
+                  <p className="text-sm text-muted-foreground">
+                    {t("badgesUnlocked")}
+                  </p>
+                  <div className="mt-1 flex flex-wrap justify-center gap-2">
+                    {reviewData.badges_won.map((badge) => (
+                      <Badge
+                        key={badge.slug}
+                        variant="secondary"
+                        className="text-xs"
+                        title={badge.description}
+                      >
+                        {badge.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+          {(totalPointsEarned > 0 ||
+            reviewData.badges_won?.length ||
+            reviewData.streak_info) && <Separator />}
+
+          {/* Core Test Stats Row */}
           <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
             <Card className="p-4">
               <Clock className="mx-auto mb-2 h-8 w-8 text-primary" />
@@ -310,30 +358,87 @@ const LevelAssessmentScorePage = () => {
             </Card>
           </div>
 
-          {(verbalScore !== null || quantitativeScore !== null) &&
-            totalQuestions > 0 && (
-              <div className="mt-8">
-                <h3 className="mb-4 text-center text-xl font-semibold">
-                  {t("scoreDistribution")}
-                </h3>
-                <ScorePieChart
-                  verbalScore={verbalScore}
-                  quantitativeScore={quantitativeScore}
-                />
-              </div>
-            )}
+          {/* Score Distribution Pie Chart & Detailed Breakdown */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {(verbalScore !== null || quantitativeScore !== null) &&
+              totalQuestions > 0 && (
+                <div dir="ltr">
+                  <h3 className="mb-4 text-center text-xl font-semibold">
+                    <BarChart3 className="me-2 inline-block h-6 w-6 rtl:me-0 rtl:ms-2" />
+                    {t("scoreDistribution")}
+                  </h3>
+                  <ScorePieChart
+                    verbalScore={verbalScore}
+                    quantitativeScore={quantitativeScore}
+                  />
+                </div>
+              )}
 
-          {adviceText && (
-            <Alert variant={adviceAlertVariant} className="mt-6">
-              <div className="flex items-center text-center md:text-start">
-                <AdviceIconComponent className="me-3 h-5 w-5 flex-shrink-0 rtl:me-0 rtl:ms-3" />
+            {reviewData.results_summary &&
+              Object.keys(reviewData.results_summary).length > 0 && (
+                <div>
+                  <h3 className="mb-4 text-center text-xl font-semibold">
+                    <Target className="me-2 inline-block h-6 w-6 rtl:me-0 rtl:ms-2" />
+                    {t("detailedPerformance")}
+                  </h3>
+                  <Card>
+                    <CardContent className="max-h-80 space-y-3 overflow-y-auto p-4">
+                      {Object.entries(reviewData.results_summary).map(
+                        ([key, item]) => (
+                          <div key={key} className="rounded-md border p-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <BookOpenCheck className="me-2 h-5 w-5 text-muted-foreground rtl:me-0 rtl:ms-2" />
+                                <span className="font-medium">{item.name}</span>
+                              </div>
+                              <Badge
+                                variant={
+                                  item.score >= 70
+                                    ? "default"
+                                    : item.score >= 50
+                                    ? "secondary"
+                                    : "destructive"
+                                }
+                              >
+                                {item.score.toFixed(0)}%
+                              </Badge>
+                            </div>
+                            <div className="mt-1 flex justify-between text-sm text-muted-foreground">
+                              <span>
+                                {t("correct")}: {item.correct}/{item.total}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+          </div>
+
+          {smartAnalysis && (
+            <Alert
+              className="mt-6"
+              variant={
+                AdviceIconComponent === AlertTriangle
+                  ? "destructive"
+                  : "default"
+              }
+            >
+              <AdviceIconComponent className="me-3 mt-1 h-5 w-5 flex-shrink-0 rtl:me-0 rtl:ms-3" />
+              <div>
+                <AlertTitle className="mb-1 font-semibold">
+                  {t("smartAnalysisTitle")}
+                </AlertTitle>
                 <AlertDescription className="text-base">
-                  {adviceText}
+                  {smartAnalysis}
                 </AlertDescription>
               </div>
             </Alert>
           )}
         </CardContent>
+
         <CardFooter className="flex flex-col-reverse justify-center gap-3 pt-8 sm:flex-row sm:gap-4">
           <Button
             asChild
@@ -347,7 +452,7 @@ const LevelAssessmentScorePage = () => {
             </Link>
           </Button>
           <Button
-            variant="secondary" // Changed from outline to secondary for variety
+            variant="secondary"
             size="lg"
             onClick={handleRetakeTest}
             disabled={retakeMutation.isPending}
@@ -376,43 +481,61 @@ const LevelAssessmentScorePage = () => {
   );
 };
 
-// Renamed original Skeleton to be more specific and updated its structure
-const ScorePageSkeleton = () => {
+// Use this for the loading.tsx file as well
+const ScorePageSkeletonV2 = () => {
+  // Renamed to V2
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
       <Card className="mx-auto max-w-4xl">
         <CardHeader className="text-center">
           <Skeleton className="mx-auto mb-4 h-8 w-3/5" /> {/* Title */}
-          <Skeleton className="mx-auto h-12 w-32 rounded-full" />{" "}
+          <Skeleton className="mx-auto h-16 w-36 rounded-full" />{" "}
           {/* Score badge */}
         </CardHeader>
         <CardContent className="space-y-8 pt-6">
+          {/* Skeletons for Gamification Stats */}
+          <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(3)].map((_, i) => (
+              <Card key={`gamify-skel-${i}`} className="p-4">
+                <Skeleton className="mx-auto mb-2 h-8 w-8 rounded-full" />
+                <Skeleton className="mx-auto mb-1 h-4 w-3/4" />
+                <Skeleton className="mx-auto h-6 w-1/2" />
+              </Card>
+            ))}
+          </div>
+          <Skeleton className="h-px w-full" /> {/* Separator Skeleton */}
+          {/* Skeletons for Core Test Stats */}
           <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
-            {[...Array(4)].map(
-              (
-                _,
-                i // Skeleton for 4 stat cards
-              ) => (
-                <Card key={i} className="p-4">
-                  <Skeleton className="mx-auto mb-2 h-8 w-8 rounded-full" />
-                  <Skeleton className="mx-auto mb-1 h-4 w-3/4" />
-                  <Skeleton className="mx-auto h-6 w-1/2" />
-                </Card>
-              )
-            )}
+            {[...Array(4)].map((_, i) => (
+              <Card key={`core-skel-${i}`} className="p-4">
+                <Skeleton className="mx-auto mb-2 h-8 w-8 rounded-full" />
+                <Skeleton className="mx-auto mb-1 h-4 w-3/4" />
+                <Skeleton className="mx-auto h-6 w-1/2" />
+              </Card>
+            ))}
           </div>
-          <div>
-            <Skeleton className="mx-auto mb-4 h-6 w-1/3" /> {/* Chart title */}
-            <Skeleton className="h-64 w-full rounded-md" />{" "}
-            {/* Chart placeholder */}
+          {/* Skeletons for Score Distribution & Detailed Performance */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div>
+              <Skeleton className="mx-auto mb-4 h-6 w-1/3" />{" "}
+              {/* Chart/Detail title */}
+              <Skeleton className="h-64 w-full rounded-md" />{" "}
+              {/* Chart/Detail placeholder */}
+            </div>
+            <div>
+              <Skeleton className="mx-auto mb-4 h-6 w-1/3" />{" "}
+              {/* Chart/Detail title */}
+              <Skeleton className="h-64 w-full rounded-md" />{" "}
+              {/* Chart/Detail placeholder */}
+            </div>
           </div>
-          <Skeleton className="h-12 w-full rounded-md" />{" "}
-          {/* Advice placeholder */}
+          {/* Skeleton for Smart Analysis */}
+          <Skeleton className="h-20 w-full rounded-md" />
         </CardContent>
         <CardFooter className="flex flex-col-reverse justify-center gap-3 pt-8 sm:flex-row sm:gap-4">
-          <Skeleton className="h-12 w-full sm:w-40" /> {/* Back to overview */}
-          <Skeleton className="h-12 w-full sm:w-36" /> {/* Retake */}
-          <Skeleton className="h-12 w-full sm:w-40" /> {/* Review */}
+          <Skeleton className="h-12 w-full sm:w-40" />
+          <Skeleton className="h-12 w-full sm:w-36" />
+          <Skeleton className="h-12 w-full sm:w-40" />
         </CardFooter>
       </Card>
     </div>

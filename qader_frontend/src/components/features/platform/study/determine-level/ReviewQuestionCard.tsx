@@ -2,23 +2,23 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { CheckCircle, XCircle, Info, BookOpen, Tag, Brain } from "lucide-react";
+import { CheckCircle, XCircle, HelpCircle, Info, Brain } from "lucide-react";
 import {
   Card,
   CardContent,
-  // CardFooter, // Not currently used
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-// Ensure UserTestAttemptReviewQuestion is imported from the updated types
 import type {
   UserTestAttemptReviewQuestion,
   QuestionOptionKey,
@@ -30,7 +30,7 @@ interface ReviewQuestionCardProps {
   totalQuestionsInFilter: number;
 }
 
-const optionKeys: QuestionOptionKey[] = ["A", "B", "C", "D"];
+const OPTION_KEYS: QuestionOptionKey[] = ["A", "B", "C", "D"]; // Assuming up to D
 
 const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   questionData,
@@ -38,153 +38,195 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   totalQuestionsInFilter,
 }) => {
   const t = useTranslations("Study.determineLevel.review");
+  const tCommon = useTranslations("Common");
 
-  // Destructure based on the updated UserTestAttemptReviewQuestion type
   const {
     question_text,
-    choices, // This is where the options are now
-    user_answer,
-    correct_answer,
+    options,
+    user_selected_choice, // Renamed from user_answer to match API response
+    correct_answer_choice, // Renamed from correct_answer
     user_is_correct,
     explanation,
     subsection_name,
     skill_name,
   } = questionData;
 
-  const getOptionText = (key: QuestionOptionKey): string => {
-    // Access option text from the 'choices' object
-    return choices?.[key] || ""; // Use optional chaining for safety, though 'choices' should exist
+  const getOptionStatus = (optionKey: QuestionOptionKey) => {
+    const isSelected = user_selected_choice === optionKey;
+    const isCorrect = correct_answer_choice === optionKey;
+
+    if (isSelected && isCorrect) return "selectedCorrect";
+    if (isSelected && !isCorrect) return "selectedIncorrect";
+    if (!isSelected && isCorrect) return "correctUnselected"; // Correct answer, but user didn't pick it
+    return "default";
   };
 
-  const getOptionStyle = (optionKey: QuestionOptionKey) => {
-    const isUserSelected = user_answer === optionKey;
-    const isActualCorrectAnswer = correct_answer === optionKey;
-
-    if (isUserSelected && user_is_correct) {
-      // User selected and it was correct
-      return "border-green-500 bg-green-50 dark:bg-green-900/30 ring-2 ring-green-500";
-    }
-    if (isUserSelected && !user_is_correct && user_answer !== null) {
-      // User selected and it was incorrect
-      return "border-red-500 bg-red-50 dark:bg-red-900/30 ring-2 ring-red-500";
-    }
-    // If this option is the correct answer, and the user either skipped or selected something else
-    if (isActualCorrectAnswer && (!isUserSelected || user_answer === null)) {
-      return "border-green-500 bg-green-50 dark:bg-green-900/30";
-    }
-    return "border-border"; // Default style for other options
-  };
-
-  const getOptionIcon = (optionKey: QuestionOptionKey) => {
-    const isUserSelected = user_answer === optionKey;
-    const isActualCorrectAnswer = correct_answer === optionKey;
-
-    if (isUserSelected && user_is_correct) {
+  const statusIndicator = () => {
+    if (user_selected_choice === null) {
       return (
-        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-500" />
+        <Badge
+          variant="outline"
+          className="border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+        >
+          <HelpCircle className="me-1.5 h-4 w-4 rtl:me-0 rtl:ms-1.5" />
+          {t("statusSkipped")}
+        </Badge>
       );
     }
-    if (isUserSelected && !user_is_correct && user_answer !== null) {
-      return <XCircle className="h-5 w-5 text-red-600 dark:text-red-500" />;
-    }
-    // Show a checkmark for the correct answer if it wasn't the user's (incorrect) choice,
-    // or if the user skipped.
-    if (isActualCorrectAnswer && (!isUserSelected || user_answer === null)) {
+    if (user_is_correct) {
       return (
-        <CheckCircle className="h-5 w-5 text-green-600 opacity-70 dark:text-green-500" />
+        <Badge
+          variant="outline"
+          className="border-green-400 bg-green-50 text-green-700 dark:border-green-600 dark:bg-green-900/30 dark:text-green-400"
+        >
+          <CheckCircle className="me-1.5 h-4 w-4 rtl:me-0 rtl:ms-1.5" />
+          {t("statusCorrect")}
+        </Badge>
       );
     }
-    return <span className="h-5 w-5" />; // Placeholder for alignment
+    return (
+      <Badge
+        variant="outline"
+        className="border-red-400 bg-red-50 text-red-700 dark:border-red-600 dark:bg-red-900/30 dark:text-red-400"
+      >
+        <XCircle className="me-1.5 h-4 w-4 rtl:me-0 rtl:ms-1.5" />
+        {t("statusIncorrect")}
+      </Badge>
+    );
   };
 
   return (
-    <Card className="w-full shadow-lg">
+    <Card
+      className="w-full shadow-lg"
+      data-testid={`question-card-${questionData.question_id}`}
+    >
       <CardHeader>
-        <div className="mb-2 flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold md:text-xl">
+        <div className="mb-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <CardDescription className="text-sm font-semibold text-primary">
             {t("questionXofY", {
               current: questionNumber,
               total: totalQuestionsInFilter,
             })}
-          </CardTitle>
-          {user_answer !== null ? ( // Check if answered
-            <Badge
-              variant={user_is_correct ? "default" : "destructive"}
-              className={cn(
-                user_is_correct ? "bg-green-600 hover:bg-green-700" : ""
-              )}
-            >
-              {user_is_correct ? t("correct") : t("incorrect")}
-            </Badge>
-          ) : (
-            // If not answered
-            <Badge variant="outline">{t("notAnswered")}</Badge>
-          )}
+          </CardDescription>
+          {statusIndicator()}
         </div>
-        <p className="text-base leading-relaxed text-foreground/90 md:text-lg">
+        <CardTitle
+          className="text-lg leading-relaxed rtl:text-right md:text-xl"
+          dir="auto"
+        >
           {question_text}
-        </p>
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <Separator />
         <div className="space-y-3">
-          {optionKeys.map((key) => (
-            <div
-              key={key}
-              className={cn(
-                "flex items-center space-x-3 rtl:space-x-reverse rounded-md border p-3 transition-all",
-                getOptionStyle(key)
-              )}
-            >
-              <div className="flex-shrink-0">{getOptionIcon(key)}</div>
-              <span className="font-medium">{key}.</span>
-              {/* This will now correctly display the option text */}
-              <p className="text-sm md:text-base">{getOptionText(key)}</p>
-            </div>
-          ))}
+          {OPTION_KEYS.map((key) => {
+            const optionText = options[key];
+            // Check if the option exists in the question's options object
+            if (optionText === undefined || optionText === null) return null;
+
+            const status = getOptionStatus(key);
+            let statusIcon = null;
+            let ringClass = "ring-border"; // Default ring
+            let textClass = "text-foreground";
+            let bgClass = "bg-card hover:bg-muted/50";
+            let optionIndicatorClass = "text-muted-foreground";
+
+            if (status === "selectedCorrect") {
+              statusIcon = (
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-500" />
+              );
+              ringClass = "ring-2 ring-green-500 dark:ring-green-600";
+              textClass = "text-green-700 dark:text-green-400";
+              bgClass = "bg-green-50 dark:bg-green-900/40";
+              optionIndicatorClass = "text-green-700 dark:text-green-400";
+            } else if (status === "selectedIncorrect") {
+              statusIcon = (
+                <XCircle className="h-5 w-5 text-red-600 dark:text-red-500" />
+              );
+              ringClass = "ring-2 ring-red-500 dark:ring-red-600";
+              textClass = "text-red-700 dark:text-red-400";
+              bgClass = "bg-red-50 dark:bg-red-900/40";
+              optionIndicatorClass = "text-red-700 dark:text-red-400";
+            } else if (status === "correctUnselected") {
+              // Highlight the correct answer even if not selected by the user
+              statusIcon = (
+                <CheckCircle className="h-5 w-5 text-green-600 opacity-70 dark:text-green-500" />
+              );
+              bgClass = "bg-green-50/70 dark:bg-green-900/30"; // More subtle highlight
+              // ringClass = "ring-1 ring-green-400 dark:ring-green-700"; // Subtle ring
+              // textClass = "text-green-700 dark:text-green-500"; // Make text slightly different
+              optionIndicatorClass = "text-green-600 dark:text-green-500";
+            }
+
+            return (
+              <div
+                key={key}
+                className={cn(
+                  "flex items-start space-x-3 rtl:space-x-reverse rounded-md border p-3.5 transition-all",
+                  bgClass,
+                  ringClass
+                )}
+                dir="auto"
+              >
+                {statusIcon ? (
+                  <span className="mt-0.5 flex-shrink-0">{statusIcon}</span>
+                ) : (
+                  // Placeholder for alignment if no icon (e.g. default unselected options)
+                  <span className="mt-0.5 h-5 w-5 flex-shrink-0"></span>
+                )}
+                <span className={cn("font-semibold", optionIndicatorClass)}>
+                  {key}.
+                </span>
+                <p className={cn("flex-1 text-base", textClass)}>
+                  {optionText}
+                </p>
+              </div>
+            );
+          })}
         </div>
 
         {(explanation || subsection_name || skill_name) && (
-          <Accordion type="single" collapsible className="w-full pt-4">
+          <Accordion type="multiple" className="w-full pt-3">
             {explanation && (
               <AccordionItem value="explanation">
-                <AccordionTrigger className="text-base hover:no-underline">
-                  <BookOpen className="me-2 h-5 w-5 text-primary rtl:me-0 rtl:ms-2" />{" "}
+                <AccordionTrigger className="text-base font-medium hover:no-underline">
+                  <Info className="me-2 h-5 w-5 text-blue-500 rtl:me-0 rtl:ms-2" />
                   {t("explanation")}
                 </AccordionTrigger>
-                <AccordionContent className="prose prose-sm dark:prose-invert max-w-none pt-2 text-base leading-relaxed text-muted-foreground">
+                <AccordionContent
+                  className="pt-2 text-base leading-relaxed text-muted-foreground"
+                  dir="auto"
+                >
                   {explanation}
                 </AccordionContent>
               </AccordionItem>
             )}
             {(subsection_name || skill_name) && (
-              <AccordionItem
-                value="metadata"
-                className={
-                  explanation && (subsection_name || skill_name)
-                    ? ""
-                    : "border-b-0"
-                }
-              >
-                {" "}
-                {/* Conditional border for aesthetics */}
-                <AccordionTrigger className="text-base hover:no-underline">
-                  <Info className="me-2 h-5 w-5 text-primary rtl:me-0 rtl:ms-2" />{" "}
+              <AccordionItem value="details">
+                <AccordionTrigger className="text-base font-medium hover:no-underline">
+                  <Brain className="me-2 h-5 w-5 text-purple-500 rtl:me-0 rtl:ms-2" />
                   {t("details")}
                 </AccordionTrigger>
-                <AccordionContent className="space-y-2 pt-2 text-muted-foreground">
+                <AccordionContent className="space-y-2 pt-2 text-base text-muted-foreground">
                   {subsection_name && (
-                    <div className="flex items-center text-sm">
-                      <Tag className="me-2 h-4 w-4 text-sky-600 rtl:me-0 rtl:ms-2" />
-                      <strong>{t("subsection")}:</strong>
-                      <span className="ms-1 rtl:me-1">{subsection_name}</span>
-                    </div>
+                    <p dir="auto">
+                      <span className="font-semibold text-foreground">
+                        {t("subsection")}:
+                      </span>{" "}
+                      {subsection_name}
+                    </p>
                   )}
                   {skill_name && (
-                    <div className="flex items-center text-sm">
-                      <Brain className="me-2 h-4 w-4 text-purple-600 rtl:me-0 rtl:ms-2" />
-                      <strong>{t("skill")}:</strong>
-                      <span className="ms-1 rtl:me-1">{skill_name}</span>
-                    </div>
+                    <p dir="auto">
+                      <span className="font-semibold text-foreground">
+                        {t("skill")}:
+                      </span>{" "}
+                      {skill_name}
+                    </p>
+                  )}
+                  {!subsection_name && !skill_name && (
+                    <p>{tCommon("status.notAvailable")}</p>
                   )}
                 </AccordionContent>
               </AccordionItem>

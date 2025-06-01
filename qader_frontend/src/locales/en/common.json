@@ -31,6 +31,7 @@
   },
 
   "status": {
+    "notAvailable": "Not Available",
     "notAvailableShort": "N/A"
   }
 }

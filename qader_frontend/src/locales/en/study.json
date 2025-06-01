@@ -145,10 +145,14 @@
       "quantitative": "Quantitative",
       "backToScorePage": "Back to Score Page",
       "filterBy": "Filter by",
-      "allQuestionsOpt": "All Questions",
-      "incorrectOnlyOpt": "Incorrect Only",
-      "skippedOnlyOpt": "Unanswered Only",
+      "allQuestionsOpt": "All",
+      "incorrectOnlyOpt": "Incorrect",
+      "skippedOnlyOpt": "Skipped",
+      "allQuestionsOptFull": "All Questions",
+      "incorrectOnlyOptFull": "Incorrect Questions Only",
+      "skippedOnlyOptFull": "Skipped Questions Only",
       "questionXofY": "Question {current} of {total}",
+      "questionXofYShort": "{current} / {total}",
       "details": "Details",
       "subsection": "Subsection",
       "skill": "Skill",
@@ -160,6 +164,9 @@
       "notAnswered": "Not Answered",
       "correct": "Correct",
       "incorrect": "Incorrect",
+      "statusSkipped": "Skipped",
+      "statusCorrect": "Correct",
+      "statusIncorrect": "Incorrect",
       "errors": {
         "fetchReviewFailed": "Could not load the test review. Please try again or go back."
       }
@@ -176,6 +183,8 @@
       "adviceDefault": "Great performance! Keep progressing and learning.",
       "adviceReviewVerbal": "You need to focus more on the Verbal section. Review the related questions.",
       "adviceReviewQuantitative": "You need to focus more on the Quantitative section. Review the related questions.",
+      "verbalSectionShort": "V",
+      "quantitativeSectionShort": "Q",
       "minutes": "minute(s)",
       "retakeTest": "Retake Test",
       "noScoreDataForChart": "Not enough score data to display the chart.",
@@ -184,12 +193,23 @@
       },
       "api": {
         "retakeSuccess": "New test created successfully! Redirecting you...",
+        "retakeSuccessNewTest": "New test ({attemptId}) created successfully! Redirecting you...",
         "retakeError": "Failed to create a new test: {error}"
       },
       "correctAnswers": "Correct Answers",
       "incorrectAnswers": "Incorrect Answers",
-      "skipped": "skipped",
-      "backToOverview": "Back to Overview"
+      "skipped": "Skipped",
+      "backToOverview": "Back to Overview",
+      "pointsEarned": "Points Earned",
+      "currentStreak": "Current Streak",
+      "days": "Days",
+      "badgesUnlocked": "Badges Unlocked",
+      "detailedPerformance": "Detailed Performance",
+      "section": "Section",
+      "correct": "Correct",
+      "total": "Total",
+      "score": "Score",
+      "smartAnalysisTitle": "Smart Analysis"
     },
     "badgeColors": {
       "excellent": "Excellent",
@@ -198,7 +218,6 @@
       "acceptable": "Acceptable",
       "weak": "Weak",
       "default": "Not Specified",
-
       "notAvailable": "N/A"
     },
 

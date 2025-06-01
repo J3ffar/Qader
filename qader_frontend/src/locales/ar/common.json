@@ -31,6 +31,7 @@
   },
 
   "status": {
-    "notAvailableShort": "N/A"
+    "notAvailable": "غير متوفر",
+    "notAvailableShort": "غ/م"
   }
 }
