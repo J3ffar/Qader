@@ -184,16 +184,8 @@ class UserQuestionAttemptSerializer(serializers.Serializer):
         allow_null=True,
         help_text=_("Optional: Time spent on this specific question in seconds."),
     )
-    # Other flags like used_hint, used_elimination are typically handled by separate endpoints
-    # in traditional mode, or implicitly tracked if needed. Don't include them here unless
-    # the frontend submits them with the answer.
 
     def validate_question_id(self, value: Question):
-        """
-        Further validation can happen in the view/service layer to check
-        if the question belongs to the specific test attempt.
-        """
-        # PrimaryKeyRelatedField already validates existence and active status.
         return value
 
 
@@ -265,7 +257,6 @@ class UserTestAttemptCompletionResponseSerializer(serializers.Serializer):
     badges_won = BadgeWonSerializer(many=True, read_only=True, default=list)
     streak_info = StreakInfoSerializer(read_only=True, required=False)
 
-    # All fields are read-only as this is a response serializer
     def create(self, validated_data):
         raise NotImplementedError("This serializer cannot create data.")
 
@@ -277,13 +268,12 @@ class UserTestAttemptCompletionResponseSerializer(serializers.Serializer):
 class UserTestAttemptReviewQuestionSerializer(serializers.ModelSerializer):
     """Serializer for a single question within the review context of a completed attempt."""
 
-    # Fields from the Question model itself
     question_id = serializers.IntegerField(source="id", read_only=True)
     question_text = serializers.CharField(read_only=True)
-    choices = serializers.JSONField(
-        read_only=True
-    )  # Assuming choices are stored as JSON
-    correct_answer = serializers.CharField(read_only=True)
+    options = serializers.SerializerMethodField()
+    correct_answer_choice = serializers.CharField(
+        source="correct_answer", read_only=True
+    )  # e.g., 'A'
     explanation = serializers.CharField(read_only=True, allow_null=True)
     subsection_name = serializers.CharField(
         source="subsection.name", read_only=True, allow_null=True
@@ -292,8 +282,7 @@ class UserTestAttemptReviewQuestionSerializer(serializers.ModelSerializer):
         source="skill.name", read_only=True, allow_null=True
     )
 
-    # Fields derived from the user's attempt context
-    user_answer = serializers.SerializerMethodField()
+    user_selected_choice = serializers.SerializerMethodField()  # e.g., 'B' or None
     user_is_correct = serializers.SerializerMethodField()
     used_hint = serializers.SerializerMethodField()
     used_elimination = serializers.SerializerMethodField()
@@ -301,13 +290,13 @@ class UserTestAttemptReviewQuestionSerializer(serializers.ModelSerializer):
     revealed_explanation = serializers.SerializerMethodField()
 
     class Meta:
-        model = Question
+        model = Question  # Make sure Question is imported from apps.learning.models
         fields = [
             "question_id",
             "question_text",
-            "choices",
-            "user_answer",
-            "correct_answer",
+            "options",  # This will be a dict {"A": "text a", "B": "text b", ...}
+            "user_selected_choice",  # The letter 'A', 'B', 'C', or 'D' the user picked
+            "correct_answer_choice",  # The correct letter 'A', 'B', 'C', or 'D'
             "user_is_correct",
             "explanation",
             "subsection_name",
@@ -319,16 +308,28 @@ class UserTestAttemptReviewQuestionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    def get_options(self, obj: Question) -> Dict[str, str]:
+        """Constructs a dictionary of all answer options for the question."""
+        return {
+            "A": obj.option_a,
+            "B": obj.option_b,
+            "C": obj.option_c,
+            "D": obj.option_d,
+        }
+
     def _get_user_attempt_from_context(
-        self, obj: Question
+        self, obj: Question  # obj is the Question instance
     ) -> Optional[UserQuestionAttempt]:
         """Helper to safely get the specific UserQuestionAttempt for this question from context."""
         user_attempts_map = self.context.get("user_attempts_map", {})
+        # The key in user_attempts_map is the question_id
         return user_attempts_map.get(obj.id)
 
-    def get_user_answer(self, obj: Question) -> Optional[str]:
-        """Gets the user's selected answer for this question from context."""
+    def get_user_selected_choice(self, obj: Question) -> Optional[str]:
+        """Gets the user's selected answer choice (e.g., 'A', 'B') for this question."""
         user_attempt = self._get_user_attempt_from_context(obj)
+        # user_attempt is an instance of UserQuestionAttempt
+        # selected_answer on UserQuestionAttempt stores 'A', 'B', etc.
         return user_attempt.selected_answer if user_attempt else None
 
     def get_user_is_correct(self, obj: Question) -> Optional[bool]:
@@ -337,26 +338,24 @@ class UserTestAttemptReviewQuestionSerializer(serializers.ModelSerializer):
         return (
             user_attempt.is_correct
             if user_attempt and user_attempt.selected_answer is not None
-            else None
+            else None  # If not answered, correctness is None
         )
 
     def get_used_hint(self, obj: Question) -> Optional[bool]:
-        """Gets whether the user used a hint (example)."""
         user_attempt = self._get_user_attempt_from_context(obj)
-        return user_attempt.used_hint if user_attempt else None
+        return (
+            user_attempt.used_hint if user_attempt else None
+        )  # Default to None if no attempt
 
     def get_used_elimination(self, obj: Question) -> Optional[bool]:
-        """Gets whether the user used a hint (example)."""
         user_attempt = self._get_user_attempt_from_context(obj)
         return user_attempt.used_elimination if user_attempt else None
 
     def get_revealed_answer(self, obj: Question) -> Optional[bool]:
-        """Gets whether the user used a hint (example)."""
         user_attempt = self._get_user_attempt_from_context(obj)
         return user_attempt.revealed_answer if user_attempt else None
 
     def get_revealed_explanation(self, obj: Question) -> Optional[bool]:
-        """Gets whether the user used a hint (example)."""
         user_attempt = self._get_user_attempt_from_context(obj)
         return user_attempt.revealed_explanation if user_attempt else None
 
@@ -367,7 +366,7 @@ class UserTestAttemptReviewSerializer(serializers.Serializer):
     attempt_id = serializers.IntegerField(read_only=True)
     questions = UserTestAttemptReviewQuestionSerializer(many=True, read_only=True)
 
-    # Optionally include overall summary data again if needed by the frontend during review
+    # These fields will source data from the 'attempt' object passed in the instance data
     score_percentage = serializers.FloatField(
         source="attempt.score_percentage", read_only=True, allow_null=True
     )
@@ -378,7 +377,9 @@ class UserTestAttemptReviewSerializer(serializers.Serializer):
         source="attempt.score_quantitative", read_only=True, allow_null=True
     )
     results_summary = serializers.JSONField(
-        source="attempt.results_summary", read_only=True
+        source="attempt.results_summary",
+        read_only=True,
+        allow_null=True,  # Allow null if not present
     )
 
     def create(self, validated_data):

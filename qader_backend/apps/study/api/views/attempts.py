@@ -35,6 +35,7 @@ from apps.api.exceptions import UsageLimitExceeded
 logger = logging.getLogger(__name__)
 
 # --- Unified Test Attempt Views ---
+# ... (UserTestAttemptListView, UserTestAttemptDetailView, UserTestAttemptAnswerView, UserTestAttemptCompleteView, UserTestAttemptCancelView remain unchanged) ...
 
 
 @extend_schema(
@@ -125,7 +126,7 @@ class UserTestAttemptDetailView(generics.RetrieveAPIView):
         user = self.request.user
         return (
             UserTestAttempt.objects.filter(user=user)
-            .select_related("user")  # Needed for permissions/ownership check implicitly
+            .select_related("user")
             .prefetch_related(
                 # Prefetch answers and their associated questions for 'attempted_questions' field
                 "question_attempts",
@@ -136,9 +137,7 @@ class UserTestAttemptDetailView(generics.RetrieveAPIView):
                 # Test performance impact if needed. Let's rely on get_questions_queryset() for now.
                 # 'questions', 'questions__subsection', 'questions__subsection__section', 'questions__skill',
             )
-            .annotate(
-                answered_question_count_agg=Count("question_attempts")
-            )  # Annotation for count
+            .annotate(answered_question_count_agg=Count("question_attempts"))
         )
 
 
@@ -180,7 +179,6 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
         queryset = UserTestAttempt.objects.select_related("user")
 
         try:
-            # Directly try to get the object matching all criteria
             attempt = get_object_or_404(
                 queryset,
                 pk=attempt_id,
@@ -194,21 +192,17 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
             # Check if it exists at all for this user.
             attempt_exists = queryset.filter(pk=attempt_id, user=user).exists()
             if attempt_exists:
-                # It exists but wasn't STARTED
                 logger.warning(
                     f"Attempt {attempt_id} found for user {user.id} but failed criteria "
                     f"(likely not STARTED) in {self.__class__.__name__}."
                 )
-                # Raise NotFound, which DRF maps to 404
                 raise NotFound(
                     _("The specified test attempt is not currently active or ongoing.")
                 )
             else:
-                # Attempt doesn't exist at all or doesn't belong to the user
                 logger.warning(
                     f"Attempt {attempt_id} not found for user {user.id} in {self.__class__.__name__}."
                 )
-                # Keep raising NotFound
                 raise NotFound(_("Test attempt not found."))
         except Exception as e:
             logger.exception(
@@ -219,31 +213,22 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
             )
 
     def post(self, request, attempt_id, *args, **kwargs):
-        test_attempt = self.get_object()  # Handles 404/permission implicitly
-
+        test_attempt = self.get_object()
         serializer = self.get_serializer(data=request.data)
-        # Use raise_exception=True for standard DRF error response format
         serializer.is_valid(raise_exception=True)
-
-        question = serializer.validated_data[
-            "question_id"
-        ]  # The validated Question instance
+        question = serializer.validated_data["question_id"]
 
         try:
-            # Call the service function to handle the core logic
             result_data = study_services.record_single_answer(
                 test_attempt=test_attempt,
                 question=question,
                 answer_data=serializer.validated_data,
             )
-            # Use the standard response serializer
             response_serializer = (
                 attempt_serializers.UserQuestionAttemptResponseSerializer(result_data)
             )
             return Response(response_serializer.data, status=status.HTTP_200_OK)
-
         except DRFValidationError as e:
-            # Propagate validation errors raised by the service
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.exception(
@@ -264,10 +249,10 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
         "For non-Traditional types: calculates scores, updates status, updates profile levels (for Level Assessment), triggers rewards. "
         "For Traditional types: simply marks the session as completed."
     ),
-    request=None,  # POST request with no body
+    request=None,
     responses={
         200: OpenApiResponse(
-            response=attempt_serializers.UserTestAttemptCompletionResponseSerializer,  # Base type, actual response varies
+            response=attempt_serializers.UserTestAttemptCompletionResponseSerializer,
             description=(
                 "Test completed. Response contains detailed results for non-Traditional types. "
                 "For Traditional type, returns a simple JSON `{'detail': '...'}`."
@@ -289,29 +274,24 @@ class UserTestAttemptCompleteView(generics.GenericAPIView):
     """Handles the completion and finalization of ALL types of test attempts."""
 
     permission_classes = [IsAuthenticated, IsSubscribed]
-    # Output serializer determined dynamically based on service response
 
     def get_object(self) -> UserTestAttempt:
         """Get the ongoing test attempt, ensuring ownership and STARTED status."""
         attempt_id = self.kwargs.get("attempt_id")
         user = self.request.user
-        # Prepare base queryset, including profile for potential use in service
         queryset = UserTestAttempt.objects.select_related("user", "user__profile")
 
         try:
-            # Directly try to get the object matching all criteria
             attempt = get_object_or_404(
                 queryset,
                 pk=attempt_id,
                 user=user,
-                status=UserTestAttempt.Status.STARTED,  # Must be ongoing
+                status=UserTestAttempt.Status.STARTED,
             )
             return attempt
         except Http404:
-            # If the above failed, check if it exists for the user but has wrong status
             attempt_exists = queryset.filter(pk=attempt_id, user=user).exists()
             if attempt_exists:
-                # It exists but wasn't STARTED
                 logger.warning(
                     f"Attempt {attempt_id} found for user {user.id} but failed criteria "
                     f"(likely not STARTED) in {self.__class__.__name__}."
@@ -320,7 +300,6 @@ class UserTestAttemptCompleteView(generics.GenericAPIView):
                     _("The specified test attempt is not currently active or ongoing.")
                 )
             else:
-                # Attempt doesn't exist at all or doesn't belong to the user
                 logger.warning(
                     f"Attempt {attempt_id} not found for user {user.id} in {self.__class__.__name__}."
                 )
@@ -334,17 +313,12 @@ class UserTestAttemptCompleteView(generics.GenericAPIView):
             )
 
     def post(self, request, attempt_id, *args, **kwargs):
-        test_attempt = self.get_object()  # Handles validation/404
-
+        test_attempt = self.get_object()
         try:
-            # Call the service function to handle completion logic for ALL types
             result_data = study_services.complete_test_attempt(
                 test_attempt=test_attempt
             )
-
-            # --- Handle Response based on service output ---
             if "detail" in result_data:
-                # Simple response (likely from Traditional completion)
                 return Response(result_data, status=status.HTTP_200_OK)
             else:
                 # Detailed response for non-Traditional types
@@ -363,9 +337,7 @@ class UserTestAttemptCompleteView(generics.GenericAPIView):
                 #    )
 
                 return Response(response_serializer.data, status=status.HTTP_200_OK)
-
         except DRFValidationError as e:
-            # Propagate validation errors from the service (e.g., attempt not started)
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.exception(
@@ -381,7 +353,7 @@ class UserTestAttemptCompleteView(generics.GenericAPIView):
     tags=["Study - Test Attempts (Core Actions)"],
     summary="Cancel Test Attempt",
     description="Cancels (abandons) an *ongoing* (`status=started`) test attempt (`{attempt_id}`). Sets status to 'Abandoned'. No scores are calculated. Applicable to all attempt types.",
-    request=None,  # POST with no body
+    request=None,
     responses={
         200: OpenApiResponse(
             description="Test attempt cancelled successfully.",
@@ -405,25 +377,21 @@ class UserTestAttemptCancelView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, IsSubscribed]
 
     def get_object(self) -> UserTestAttempt:
-        """Get the ongoing test attempt, ensuring ownership and STARTED status."""
         attempt_id = self.kwargs.get("attempt_id")
         user = self.request.user
         queryset = UserTestAttempt.objects.select_related("user")
 
         try:
-            # Directly try to get the object matching all criteria
             attempt = get_object_or_404(
                 queryset,
                 pk=attempt_id,
                 user=user,
-                status=UserTestAttempt.Status.STARTED,  # Must be ongoing
+                status=UserTestAttempt.Status.STARTED,
             )
             return attempt
         except Http404:
-            # If the above failed, check if it exists for the user but has wrong status
             attempt_exists = queryset.filter(pk=attempt_id, user=user).exists()
             if attempt_exists:
-                # It exists but wasn't STARTED
                 logger.warning(
                     f"Attempt {attempt_id} found for user {user.id} but failed criteria "
                     f"(likely not STARTED) in {self.__class__.__name__}."
@@ -432,7 +400,6 @@ class UserTestAttemptCancelView(generics.GenericAPIView):
                     _("The specified test attempt is not currently active or ongoing.")
                 )
             else:
-                # Attempt doesn't exist at all or doesn't belong to the user
                 logger.warning(
                     f"Attempt {attempt_id} not found for user {user.id} in {self.__class__.__name__}."
                 )
@@ -446,10 +413,8 @@ class UserTestAttemptCancelView(generics.GenericAPIView):
             )
 
     def post(self, request, attempt_id, *args, **kwargs):
-        test_attempt = self.get_object()  # Handles validation/404
-
+        test_attempt = self.get_object()
         try:
-            # Directly update status and end time - no complex logic needed here
             test_attempt.status = UserTestAttempt.Status.ABANDONED
             test_attempt.end_time = timezone.now()
             test_attempt.save(update_fields=["status", "end_time", "updated_at"])
@@ -474,7 +439,8 @@ class UserTestAttemptCancelView(generics.GenericAPIView):
     summary="Review Completed Test Attempt",
     description=(
         "Retrieves a detailed question-by-question review for a *completed* (`status=completed`) test attempt (`{attempt_id}`). "
-        "Includes user's answer, correct answer, and explanation for each question. Applicable to all attempt types. "
+        "Includes user's answer (key and text), correct answer key, and explanation for each question. "
+        "The `choices` field for each question provides the full text for all options. "
         "Use the `incorrect_only=true` query parameter to fetch only questions the user answered incorrectly (or skipped)."
     ),
     parameters=[
@@ -503,49 +469,38 @@ class UserTestAttemptReviewView(generics.GenericAPIView):
     """Provides a detailed review of a completed test attempt."""
 
     permission_classes = [IsAuthenticated, IsSubscribed]
-    serializer_class = (
-        attempt_serializers.UserTestAttemptReviewSerializer
-    )  # For response structure
+    serializer_class = attempt_serializers.UserTestAttemptReviewSerializer
 
     def get_object(self) -> UserTestAttempt:
-        """Get the test attempt, ensuring ownership and COMPLETED status."""
         attempt_id = self.kwargs.get("attempt_id")
         user = self.request.user
-        # Include prefetch here as it's always needed for the 'get' method in this view
         queryset = UserTestAttempt.objects.select_related("user").prefetch_related(
-            "question_attempts"  # Prefetch answers for review context
+            "question_attempts"
         )
 
         try:
-            # Directly try to get the object matching all criteria
             attempt = get_object_or_404(
                 queryset,
                 pk=attempt_id,
                 user=user,
-                status=UserTestAttempt.Status.COMPLETED,  # Must be completed
+                status=UserTestAttempt.Status.COMPLETED,
             )
             return attempt
         except Http404:
-            # If the above failed, check if it exists for the user but has wrong status
             attempt_check = queryset.filter(pk=attempt_id, user=user).first()
             if attempt_check:
-                # It exists but wasn't COMPLETED
                 logger.warning(
                     f"User {user.id} attempted review on non-completed test {attempt_id} "
                     f"(Status: {attempt_check.status}). Raising 400."
                 )
-                # Raise 400 Bad Request as the attempt exists but is not in a reviewable state
                 raise DRFValidationError(
                     {"detail": _("Cannot review a test attempt that is not completed.")}
                 )
             else:
-                # Attempt doesn't exist at all or doesn't belong to the user
                 logger.info(
                     f"Completed test attempt {attempt_id} not found for user {user.id} during review."
                 )
-                raise NotFound(
-                    _("Completed test attempt not found.")
-                )  # Correctly raise 404
+                raise NotFound(_("Completed test attempt not found."))
         except Exception as e:
             logger.exception(
                 f"Unexpected error fetching completed test attempt {attempt_id} for review by user {user.id}: {e}"
@@ -555,67 +510,53 @@ class UserTestAttemptReviewView(generics.GenericAPIView):
             )
 
     def get(self, request, attempt_id, *args, **kwargs):
-        test_attempt = (
-            self.get_object()
-        )  # Handles validation/404 and prefetching answers
+        test_attempt = self.get_object()
 
-        # --- Fetch all questions for this attempt ---
         all_questions_queryset = test_attempt.get_questions_queryset().prefetch_related(
             "subsection",
-            "skill",  # Eager load data needed by review question serializer
+            "skill",
         )
         all_question_ids_ordered = list(
             all_questions_queryset.values_list("id", flat=True)
-        )  # Get ordered IDs
+        )
 
-        # --- Create map of answers (already prefetched) ---
         user_attempts_map = {
             ua.question_id: ua for ua in test_attempt.question_attempts.all()
         }
 
-        # --- Filtering for incorrect only ---
         incorrect_only_param = (
             request.query_params.get("incorrect_only", "").strip().lower()
         )
         incorrect_only = incorrect_only_param in ["true", "1", "yes"]
 
-        review_questions_queryset = all_questions_queryset  # Start with all questions
+        review_questions_queryset = all_questions_queryset
 
         if incorrect_only:
             incorrect_or_skipped_question_ids = set()
             for qid in all_question_ids_ordered:
                 user_attempt = user_attempts_map.get(qid)
-                # Include if attempt exists and is incorrect, OR if attempt doesn't exist (skipped)
                 if (user_attempt and user_attempt.is_correct is False) or (
                     user_attempt is None
                 ):
                     incorrect_or_skipped_question_ids.add(qid)
 
             if not incorrect_or_skipped_question_ids:
-                review_questions_queryset = (
-                    all_questions_queryset.none()
-                )  # Return empty if all correct
+                review_questions_queryset = all_questions_queryset.none()
             else:
-                # Filter the main queryset, preserving original order
                 review_questions_queryset = all_questions_queryset.filter(
                     pk__in=incorrect_or_skipped_question_ids
                 )
-                # Ordering is preserved because we filter the already ordered queryset
 
-        # --- Serialize Response ---
-        context = (
-            self.get_serializer_context()
-        )  # Get default context (includes request)
+        context = self.get_serializer_context()
         context["user_attempts_map"] = user_attempts_map
-        context["attempt"] = (
-            test_attempt  # Pass attempt if serializer needs it (e.g., for summary fields)
-        )
+        # context["attempt"] = test_attempt # Not strictly needed here if response_data contains 'attempt'
 
         # Prepare data for the main review serializer
-        # Pass the filtered+ordered queryset to the 'questions' field
+        # The 'attempt' key here is crucial for source="attempt.xxx" in the serializer
         response_data = {
             "attempt_id": test_attempt.id,
             "questions": review_questions_queryset,
+            "attempt": test_attempt,  # This object will be used by UserTestAttemptReviewSerializer for score fields
         }
         serializer = self.get_serializer(response_data, context=context)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -629,9 +570,9 @@ class UserTestAttemptReviewView(generics.GenericAPIView):
         "Generates a fresh set of questions based on the original criteria, ideally excluding questions from the original attempt. "
         "Checks usage limits before starting. Cannot start if another test is already ongoing. Applicable to all attempt types."
     ),
-    request=None,  # POST with no body
+    request=None,
     responses={
-        201: attempt_serializers.UserTestAttemptStartResponseSerializer,  # Uses the standard start response
+        201: attempt_serializers.UserTestAttemptStartResponseSerializer,
         400: OpenApiResponse(
             description="Bad Request (e.g., Ongoing test exists, original config invalid, no suitable questions found)."
         ),
@@ -643,21 +584,15 @@ class UserTestAttemptReviewView(generics.GenericAPIView):
     },
 )
 class UserTestAttemptRetakeView(generics.GenericAPIView):
-    """Starts a new test attempt based on the configuration of a previous one."""
-
     permission_classes = [IsAuthenticated, IsSubscribed]
-    serializer_class = (
-        attempt_serializers.UserTestAttemptStartResponseSerializer
-    )  # Output matches start response
+    serializer_class = attempt_serializers.UserTestAttemptStartResponseSerializer
 
     def get_object(self) -> UserTestAttempt:
-        """Get the original test attempt, ensuring ownership. Status doesn't matter."""
         attempt_id = self.kwargs.get("attempt_id")
         user = self.request.user
         queryset = UserTestAttempt.objects.select_related("user")
 
         try:
-            # No status filter needed here; just check pk and user
             original_attempt = get_object_or_404(
                 queryset,
                 pk=attempt_id,
@@ -665,7 +600,6 @@ class UserTestAttemptRetakeView(generics.GenericAPIView):
             )
             return original_attempt
         except Http404:
-            # If get_object_or_404 fails, it means attempt doesn't exist OR doesn't belong to user.
             logger.warning(
                 f"Original attempt {attempt_id} not found for user {user.id} during retake request."
             )
@@ -679,10 +613,9 @@ class UserTestAttemptRetakeView(generics.GenericAPIView):
             )
 
     def post(self, request, attempt_id, *args, **kwargs):
-        original_attempt = self.get_object()  # Handles 404/permissions
+        original_attempt = self.get_object()
         user = request.user
 
-        # Call the service function to handle the complex logic of retake
         try:
             result_data = study_services.retake_test_attempt(
                 user=user, original_attempt=original_attempt
@@ -690,13 +623,12 @@ class UserTestAttemptRetakeView(generics.GenericAPIView):
         except (
             DRFValidationError,
             UsageLimitExceeded,
-        ) as e:  # Now catching DRFValidationError
+        ) as e:
             status_code = (
                 status.HTTP_403_FORBIDDEN
                 if isinstance(e, UsageLimitExceeded)
                 else status.HTTP_400_BAD_REQUEST
             )
-            # DRF ValidationError has .detail, UsageLimitExceeded is just a string
             error_detail = e.detail if isinstance(e, DRFValidationError) else str(e)
             return Response({"detail": error_detail}, status=status_code)
         except Exception as e:
@@ -712,8 +644,6 @@ class UserTestAttemptRetakeView(generics.GenericAPIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        # --- Prepare and Return Response ---
-        # The service returns the data needed for the standard start response
         response_serializer = self.get_serializer(
             result_data, context=self.get_serializer_context()
         )
