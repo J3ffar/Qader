@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "@/components/user_layout/UserSidebar";
-import UserNavbar from "@/components/user_layout/UserNav";
+import PlatformHeader from "@/components/features/platform/layout/PlatformHeader";
+import PlatformSidebar from "@/components/features/platform/layout/PlatformSidebar";
 
 export default function UserLayout({
   children,
@@ -14,11 +14,11 @@ export default function UserLayout({
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
-      <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} />
+      <PlatformSidebar isOpen={isOpen} setIsOpen={setIsOpen} />
 
       <div className="flex flex-1 flex-col">
         {/* Navbar */}
-        <UserNavbar isOpen={isOpen} />
+        <PlatformHeader isSidebarOpen={isOpen} />
 
         <div className="p-4">{children}</div>
       </div>

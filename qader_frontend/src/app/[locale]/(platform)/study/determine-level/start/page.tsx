@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import StartLevelAssessmentForm from "@/components/features/study/determine-level/StartLevelAssessmentForm";
+import StartLevelAssessmentForm from "@/components/features/platform/study/determine-level/StartLevelAssessmentForm";
 
 const StartLevelAssessmentPage = () => {
   const t = useTranslations("Study.determineLevel.startForm");

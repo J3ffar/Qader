@@ -9,6 +9,7 @@
   "closeMenu": "إغلاق القائمة",
   "qaderLogoAlt": "شعار قادر",
   "userAvatarAlt": "الصورة الرمزية للمستخدم",
+  "userAvatarAltFallback": "مستخدم",
   "dashboard": "لوحة التحكم",
   "settings": "الإعدادات",
   "viewProfile": "عرض الملف الشخصي",
@@ -18,14 +19,18 @@
     "emergencyMode": "وضع الطوارئ",
     "themes": "السمات",
     "adminSupport": "الدعم الإدارى",
-    "logout": "تسجيل خروج"
+    "logout": "تسجيل خروج",
+    "logoutSuccess": "تم تسجيل الخروج بنجاح!",
+    "logoutError": "فشل تسجيل الخروج. حاول مرة أخرى.",
+    "guestUser": "زائر"
   },
 
-  "UserNav": {
+  "PlatformHeader": {
     "searchPlaceholder": "اكتب سؤالك هنا...",
-    "greeting": "صباح الخير!",
+    "greeting": "أهلاً بك!",
+    "userAvatarAltFallback": "مستخدم",
 
-    "BellDropdown": {
+    "NotificationsDropdown": {
       "title": "الإشعارات",
       "markAllRead": "وضع علامة مقروء للجميع",
       "marking": "جاري التحديث...",
@@ -33,10 +38,11 @@
       "allReadError": "فشل تحديد الكل كمقروء.",
       "noNotifications": "لا توجد إشعارات جديدة.",
       "errorLoading": "خطأ في تحميل الإشعارات.",
-      "viewAll": "عرض كل الإشعارات"
+      "viewAll": "عرض كل الإشعارات",
+      "notificationActorAltFallback": "مرسل الإشعار"
     },
 
-    "GiftContain": {
+    "GiftDropdown": {
       "inviteFriend": {
         "title": "دعوة صديق",
         "header": "احصل على 3 أيام مجانية!",
@@ -44,7 +50,8 @@
         "referralLink": "رابط الدعوة الخاص بك:",
         "noCode": "رمز الدعوة غير متوفر حالياً.",
         "copiedSuccess": "تم نسخ الرابط!",
-        "copiedError": "فشل نسخ الرابط."
+        "copiedError": "فشل نسخ الرابط.",
+        "copyReferralLinkAriaLabel": "نسخ رابط الدعوة"
       },
       "store": {
         "title": "المتجر",
@@ -58,10 +65,12 @@
         "pointsCost": "{count} نقطة",
         "redeemButton": "استبدال",
         "errorLoading": "خطأ في تحميل عناصر المتجر."
-      }
+      },
+      "shareVia": "مشاركة عبر",
+      "sharingAction": "جارٍ مشاركة"
     },
 
-    "ShapContain": {
+    "PointsSummaryDropdown": {
       "title": "ابدأ التعلم لكسب المزيد من النقاط",
       "description": "هذه هى جميع نقاط الاسبوع التى جمعتها.",
       "noActivity": "لم يتم الحصول على اي نقاط خلال هذه الفترة",
@@ -79,45 +88,50 @@
       }
     },
 
-    "StarContain": {
+    "StreakDropdown": {
       "title": "استمر لتحسين نقاط الأيام",
       "description": "هذه هى جميع نقاط الاسبوع من الالتزام.",
       "streakDays": "{count, plural, =0 {لا يوجد تتابع حالي} one {يوم واحد متتالي} two {يومان متتاليان} few {{count} أيام متتالية} many {{count} يوماً متتالياً} other {{count} يوم متتالي}}",
       "viewAllButton": "عرض الكل",
       "errorLoading": "خطأ في تحميل بيانات التتابع.",
       "days": {
+        "sun": "الأحد",
         "mon": "الاثنين",
         "tue": "الثلاثاء",
         "wed": "الأربعاء",
         "thu": "الخميس",
         "fri": "الجمعة",
-        "sat": "السبت",
-        "sun": "الأحد"
+        "sat": "السبت"
       }
     }
   },
-  "UserSideBar": {
+
+  "PlatformSidebar": {
+    "sidebarNavigationLabel": "قائمة التنقل الرئيسية للمنصة",
+    "logoAlt": "شعار منصة قادر الكامل",
+    "logoSmallAlt": "أيقونة شعار منصة قادر",
+    "toggleOpen": "فتح الشريط الجانبي",
+    "toggleClose": "إغلاق الشريط الجانبي",
     "sections": {
-      "learning": "التعلم",
-      "community": "مجتمع قادر",
-      "settings": "الإعدادات"
+      "learning": "التعلم والتدريب",
+      "engagement": "التفاعل والمكافآت",
+      "account": "الحساب والدعم"
     },
-    "study": {
-      "home": "لوحة المذاكرة",
-      "determine-level": "تحديد المستوى",
-      "traditional-learning": "التعلم التقليدي",
-      "emergency-mode": "وضع الطوارئ",
-      "conversational-learning": "التعلم عبر المحادثة",
-      "tests": "اختبارات المحاكاة",
+    "items": {
+      "studyDashboard": "لوحة المذاكرة",
+      "determineLevel": "تحديد المستوى",
+      "traditionalLearning": "التعلم التقليدي",
+      "emergencyMode": "وضع الطوارئ",
+      "conversationalLearning": "التعلم عبر المحادثة",
+      "tests": "الاختبارات",
       "blog": "المدونة",
       "statistics": "الإحصائيات",
-      "settings": "الإعدادات والاشتراك",
-      "rewards-and-competitions": "مكافآت ومسابقات",
-      "challenge-colleagues": "تحدي الزملاء",
+      "rewards": "المكافآت والمسابقات",
+      "challengeColleagues": "تحدي الزملاء",
       "community": "مجتمع الطلاب",
-      "admin-support": "دعم الإدارة"
-    },
-    "toggleOpen": "فتح الشريط الجانبي",
-    "toggleClose": "إغلاق الشريط الجانبي"
+      "settings": "الإعدادات والاشتراك",
+      "adminSupport": "دعم الإدارة",
+      "comingSoonSuffix": "قريباً"
+    }
   }
 }

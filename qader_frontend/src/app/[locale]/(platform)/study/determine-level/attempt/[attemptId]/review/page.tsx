@@ -31,7 +31,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
-import ReviewQuestionCard from "@/components/features/study/determine-level/ReviewQuestionCard";
+import ReviewQuestionCard from "@/components/features/platform/study/determine-level/ReviewQuestionCard";
 
 import { getTestAttemptReview } from "@/services/study.service";
 import { QUERY_KEYS } from "@/constants/queryKeys";

@@ -9,6 +9,7 @@
   "closeMenu": "Close menu",
   "qaderLogoAlt": "Qader Logo",
   "userAvatarAlt": "User Avatar",
+  "userAvatarAltFallback": "User",
   "dashboard": "Dashboard",
   "settings": "Settings",
   "viewProfile": "View Profile",
@@ -18,13 +19,18 @@
     "emergencyMode": "Emergency Mode",
     "themes": "Themes",
     "adminSupport": "Admin Support",
-    "logout": "Logout"
+    "logout": "Logout",
+    "logoutSuccess": "Logged out successfully!",
+    "logoutError": "Logout failed. Please try again.",
+    "guestUser": "Guest"
   },
-  "UserNav": {
-    "searchPlaceholder": "Type your question here...",
-    "greeting": "Good morning!",
 
-    "BellDropdown": {
+  "PlatformHeader": {
+    "searchPlaceholder": "Type your question here...",
+    "greeting": "Welcome!",
+    "userAvatarAltFallback": "User",
+
+    "NotificationsDropdown": {
       "title": "Notifications",
       "markAllRead": "Mark all as read",
       "marking": "Updating...",
@@ -32,9 +38,11 @@
       "allReadError": "Failed to mark all as read.",
       "noNotifications": "No new notifications.",
       "errorLoading": "Error loading notifications.",
-      "viewAll": "View all notifications"
+      "viewAll": "View all notifications",
+      "notificationActorAltFallback": "Notification sender"
     },
-    "GiftContain": {
+
+    "GiftDropdown": {
       "inviteFriend": {
         "title": "Invite a Friend",
         "header": "Get 3 Free Days!",
@@ -42,7 +50,8 @@
         "referralLink": "Your referral link:",
         "noCode": "Referral code currently unavailable.",
         "copiedSuccess": "Link copied!",
-        "copiedError": "Failed to copy link."
+        "copiedError": "Failed to copy link.",
+        "copyReferralLinkAriaLabel": "Copy referral link"
       },
       "store": {
         "title": "Store",
@@ -56,9 +65,12 @@
         "pointsCost": "{count} points",
         "redeemButton": "Redeem",
         "errorLoading": "Error loading store items."
-      }
+      },
+      "shareVia": "Share via",
+      "sharingAction": "Sharing"
     },
-    "ShapContain": {
+
+    "PointsSummaryDropdown": {
       "title": "Start Learning to Earn More Points",
       "description": "These are all the points you've collected this week.",
       "noActivity": "No points were earned during this period.",
@@ -75,45 +87,51 @@
         "sat": "Saturday"
       }
     },
-    "StarContain": {
+
+    "StreakDropdown": {
       "title": "Keep Going to Improve Your Daily Streak",
       "description": "This is your commitment streak for the week.",
       "streakDays": "{count, plural, =0 {No current streak} one {1 day streak} other {# days streak}}",
       "viewAllButton": "View All",
       "errorLoading": "Error loading streak data.",
       "days": {
+        "sun": "Sunday",
         "mon": "Monday",
         "tue": "Tuesday",
         "wed": "Wednesday",
         "thu": "Thursday",
         "fri": "Friday",
-        "sat": "Saturday",
-        "sun": "Sunday"
+        "sat": "Saturday"
       }
     }
   },
-  "UserSideBar": {
+
+  "PlatformSidebar": {
+    "sidebarNavigationLabel": "Main Platform Navigation",
+    "logoAlt": "Qader Platform Full Logo",
+    "logoSmallAlt": "Qader Platform Icon Logo",
+    "toggleOpen": "Open sidebar",
+    "toggleClose": "Close sidebar",
     "sections": {
-      "learning": "Learning",
-      "community": "Qader Community",
-      "settings": "Settings"
+      "learning": "Learn & Practice",
+      "engagement": "Engagement & Rewards",
+      "account": "Account & Support"
     },
-    "study": {
-      "home": "Study Board",
-      "determine-level": "Determine Level",
-      "traditional-learning": "Traditional Learning",
-      "emergency-mode": "Emergency Mode",
-      "conversational-learning": "Learning via Conversation",
-      "tests": "Simulation Tests",
+    "items": {
+      "studyDashboard": "Study Dashboard",
+      "determineLevel": "Determine Level",
+      "traditionalLearning": "Traditional Learning",
+      "emergencyMode": "Emergency Mode",
+      "conversationalLearning": "Learn via Conversation",
+      "tests": "Tests",
       "blog": "Blog",
       "statistics": "Statistics",
-      "settings": "Settings & Subscription",
-      "rewards-and-competitions": "Rewards & Competitions",
-      "challenge-colleagues": "Challenge Colleagues",
+      "rewards": "Rewards & Competitions",
+      "challengeColleagues": "Challenge Colleagues",
       "community": "Student Community",
-      "admin-support": "Admin Support"
-    },
-    "toggleOpen": "Open sidebar",
-    "toggleClose": "Close sidebar"
+      "settings": "Settings & Subscription",
+      "adminSupport": "Admin Support",
+      "comingSoonSuffix": "Soon"
+    }
   }
 }

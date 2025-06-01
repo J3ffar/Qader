@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import ScorePieChart from "@/components/features/study/determine-level/ScorePieChart";
+import ScorePieChart from "@/components/features/platform/study/determine-level/ScorePieChart";
 
 import {
   getTestAttemptReview,
