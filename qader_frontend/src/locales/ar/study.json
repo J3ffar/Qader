@@ -138,7 +138,31 @@
       "correctAnswer": "الإجابة الصحيحة:",
       "explanation": "الشرح:",
       "questionNavigation": "تصفح الأسئلة",
-      "viewScore": "عرض النتيجة النهائية"
+      "viewScore": "عرض النتيجة النهائية",
+      "reviewYourAttempt": "راجع محاولتك",
+      "overallScore": "النتيجة الإجمالية",
+      "verbal": "لفظي",
+      "quantitative": "كمّي",
+      "backToScorePage": "العودة لصفحة النتيجة",
+      "filterBy": "تصفية حسب",
+      "allQuestionsOpt": "جميع الأسئلة",
+      "incorrectOnlyOpt": "الخاطئة فقط",
+      "skippedOnlyOpt": "غير المجاب عليها فقط",
+      "questionXofY": "السؤال {current} من {total}",
+      "details": "التفاصيل",
+      "subsection": "القسم الفرعي",
+      "skill": "المهارة",
+      "previousQuestion": "السابق",
+      "nextQuestion": "التالي",
+      "noQuestionsTitle": "لا توجد أسئلة هنا",
+      "noQuestionsInReview": "لا توجد أسئلة متاحة في هذه المراجعة.",
+      "noQuestionsMatchFilter": "لا توجد أسئلة تطابق معايير التصفية الحالية.",
+      "notAnswered": "لم تتم الإجابة",
+      "correct": "صحيحة",
+      "incorrect": "خاطئة",
+      "errors": {
+        "fetchReviewFailed": "تعذر تحميل مراجعة الاختبار. يرجى المحاولة مرة أخرى أو العودة للخلف."
+      }
     },
     "score": {
       "title": "نتيجة اختبار تحديد المستوى",
@@ -161,7 +185,11 @@
       "api": {
         "retakeSuccess": "تم إنشاء اختبار جديد بنجاح! جاري توجيهك...",
         "retakeError": "فشل إنشاء اختبار جديد: {error}"
-      }
+      },
+      "correctAnswers": "الإجابات الصحيحة",
+      "incorrectAnswers": "الإجابات الخاطئة",
+      "skipped": "متخطاة",
+      "backToOverview": "العودة للمحة عامة"
     },
     "badgeColors": {
       "excellent": "ممتاز",
@@ -169,7 +197,8 @@
       "good": "جيد",
       "acceptable": "مقبول",
       "weak": "ضعيف",
-      "default": "غير محدد"
+      "default": "غير محدد",
+      "notAvailable": "غير متوفر"
     },
     "apiError": "حدث خطأ أثناء جلب البيانات. يرجى المحاولة مرة أخرى."
   }

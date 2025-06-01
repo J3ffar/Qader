@@ -28,5 +28,9 @@
   "errors": {
     "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
     "fetchFailedTitle": "فشل جلب البيانات"
+  },
+
+  "status": {
+    "notAvailableShort": "N/A"
   }
 }

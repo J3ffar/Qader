@@ -28,5 +28,9 @@
   "errors": {
     "generic": "An error occurred. Please try again.",
     "fetchFailedTitle": "Failed to fetch data"
+  },
+
+  "status": {
+    "notAvailableShort": "N/A"
   }
 }

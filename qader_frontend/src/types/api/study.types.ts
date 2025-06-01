@@ -154,10 +154,17 @@ export interface TestAttemptCompletionResponse {
  * Structure for a question during review.
  * API: Part of UserTestAttemptReview
  */
-export interface UserTestAttemptReviewQuestion extends QuestionSchema {
-  user_answer: keyof QuestionOptionKey | null;
+export interface UserTestAttemptReviewQuestion {
+  question_id: number; // Matches API doc for review `question_id`
+  question_text: string;
+  choices: QuestionChoicesMap; // Correctly uses the map for { A: "text", B: "text", ... }
+  user_answer: QuestionOptionKey | null; // Assuming API sends 'A', 'B', 'C', 'D' or null
+  correct_answer: QuestionOptionKey; // Assuming API sends 'A', 'B', 'C', 'D'
   user_is_correct: boolean | null;
-  // Fields specific to traditional mode or review context
+  explanation?: string | null;
+  subsection_name?: string | null;
+  skill_name?: string | null;
+  // Fields specific to traditional mode or review context, may or may not be present in all review responses
   used_hint?: boolean | null;
   used_elimination?: boolean | null;
   revealed_answer?: boolean | null;

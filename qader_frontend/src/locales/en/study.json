@@ -138,7 +138,31 @@
       "correctAnswer": "Correct Answer:",
       "explanation": "Explanation:",
       "questionNavigation": "Browse Questions",
-      "viewScore": "View Final Score"
+      "viewScore": "View Final Score",
+      "reviewYourAttempt": "Review Your Attempt",
+      "overallScore": "Overall Score",
+      "verbal": "Verbal",
+      "quantitative": "Quantitative",
+      "backToScorePage": "Back to Score Page",
+      "filterBy": "Filter by",
+      "allQuestionsOpt": "All Questions",
+      "incorrectOnlyOpt": "Incorrect Only",
+      "skippedOnlyOpt": "Unanswered Only",
+      "questionXofY": "Question {current} of {total}",
+      "details": "Details",
+      "subsection": "Subsection",
+      "skill": "Skill",
+      "previousQuestion": "Previous",
+      "nextQuestion": "Next",
+      "noQuestionsTitle": "No Questions Here",
+      "noQuestionsInReview": "There are no questions available in this review.",
+      "noQuestionsMatchFilter": "No questions match the current filter.",
+      "notAnswered": "Not Answered",
+      "correct": "Correct",
+      "incorrect": "Incorrect",
+      "errors": {
+        "fetchReviewFailed": "Could not load the test review. Please try again or go back."
+      }
     },
     "score": {
       "title": "Level Assessment Test Result",
@@ -161,7 +185,11 @@
       "api": {
         "retakeSuccess": "New test created successfully! Redirecting you...",
         "retakeError": "Failed to create a new test: {error}"
-      }
+      },
+      "correctAnswers": "Correct Answers",
+      "incorrectAnswers": "Incorrect Answers",
+      "skipped": "skipped",
+      "backToOverview": "Back to Overview"
     },
     "badgeColors": {
       "excellent": "Excellent",
@@ -169,8 +197,11 @@
       "good": "Good",
       "acceptable": "Acceptable",
       "weak": "Weak",
-      "default": "Not Specified"
+      "default": "Not Specified",
+
+      "notAvailable": "N/A"
     },
+
     "apiError": "An error occurred while fetching data. Please try again."
   }
 }
