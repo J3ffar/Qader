@@ -499,7 +499,8 @@ export default function CompleteProfilePage() {
 
         {/* Language - if it's always based on user's settings or current locale, can be hidden */}
         {/* If user can CHOOSE language for their profile separate from UI, use a Select */}
-        <input type="hidden" {...register("language")} />
+        <input type="hidden" {...register("language")} defaultValue="ar" />
+
         {errors.language && (
           <p className="mt-1 text-xs text-red-500">{errors.language.message}</p>
         )}
