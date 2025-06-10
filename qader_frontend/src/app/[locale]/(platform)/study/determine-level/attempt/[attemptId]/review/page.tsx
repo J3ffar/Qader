@@ -19,6 +19,7 @@ import {
   FileText,
   TrendingUp,
   Info,
+  ListCollapse,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import { PATHS } from "@/constants/paths";
 import { UserTestAttemptReviewResponse } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 type FilterType = "all" | "incorrect" | "skipped";
 
@@ -175,15 +177,14 @@ const LevelAssessmentReviewPage = () => {
       {/* Header Card */}
       <Card className="overflow-hidden shadow-md">
         <CardHeader className="bg-muted/20 p-4 sm:p-5">
-          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-3">
+            {/* --- MODIFIED HEADER SECTION --- */}
+            <div className="flex flex-grow items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() =>
-                  router.push(PATHS.STUDY.DETERMINE_LEVEL.SCORE(attemptId))
-                }
-                aria-label={t("backToScorePage")}
+                onClick={() => router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST)} // MODIFIED: Go to list page
+                aria-label={t("backToList")} // MODIFIED: Aria label
                 className="text-primary hover:bg-primary/10"
               >
                 {locale === "ar" ? (
@@ -197,53 +198,59 @@ const LevelAssessmentReviewPage = () => {
                 {t("reviewYourAttempt")}
               </h1>
             </div>
-            {/* CORRECTED: Use the correct score variables */}
-            {score_percentage !== null && (
-              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-lg border bg-background p-2 px-3 text-xs shadow-sm sm:text-sm">
-                <div
-                  className="flex items-center"
-                  title={tScore("overallScore")}
-                >
-                  <TrendingUp className="me-1 h-4 w-4 text-primary" />
-                  <span className="font-medium">
-                    {score_percentage.toFixed(0)}%
-                  </span>
-                </div>
-                {score_verbal !== null && (
-                  <>
-                    <span className="text-muted-foreground">|</span>
-                    <div
-                      className="flex items-center"
-                      title={tScore("verbalSection")}
-                    >
-                      <span className="font-medium text-yellow-600 dark:text-yellow-400">
-                        {tScore("verbalSectionShort")}:
-                      </span>
-                      <span className="ms-1 font-medium">
-                        {score_verbal.toFixed(0)}%
-                      </span>
-                    </div>
-                  </>
-                )}
-                {score_quantitative !== null && (
-                  <>
-                    <span className="text-muted-foreground">|</span>
-                    <div
-                      className="flex items-center"
-                      title={tScore("quantitativeSection")}
-                    >
-                      <span className="font-medium text-blue-600 dark:text-blue-400">
-                        {tScore("quantitativeSectionShort")}:
-                      </span>
-                      <span className="ms-1 font-medium">
-                        {score_quantitative.toFixed(0)}%
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+
+            {/* NEW: View Details Button */}
+            <Button asChild variant="default" size="sm">
+              <Link href={PATHS.STUDY.DETERMINE_LEVEL.DETAILS(attemptId)}>
+                <ListCollapse className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
+                {t("viewDetails")}
+              </Link>
+            </Button>
           </div>
+
+          {/* Score display section (moved below for better layout on small screens) */}
+          {score_percentage !== null && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-lg border bg-background p-2 px-3 text-xs shadow-sm sm:text-sm">
+              <div className="flex items-center" title={tScore("overallScore")}>
+                <TrendingUp className="me-1 h-4 w-4 text-primary" />
+                <span className="font-medium">
+                  {score_percentage.toFixed(0)}%
+                </span>
+              </div>
+              {score_verbal !== null && (
+                <>
+                  <span className="text-muted-foreground">|</span>
+                  <div
+                    className="flex items-center"
+                    title={tScore("verbalSection")}
+                  >
+                    <span className="font-medium text-yellow-600 dark:text-yellow-400">
+                      {tScore("verbalSectionShort")}:
+                    </span>
+                    <span className="ms-1 font-medium">
+                      {score_verbal.toFixed(0)}%
+                    </span>
+                  </div>
+                </>
+              )}
+              {score_quantitative !== null && (
+                <>
+                  <span className="text-muted-foreground">|</span>
+                  <div
+                    className="flex items-center"
+                    title={tScore("quantitativeSection")}
+                  >
+                    <span className="font-medium text-blue-600 dark:text-blue-400">
+                      {tScore("quantitativeSectionShort")}:
+                    </span>
+                    <span className="ms-1 font-medium">
+                      {score_quantitative.toFixed(0)}%
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </CardHeader>
       </Card>
 

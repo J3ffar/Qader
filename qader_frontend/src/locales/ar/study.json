@@ -144,6 +144,8 @@
       "verbal": "اللفظي",
       "quantitative": "الكمي",
       "backToScorePage": "العودة لصفحة النتيجة",
+      "backToList": "العودة إلى قائمة الاختبارات",
+      "viewDetails": "عرض تفاصيل الاختبار",
       "filterBy": "التصفية حسب",
       "allQuestionsOpt": "الكل",
       "incorrectOnlyOpt": "الأسئلة الخاطئة",
@@ -210,6 +212,29 @@
       "total": "المجموع",
       "score": "النتيجة",
       "smartAnalysisTitle": "التحليل الذكي"
+    },
+    "details": {
+      "pageTitle": "تفاصيل المحاولة",
+      "backToScorePage": "العودة إلى النتيجة",
+      "summaryTitle": "الملخص",
+      "status": "الحالة",
+      "testDate": "التاريخ",
+      "scoreVerbal": "درجة القسم اللفظي",
+      "scoreQuantitative": "درجة القسم الكمي",
+      "configurationTitle": "إعدادات الاختبار",
+      "numQuestions": "عدد الأسئلة",
+      "numQuestionsSelected": "عدد الأسئلة التي تم جلبها",
+      "sections": "الأقسام",
+      "answeredQuestionsTitle": "الأسئلة التي تمت الإجابة عليها",
+      "tableHeaderQuestion": "السؤال",
+      "tableHeaderYourAnswer": "إجابتك",
+      "tableHeaderStatus": "النتيجة",
+      "statusCorrect": "صحيح",
+      "statusIncorrect": "غير صحيح",
+      "statusNotAnswered": "لم يُجب عليه",
+      "errors": {
+        "fetchDetailsFailed": "تعذر تحميل تفاصيل محاولة الاختبار. يرجى المحاولة مرة أخرى أو العودة."
+      }
     },
     "badgeColors": {
       "excellent": "ممتاز",

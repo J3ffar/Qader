@@ -144,6 +144,8 @@
       "verbal": "Verbal",
       "quantitative": "Quantitative",
       "backToScorePage": "Back to Score Page",
+      "backToList": "Back to Test List",
+      "viewDetails": "View Details",
       "filterBy": "Filter by",
       "allQuestionsOpt": "All",
       "incorrectOnlyOpt": "Incorrect",
@@ -210,6 +212,29 @@
       "total": "Total",
       "score": "Score",
       "smartAnalysisTitle": "Smart Analysis"
+    },
+    "details": {
+      "pageTitle": "Attempt Details",
+      "backToScorePage": "Back to Score",
+      "summaryTitle": "Summary",
+      "status": "Status",
+      "testDate": "Date",
+      "scoreVerbal": "Verbal Score",
+      "scoreQuantitative": "Quantitative Score",
+      "configurationTitle": "Test Configuration",
+      "numQuestions": "Number of Questions",
+      "numQuestionsSelected": "Number of Questions that had been selected",
+      "sections": "Sections",
+      "answeredQuestionsTitle": "Answered Questions",
+      "tableHeaderQuestion": "Question",
+      "tableHeaderYourAnswer": "Your Answer",
+      "tableHeaderStatus": "Result",
+      "statusCorrect": "Correct",
+      "statusIncorrect": "Incorrect",
+      "statusNotAnswered": "Not Answered",
+      "errors": {
+        "fetchDetailsFailed": "Could not load the test attempt details. Please try again or go back."
+      }
     },
     "badgeColors": {
       "excellent": "Excellent",

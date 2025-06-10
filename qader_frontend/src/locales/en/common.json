@@ -14,6 +14,7 @@
   "login": "login",
   "signup": "signup",
   "reviewTest": "Review Test",
+  "attempt": "attempt",
 
   "language": "Language",
   "selectLanguage": "Select Language",

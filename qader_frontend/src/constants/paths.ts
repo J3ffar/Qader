@@ -14,18 +14,17 @@ export const PATHS = {
     HOME: "/study", // Main study dashboard/landing page for logged-in users
 
     DETERMINE_LEVEL: {
-      // Root for determine level section, could list available tests or info
       LIST: "/study/determine-level",
       START: "/study/determine-level/start",
-      // Taking a specific test attempt
       ATTEMPT: (attemptId: number | string) =>
         `/study/determine-level/attempt/${attemptId}`,
-      // Reviewing answers for a completed attempt
       REVIEW: (attemptId: number | string) =>
         `/study/determine-level/attempt/${attemptId}/review`,
-      // Viewing the score/results of an attempt
       SCORE: (attemptId: number | string) =>
         `/study/determine-level/attempt/${attemptId}/score`,
+      // ADD THIS NEW PATH
+      DETAILS: (attemptId: number | string) =>
+        `/study/determine-level/attempt/${attemptId}/details`,
     },
 
     TRADITIONAL_LEARNING: {
