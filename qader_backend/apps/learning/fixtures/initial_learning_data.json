@@ -32,6 +32,7 @@
       "slug": "verbal-reading-comprehension",
       "description": "فهم وتحليل النصوص المقروءة واستخلاص الأفكار الرئيسية والتفاصيل.",
       "order": 1,
+      "is_active": true,
       "created_at": "2023-10-27T10:01:00Z",
       "updated_at": "2023-10-27T10:01:00Z"
     }
@@ -45,6 +46,7 @@
       "slug": "verbal-sentence-completion",
       "description": "اختيار الكلمات الأنسب لإكمال جمل ناقصة بما يتوافق مع المعنى العام.",
       "order": 2,
+      "is_active": true,
       "created_at": "2023-10-27T10:01:00Z",
       "updated_at": "2023-10-27T10:01:00Z"
     }
@@ -58,6 +60,7 @@
       "slug": "verbal-verbal-analogy",
       "description": "تحديد العلاقة بين زوج من الكلمات واختيار الزوج الذي يماثلها في العلاقة.",
       "order": 3,
+      "is_active": true,
       "created_at": "2023-10-27T10:01:00Z",
       "updated_at": "2023-10-27T10:01:00Z"
     }
@@ -71,6 +74,7 @@
       "slug": "verbal-contextual-error",
       "description": "تحديد الكلمة التي لا تتناسب مع المعنى العام للسياق في الجملة.",
       "order": 4,
+      "is_active": true,
       "created_at": "2023-10-27T10:01:00Z",
       "updated_at": "2023-10-27T10:01:00Z"
     }
@@ -84,6 +88,7 @@
       "slug": "verbal-odd-one-out",
       "description": "تحديد الكلمة التي تختلف عن باقي الكلمات في المجموعة من حيث المعنى أو النوع.",
       "order": 5,
+      "is_active": true,
       "created_at": "2023-10-27T10:01:00Z",
       "updated_at": "2023-10-27T10:01:00Z"
     }
@@ -97,6 +102,7 @@
       "slug": "quantitative-algebra-problems",
       "description": "حل المعادلات والمتباينات والتعامل مع الدوال والأسس والجذور.",
       "order": 1,
+      "is_active": true,
       "created_at": "2023-10-27T10:02:00Z",
       "updated_at": "2023-10-27T10:02:00Z"
     }
@@ -110,6 +116,7 @@
       "slug": "quantitative-engineering-problems",
       "description": "التعامل مع الأشكال الهندسية المستوية والمجسمة وحساب المساحات والحجوم والزوايا.",
       "order": 2,
+      "is_active": true,
       "created_at": "2023-10-27T10:02:00Z",
       "updated_at": "2023-10-27T10:02:00Z"
     }
@@ -123,6 +130,7 @@
       "slug": "quantitative-arithmetic-problems",
       "description": "إجراء العمليات الحسابية الأساسية، والتعامل مع النسب المئوية، والمتوسطات، والأنماط.",
       "order": 3,
+      "is_active": true,
       "created_at": "2023-10-27T10:02:00Z",
       "updated_at": "2023-10-27T10:02:00Z"
     }
@@ -136,6 +144,7 @@
       "slug": "quantitative-comparisons",
       "description": "مقارنة بين قيمتين وتحديد أيهما أكبر أو أصغر أو إذا كانتا متساويتين.",
       "order": 4,
+      "is_active": true,
       "created_at": "2023-10-27T10:02:00Z",
       "updated_at": "2023-10-27T10:02:00Z"
     }
@@ -149,6 +158,7 @@
       "slug": "quantitative-data-analysis",
       "description": "قراءة وتفسير الرسوم البيانية والجداول والإحصاءات.",
       "order": 5,
+      "is_active": true,
       "created_at": "2023-10-27T10:02:00Z",
       "updated_at": "2023-10-27T10:02:00Z"
     }
@@ -161,6 +171,7 @@
       "name": "تحديد الفكرة الرئيسية",
       "slug": "verbal-reading-comprehension-main-idea",
       "description": "القدرة على استخلاص الفكرة المحورية أو الهدف الأساسي للنص.",
+      "is_active": true,
       "created_at": "2023-10-27T10:03:00Z",
       "updated_at": "2023-10-27T10:03:00Z"
     }
@@ -173,6 +184,7 @@
       "name": "استنتاج المعلومات الضمنية",
       "slug": "verbal-reading-comprehension-inference",
       "description": "فهم ما لم يصرح به الكاتب مباشرة بناءً على المعطيات في النص.",
+      "is_active": true,
       "created_at": "2023-10-27T10:03:00Z",
       "updated_at": "2023-10-27T10:03:00Z"
     }
@@ -185,8 +197,48 @@
       "name": "تحديد علاقة التضاد",
       "slug": "verbal-verbal-analogy-antonym-relation",
       "description": "التعرف على العلاقة العكسية بين كلمتين.",
+      "is_active": true,
       "created_at": "2023-10-27T10:03:00Z",
       "updated_at": "2023-10-27T10:03:00Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 121,
+    "fields": {
+      "subsection": 12,
+      "name": "تحديد علاقة الجزء من الكل",
+      "slug": "verbal-verbal-analogy-part-whole-relation",
+      "description": "التعرف على العلاقة التي يكون فيها أحد العنصرين جزءًا من الآخر.",
+      "is_active": true,
+      "created_at": "2023-10-27T10:03:15Z",
+      "updated_at": "2023-10-27T10:03:15Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 130,
+    "fields": {
+      "subsection": 13,
+      "name": "تحديد الكلمة غير الملائمة للسياق",
+      "slug": "verbal-contextual-error-unsuitable-word",
+      "description": "اكتشاف الكلمة التي تفسد المعنى المنطقي للجملة.",
+      "is_active": true,
+      "created_at": "2023-10-27T10:03:30Z",
+      "updated_at": "2023-10-27T10:03:30Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 140,
+    "fields": {
+      "subsection": 14,
+      "name": "تمييز الكلمة المختلفة في الفئة",
+      "slug": "verbal-odd-one-out-different-category",
+      "description": "إيجاد الكلمة التي لا تنتمي إلى نفس المجموعة الدلالية لبقية الكلمات.",
+      "is_active": true,
+      "created_at": "2023-10-27T10:03:30Z",
+      "updated_at": "2023-10-27T10:03:30Z"
     }
   },
   {
@@ -197,8 +249,22 @@
       "name": "حل معادلات الدرجة الأولى",
       "slug": "quantitative-algebra-problems-linear-equations",
       "description": "إيجاد قيمة المتغير المجهول في المعادلات الخطية.",
+      "is_active": true,
       "created_at": "2023-10-27T10:04:00Z",
       "updated_at": "2023-10-27T10:04:00Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 201,
+    "fields": {
+      "subsection": 20,
+      "name": "حل أنظمة معادلات",
+      "slug": "quantitative-algebra-problems-systems-of-equations",
+      "description": "إيجاد حلول لعدة معادلات بمجهولين أو أكثر.",
+      "is_active": true,
+      "created_at": "2023-10-27T10:04:15Z",
+      "updated_at": "2023-10-27T10:04:15Z"
     }
   },
   {
@@ -209,8 +275,87 @@
       "name": "حساب مساحة المثلث",
       "slug": "quantitative-engineering-problems-triangle-area",
       "description": "تطبيق قانون مساحة المثلث (نصف القاعدة × الارتفاع).",
+      "is_active": true,
       "created_at": "2023-10-27T10:04:00Z",
       "updated_at": "2023-10-27T10:04:00Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 211,
+    "fields": {
+      "subsection": 21,
+      "name": "حساب مساحة الدائرة",
+      "slug": "quantitative-engineering-problems-circle-area",
+      "description": "تطبيق قانون مساحة الدائرة (ط × نق²).",
+      "is_active": true,
+      "created_at": "2023-10-27T10:04:30Z",
+      "updated_at": "2023-10-27T10:04:30Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 212,
+    "fields": {
+      "subsection": 21,
+      "name": "حساب محيط الأشكال الهندسية",
+      "slug": "quantitative-engineering-problems-perimeter",
+      "description": "تطبيق قوانين محيط المربع والمستطيل والدائرة.",
+      "is_active": true,
+      "created_at": "2023-10-27T10:04:45Z",
+      "updated_at": "2023-10-27T10:04:45Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 220,
+    "fields": {
+      "subsection": 22,
+      "name": "حساب النسبة المئوية",
+      "slug": "quantitative-arithmetic-problems-percentages",
+      "description": "إيجاد قيمة نسبة مئوية من عدد، أو حساب الخصم والزيادة.",
+      "is_active": true,
+      "created_at": "2023-10-27T10:04:30Z",
+      "updated_at": "2023-10-27T10:04:30Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 221,
+    "fields": {
+      "subsection": 22,
+      "name": "حساب المتوسط الحسابي",
+      "slug": "quantitative-arithmetic-problems-average",
+      "description": "إيجاد المتوسط لمجموعة من الأعداد.",
+      "is_active": true,
+      "created_at": "2023-10-27T10:04:45Z",
+      "updated_at": "2023-10-27T10:04:45Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 230,
+    "fields": {
+      "subsection": 23,
+      "name": "مقارنة القيم العددية والجبرية",
+      "slug": "quantitative-comparisons-algebraic-values",
+      "description": "تحديد العلاقة (أكبر من، أصغر من، يساوي) بين قيمتين بعد تبسيطهما.",
+      "is_active": true,
+      "created_at": "2023-10-27T10:04:30Z",
+      "updated_at": "2023-10-27T10:04:30Z"
+    }
+  },
+  {
+    "model": "learning.skill",
+    "pk": 240,
+    "fields": {
+      "subsection": 24,
+      "name": "قراءة الأعمدة البيانية",
+      "slug": "quantitative-data-analysis-bar-charts",
+      "description": "استخلاص المعلومات والمقارنة بينها من خلال الرسوم البيانية العمودية.",
+      "is_active": true,
+      "created_at": "2023-10-27T10:04:30Z",
+      "updated_at": "2023-10-27T10:04:30Z"
     }
   },
   {
@@ -278,6 +423,153 @@
   },
   {
     "model": "learning.question",
+    "pk": 1003,
+    "fields": {
+      "subsection": 13,
+      "skill": 130,
+      "question_text": "الجملة: 'كان الرجل الكريم مذمومًا بين الناس لكرمه الشديد.' الكلمة التي لا تتناسب مع السياق هي:",
+      "option_a": "الكريم",
+      "option_b": "مذمومًا",
+      "option_c": "الناس",
+      "option_d": "الشديد",
+      "correct_answer": "B",
+      "explanation": "الكرم صفة محمودة وليست مذمومة. الكلمة الصحيحة يجب أن تكون 'محمودًا' أو 'ممدوحًا' لتتناسب مع سياق الجملة.",
+      "hint": "الكرم صفة جيدة، هل تتوافق مع كلمة 'مذمومًا'؟",
+      "solution_method_summary": "قراءة الجملة بعناية وتحديد الكلمة التي تتعارض مع المعنى العام.",
+      "difficulty": 2,
+      "is_active": true,
+      "created_at": "2023-10-27T10:10:00Z",
+      "updated_at": "2023-10-27T10:10:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 1004,
+    "fields": {
+      "subsection": 14,
+      "skill": 140,
+      "question_text": "ما هي المفردة الشاذة بين الكلمات التالية؟",
+      "option_a": "تفاح",
+      "option_b": "برتقال",
+      "option_c": "خيار",
+      "option_d": "موز",
+      "correct_answer": "C",
+      "explanation": "التفاح والبرتقال والموز كلها فواكه، بينما الخيار من الخضروات.",
+      "hint": "فكر في التصنيف العام لكل كلمة.",
+      "solution_method_summary": "تصنيف كل كلمة ضمن فئة (فواكه، خضروات، حيوانات، الخ) وتحديد الكلمة التي لا تنتمي لنفس فئة البقية.",
+      "difficulty": 1,
+      "is_active": true,
+      "created_at": "2023-10-27T10:11:00Z",
+      "updated_at": "2023-10-27T10:11:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 1005,
+    "fields": {
+      "subsection": 11,
+      "skill": null,
+      "question_text": "إن القراءة توسع المدارك و..... الفكر، فهي خير ..... للإنسان.",
+      "option_a": "تنمي - جليس",
+      "option_b": "تحد - صديق",
+      "option_c": "تشتت - رفيق",
+      "option_d": "تغلق - معين",
+      "correct_answer": "A",
+      "explanation": "القراءة تنمي الفكر وتعتبر خير جليس، وهذا هو المعنى المنطقي للجملة.",
+      "hint": "ابحث عن الكلمات التي تصف الفوائد الإيجابية للقراءة.",
+      "solution_method_summary": "تحليل المعنى العام للجملة واختيار الكلمات التي تتناسب مع السياق وتكمل المعنى بشكل منطقي.",
+      "difficulty": 2,
+      "is_active": true,
+      "created_at": "2023-10-27T10:16:00Z",
+      "updated_at": "2023-10-27T10:16:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 1006,
+    "fields": {
+      "subsection": 12,
+      "skill": 121,
+      "question_text": "فصل : مدرسة",
+      "option_a": "غرفة : منزل",
+      "option_b": "سيارة : طريق",
+      "option_c": "شجرة : غابة",
+      "option_d": "كتاب : مكتبة",
+      "correct_answer": "A",
+      "explanation": "الفصل جزء من المدرسة. الغرفة جزء من المنزل.",
+      "hint": "ابحث عن العلاقة التي يكون فيها العنصر الأول جزءًا من العنصر الثاني.",
+      "solution_method_summary": "تحديد العلاقة (جزء من كل) بين زوج الكلمات الأصلي، ثم البحث عن زوج يماثل هذه العلاقة في الخيارات.",
+      "difficulty": 2,
+      "is_active": true,
+      "created_at": "2023-10-27T10:17:00Z",
+      "updated_at": "2023-10-27T10:17:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 1007,
+    "fields": {
+      "subsection": 13,
+      "skill": 130,
+      "question_text": "الجملة: 'الجهل نور يضيء دروب الحياة.' الكلمة التي لا تتناسب مع السياق هي:",
+      "option_a": "الجهل",
+      "option_b": "نور",
+      "option_c": "يضيء",
+      "option_d": "الحياة",
+      "correct_answer": "A",
+      "explanation": "الجهل لا يضيء دروب الحياة بل يظلمها. الكلمة الصحيحة يجب أن تكون 'العلم' أو 'المعرفة'.",
+      "hint": "هل الجهل صفة إيجابية أم سلبية في هذا السياق؟",
+      "solution_method_summary": "تحديد الكلمة التي تحمل معنى معاكسًا أو غير منطقي بالنسبة لبقية الجملة.",
+      "difficulty": 3,
+      "is_active": true,
+      "created_at": "2023-10-27T10:18:00Z",
+      "updated_at": "2023-10-27T10:18:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 1008,
+    "fields": {
+      "subsection": 14,
+      "skill": 140,
+      "question_text": "ما هي المفردة الشاذة بين الكلمات التالية؟",
+      "option_a": "أسد",
+      "option_b": "نمر",
+      "option_c": "غزال",
+      "option_d": "فهد",
+      "correct_answer": "C",
+      "explanation": "الأسد، النمر، والفهد هي من الحيوانات المفترسة. الغزال حيوان أليف وعاشب (غير مفترس).",
+      "hint": "فكر في طبيعة هذه الحيوانات (مفترسة/عاشبة).",
+      "solution_method_summary": "تصنيف الحيوانات حسب فئتها (مفترسة، عاشبة، أليفة، إلخ) وتحديد التي لا تنتمي.",
+      "difficulty": 2,
+      "is_active": true,
+      "created_at": "2023-10-27T10:19:00Z",
+      "updated_at": "2023-10-27T10:19:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 1009,
+    "fields": {
+      "subsection": 10,
+      "skill": 101,
+      "question_text": "النص: 'المياه الجوفية هي مصدر هام للشرب والزراعة في العديد من المناطق الجافة، لكن استنزافها يفوق معدل تجددها الطبيعي.' ماذا يمكن استنتاجه من النص حول المياه الجوفية في المناطق الجافة؟",
+      "option_a": "أنها مصدر غير متجدد.",
+      "option_b": "أنها تتعرض لنقص بسبب الاستهلاك الزائد.",
+      "option_c": "أنها لا تصلح للزراعة.",
+      "option_d": "أن تجددها أسرع من استنزافها.",
+      "correct_answer": "B",
+      "explanation": "النص يذكر أن استنزافها يفوق معدل تجددها، مما يعني أنها تتعرض للنقص بسبب الاستهلاك الزائد.",
+      "hint": "ركز على الجملة التي تتحدث عن معدل الاستنزاف مقارنة بالتجدد.",
+      "solution_method_summary": "قراءة النص بعناية واستخلاص المعلومة غير المصرح بها مباشرة بناءً على الجمل المعطاة.",
+      "difficulty": 3,
+      "is_active": true,
+      "created_at": "2023-10-27T10:20:00Z",
+      "updated_at": "2023-10-27T10:20:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
     "pk": 2000,
     "fields": {
       "subsection": 20,
@@ -316,6 +608,237 @@
       "is_active": true,
       "created_at": "2023-10-27T10:09:00Z",
       "updated_at": "2023-10-27T10:09:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2002,
+    "fields": {
+      "subsection": 23,
+      "skill": 230,
+      "question_text": "قارن بين:\nالقيمة الأولى: (5 × 3) + 2\nالقيمة الثانية: 5 × (3 + 2)",
+      "option_a": "القيمة الأولى أكبر",
+      "option_b": "القيمة الثانية أكبر",
+      "option_c": "القيمتان متساويتان",
+      "option_d": "المعلومات غير كافية",
+      "correct_answer": "B",
+      "explanation": "القيمة الأولى = 15 + 2 = 17.\nالقيمة الثانية = 5 × 5 = 25.\nإذن، القيمة الثانية أكبر.",
+      "hint": "انتبه لأولويات العمليات الحسابية (الأقواس أولاً).",
+      "solution_method_summary": "حساب قيمة كل تعبير على حدة مع مراعاة ترتيب العمليات الحسابية، ثم المقارنة بين الناتجين.",
+      "difficulty": 2,
+      "is_active": true,
+      "created_at": "2023-10-27T10:12:00Z",
+      "updated_at": "2023-10-27T10:12:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2003,
+    "fields": {
+      "subsection": 24,
+      "skill": 240,
+      "question_text": "رسم بياني يوضح أرباح شركة (بالمليون) كالتالي: 2020: 5، 2021: 7، 2022: 6. ما هو متوسط الأرباح خلال هذه السنوات؟",
+      "option_a": "5 مليون",
+      "option_b": "6 مليون",
+      "option_c": "7 مليون",
+      "option_d": "6.5 مليون",
+      "correct_answer": "B",
+      "explanation": "متوسط الأرباح = (مجموع القيم) / (عددها) = (5 + 7 + 6) / 3 = 18 / 3 = 6 مليون.",
+      "hint": "المتوسط الحسابي هو مجموع القيم مقسومًا على عددها.",
+      "solution_method_summary": "جمع قيم الأرباح السنوية ثم قسمة المجموع على عدد السنوات (3).",
+      "difficulty": 3,
+      "is_active": true,
+      "created_at": "2023-10-27T10:13:00Z",
+      "updated_at": "2023-10-27T10:13:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2004,
+    "fields": {
+      "subsection": 22,
+      "skill": 220,
+      "question_text": "اشترى أحمد جهازًا بقيمة 500 ريال. إذا حصل على خصم 20%، فكم المبلغ الذي دفعه؟",
+      "option_a": "100 ريال",
+      "option_b": "400 ريال",
+      "option_c": "480 ريال",
+      "option_d": "520 ريال",
+      "correct_answer": "B",
+      "explanation": "مقدار الخصم = السعر الأصلي × نسبة الخصم = 500 × (20 / 100) = 100 ريال. المبلغ المدفوع = السعر الأصلي - مقدار الخصم = 500 - 100 = 400 ريال.",
+      "hint": "أولاً، احسب قيمة الخصم. ثم اطرح قيمة الخصم من السعر الأصلي.",
+      "solution_method_summary": "حساب قيمة النسبة المئوية للخصم وطرحها من المبلغ الإجمالي.",
+      "difficulty": 3,
+      "is_active": true,
+      "created_at": "2023-10-27T10:14:00Z",
+      "updated_at": "2023-10-27T10:14:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2005,
+    "fields": {
+      "subsection": 21,
+      "skill": 211,
+      "question_text": "ما مساحة دائرة نصف قطرها 7 سم؟ (اعتبر ط ≈ 22/7)",
+      "option_a": "44 سم²",
+      "option_b": "77 سم²",
+      "option_c": "154 سم²",
+      "option_d": "49 سم²",
+      "correct_answer": "C",
+      "explanation": "مساحة الدائرة = ط × نق². المساحة = (22/7) × 7 × 7 = 22 × 7 = 154 سم².",
+      "hint": "قانون مساحة الدائرة هو ط مضروب في مربع نصف القطر.",
+      "solution_method_summary": "تطبيق قانون مساحة الدائرة (πr²) باستخدام القيم المعطاة.",
+      "difficulty": 3,
+      "is_active": true,
+      "created_at": "2023-10-27T10:15:00Z",
+      "updated_at": "2023-10-27T10:15:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2006,
+    "fields": {
+      "subsection": 20,
+      "skill": 201,
+      "question_text": "إذا كان س + ص = 10 و س - ص = 2، فما قيمة س؟",
+      "option_a": "4",
+      "option_b": "5",
+      "option_c": "6",
+      "option_d": "8",
+      "correct_answer": "C",
+      "explanation": "بجمع المعادلتين: (س + ص) + (س - ص) = 10 + 2 => 2س = 12 => س = 6.",
+      "hint": "حاول جمع المعادلتين للتخلص من أحد المتغيرين.",
+      "solution_method_summary": "حل نظام معادلتين خطيتين بطريقة الحذف أو التعويض.",
+      "difficulty": 3,
+      "is_active": true,
+      "created_at": "2023-10-27T10:21:00Z",
+      "updated_at": "2023-10-27T10:21:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2007,
+    "fields": {
+      "subsection": 22,
+      "skill": 220,
+      "question_text": "ما هو 15% من العدد 300؟",
+      "option_a": "30",
+      "option_b": "45",
+      "option_c": "60",
+      "option_d": "150",
+      "correct_answer": "B",
+      "explanation": "لحساب 15% من 300: (15 / 100) × 300 = 0.15 × 300 = 45.",
+      "hint": "النسبة المئوية تعني جزءًا من مائة.",
+      "solution_method_summary": "تحويل النسبة المئوية إلى كسر عشري وضربها في العدد الكلي.",
+      "difficulty": 2,
+      "is_active": true,
+      "created_at": "2023-10-27T10:22:00Z",
+      "updated_at": "2023-10-27T10:22:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2008,
+    "fields": {
+      "subsection": 21,
+      "skill": 212,
+      "question_text": "مربع طول ضلعه 4 سم، ما محيطه؟",
+      "option_a": "8 سم",
+      "option_b": "12 سم",
+      "option_c": "16 سم",
+      "option_d": "20 سم",
+      "correct_answer": "C",
+      "explanation": "محيط المربع = 4 × طول الضلع = 4 × 4 = 16 سم.",
+      "hint": "المحيط هو مجموع أطوال الأضلاع.",
+      "solution_method_summary": "تطبيق قانون محيط المربع: 4 ضرب طول الضلع.",
+      "difficulty": 1,
+      "is_active": true,
+      "created_at": "2023-10-27T10:23:00Z",
+      "updated_at": "2023-10-27T10:23:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2009,
+    "fields": {
+      "subsection": 23,
+      "skill": 230,
+      "question_text": "قارن بين:\nالقيمة الأولى: 1/2\nالقيمة الثانية: 0.5",
+      "option_a": "القيمة الأولى أكبر",
+      "option_b": "القيمة الثانية أكبر",
+      "option_c": "القيمتان متساويتان",
+      "option_d": "المعلومات غير كافية",
+      "correct_answer": "C",
+      "explanation": "1/2 = 0.5. إذن القيمتان متساويتان.",
+      "hint": "حول الكسر إلى عدد عشري أو العكس للمقارنة.",
+      "solution_method_summary": "تحويل القيم إلى نفس الصيغة (عشري أو كسر) ثم المقارنة.",
+      "difficulty": 1,
+      "is_active": true,
+      "created_at": "2023-10-27T10:24:00Z",
+      "updated_at": "2023-10-27T10:24:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2010,
+    "fields": {
+      "subsection": 22,
+      "skill": 221,
+      "question_text": "ما هو متوسط الأعداد التالية: 10، 20، 30؟",
+      "option_a": "15",
+      "option_b": "20",
+      "option_c": "25",
+      "option_d": "30",
+      "correct_answer": "B",
+      "explanation": "المتوسط = (10 + 20 + 30) / 3 = 60 / 3 = 20.",
+      "hint": "المتوسط هو مجموع الأعداد مقسومًا على عددها.",
+      "solution_method_summary": "جمع الأعداد ثم قسمة المجموع على عدد الأعداد.",
+      "difficulty": 1,
+      "is_active": true,
+      "created_at": "2023-10-27T10:25:00Z",
+      "updated_at": "2023-10-27T10:25:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2011,
+    "fields": {
+      "subsection": 24,
+      "skill": 240,
+      "question_text": "بالاعتماد على جدول المبيعات التالي: \nالمنتج أ: 1500 وحدة\nالمنتج ب: 2000 وحدة\nالمنتج ج: 1000 وحدة\nأي المنتجات حقق أعلى مبيعات؟",
+      "option_a": "المنتج أ",
+      "option_b": "المنتج ب",
+      "option_c": "المنتج ج",
+      "option_d": "المنتج أ و ج",
+      "correct_answer": "B",
+      "explanation": "من الجدول، المنتج ب لديه أعلى عدد من الوحدات المباعة (2000 وحدة).",
+      "hint": "ابحث عن أكبر قيمة في عمود 'الوحدات'.",
+      "solution_method_summary": "قراءة البيانات من الجدول وتحديد القيمة الأكبر المطلوبة.",
+      "difficulty": 1,
+      "is_active": true,
+      "created_at": "2023-10-27T10:26:00Z",
+      "updated_at": "2023-10-27T10:26:00Z"
+    }
+  },
+  {
+    "model": "learning.question",
+    "pk": 2012,
+    "fields": {
+      "subsection": 20,
+      "skill": 200,
+      "question_text": "إذا كان (س - 3)² = 0، فما قيمة س؟",
+      "option_a": "-3",
+      "option_b": "0",
+      "option_c": "3",
+      "option_d": "9",
+      "correct_answer": "C",
+      "explanation": "لكي يكون مربع عدد مساويًا للصفر، يجب أن يكون العدد نفسه صفرًا. إذن س - 3 = 0، وبالتالي س = 3.",
+      "hint": "ما هو العدد الذي إذا رُبع كان الناتج صفرًا؟",
+      "solution_method_summary": "فهم أن مربع الصفر هو الصفر، ومن ثم حل المعادلة الداخلية.",
+      "difficulty": 2,
+      "is_active": true,
+      "created_at": "2023-10-27T10:27:00Z",
+      "updated_at": "2023-10-27T10:27:00Z"
     }
   }
 ]
