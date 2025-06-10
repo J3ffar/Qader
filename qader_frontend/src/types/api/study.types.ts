@@ -1,193 +1,126 @@
 import { PaginatedResponse } from ".";
 
+// =================================================================
+// PRIMARY SHARED OBJECTS (as per new API spec)
+// =================================================================
+
 /**
- * Represents a brief summary of a user's test attempt, typically used in lists.
+ * The standard and only structure to represent a question.
+ * Replaces all previous fragmented question types.
+ * API: /learning/questions/, test start, test detail, test review
+ */
+export interface UnifiedQuestion {
+  id: number;
+  question_text: string;
+  options: {
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+  };
+  difficulty: number;
+  hint: string | null;
+  solution_method_summary: string | null;
+  correct_answer: "A" | "B" | "C" | "D";
+  explanation: string | null;
+  section: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  subsection: {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    order: number;
+    is_active: boolean;
+  };
+  skill: {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+  } | null;
+  is_starred: boolean;
+  // This field is ONLY populated in the context of a specific test review.
+  user_answer_details: {
+    selected_choice: "A" | "B" | "C" | "D" | null;
+    is_correct: boolean | null;
+    used_hint?: boolean | null;
+    used_elimination?: boolean | null;
+    revealed_answer?: boolean | null;
+    revealed_explanation?: boolean | null;
+  } | null;
+}
+
+// =================================================================
+// TEST ATTEMPT LIFECYCLE (as per new API spec)
+// =================================================================
+
+/**
+ * Brief summary for a list of test attempts.
  * API: GET /study/attempts/
  */
-export interface UserTestAttemptBrief {
+export interface UserTestAttemptList {
   attempt_id: number;
-  test_type:
-    | "level_assessment"
-    | "practice"
-    | "simulation"
-    | "traditional"
-    | string;
-  date: string; // ISO datetime string (e.g., start_time)
-  status: "started" | "completed" | "abandoned" | string;
+  test_type: string;
+  date: string; // ISO datetime string
+  status: "started" | "completed" | "abandoned";
   status_display: string;
   num_questions: number;
   answered_question_count: number;
   score_percentage: number | null;
-  // Performance can vary, making it flexible.
-  // Example: { "verbal": 75.0, "quantitative": 80.0, "overall_calculated": 77.5 }
-  // Or specific levels if API sends that for level assessment:
-  // verbal?: "ممتاز" | "جيد جداً" | "ضعيف" | string; (This was in old mock, API might give numeric)
-  // quantitative?: "ممتاز" | "جيد جداً" | "ضعيف" | string;
-  performance: Record<string, number | string> | null;
-
-  // Added based on provided frontend code for level assessment list
-  // These might come from a transformed 'performance' object or directly if API supports it.
-  // It's better if API returns numeric scores and frontend maps to qualitative terms if needed.
-  verbal_level_display?: string;
-  quantitative_level_display?: string;
+  performance: {
+    overall: number | null;
+    verbal: number | null;
+    quantitative: number | null;
+  } | null;
 }
 
-export type PaginatedUserTestAttempts = PaginatedResponse<UserTestAttemptBrief>;
+export type PaginatedUserTestAttempts = PaginatedResponse<UserTestAttemptList>;
 
 /**
- * Represents choices for a multiple-choice question.
+ * Full details for an ongoing or completed test attempt.
+ * API: GET /study/attempts/{attempt_id}/
  */
-export type QuestionOptionKey = "A" | "B" | "C" | "D";
-export type QuestionChoicesMap = {
-  [key in QuestionOptionKey]: string;
-};
-/**
- * Represents a question's structure.
- * API: Part of UserTestAttemptStartResponse, UserTestAttemptDetail, UserTestAttemptReviewQuestion
- */
-export interface QuestionSchema {
-  id: number; // question_id
-  question_text: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
-  // The following are typically available during/after an attempt or review
-  correct_answer?: keyof QuestionOptionKey; // "A", "B", "C", "D"
-  explanation?: string | null;
-  subsection_name?: string | null;
-  skill_name?: string | null;
-  difficulty?: number;
-  hint?: string | null;
-  is_starred?: boolean;
-  solution_method_summary?: string | null;
-  subsection?: string; // Slug or name
-  skill?: string; // Slug or name
+export interface UserTestAttemptDetail
+  extends Omit<UserTestAttemptList, "performance"> {
+  config_name: string | null;
+  start_time: string;
+  end_time: string | null;
+  score_verbal: number | null;
+  score_quantitative: number | null;
+  included_questions: UnifiedQuestion[];
+  attempted_questions: Array<{
+    question_id: number;
+    question_text_preview: string;
+    selected_answer: "A" | "B" | "C" | "D" | null;
+    is_correct: boolean | null;
+    attempted_at: string;
+  }>;
+  results_summary: Record<string, ResultsSummaryItem> | null;
+  configuration_snapshot: Record<string, any> | null;
 }
 
 /**
- * Response when starting a new test attempt.
- * API: POST /study/start/level-assessment/, POST /study/start/practice-simulation/, POST /study/attempts/{attempt_id}/retake/
+ * Response when starting any new test.
+ * API: POST /study/start/..., POST /study/attempts/{attempt_id}/retake/
  */
 export interface UserTestAttemptStartResponse {
   attempt_id: number;
   attempt_number_for_type: number;
-  questions: QuestionSchema[]; // Initial set of questions
-  // Potentially other details like time limit if set by backend
+  questions: UnifiedQuestion[];
 }
 
 /**
- * Detailed information about a specific test attempt.
- * API: GET /study/attempts/{attempt_id}/
+ * ACCURATE TYPE: Response from POST /study/attempts/{id}/complete/
+ * This contains the full one-time result including gamification.
+ * It is the primary data source for the Score Page.
  */
-export interface UserTestAttemptDetail extends UserTestAttemptBrief {
-  config_name: string | null; // Name of the test configuration
-  start_time: string; // ISO datetime
-  end_time: string | null; // ISO datetime
-  score_verbal: number | null;
-  score_quantitative: number | null;
-  included_questions: QuestionSchema[]; // All questions in this attempt
-  attempted_questions: Array<{
-    question_id: number;
-    question_text_preview: string;
-    selected_answer: keyof QuestionOptionKey | null;
-    is_correct: boolean | null;
-    attempted_at: string; // ISO datetime
-  }>;
-  results_summary: Record<string, any> | null; // Define more specifically if structure is known
-  configuration_snapshot: Record<string, any> | null; // The configuration used for this test
-}
-
-/**
- * Payload for submitting an answer.
- * API: POST /study/attempts/{attempt_id}/answer/
- */
-export interface SubmitAnswerPayload {
-  question_id: number;
-  selected_answer: keyof QuestionOptionKey; // "A", "B", "C", "D"
-  time_taken_seconds?: number | null;
-}
-
-/**
- * Response after submitting an answer.
- * API: POST /study/attempts/{attempt_id}/answer/
- */
-export interface SubmitAnswerResponse {
-  question_id: number;
-  is_correct: boolean;
-  correct_answer?: keyof QuestionOptionKey | null; // Revealed in some modes (e.g., Traditional)
-  explanation?: string | null; // Revealed in some modes (e.g., Traditional)
-  feedback_message: string; // General feedback like "Answer recorded"
-}
-
-export interface UserTestAttemptReviewScore {
-  overall: number | null;
-  verbal: number | null;
-  quantitative: number | null;
-}
-
-export interface ResultsSummaryItem {
-  correct: number;
-  total: number;
-  name: string; // e.g., "استيعاب المقروء"
-  score: number; // Percentage for this specific sub-skill, e.g., 0 for 0%
-}
-
-export interface BadgeWon {
-  slug: string;
-  name: string;
-  description: string;
-  // Consider adding icon_url if your backend can provide it for badges
-  // icon_url?: string;
-}
-
-export interface StreakInfo {
-  updated: boolean;
-  current_days: number;
-}
-
-/**
- * Full review details for a completed test attempt.
- * API: GET /study/attempts/{attempt_id}/review/
- * This type is enhanced to include fields typically available after test completion,
- * assuming the review endpoint can provide this rich summary.
- */
-export interface UserTestAttemptReview {
+export interface UserTestAttemptCompletionResponse {
   attempt_id: number;
-  status?: string; // e.g., "completed", from completion data
-
-  score: UserTestAttemptReviewScore; // Nested score object, preferred
-
-  // For backward compatibility or if API sends both nested and flat scores:
-  score_percentage: number | null; // Overall score as percentage
-  score_verbal: number | null; // Verbal score as percentage
-  score_quantitative: number | null; // Quantitative score as percentage
-
-  // Detailed breakdown by sub-skill/category
-  results_summary: Record<string, ResultsSummaryItem> | null;
-
-  answered_question_count?: number;
-  total_questions_api?: number; // Renamed to avoid conflict with questions.length
-  correct_answers_in_test_count?: number;
-
-  smart_analysis: string | null;
-  points_from_test_completion_event?: number;
-  points_from_correct_answers_this_test?: number;
-  badges_won?: BadgeWon[];
-  streak_info?: StreakInfo;
-
-  // Questions for detailed review page
-  questions: UserTestAttemptReviewQuestion[];
-
-  time_taken_minutes?: number; // If available from review endpoint
-  // current_level_display is handled by getQualitativeLevelInfo
-}
-
-// Ensure TestAttemptCompletionResponse is also defined if it's used elsewhere,
-// (it was already provided in the prompt for context)
-export interface TestAttemptCompletionResponse {
-  attempt_id: number;
-  status: string;
+  status: string; // e.g., "completed"
   score: {
     overall: number | null;
     verbal: number | null;
@@ -201,47 +134,63 @@ export interface TestAttemptCompletionResponse {
   points_from_test_completion_event: number;
   points_from_correct_answers_this_test: number;
   badges_won: BadgeWon[];
-  streak_info: StreakInfo;
+  streak_info: StreakInfo | null;
 }
 
 /**
- * Structure for a question during review.
- * API: Part of UserTestAttemptReview (GET /study/attempts/{attempt_id}/review/)
+ * ACCURATE TYPE: Response from GET /study/attempts/{id}/review/
+ * This contains data for a detailed question-by-question review.
+ * It is the data source for the Review Page and a fallback for the Score Page.
  */
-export interface UserTestAttemptReviewQuestion {
+export interface UserTestAttemptReviewResponse {
+  attempt_id: number;
+  questions: UnifiedQuestion[]; // Each with populated `user_answer_details`
+  score_percentage: number | null; // Note: This is the overall score for this endpoint
+  score_verbal: number | null;
+  score_quantitative: number | null;
+  results_summary: Record<string, ResultsSummaryItem> | null;
+  // Let's also add the total question count from the completion response for consistency if available,
+  // otherwise we can calculate it from questions.length
+  total_questions?: number;
+  answered_question_count?: number;
+  correct_answers_in_test_count?: number;
+  time_taken_minutes?: number | null; // Assuming this might come from another source or be added later
+}
+
+// =================================================================
+// PAYLOADS & OTHER HELPER TYPES
+// =================================================================
+
+export interface BadgeWon {
+  slug: string;
+  name: string;
+  description: string;
+}
+
+export interface StreakInfo {
+  updated: boolean;
+  current_days: number;
+}
+
+export interface ResultsSummaryItem {
+  correct: number;
+  total: number;
+  name: string;
+  score: number;
+}
+
+export interface SubmitAnswerPayload {
   question_id: number;
-  question_text: string;
-  options: QuestionChoicesMap; // Changed from 'choices' to 'options'
-  user_selected_choice: QuestionOptionKey | null; // Changed from 'user_answer'
-  correct_answer_choice: QuestionOptionKey; // Changed from 'correct_answer'
-  user_is_correct: boolean | null;
-  explanation?: string | null;
-  subsection_name?: string | null;
-  skill_name?: string | null;
-  used_hint?: boolean | null;
-  used_elimination?: boolean | null;
-  revealed_answer?: boolean | null;
-  revealed_explanation?: boolean | null;
+  selected_answer: "A" | "B" | "C" | "D";
+  time_taken_seconds?: number | null;
 }
 
-/**
- * Payload for starting a level assessment test.
- * API: POST /study/start/level-assessment/
- */
+export interface SubmitAnswerResponse {
+  question: UnifiedQuestion; // The full question object, updated with user_answer_details
+  feedback_message: string;
+}
+
 export interface StartLevelAssessmentPayload {
   sections: string[]; // e.g., ["verbal", "quantitative"]
   num_questions: number;
-}
-
-// For the "Start Level Assessment" form using React Hook Form + Zod
-export interface StartLevelAssessmentFormValues {
-  sections: string[];
-  num_questions: number;
-}
-
-// For the quiz page [attemptId]/page.tsx
-export interface QuizUserAnswer {
-  questionId: number;
-  selectedOption: keyof QuestionOptionKey | null; // A, B, C, D
-  isConfirmed?: boolean; // If using a two-step confirm like the old UI
 }

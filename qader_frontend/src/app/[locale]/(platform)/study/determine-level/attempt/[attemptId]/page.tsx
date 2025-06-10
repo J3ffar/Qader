@@ -1,7 +1,7 @@
 // src/app/[locale]/(platform)/study/determine-level/attempt/[attemptId]/page.tsx
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  CheckCircle,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -23,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -44,19 +42,19 @@ import {
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import type {
-  QuestionOptionKey,
-  QuestionSchema,
-  SubmitAnswerPayload,
   UserTestAttemptDetail,
+  UnifiedQuestion,
+  SubmitAnswerPayload,
+  UserTestAttemptCompletionResponse,
 } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
-import { cn } from "@/lib/utils";
 
-const TEST_DURATION_SECONDS = 30 * 60; // 30 minutes, adjust as needed or fetch from backend if dynamic
-
+type OptionKey = "A" | "B" | "C" | "D";
 interface UserSelections {
-  [questionId: number]: keyof QuestionOptionKey | undefined;
+  [questionId: number]: OptionKey | undefined;
 }
+
+const TEST_DURATION_SECONDS = 30 * 60; // 30 minutes
 
 const LevelAssessmentAttemptPage = () => {
   const params = useParams();
@@ -65,21 +63,19 @@ const LevelAssessmentAttemptPage = () => {
   const t = useTranslations("Study.determineLevel.quiz");
   const tCommon = useTranslations("Common");
   const locale = params.locale as string;
-
   const attemptId = params.attemptId as string;
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userSelections, setUserSelections] = useState<UserSelections>({});
-  const [timeLeft, setTimeLeft] = useState(TEST_DURATION_SECONDS); // Or fetch from attemptDetails if available
+  const [timeLeft, setTimeLeft] = useState(TEST_DURATION_SECONDS);
   const [isTimeUp, setIsTimeUp] = useState(false);
 
   const {
-    data: attemptDetails, // Type will be UserTestAttemptDetail | undefined
+    data: attemptDetails,
     isLoading: isLoadingAttempt,
     error: attemptError,
-    isSuccess, // Useful for useEffect
-  } = useQuery<UserTestAttemptDetail, Error, UserTestAttemptDetail, string[]>({
-    // Explicitly type query
+    isSuccess,
+  } = useQuery<UserTestAttemptDetail, Error>({
     queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_DETAIL, attemptId],
     queryFn: () => getTestAttemptDetails(attemptId),
     enabled: !!attemptId,
@@ -87,34 +83,26 @@ const LevelAssessmentAttemptPage = () => {
     refetchOnWindowFocus: false,
   });
 
-  // Handle onSuccess logic using useEffect
   useEffect(() => {
     if (isSuccess && attemptDetails) {
-      // Check isSuccess and if data exists
       const initialSelections: UserSelections = {};
-      // Type `aq` by using the type from UserTestAttemptDetail
-      attemptDetails.attempted_questions?.forEach(
-        (aq: UserTestAttemptDetail["attempted_questions"][number]) => {
-          if (aq.selected_answer) {
-            initialSelections[aq.question_id] = aq.selected_answer;
-          }
+      attemptDetails.attempted_questions?.forEach((aq) => {
+        if (aq.selected_answer) {
+          initialSelections[aq.question_id] = aq.selected_answer;
         }
-      );
-      console.log(attemptDetails);
+      });
       setUserSelections(initialSelections);
-      setCurrentQuestionIndex(0); // Or logic to find last unanswered question
     }
   }, [isSuccess, attemptDetails]);
 
-  const questions: QuestionSchema[] = useMemo(
+  const questions: UnifiedQuestion[] = useMemo(
     () => attemptDetails?.included_questions || [],
     [attemptDetails]
   );
 
-  const currentQuestion: QuestionSchema | undefined =
+  const currentQuestion: UnifiedQuestion | undefined =
     questions[currentQuestionIndex];
 
-  // Timer Logic
   useEffect(() => {
     if (
       isLoadingAttempt ||
@@ -127,13 +115,10 @@ const LevelAssessmentAttemptPage = () => {
     if (timeLeft <= 0) {
       setIsTimeUp(true);
       toast.warning(t("timeOver"), { duration: 5000 });
-      // Automatically submit the test when time is up
       handleCompleteTest(true);
       return;
     }
-    const timerId = setInterval(() => {
-      setTimeLeft((prevTime) => prevTime - 1);
-    }, 1000);
+    const timerId = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timerId);
   }, [timeLeft, isLoadingAttempt, attemptDetails, isTimeUp]);
 
@@ -152,10 +137,6 @@ const LevelAssessmentAttemptPage = () => {
         question_id: payload.question_id,
         selected_answer: payload.selected_answer,
       }),
-    onSuccess: (data, variables) => {
-      // Optionally show a subtle feedback, but usually not needed per question
-      // console.log(`Answer for Q${variables.question_id} submitted.`);
-    },
     onError: (error: any, variables) => {
       const errorMsg = getApiErrorMessage(error, tCommon("errors.generic"));
       toast.error(
@@ -167,17 +148,26 @@ const LevelAssessmentAttemptPage = () => {
     },
   });
 
-  const completeTestMutation = useMutation({
+  const completeTestMutation = useMutation<
+    UserTestAttemptCompletionResponse, // Use the correct response type
+    Error,
+    string
+  >({
     mutationFn: completeTestAttempt,
-    onSuccess: (data) => {
+    onSuccess: (data, attemptId) => {
+      // data is now UserTestAttemptCompletionResponse
       toast.success(t("api.testCompletedSuccess"));
+
+      // KEY CHANGE: Manually set the query data for the completion result.
+      // The score page will pick this up from the cache.
+      queryClient.setQueryData(
+        [QUERY_KEYS.USER_TEST_ATTEMPT_COMPLETION_RESULT, attemptId],
+        data
+      );
+
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
       });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_DETAIL, attemptId],
-      });
-      // Navigate to score page after completion
       router.push(PATHS.STUDY.DETERMINE_LEVEL.SCORE(attemptId));
     },
     onError: (error: any) => {
@@ -203,38 +193,25 @@ const LevelAssessmentAttemptPage = () => {
       toast.error(t("api.testCancelError", { error: errorMsg }));
     },
   });
-
-  const handleSelectAnswer = (selectedOption: QuestionOptionKey) => {
+  const handleSelectAnswer = (selectedOption: OptionKey) => {
     if (currentQuestion) {
-      const questionId = currentQuestion.id;
-      setUserSelections((prevSelections: UserSelections): UserSelections => {
-        return Object.assign({}, prevSelections, {
-          [questionId]: selectedOption,
-        }) as UserSelections; // Cast might be needed if TS still struggles
-      });
+      setUserSelections((prev) => ({
+        ...prev,
+        [currentQuestion.id]: selectedOption,
+      }));
     }
   };
 
-  const optionKeys: QuestionOptionKey[] = ["A", "B", "C", "D"];
-
   const submitCurrentAnswer = async (
     questionId: number,
-    selectedAnswer: keyof QuestionOptionKey | undefined
+    selectedAnswer: OptionKey | undefined
   ) => {
-    if (
-      selectedAnswer &&
-      attemptDetails &&
-      attemptDetails.status === "started"
-    ) {
-      try {
-        await submitAnswerMutation.mutateAsync({
-          attemptId: attemptId,
-          question_id: questionId,
-          selected_answer: selectedAnswer,
-        });
-      } catch (e) {
-        // Error already handled by mutation's onError
-      }
+    if (selectedAnswer && attemptDetails?.status === "started") {
+      await submitAnswerMutation.mutateAsync({
+        attemptId,
+        question_id: questionId,
+        selected_answer: selectedAnswer,
+      });
     }
   };
 
@@ -248,8 +225,6 @@ const LevelAssessmentAttemptPage = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     } else {
-      // At the last question, "Next" could mean "Review before submitting" or "Complete"
-      // For now, let's assume it means ready to complete
       handleCompleteTest();
     }
   };
@@ -261,14 +236,8 @@ const LevelAssessmentAttemptPage = () => {
   };
 
   const handleCompleteTest = async (autoSubmittedDueToTimeUp = false) => {
-    if (attemptDetails?.status !== "started") {
-      if (attemptDetails?.status === "completed") {
-        router.push(PATHS.STUDY.DETERMINE_LEVEL.SCORE(attemptId));
-      }
-      return;
-    }
+    if (attemptDetails?.status !== "started") return;
 
-    // Submit the last viewed answer if not yet submitted
     if (
       currentQuestion &&
       userSelections[currentQuestion.id] &&
@@ -279,8 +248,6 @@ const LevelAssessmentAttemptPage = () => {
         userSelections[currentQuestion.id]
       );
     }
-
-    // Backend's completeTestAttempt should handle scoring all submitted answers for the attempt.
     completeTestMutation.mutate(attemptId);
   };
 
@@ -316,17 +283,12 @@ const LevelAssessmentAttemptPage = () => {
     );
   }
 
-  if (
-    attemptDetails.status === "completed" ||
-    attemptDetails.status === "abandoned"
-  ) {
-    // Redirect to score/review page or list page
+  if (attemptDetails.status !== "started") {
     router.replace(PATHS.STUDY.DETERMINE_LEVEL.SCORE(attemptId));
-    return <QuizPageSkeleton message={t("testAlreadyCompletedRedirecting")} />; // Show skeleton while redirecting
+    return <QuizPageSkeleton message={t("testAlreadyCompletedRedirecting")} />;
   }
 
   if (!currentQuestion) {
-    // This case should ideally be handled if questions array is empty after loading
     return (
       <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
         <Alert variant="default" className="max-w-md">
@@ -357,10 +319,7 @@ const LevelAssessmentAttemptPage = () => {
       <Card className="w-full max-w-3xl shadow-xl">
         <CardHeader className="pb-4">
           <div className="mb-3 flex items-center justify-between">
-            <CardTitle className="text-xl md:text-2xl">
-              {t("title")}{" "}
-              {/* {attemptDetails?.attempt_number_for_type || ""} */}
-            </CardTitle>
+            <CardTitle className="text-xl md:text-2xl">{t("title")}</CardTitle>
             <ConfirmationDialog
               triggerButton={
                 <Button
@@ -368,7 +327,7 @@ const LevelAssessmentAttemptPage = () => {
                   size="sm"
                   className="text-muted-foreground hover:text-destructive"
                 >
-                  <XCircle className="me-1.5 h-4 w-4 rtl:me-0 rtl:ms-1.5" />{" "}
+                  <XCircle className="me-1.5 h-4 w-4 rtl:me-0 rtl:ms-1.5" />
                   {t("endTest")}
                 </Button>
               }
@@ -399,46 +358,28 @@ const LevelAssessmentAttemptPage = () => {
             {currentQuestion.question_text}
           </h2>
           <RadioGroup
-            value={userSelections[currentQuestion.id] as QuestionOptionKey}
+            value={userSelections[currentQuestion.id]}
             onValueChange={(value: string) =>
-              handleSelectAnswer(value as QuestionOptionKey)
-            } // Cast value
+              handleSelectAnswer(value as OptionKey)
+            }
             className="space-y-3"
             dir={document.documentElement.dir as "rtl" | "ltr"}
           >
-            {optionKeys.map((optionKey) => {
-              // Construct the property name dynamically e.g., "option_a"
-              const optionTextProperty =
-                `option_${optionKey.toLowerCase()}` as keyof QuestionSchema;
-              const optionText = currentQuestion[optionTextProperty] as
-                | string
-                | undefined;
-
-              if (optionText === undefined) {
-                // Should not happen if API is consistent
-                console.warn(
-                  `Option text for key ${optionKey} is undefined for question ID ${currentQuestion.id}`
-                );
-                return null;
-              }
-
+            {Object.entries(currentQuestion.options).map(([key, text]) => {
+              const optionKey = key as OptionKey;
               return (
-                <div
+                <Label
                   key={optionKey}
-                  className="flex items-center space-x-3 rtl:space-x-reverse"
+                  htmlFor={`${currentQuestion.id}-${optionKey}`}
+                  className="has-[input:checked]:border-primary has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground flex cursor-pointer items-center space-x-3 rounded-md border p-3 text-base transition-colors hover:bg-accent rtl:space-x-reverse"
                 >
                   <RadioGroupItem
                     value={optionKey}
                     id={`${currentQuestion.id}-${optionKey}`}
                     className="border-primary text-primary"
                   />
-                  <Label
-                    htmlFor={`${currentQuestion.id}-${optionKey}`}
-                    className="has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground has-[input:checked]:border-primary flex-1 cursor-pointer rounded-md border p-3 text-base transition-colors hover:bg-accent"
-                  >
-                    {optionText}
-                  </Label>
-                </div>
+                  <span>{text}</span>
+                </Label>
               );
             })}
           </RadioGroup>
@@ -450,7 +391,6 @@ const LevelAssessmentAttemptPage = () => {
             onClick={handlePrevious}
             disabled={
               currentQuestionIndex === 0 ||
-              !currentQuestion ||
               completeTestMutation.isPending ||
               cancelTestMutation.isPending
             }
@@ -467,7 +407,6 @@ const LevelAssessmentAttemptPage = () => {
             <Button
               onClick={handleNext}
               disabled={
-                !currentQuestion ||
                 !userSelections[currentQuestion.id] ||
                 completeTestMutation.isPending ||
                 cancelTestMutation.isPending ||
@@ -495,7 +434,6 @@ const LevelAssessmentAttemptPage = () => {
                 <Button
                   className="w-full sm:w-auto"
                   disabled={
-                    !currentQuestion ||
                     !userSelections[currentQuestion.id] ||
                     completeTestMutation.isPending ||
                     cancelTestMutation.isPending ||
@@ -515,9 +453,9 @@ const LevelAssessmentAttemptPage = () => {
               description={t("completeDialog.description")}
               confirmActionText={t("completeDialog.confirmButton")}
               cancelActionText={tCommon("no")}
-              onConfirm={() => handleCompleteTest(false)} // Explicitly false here
+              onConfirm={() => handleCompleteTest(false)}
               isConfirming={completeTestMutation.isPending}
-              confirmButtonVariant="Secondary"
+              confirmButtonVariant="default"
             />
           )}
         </CardFooter>
@@ -527,7 +465,6 @@ const LevelAssessmentAttemptPage = () => {
 };
 
 const QuizPageSkeleton = ({ message }: { message?: string }) => {
-  const t = useTranslations("Study.determineLevel.quiz");
   return (
     <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
       <Card className="w-full max-w-3xl">

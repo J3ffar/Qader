@@ -7,8 +7,8 @@ import {
   StartLevelAssessmentPayload,
   SubmitAnswerPayload,
   SubmitAnswerResponse,
-  TestAttemptCompletionResponse,
-  UserTestAttemptReview,
+  UserTestAttemptCompletionResponse,
+  UserTestAttemptReviewResponse,
 } from "@/types/api/study.types";
 import { API_ENDPOINTS } from "@/constants/api"; // Assuming this exists and has study endpoints
 
@@ -76,8 +76,9 @@ export const cancelTestAttempt = async (
 // Corresponds to: POST /study/attempts/{attempt_id}/complete/
 export const completeTestAttempt = async (
   attemptId: number | string
-): Promise<TestAttemptCompletionResponse> => {
-  return apiClient<TestAttemptCompletionResponse>(
+): Promise<UserTestAttemptCompletionResponse> => {
+  // Correct return type
+  return apiClient<UserTestAttemptCompletionResponse>(
     `${STUDY_API_BASE}/attempts/${attemptId}/complete/`,
     {
       method: "POST",
@@ -89,8 +90,9 @@ export const completeTestAttempt = async (
 export const getTestAttemptReview = async (
   attemptId: number | string,
   params?: { incorrect_only?: "true" | "false" }
-): Promise<UserTestAttemptReview> => {
-  return apiClient<UserTestAttemptReview>(
+): Promise<UserTestAttemptReviewResponse> => {
+  // Correct return type
+  return apiClient<UserTestAttemptReviewResponse>(
     `${STUDY_API_BASE}/attempts/${attemptId}/review/`,
     {
       method: "GET",

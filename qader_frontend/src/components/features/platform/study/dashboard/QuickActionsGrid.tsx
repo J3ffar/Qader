@@ -28,7 +28,7 @@ interface ActionItem {
 
 export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ user }) => {
   const t = useTranslations("Study.StudyPage.dashboard.quickActions");
-  const tNav = useTranslations("Nav.UserSideBar.study"); // For dynamic titles like "Traditional Learning"
+  const tNav = useTranslations("Nav.PlatformSidebar.items"); // For dynamic titles like "Traditional Learning"
 
   const actionItems: ActionItem[] = [
     {

@@ -1,3 +1,5 @@
+// src/components/features/platform/study/determine-level/ReviewQuestionCard.tsx
+
 "use client";
 
 import React from "react";
@@ -19,18 +21,13 @@ import {
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import type {
-  UserTestAttemptReviewQuestion,
-  QuestionOptionKey,
-} from "@/types/api/study.types";
+import type { UnifiedQuestion } from "@/types/api/study.types";
 
 interface ReviewQuestionCardProps {
-  questionData: UserTestAttemptReviewQuestion;
+  questionData: UnifiedQuestion;
   questionNumber: number;
   totalQuestionsInFilter: number;
 }
-
-const OPTION_KEYS: QuestionOptionKey[] = ["A", "B", "C", "D"]; // Assuming up to D
 
 const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   questionData,
@@ -40,24 +37,28 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   const t = useTranslations("Study.determineLevel.review");
   const tCommon = useTranslations("Common");
 
+  // --- REFACTORED: Data destructured from the new UnifiedQuestion type ---
   const {
+    id: questionId,
     question_text,
     options,
-    user_selected_choice, // Renamed from user_answer to match API response
-    correct_answer_choice, // Renamed from correct_answer
-    user_is_correct,
+    correct_answer,
     explanation,
-    subsection_name,
-    skill_name,
+    subsection,
+    skill,
+    user_answer_details,
   } = questionData;
 
-  const getOptionStatus = (optionKey: QuestionOptionKey) => {
+  const user_selected_choice = user_answer_details?.selected_choice;
+  const user_is_correct = user_answer_details?.is_correct;
+
+  const getOptionStatus = (optionKey: keyof typeof options) => {
     const isSelected = user_selected_choice === optionKey;
-    const isCorrect = correct_answer_choice === optionKey;
+    const isCorrect = correct_answer === optionKey;
 
     if (isSelected && isCorrect) return "selectedCorrect";
     if (isSelected && !isCorrect) return "selectedIncorrect";
-    if (!isSelected && isCorrect) return "correctUnselected"; // Correct answer, but user didn't pick it
+    if (!isSelected && isCorrect) return "correctUnselected";
     return "default";
   };
 
@@ -98,7 +99,7 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   return (
     <Card
       className="w-full shadow-lg"
-      data-testid={`question-card-${questionData.question_id}`}
+      data-testid={`question-card-${questionId}`}
     >
       <CardHeader>
         <div className="mb-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -120,14 +121,14 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
       <CardContent className="space-y-4">
         <Separator />
         <div className="space-y-3">
-          {OPTION_KEYS.map((key) => {
+          {/* REFACTORED: Iterate over the `options` object directly */}
+          {(Object.keys(options) as Array<keyof typeof options>).map((key) => {
             const optionText = options[key];
-            // Check if the option exists in the question's options object
             if (optionText === undefined || optionText === null) return null;
 
             const status = getOptionStatus(key);
             let statusIcon = null;
-            let ringClass = "ring-border"; // Default ring
+            let ringClass = "ring-border";
             let textClass = "text-foreground";
             let bgClass = "bg-card hover:bg-muted/50";
             let optionIndicatorClass = "text-muted-foreground";
@@ -149,13 +150,10 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
               bgClass = "bg-red-50 dark:bg-red-900/40";
               optionIndicatorClass = "text-red-700 dark:text-red-400";
             } else if (status === "correctUnselected") {
-              // Highlight the correct answer even if not selected by the user
               statusIcon = (
                 <CheckCircle className="h-5 w-5 text-green-600 opacity-70 dark:text-green-500" />
               );
-              bgClass = "bg-green-50/70 dark:bg-green-900/30"; // More subtle highlight
-              // ringClass = "ring-1 ring-green-400 dark:ring-green-700"; // Subtle ring
-              // textClass = "text-green-700 dark:text-green-500"; // Make text slightly different
+              bgClass = "bg-green-50/70 dark:bg-green-900/30";
               optionIndicatorClass = "text-green-600 dark:text-green-500";
             }
 
@@ -172,7 +170,6 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
                 {statusIcon ? (
                   <span className="mt-0.5 flex-shrink-0">{statusIcon}</span>
                 ) : (
-                  // Placeholder for alignment if no icon (e.g. default unselected options)
                   <span className="mt-0.5 h-5 w-5 flex-shrink-0"></span>
                 )}
                 <span className={cn("font-semibold", optionIndicatorClass)}>
@@ -186,7 +183,7 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
           })}
         </div>
 
-        {(explanation || subsection_name || skill_name) && (
+        {(explanation || subsection?.name || skill?.name) && (
           <Accordion type="multiple" className="w-full pt-3">
             {explanation && (
               <AccordionItem value="explanation">
@@ -202,31 +199,29 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
                 </AccordionContent>
               </AccordionItem>
             )}
-            {(subsection_name || skill_name) && (
+            {/* REFACTORED: Use new data structure for details */}
+            {(subsection?.name || skill?.name) && (
               <AccordionItem value="details">
                 <AccordionTrigger className="text-base font-medium hover:no-underline">
                   <Brain className="me-2 h-5 w-5 text-purple-500 rtl:me-0 rtl:ms-2" />
                   {t("details")}
                 </AccordionTrigger>
                 <AccordionContent className="space-y-2 pt-2 text-base text-muted-foreground">
-                  {subsection_name && (
+                  {subsection?.name && (
                     <p dir="auto">
                       <span className="font-semibold text-foreground">
                         {t("subsection")}:
                       </span>{" "}
-                      {subsection_name}
+                      {subsection.name}
                     </p>
                   )}
-                  {skill_name && (
+                  {skill?.name && (
                     <p dir="auto">
                       <span className="font-semibold text-foreground">
                         {t("skill")}:
                       </span>{" "}
-                      {skill_name}
+                      {skill.name}
                     </p>
-                  )}
-                  {!subsection_name && !skill_name && (
-                    <p>{tCommon("status.notAvailable")}</p>
                   )}
                 </AccordionContent>
               </AccordionItem>

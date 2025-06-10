@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,11 +22,11 @@ import {
   Info,
   ListTree,
   TrendingUp,
-  Award, // For Badges
-  Sparkles, // For Points
-  Flame, // For Streak
-  Target, // For performance breakdown
-  BookOpenCheck, // For sub-skill details
+  Award,
+  Sparkles,
+  Flame,
+  Target,
+  BookOpenCheck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge"; // Shadcn Badge
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import ScorePieChart from "@/components/features/platform/study/determine-level/ScorePieChart";
@@ -51,13 +51,12 @@ import {
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import {
-  UserTestAttemptReview,
-  BadgeWon,
-  ResultsSummaryItem,
+  UserTestAttemptCompletionResponse,
+  UserTestAttemptReviewResponse,
+  UserTestAttemptStartResponse,
 } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
-// Helper to determine qualitative level info from percentage (remains largely the same)
 interface QualitativeLevelInfo {
   text: string;
   colorClass: string;
@@ -65,16 +64,15 @@ interface QualitativeLevelInfo {
 }
 
 const getQualitativeLevelInfo = (
-  percentage: number | null | undefined,
+  percentage: number | null,
   tLevel: any
 ): QualitativeLevelInfo => {
-  // ... (implementation remains the same as provided)
   const defaultLevel = {
     text: tLevel("notAvailable"),
     colorClass: "text-muted-foreground",
     IconComponent: HelpCircle,
   };
-  if (percentage === null || percentage === undefined) return defaultLevel;
+  if (percentage === null) return defaultLevel;
 
   if (percentage >= 90)
     return {
@@ -110,7 +108,7 @@ const getQualitativeLevelInfo = (
 const LevelAssessmentScorePage = () => {
   const params = useParams();
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient(); // Get the query client instance
   const t = useTranslations("Study.determineLevel.score");
   const tLevel = useTranslations("Study.determineLevel.badgeColors");
   const tCommon = useTranslations("Common");
@@ -118,19 +116,33 @@ const LevelAssessmentScorePage = () => {
 
   const attemptId = params.attemptId as string;
 
+  // --- CORRECTED DATA ACCESS LOGIC ---
+
+  // 1. PRIMARY: Synchronously read the full completion data directly from the cache.
+  // This is the idiomatic way to get cached data without triggering a fetch.
+  const completionData =
+    queryClient.getQueryData<UserTestAttemptCompletionResponse>([
+      QUERY_KEYS.USER_TEST_ATTEMPT_COMPLETION_RESULT,
+      attemptId,
+    ]);
+
+  // 2. FALLBACK: Fetch the review data ONLY if the cached completion data does not exist.
   const {
     data: reviewData,
-    isLoading,
+    isLoading: isLoadingReview,
     error,
-  } = useQuery<UserTestAttemptReview, Error, UserTestAttemptReview, string[]>({
+  } = useQuery<UserTestAttemptReviewResponse, Error>({
     queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_REVIEW, attemptId],
     queryFn: () => getTestAttemptReview(attemptId),
-    enabled: !!attemptId,
-    staleTime: 1 * 60 * 1000, // Reduced stale time as score page is usually viewed once right after
-    refetchOnWindowFocus: false, // Usually score doesn't change
+    enabled: !!attemptId && !completionData, // This logic remains correct.
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
-  const retakeMutation = useMutation({
+  const isLoading = isLoadingReview && !completionData;
+  const combinedData = completionData || reviewData;
+
+  const retakeMutation = useMutation<UserTestAttemptStartResponse, Error>({
     mutationFn: () => retakeTestAttempt(attemptId),
     onSuccess: (data) => {
       toast.success(
@@ -139,7 +151,6 @@ const LevelAssessmentScorePage = () => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
       });
-      // NProgress will handle visual loading bar for this navigation
       router.push(PATHS.STUDY.DETERMINE_LEVEL.ATTEMPT(data.attempt_id));
     },
     onError: (err: any) => {
@@ -152,9 +163,65 @@ const LevelAssessmentScorePage = () => {
     retakeMutation.mutate();
   };
 
-  if (isLoading) return <ScorePageSkeletonV2 />; // Use updated skeleton
+  // The rest of the logic remains unchanged as it correctly handles `combinedData`.
+  const displayData = useMemo(() => {
+    if (!combinedData) return null;
 
-  if (error || !reviewData) {
+    if ("score" in combinedData && combinedData.score) {
+      const data = combinedData as UserTestAttemptCompletionResponse;
+      const answeredCount = data.answered_question_count;
+      const correctCount = data.correct_answers_in_test_count;
+      return {
+        isFallback: false,
+        overallScore: data.score.overall,
+        verbalScore: data.score.verbal,
+        quantitativeScore: data.score.quantitative,
+        results_summary: data.results_summary,
+        smart_analysis: data.smart_analysis,
+        badges_won: data.badges_won,
+        streak_info: data.streak_info,
+        totalQuestions: data.total_questions,
+        correctAnswers: correctCount,
+        answeredQuestionsCount: answeredCount,
+        incorrectAnswers: answeredCount - correctCount,
+        skippedAnswers: data.total_questions - answeredCount,
+        totalPointsEarned:
+          (data.points_from_test_completion_event ?? 0) +
+          (data.points_from_correct_answers_this_test ?? 0),
+        timeTakenMinutes: null,
+      };
+    }
+
+    const data = combinedData as UserTestAttemptReviewResponse;
+    const totalQuestions = data.questions.length;
+    const answeredCount = data.questions.filter(
+      (q) => q.user_answer_details?.selected_choice !== null
+    ).length;
+    const correctCount = data.questions.filter(
+      (q) => q.user_answer_details?.is_correct === true
+    ).length;
+
+    return {
+      isFallback: true,
+      overallScore: data.score_percentage,
+      verbalScore: data.score_verbal,
+      quantitativeScore: data.score_quantitative,
+      results_summary: data.results_summary,
+      smart_analysis: null,
+      badges_won: [],
+      streak_info: null,
+      totalQuestions: totalQuestions,
+      correctAnswers: correctCount,
+      incorrectAnswers: answeredCount - correctCount,
+      skippedAnswers: totalQuestions - answeredCount,
+      totalPointsEarned: 0,
+      timeTakenMinutes: data.time_taken_minutes ?? null,
+    };
+  }, [combinedData]);
+
+  if (isLoading) return <ScorePageSkeleton />;
+
+  if (error || !displayData) {
     return (
       <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
         <Alert variant="destructive" className="max-w-md text-center">
@@ -180,47 +247,28 @@ const LevelAssessmentScorePage = () => {
     );
   }
 
-  // Prioritize nested score object if available, otherwise use flat scores
-  const overallScore = reviewData.score?.overall ?? reviewData.score_percentage;
-  const verbalScore = reviewData.score?.verbal ?? reviewData.score_verbal;
-  const quantitativeScore =
-    reviewData.score?.quantitative ?? reviewData.score_quantitative;
+  const {
+    overallScore,
+    verbalScore,
+    quantitativeScore,
+    results_summary,
+    smart_analysis,
+    badges_won,
+    streak_info,
+    totalQuestions,
+    correctAnswers,
+    incorrectAnswers,
+    skippedAnswers,
+    totalPointsEarned,
+    timeTakenMinutes,
+  } = displayData;
 
-  const timeTakenMinutes = reviewData.time_taken_minutes; // Assuming this remains available
   const levelInfo = getQualitativeLevelInfo(overallScore, tLevel);
 
-  const totalQuestions =
-    reviewData.total_questions_api ?? reviewData.questions.length;
-  const correctAnswers =
-    reviewData.correct_answers_in_test_count ??
-    reviewData.questions.filter((q) => q.user_is_correct === true).length;
-
-  // Calculate incorrect and skipped based on fetched questions if specific counts aren't available directly for these two
-  const answeredQuestionsCount =
-    reviewData.answered_question_count ??
-    reviewData.questions.filter((q) => q.user_selected_choice !== null).length;
-  const incorrectAnswers = reviewData.questions.filter(
-    (q) => q.user_is_correct === false
-  ).length; // This might be different from (total - correct - skipped) if API counts unattempted as incorrect
-  const skippedAnswers = totalQuestions - answeredQuestionsCount;
-
-  const smartAnalysis = reviewData.smart_analysis || t("adviceDefault");
   let AdviceIconComponent: React.ElementType = ThumbsUp;
-  if (reviewData.smart_analysis) {
-    if (overallScore !== null && overallScore < 50)
-      AdviceIconComponent = AlertTriangle;
-    else AdviceIconComponent = ThumbsUp;
-  } else if (
-    !reviewData.smart_analysis &&
-    overallScore !== null &&
-    overallScore < 70
-  ) {
-    AdviceIconComponent = Info; // Default advice is more like info
+  if (smart_analysis && overallScore !== null && overallScore < 50) {
+    AdviceIconComponent = AlertTriangle;
   }
-
-  const totalPointsEarned =
-    (reviewData.points_from_test_completion_event ?? 0) +
-    (reviewData.points_from_correct_answers_this_test ?? 0);
 
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
@@ -229,7 +277,7 @@ const LevelAssessmentScorePage = () => {
           <CardTitle className="text-2xl font-bold md:text-3xl">
             {t("yourScoreIsReady")}
           </CardTitle>
-          {overallScore !== null && overallScore !== undefined ? (
+          {overallScore !== null ? (
             <div className="mt-4">
               <span
                 className={`inline-flex items-center rounded-full bg-primary px-6 py-3 text-3xl font-bold text-primary-foreground shadow-lg`}
@@ -248,68 +296,64 @@ const LevelAssessmentScorePage = () => {
         </CardHeader>
 
         <CardContent className="space-y-8 pt-6">
-          {/* Gamification Stats Row */}
           {(totalPointsEarned > 0 ||
-            reviewData.badges_won?.length ||
-            reviewData.streak_info) && (
-            <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-3">
-              {totalPointsEarned > 0 && (
-                <Card className="p-4">
-                  <Sparkles className="mx-auto mb-2 h-8 w-8 text-yellow-500" />
-                  <p className="text-sm text-muted-foreground">
-                    {t("pointsEarned")}
-                  </p>
-                  <p className="text-xl font-bold">{totalPointsEarned}</p>
-                </Card>
-              )}
-              {reviewData.streak_info && (
-                <Card className="p-4">
-                  <Flame className="mx-auto mb-2 h-8 w-8 text-orange-500" />
-                  <p className="text-sm text-muted-foreground">
-                    {t("currentStreak")}
-                  </p>
-                  <p className="text-xl font-bold">
-                    {reviewData.streak_info.current_days} {t("days")}
-                    {reviewData.streak_info.updated && (
-                      <CheckCircle className="ms-1 inline-block h-5 w-5 text-green-500" />
-                    )}
-                  </p>
-                </Card>
-              )}
-              {reviewData.badges_won && reviewData.badges_won.length > 0 && (
-                <Card className="p-4 sm:col-span-2 lg:col-span-1">
-                  {" "}
-                  {/* Adjust span for badges */}
-                  <Award className="mx-auto mb-2 h-8 w-8 text-indigo-500" />
-                  <p className="text-sm text-muted-foreground">
-                    {t("badgesUnlocked")}
-                  </p>
-                  <div className="mt-1 flex flex-wrap justify-center gap-2">
-                    {reviewData.badges_won.map((badge) => (
-                      <Badge
-                        key={badge.slug}
-                        variant="secondary"
-                        className="text-xs"
-                        title={badge.description}
-                      >
-                        {badge.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </Card>
-              )}
-            </div>
+            (badges_won && badges_won.length > 0) ||
+            streak_info) && (
+            <>
+              <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-3">
+                {totalPointsEarned > 0 && (
+                  <Card className="p-4">
+                    <Sparkles className="mx-auto mb-2 h-8 w-8 text-yellow-500" />
+                    <p className="text-sm text-muted-foreground">
+                      {t("pointsEarned")}
+                    </p>
+                    <p className="text-xl font-bold">{totalPointsEarned}</p>
+                  </Card>
+                )}
+                {streak_info && (
+                  <Card className="p-4">
+                    <Flame className="mx-auto mb-2 h-8 w-8 text-orange-500" />
+                    <p className="text-sm text-muted-foreground">
+                      {t("currentStreak")}
+                    </p>
+                    <p className="text-xl font-bold">
+                      {streak_info.current_days} {t("days")}
+                      {streak_info.updated && (
+                        <CheckCircle className="ms-1 inline-block h-5 w-5 text-green-500" />
+                      )}
+                    </p>
+                  </Card>
+                )}
+                {badges_won && badges_won.length > 0 && (
+                  <Card className="p-4 sm:col-span-2 lg:col-span-1">
+                    <Award className="mx-auto mb-2 h-8 w-8 text-indigo-500" />
+                    <p className="text-sm text-muted-foreground">
+                      {t("badgesUnlocked")}
+                    </p>
+                    <div className="mt-1 flex flex-wrap justify-center gap-2">
+                      {badges_won.map((badge) => (
+                        <Badge
+                          key={badge.slug}
+                          variant="secondary"
+                          className="text-xs"
+                          title={badge.description}
+                        >
+                          {badge.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+              </div>
+              <Separator />
+            </>
           )}
-          {(totalPointsEarned > 0 ||
-            reviewData.badges_won?.length ||
-            reviewData.streak_info) && <Separator />}
 
-          {/* Core Test Stats Row */}
           <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
             <Card className="p-4">
               <Clock className="mx-auto mb-2 h-8 w-8 text-primary" />
               <p className="text-sm text-muted-foreground">{t("timeTaken")}</p>
-              {timeTakenMinutes !== null && timeTakenMinutes !== undefined ? (
+              {timeTakenMinutes !== null ? (
                 <p className="text-xl font-bold">
                   {timeTakenMinutes} {t("minutes")}
                 </p>
@@ -358,7 +402,6 @@ const LevelAssessmentScorePage = () => {
             </Card>
           </div>
 
-          {/* Score Distribution Pie Chart & Detailed Breakdown */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {(verbalScore !== null || quantitativeScore !== null) &&
               totalQuestions > 0 && (
@@ -374,50 +417,47 @@ const LevelAssessmentScorePage = () => {
                 </div>
               )}
 
-            {reviewData.results_summary &&
-              Object.keys(reviewData.results_summary).length > 0 && (
-                <div>
-                  <h3 className="mb-4 text-center text-xl font-semibold">
-                    <Target className="me-2 inline-block h-6 w-6 rtl:me-0 rtl:ms-2" />
-                    {t("detailedPerformance")}
-                  </h3>
-                  <Card>
-                    <CardContent className="max-h-80 space-y-3 overflow-y-auto p-4">
-                      {Object.entries(reviewData.results_summary).map(
-                        ([key, item]) => (
-                          <div key={key} className="rounded-md border p-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <BookOpenCheck className="me-2 h-5 w-5 text-muted-foreground rtl:me-0 rtl:ms-2" />
-                                <span className="font-medium">{item.name}</span>
-                              </div>
-                              <Badge
-                                variant={
-                                  item.score >= 70
-                                    ? "default"
-                                    : item.score >= 50
-                                    ? "secondary"
-                                    : "destructive"
-                                }
-                              >
-                                {item.score.toFixed(0)}%
-                              </Badge>
-                            </div>
-                            <div className="mt-1 flex justify-between text-sm text-muted-foreground">
-                              <span>
-                                {t("correct")}: {item.correct}/{item.total}
-                              </span>
-                            </div>
+            {results_summary && Object.keys(results_summary).length > 0 && (
+              <div>
+                <h3 className="mb-4 text-center text-xl font-semibold">
+                  <Target className="me-2 inline-block h-6 w-6 rtl:me-0 rtl:ms-2" />
+                  {t("detailedPerformance")}
+                </h3>
+                <Card>
+                  <CardContent className="max-h-80 space-y-3 overflow-y-auto p-4">
+                    {Object.entries(results_summary).map(([key, item]) => (
+                      <div key={key} className="rounded-md border p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <BookOpenCheck className="me-2 h-5 w-5 text-muted-foreground rtl:me-0 rtl:ms-2" />
+                            <span className="font-medium">{item.name}</span>
                           </div>
-                        )
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+                          <Badge
+                            variant={
+                              item.score >= 70
+                                ? "default"
+                                : item.score >= 50
+                                ? "secondary"
+                                : "destructive"
+                            }
+                          >
+                            {item.score.toFixed(0)}%
+                          </Badge>
+                        </div>
+                        <div className="mt-1 flex justify-between text-sm text-muted-foreground">
+                          <span>
+                            {t("correct")}: {item.correct}/{item.total}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
 
-          {smartAnalysis && (
+          {smart_analysis && (
             <Alert
               className="mt-6"
               variant={
@@ -432,7 +472,7 @@ const LevelAssessmentScorePage = () => {
                   {t("smartAnalysisTitle")}
                 </AlertTitle>
                 <AlertDescription className="text-base">
-                  {smartAnalysis}
+                  {smart_analysis}
                 </AlertDescription>
               </div>
             </Alert>
@@ -458,10 +498,11 @@ const LevelAssessmentScorePage = () => {
             disabled={retakeMutation.isPending}
             className="w-full sm:w-auto"
           >
-            {retakeMutation.isPending && (
+            {retakeMutation.isPending ? (
               <Loader2 className="me-2 h-5 w-5 animate-spin rtl:me-0 rtl:ms-2" />
+            ) : (
+              <RefreshCcw className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
             )}
-            <RefreshCcw className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
             {t("retakeTest")}
           </Button>
           <Button
@@ -481,19 +522,15 @@ const LevelAssessmentScorePage = () => {
   );
 };
 
-// Use this for the loading.tsx file as well
-const ScorePageSkeletonV2 = () => {
-  // Renamed to V2
+const ScorePageSkeleton = () => {
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
       <Card className="mx-auto max-w-4xl">
         <CardHeader className="text-center">
-          <Skeleton className="mx-auto mb-4 h-8 w-3/5" /> {/* Title */}
-          <Skeleton className="mx-auto h-16 w-36 rounded-full" />{" "}
-          {/* Score badge */}
+          <Skeleton className="mx-auto mb-4 h-8 w-3/5" />
+          <Skeleton className="mx-auto h-16 w-36 rounded-full" />
         </CardHeader>
         <CardContent className="space-y-8 pt-6">
-          {/* Skeletons for Gamification Stats */}
           <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-3">
             {[...Array(3)].map((_, i) => (
               <Card key={`gamify-skel-${i}`} className="p-4">
@@ -503,8 +540,7 @@ const ScorePageSkeletonV2 = () => {
               </Card>
             ))}
           </div>
-          <Skeleton className="h-px w-full" /> {/* Separator Skeleton */}
-          {/* Skeletons for Core Test Stats */}
+          <Skeleton className="h-px w-full" />
           <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
               <Card key={`core-skel-${i}`} className="p-4">
@@ -514,22 +550,16 @@ const ScorePageSkeletonV2 = () => {
               </Card>
             ))}
           </div>
-          {/* Skeletons for Score Distribution & Detailed Performance */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <Skeleton className="mx-auto mb-4 h-6 w-1/3" />{" "}
-              {/* Chart/Detail title */}
-              <Skeleton className="h-64 w-full rounded-md" />{" "}
-              {/* Chart/Detail placeholder */}
+              <Skeleton className="mx-auto mb-4 h-6 w-1/3" />
+              <Skeleton className="h-64 w-full rounded-md" />
             </div>
             <div>
-              <Skeleton className="mx-auto mb-4 h-6 w-1/3" />{" "}
-              {/* Chart/Detail title */}
-              <Skeleton className="h-64 w-full rounded-md" />{" "}
-              {/* Chart/Detail placeholder */}
+              <Skeleton className="mx-auto mb-4 h-6 w-1/3" />
+              <Skeleton className="h-64 w-full rounded-md" />
             </div>
           </div>
-          {/* Skeleton for Smart Analysis */}
           <Skeleton className="h-20 w-full rounded-md" />
         </CardContent>
         <CardFooter className="flex flex-col-reverse justify-center gap-3 pt-8 sm:flex-row sm:gap-4">

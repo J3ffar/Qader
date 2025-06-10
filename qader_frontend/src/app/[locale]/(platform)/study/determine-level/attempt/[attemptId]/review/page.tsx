@@ -18,6 +18,7 @@ import {
   Frown,
   FileText,
   TrendingUp,
+  Info,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,20 +30,11 @@ import ReviewQuestionCard from "@/components/features/platform/study/determine-l
 import { getTestAttemptReview } from "@/services/study.service";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
-import type {
-  UserTestAttemptReview,
-  UserTestAttemptReviewQuestion, // For explicit typing if needed
-} from "@/types/api/study.types";
+import { UserTestAttemptReviewResponse } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type FilterType = "all" | "incorrect" | "skipped";
-
-type TestAttemptReviewQueryKey = readonly [
-  string,
-  string,
-  { readonly incorrect_only: boolean } // API takes string, but boolean for key consistency
-];
 
 const LevelAssessmentReviewPage = () => {
   const params = useParams();
@@ -60,19 +52,9 @@ const LevelAssessmentReviewPage = () => {
     data: reviewData,
     isLoading,
     error: queryError,
-    isFetching, // Good for subtle loading states on re-fetch/filter change
-  } = useQuery<
-    UserTestAttemptReview,
-    Error,
-    UserTestAttemptReview,
-    TestAttemptReviewQueryKey
-  >({
-    queryKey: [
-      QUERY_KEYS.USER_TEST_ATTEMPT_REVIEW,
-      attemptId,
-      { incorrect_only: false }, // Fetch all initially
-    ] as const,
-    queryFn: () => getTestAttemptReview(attemptId, { incorrect_only: "false" }),
+  } = useQuery<UserTestAttemptReviewResponse, Error>({
+    queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_REVIEW, attemptId],
+    queryFn: () => getTestAttemptReview(attemptId),
     enabled: !!attemptId,
     staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -82,14 +64,15 @@ const LevelAssessmentReviewPage = () => {
 
   const incorrectQuestions = useMemo(
     () =>
-      allQuestions.filter(
-        (q) => q.user_selected_choice !== null && q.user_is_correct === false
-      ),
+      allQuestions.filter((q) => q.user_answer_details?.is_correct === false),
     [allQuestions]
   );
 
   const skippedQuestions = useMemo(
-    () => allQuestions.filter((q) => q.user_selected_choice === null),
+    () =>
+      allQuestions.filter(
+        (q) => q.user_answer_details?.selected_choice === null
+      ),
     [allQuestions]
   );
 
@@ -105,10 +88,9 @@ const LevelAssessmentReviewPage = () => {
     }
   }, [filterType, allQuestions, incorrectQuestions, skippedQuestions]);
 
-  // Reset index when filter type or the underlying data changes
   useEffect(() => {
     setCurrentQuestionIndex(0);
-  }, [filterType, allQuestions.length]); // Or depend on filteredQuestions directly
+  }, [filterType, allQuestions.length]);
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex < filteredQuestions.length - 1) {
@@ -144,9 +126,9 @@ const LevelAssessmentReviewPage = () => {
           className="mt-6"
         >
           {locale === "ar" ? (
-            <ArrowRight className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
+            <ArrowRight className="me-2 h-4 w-4" />
           ) : (
-            <ArrowLeft className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
+            <ArrowLeft className="me-2 h-4 w-4" />
           )}
           {t("backToScorePage")}
         </Button>
@@ -154,10 +136,39 @@ const LevelAssessmentReviewPage = () => {
     );
   }
 
-  const overallScore = reviewData.score?.overall ?? reviewData.score_percentage;
-  const verbalScore = reviewData.score?.verbal ?? reviewData.score_verbal;
-  const quantitativeScore =
-    reviewData.score?.quantitative ?? reviewData.score_quantitative;
+  // Check if any score data is present at all
+  if (
+    reviewData.score_percentage === null &&
+    reviewData.score_verbal === null &&
+    reviewData.score_quantitative === null
+  ) {
+    return (
+      <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
+        <Alert variant="default" className="max-w-md text-center">
+          <Info className="mx-auto mb-2 h-6 w-6" />
+          <AlertTitle>{t("errors.scoreDataMissingTitle")}</AlertTitle>
+          <AlertDescription>
+            {t("errors.scoreDataMissingDescription")}
+          </AlertDescription>
+        </Alert>
+        <Button
+          onClick={() => router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST)}
+          variant="outline"
+          className="mt-6"
+        >
+          {locale === "ar" ? (
+            <ArrowRight className="me-2 h-4 w-4" />
+          ) : (
+            <ArrowLeft className="me-2 h-4 w-4" />
+          )}
+          {t("backToOverview")}
+        </Button>
+      </div>
+    );
+  }
+
+  // CORRECTED: Destructure scores directly from the reviewData object
+  const { score_percentage, score_verbal, score_quantitative } = reviewData;
 
   return (
     <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
@@ -182,22 +193,23 @@ const LevelAssessmentReviewPage = () => {
                 )}
               </Button>
               <h1 className="flex items-center text-xl font-semibold text-primary sm:text-2xl">
-                <FileText className="me-2.5 h-[1.3em] w-[1.3em] rtl:me-0 rtl:ms-2.5" />
+                <FileText className="me-2.5 h-[1.3em] w-[1.3em]" />
                 {t("reviewYourAttempt")}
               </h1>
             </div>
-            {overallScore !== null && overallScore !== undefined && (
+            {/* CORRECTED: Use the correct score variables */}
+            {score_percentage !== null && (
               <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-lg border bg-background p-2 px-3 text-xs shadow-sm sm:text-sm">
                 <div
                   className="flex items-center"
                   title={tScore("overallScore")}
                 >
-                  <TrendingUp className="me-1 h-4 w-4 text-primary rtl:me-0 rtl:ms-1" />
+                  <TrendingUp className="me-1 h-4 w-4 text-primary" />
                   <span className="font-medium">
-                    {overallScore.toFixed(0)}%
+                    {score_percentage.toFixed(0)}%
                   </span>
                 </div>
-                {verbalScore !== null && (
+                {score_verbal !== null && (
                   <>
                     <span className="text-muted-foreground">|</span>
                     <div
@@ -208,12 +220,12 @@ const LevelAssessmentReviewPage = () => {
                         {tScore("verbalSectionShort")}:
                       </span>
                       <span className="ms-1 font-medium">
-                        {verbalScore.toFixed(0)}%
+                        {score_verbal.toFixed(0)}%
                       </span>
                     </div>
                   </>
                 )}
-                {quantitativeScore !== null && (
+                {score_quantitative !== null && (
                   <>
                     <span className="text-muted-foreground">|</span>
                     <div
@@ -224,7 +236,7 @@ const LevelAssessmentReviewPage = () => {
                         {tScore("quantitativeSectionShort")}:
                       </span>
                       <span className="ms-1 font-medium">
-                        {quantitativeScore.toFixed(0)}%
+                        {score_quantitative.toFixed(0)}%
                       </span>
                     </div>
                   </>
@@ -240,7 +252,7 @@ const LevelAssessmentReviewPage = () => {
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center text-sm font-medium text-muted-foreground">
-              <FilterIcon className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
+              <FilterIcon className="me-2 h-4 w-4" />
               {t("filterBy")}:
             </div>
             <ToggleGroup
@@ -251,46 +263,39 @@ const LevelAssessmentReviewPage = () => {
                 value && setFilterType(value)
               }
               aria-label={t("filterBy")}
-              className="grid w-full grid-cols-3 gap-1 sm:flex sm:w-auto" // Responsive toggle group
+              className="grid w-full grid-cols-3 gap-1 sm:flex sm:w-auto"
             >
               <ToggleGroupItem
                 value="all"
                 aria-label={t("allQuestionsOptFull")}
                 className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
               >
-                <BookOpen className="h-4 w-4 flex-shrink-0" />{" "}
-                {t("allQuestionsOpt")} ({allQuestions.length})
+                <BookOpen className="h-4 w-4" /> {t("allQuestionsOpt")} (
+                {allQuestions.length})
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="incorrect"
                 aria-label={t("incorrectOnlyOptFull")}
                 className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
               >
-                <ThumbsDown className="h-4 w-4 flex-shrink-0" />{" "}
-                {t("incorrectOnlyOpt")} ({incorrectQuestions.length})
+                <ThumbsDown className="h-4 w-4" /> {t("incorrectOnlyOpt")} (
+                {incorrectQuestions.length})
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="skipped"
                 aria-label={t("skippedOnlyOptFull")}
                 className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
               >
-                <HelpCircleIcon className="h-4 w-4 flex-shrink-0" />{" "}
-                {t("skippedOnlyOpt")} ({skippedQuestions.length})
+                <HelpCircleIcon className="h-4 w-4" /> {t("skippedOnlyOpt")} (
+                {skippedQuestions.length})
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
         </CardContent>
       </Card>
 
-      {/* Subtle loader for filter changes (if data were re-fetched) */}
-      {isFetching && !isLoading && (
-        <div className="my-4 flex justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary/50" />
-        </div>
-      )}
-
       {/* Main Question Review Area */}
-      {!isFetching && currentQuestionData ? (
+      {currentQuestionData ? (
         <div className="space-y-6">
           <ReviewQuestionCard
             questionData={currentQuestionData}
@@ -307,9 +312,9 @@ const LevelAssessmentReviewPage = () => {
                 className="text-primary hover:bg-primary/10"
               >
                 {locale === "ar" ? (
-                  <ChevronRight className="me-1.5 h-5 w-5 rtl:me-0 rtl:ms-1.5" />
+                  <ChevronRight className="me-1.5 h-5 w-5" />
                 ) : (
-                  <ChevronLeft className="me-1.5 h-5 w-5 rtl:me-0 rtl:ms-1.5" />
+                  <ChevronLeft className="me-1.5 h-5 w-5" />
                 )}
                 {t("previousQuestion")}
               </Button>
@@ -328,34 +333,30 @@ const LevelAssessmentReviewPage = () => {
               >
                 {t("nextQuestion")}
                 {locale === "ar" ? (
-                  <ChevronLeft className="ms-1.5 h-5 w-5 rtl:me-1.5 rtl:ms-0" />
+                  <ChevronLeft className="ms-1.5 h-5 w-5" />
                 ) : (
-                  <ChevronRight className="ms-1.5 h-5 w-5 rtl:me-1.5 rtl:ms-0" />
+                  <ChevronRight className="ms-1.5 h-5 w-5" />
                 )}
               </Button>
             </div>
           )}
         </div>
       ) : (
-        !isFetching && ( // Only show "No Questions" if not actively fetching
-          <Card className="mt-6">
-            <CardContent className="flex min-h-[300px] flex-col items-center justify-center p-10 text-center">
-              <Frown className="mb-4 h-16 w-16 text-muted-foreground/30" />
-              <h3 className="text-xl font-semibold">{t("noQuestionsTitle")}</h3>
-              <p className="text-muted-foreground">
-                {filterType === "all"
-                  ? t("noQuestionsInReview")
-                  : t("noQuestionsMatchFilter")}
-              </p>
-            </CardContent>
-          </Card>
-        )
+        <Card className="mt-6">
+          <CardContent className="flex min-h-[300px] flex-col items-center justify-center p-10 text-center">
+            <Frown className="mb-4 h-16 w-16 text-muted-foreground/30" />
+            <h3 className="text-xl font-semibold">{t("noQuestionsTitle")}</h3>
+            <p className="text-muted-foreground">
+              {filterType === "all"
+                ? t("noQuestionsInReview")
+                : t("noQuestionsMatchFilter")}
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
 };
-
-export default LevelAssessmentReviewPage;
 
 const ReviewPageSkeleton = () => {
   return (
@@ -440,3 +441,5 @@ const ReviewPageSkeleton = () => {
     </div>
   );
 };
+
+export default LevelAssessmentReviewPage;
