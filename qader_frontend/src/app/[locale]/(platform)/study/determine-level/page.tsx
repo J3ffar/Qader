@@ -266,7 +266,7 @@ const LevelAssessmentPage = () => {
           </div>
 
           {/* Desktop Table */}
-          <div className="hidden md:block">
+          <div className="hidden rounded-xl border md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -464,7 +464,7 @@ const DetermineLevelPageSkeleton = () => {
           </div>
 
           {/* Desktop Table Skeleton */}
-          <div className="hidden md:block">
+          <div className="hidden rounded-xl border md:block">
             <Table>
               <TableHeader>
                 <TableRow>

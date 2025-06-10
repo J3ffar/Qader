@@ -121,9 +121,7 @@ const LevelAssessmentReviewPage = () => {
           </AlertDescription>
         </Alert>
         <Button
-          onClick={() =>
-            router.push(PATHS.STUDY.DETERMINE_LEVEL.SCORE(attemptId))
-          }
+          onClick={() => router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST)}
           variant="outline"
           className="mt-6"
         >
@@ -132,7 +130,7 @@ const LevelAssessmentReviewPage = () => {
           ) : (
             <ArrowLeft className="me-2 h-4 w-4" />
           )}
-          {t("backToScorePage")}
+          {t("backToList")}
         </Button>
       </div>
     );
@@ -176,12 +174,12 @@ const LevelAssessmentReviewPage = () => {
     <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
       {/* Header Card */}
       <Card className="overflow-hidden shadow-md">
-        <CardHeader className="bg-muted/20 p-4 sm:p-5">
+        <CardHeader>
           <div className="flex items-center justify-between gap-3">
             {/* --- MODIFIED HEADER SECTION --- */}
             <div className="flex flex-grow items-center gap-2">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 onClick={() => router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST)} // MODIFIED: Go to list page
                 aria-label={t("backToList")} // MODIFIED: Aria label
@@ -256,7 +254,7 @@ const LevelAssessmentReviewPage = () => {
 
       {/* Filter Controls Card */}
       <Card>
-        <CardContent className="p-3 sm:p-4">
+        <CardContent>
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center text-sm font-medium text-muted-foreground">
               <FilterIcon className="me-2 h-4 w-4" />

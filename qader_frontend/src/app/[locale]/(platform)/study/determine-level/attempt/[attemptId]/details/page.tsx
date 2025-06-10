@@ -102,7 +102,7 @@ const LevelAssessmentDetailsPage = () => {
   } = attemptDetails;
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto p-5">
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
