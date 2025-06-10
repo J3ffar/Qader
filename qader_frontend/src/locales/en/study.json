@@ -243,7 +243,8 @@
       "acceptable": "Acceptable",
       "weak": "Weak",
       "default": "Not Specified",
-      "notAvailable": "N/A"
+      "notAvailable": "N/A",
+      "notApplicable": "Not Applicable"
     },
 
     "apiError": "An error occurred while fetching data. Please try again."

@@ -9,8 +9,6 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { appEvents } from "@/lib/events";
-import { PATHS } from "@/constants/paths";
-import { useRouter } from "next/navigation";
 
 /**
  * SessionExpiredHandler is a small, client-only component responsible for listening to
@@ -22,7 +20,6 @@ const SessionExpiredHandler = () => {
   // We can use this hook because the parent <Providers> component is wrapped
   // by <NextIntlClientProvider> in the root layout.
   const t = useTranslations("Common");
-  const router = useRouter();
 
   useEffect(() => {
     const handleSessionExpired = () => {
@@ -30,7 +27,6 @@ const SessionExpiredHandler = () => {
         description: t("sessionExpiredDescription"),
         duration: 6000, // Give the user a bit more time to read it
       });
-      router.replace(PATHS.HOME);
     };
 
     appEvents.on("auth:session-expired", handleSessionExpired);

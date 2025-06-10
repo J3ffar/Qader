@@ -79,6 +79,10 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
       isRefreshingToken: false,
     });
     localStorage.removeItem("qader-auth-storage");
+    // Use window.location.href for a hard redirect. This is crucial as it clears
+    // all component state and ensures the user lands cleanly on the login page.
+    const locale = getLocaleFromPathname() || "ar"; // Default to 'ar'
+    window.location.href = `/${locale}${PATHS.HOME}`;
   },
 
   setTokens: (tokens) => {

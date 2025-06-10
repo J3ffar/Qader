@@ -152,7 +152,7 @@ export const apiClient = async <T = any>(
             .catch(async (refreshError) => {
               // If refresh fails, logout the user and reject all queued requests.
               appEvents.dispatch("auth:session-expired");
-              await logout();
+              await useAuthStore.getState().logout();
               const error = new ApiError(
                 refreshError.message || "Session expired. Please log in again.",
                 refreshError.status || 401,

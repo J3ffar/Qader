@@ -36,34 +36,60 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getTestAttempts, cancelTestAttempt } from "@/services/study.service";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
-import { UserTestAttemptBrief } from "@/types/api/study.types";
+import { UserTestAttemptList } from "@/types/api/study.types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 
-// Helper to map API level terms (if they exist) or scores to colors/text
-// For now, using the existing logic and assuming performance object might contain keys like 'verbal_level_display'
-const getBadgeStyle = (level?: string): string => {
-  if (!level)
+// =================================================================
+// CORRECTED HELPER FUNCTIONS
+// =================================================================
+
+/**
+ * Maps a performance score level key to a specific Tailwind CSS class string for styling.
+ * This is more robust as it relies on keys, not translated text.
+ * @param levelKey - The performance level key (e.g., 'excellent', 'good', 'weak').
+ * @returns A string of CSS classes.
+ */
+const getBadgeStyle = (levelKey?: string): string => {
+  if (!levelKey)
     return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200";
-  switch (level.toLowerCase()) {
-    case "ممتاز":
+  switch (levelKey) {
     case "excellent":
       return "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100";
-    case "جيد جداً":
-    case "very good":
+    case "veryGood":
       return "bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-100";
-    case "جيد":
     case "good":
       return "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100";
-    case "ضعيف":
     case "weak":
       return "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100";
+    case "notApplicable":
     default:
       return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200";
   }
 };
+
+/**
+ * Maps a numeric score to a qualitative level key.
+ * This centralizes the business logic for determining performance levels.
+ * @param score - The numeric score (e.g., 85).
+ * @returns A level key (e.g., 'veryGood').
+ */
+const mapScoreToLevelKey = (score: number | null | undefined): string => {
+  if (score === null || score === undefined) {
+    return "notApplicable";
+  }
+  // These thresholds can be adjusted based on business requirements
+  if (score >= 90) return "excellent";
+  if (score >= 80) return "veryGood";
+  if (score >= 65) return "good";
+  return "weak";
+};
+
+// =================================================================
+// COMPONENT IMPLEMENTATION
+// =================================================================
 
 const LevelAssessmentPage = () => {
   const t = useTranslations("Study.determineLevel");
@@ -95,7 +121,7 @@ const LevelAssessmentPage = () => {
         ],
       });
     },
-    onError: (err: any, attemptId) => {
+    onError: (err: any) => {
       const errorMessage = getApiErrorMessage(
         err,
         t("cancelDialog.errorToastGeneric")
@@ -104,9 +130,29 @@ const LevelAssessmentPage = () => {
     },
   });
 
+  // REFACTORED useMemo hook to be type-safe
   const attempts = useMemo(() => {
     if (!attemptsData?.results) return [];
-    const sorted = [...attemptsData.results].sort((a, b) => {
+
+    // Define a type for our enhanced attempt object for better type safety
+    type EnhancedAttempt = UserTestAttemptList & {
+      quantitative_level_key: string;
+      verbal_level_key: string;
+    };
+
+    // Map the raw API data to our enhanced structure, adding the level keys
+    const enhancedAttempts: EnhancedAttempt[] = attemptsData.results.map(
+      (attempt) => ({
+        ...attempt,
+        quantitative_level_key: mapScoreToLevelKey(
+          attempt.performance?.quantitative
+        ),
+        verbal_level_key: mapScoreToLevelKey(attempt.performance?.verbal),
+      })
+    );
+
+    // Sort the enhanced data based on the user's selection
+    const sorted = enhancedAttempts.sort((a, b) => {
       if (sortBy === "date") {
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       }
@@ -115,23 +161,12 @@ const LevelAssessmentPage = () => {
       }
       return 0;
     });
-    // The API might return verbal/quantitative performance as numeric.
-    // If we need to display qualitative levels ("ممتاز", "ضعيف"),
-    // we'd need a mapping function here or expect the API to provide display strings.
-    // For now, let's assume `performance` object might have `verbal_level_display` etc.
-    return sorted.map((attempt) => ({
-      ...attempt,
-      verbal_level_display:
-        (attempt.performance?.verbal_level_display as string) ||
-        tBadge("default"),
-      quantitative_level_display:
-        (attempt.performance?.quantitative_level_display as string) ||
-        tBadge("default"),
-    }));
-  }, [attemptsData, sortBy, tBadge]);
 
-  const renderActionButtons = (attempt: UserTestAttemptBrief) => {
-    const isCancelable = attempt.status === "started"; // Or other cancelable statuses from backend
+    return sorted;
+  }, [attemptsData, sortBy]);
+
+  const renderActionButtons = (attempt: UserTestAttemptList) => {
+    const isCancelable = attempt.status === "started";
 
     return (
       <div className="flex flex-col justify-center gap-2 sm:flex-row">
@@ -197,13 +232,11 @@ const LevelAssessmentPage = () => {
     );
   }
 
-  // Show prompt if no attempts or if specifically required (e.g., only 1 attempt logic from old code)
   if (!attempts || attempts.length === 0) {
-    // Simplified: show if no attempts
     return (
       <div className="flex min-h-[calc(100vh-150px)] flex-col items-center justify-center p-4 text-center">
         <Image
-          src="/images/search.png" // Ensure this image exists in public/images
+          src="/images/search.png"
           width={120}
           height={120}
           alt={t("noAttemptsTitle")}
@@ -250,7 +283,11 @@ const LevelAssessmentPage = () => {
                 onValueChange={(value: "date" | "percentage") =>
                   setSortBy(value)
                 }
-                dir={document.documentElement.dir as "rtl" | "ltr"}
+                dir={
+                  typeof document !== "undefined"
+                    ? (document.documentElement.dir as "rtl" | "ltr")
+                    : "ltr"
+                }
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder={t("sortBy")} />
@@ -290,8 +327,7 @@ const LevelAssessmentPage = () => {
                   </TableHead>
                   <TableHead className="w-[280px] text-center">
                     {t("attemptsTable.actions")}
-                  </TableHead>{" "}
-                  {/* Adjusted width for actions */}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -318,32 +354,36 @@ const LevelAssessmentPage = () => {
                       <span
                         className={cn(
                           "px-2 py-1 rounded-md text-xs font-medium",
-                          getBadgeStyle(attempt.quantitative_level_display)
+                          getBadgeStyle(attempt.quantitative_level_key) // Corrected
                         )}
                       >
-                        {attempt.quantitative_level_display ||
-                          tBadge("default")}
+                        {tBadge(attempt.quantitative_level_key)}{" "}
+                        {/* Corrected */}
                       </span>
                     </TableCell>
                     <TableCell>
                       <span
                         className={cn(
                           "px-2 py-1 rounded-md text-xs font-medium",
-                          getBadgeStyle(attempt.verbal_level_display)
+                          getBadgeStyle(attempt.verbal_level_key) // Corrected
                         )}
                       >
-                        {attempt.verbal_level_display || tBadge("default")}
+                        {tBadge(attempt.verbal_level_key)} {/* Corrected */}
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
                       <span
-                        className={`px-2 py-1 rounded-md text-xs font-medium ${
-                          attempt.status === "completed"
-                            ? "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
-                            : attempt.status === "started"
-                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100"
-                            : "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100" // for 'abandoned' or other
-                        }`}
+                        className={cn(
+                          "px-2 py-1 rounded-md text-xs font-medium",
+                          {
+                            "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100":
+                              attempt.status === "completed",
+                            "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100":
+                              attempt.status === "started",
+                            "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100":
+                              attempt.status === "abandoned",
+                          }
+                        )}
                       >
                         {attempt.status_display || attempt.status}
                       </span>
@@ -389,13 +429,17 @@ const LevelAssessmentPage = () => {
                         </p>
                       </div>
                       <span
-                        className={`px-2 py-1 rounded-md text-xs font-medium ${
-                          attempt.status === "completed"
-                            ? "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
-                            : attempt.status === "started"
-                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100"
-                            : "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100"
-                        } me-2 rtl:ms-2 rtl:me-0`}
+                        className={cn(
+                          "me-2 rounded-md px-2 py-1 text-xs font-medium rtl:ms-2 rtl:me-0",
+                          {
+                            "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100":
+                              attempt.status === "completed",
+                            "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100":
+                              attempt.status === "started",
+                            "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100":
+                              attempt.status === "abandoned",
+                          }
+                        )}
                       >
                         {attempt.status_display || attempt.status}
                       </span>
@@ -414,11 +458,11 @@ const LevelAssessmentPage = () => {
                         <span
                           className={cn(
                             "px-2 py-1 rounded-md text-xs",
-                            getBadgeStyle(attempt.quantitative_level_display)
+                            getBadgeStyle(attempt.quantitative_level_key) // Corrected
                           )}
                         >
-                          {attempt.quantitative_level_display ||
-                            tBadge("default")}
+                          {tBadge(attempt.quantitative_level_key)}{" "}
+                          {/* Corrected */}
                         </span>
                       </p>
                       <p>
@@ -426,10 +470,10 @@ const LevelAssessmentPage = () => {
                         <span
                           className={cn(
                             "px-2 py-1 rounded-md text-xs",
-                            getBadgeStyle(attempt.verbal_level_display)
+                            getBadgeStyle(attempt.verbal_level_key) // Corrected
                           )}
                         >
-                          {attempt.verbal_level_display || tBadge("default")}
+                          {tBadge(attempt.verbal_level_key)} {/* Corrected */}
                         </span>
                       </p>
                       <div className="mt-3">{renderActionButtons(attempt)}</div>
@@ -445,8 +489,8 @@ const LevelAssessmentPage = () => {
   );
 };
 
+// Skeleton component remains unchanged as it was correct
 const DetermineLevelPageSkeleton = () => {
-  const t = useTranslations("Study.determineLevel");
   return (
     <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
       <Card>
@@ -463,12 +507,11 @@ const DetermineLevelPageSkeleton = () => {
             <Skeleton className="h-10 w-[180px]" />
           </div>
 
-          {/* Desktop Table Skeleton */}
           <div className="hidden rounded-xl border md:block">
             <Table>
               <TableHeader>
                 <TableRow>
-                  {[...Array(6)].map((_, i) => (
+                  {[...Array(7)].map((_, i) => (
                     <TableHead key={i}>
                       <Skeleton className="h-5 w-24" />
                     </TableHead>
@@ -482,10 +525,10 @@ const DetermineLevelPageSkeleton = () => {
                       <Skeleton className="h-5 w-20" />
                     </TableCell>
                     <TableCell className="text-center">
-                      <Skeleton className="inline-block h-5 w-10" />
+                      <Skeleton className="mx-auto h-5 w-10" />
                     </TableCell>
                     <TableCell className="text-center">
-                      <Skeleton className="inline-block h-5 w-10" />
+                      <Skeleton className="mx-auto h-5 w-10" />
                     </TableCell>
                     <TableCell>
                       <Skeleton className="h-6 w-16" />
@@ -494,7 +537,10 @@ const DetermineLevelPageSkeleton = () => {
                       <Skeleton className="h-6 w-16" />
                     </TableCell>
                     <TableCell className="text-center">
-                      <Skeleton className="h-9 w-32" />
+                      <Skeleton className="mx-auto h-6 w-20" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Skeleton className="mx-auto h-9 w-32" />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -502,29 +548,19 @@ const DetermineLevelPageSkeleton = () => {
             </Table>
           </div>
 
-          {/* Mobile Accordion Skeleton */}
           <div className="space-y-3 md:hidden">
-            <Accordion type="single" collapsible className="w-full">
-              {[...Array(3)].map((_, i) => (
-                <AccordionItem
-                  value={`item-skeleton-${i}`}
-                  key={`skeleton-${i}`}
-                  className="rounded-lg border dark:border-gray-700"
-                >
-                  <AccordionTrigger className="p-4 hover:no-underline">
-                    <div className="flex w-full items-center justify-between">
-                      <div className="text-start rtl:text-right">
-                        <Skeleton className="mb-1 h-5 w-24" />
-                        <Skeleton className="h-4 w-32" />
-                      </div>
-                      <Skeleton className="h-6 w-6" />{" "}
-                      {/* Chevron placeholder */}
-                    </div>
-                  </AccordionTrigger>
-                  {/* No need to skeletonize AccordionContent as it's hidden by default */}
-                </AccordionItem>
-              ))}
-            </Accordion>
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={`skeleton-mobile-${i}`}
+                className="flex items-center justify-between rounded-lg border p-4 dark:border-gray-700"
+              >
+                <div className="text-start rtl:text-right">
+                  <Skeleton className="mb-2 h-5 w-24" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+                <Skeleton className="h-6 w-20" />
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

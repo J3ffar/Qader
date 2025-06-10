@@ -243,7 +243,8 @@
       "acceptable": "مقبول",
       "weak": "ضعيف",
       "default": "غير محدد",
-      "notAvailable": "غير متوفر"
+      "notAvailable": "غير متوفر",
+      "notApplicable": "غير متاح"
     },
     "apiError": "حدث خطأ أثناء جلب البيانات. يرجى المحاولة مرة أخرى."
   }
