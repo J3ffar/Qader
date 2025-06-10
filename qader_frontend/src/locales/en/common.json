@@ -11,6 +11,9 @@
   "yes": "yes",
   "no": "no",
 
+  "sessionExpiredTitle": "Session Expired",
+  "sessionExpiredDescription": "You have been logged out. Please log in again to continue.",
+
   "login": "login",
   "signup": "signup",
   "reviewTest": "Review Test",

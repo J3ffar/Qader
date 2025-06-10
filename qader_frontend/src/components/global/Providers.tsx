@@ -4,11 +4,44 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { type ThemeProviderProps } from "next-themes";
-import { PropsWithChildren, useState } from "react";
-// import { NextIntlClientProvider } from 'next-intl'; // We'll handle this differently for App Router
+import { PropsWithChildren, useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
-// Zustand store (example - create your store file separately)
-// import { useAuthStore } from '@/store/auth.store';
+import { appEvents } from "@/lib/events";
+import { PATHS } from "@/constants/paths";
+import { useRouter } from "next/navigation";
+
+/**
+ * SessionExpiredHandler is a small, client-only component responsible for listening to
+ * a global event that signals an unrecoverable session error (e.g., invalid refresh token).
+ * When the event is caught, it displays a user-friendly toast message.
+ * The actual redirection logic is handled in the `auth.store.ts` logout function.
+ */
+const SessionExpiredHandler = () => {
+  // We can use this hook because the parent <Providers> component is wrapped
+  // by <NextIntlClientProvider> in the root layout.
+  const t = useTranslations("Common");
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      toast.error(t("sessionExpiredTitle"), {
+        description: t("sessionExpiredDescription"),
+        duration: 6000, // Give the user a bit more time to read it
+      });
+      router.replace(PATHS.HOME);
+    };
+
+    appEvents.on("auth:session-expired", handleSessionExpired);
+
+    return () => {
+      appEvents.off("auth:session-expired", handleSessionExpired);
+    };
+  }, [t]);
+
+  return null; // This component renders no UI.
+};
 
 export function Providers({
   children,
@@ -20,19 +53,19 @@ export function Providers({
         defaultOptions: {
           queries: {
             staleTime: 1000 * 60 * 5, // 5 minutes
-            refetchOnWindowFocus: false, // Optional: adjust as needed
+            refetchOnWindowFocus: false,
           },
         },
       })
   );
 
-  // If you need to pass messages to NextIntlClientProvider for client components,
-  // you'd typically get them from a higher-level Server Component or useAbstractIntlMessages.
-  // For now, let's assume next-intl setup will handle messages at the root or per-layout.
-
   return (
     <NextThemesProvider {...props}>
       <QueryClientProvider client={queryClient}>
+        {/* The SessionExpiredHandler is placed here. It's a client component
+            that will be active on every page, ready to listen for our event. */}
+        <SessionExpiredHandler />
+
         {children}
 
         {process.env.NODE_ENV === "development" && (

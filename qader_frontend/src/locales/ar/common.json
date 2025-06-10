@@ -11,6 +11,9 @@
   "yes": "نعم",
   "no": "لا",
 
+  "sessionExpiredTitle": "انتهت الجلسة",
+  "sessionExpiredDescription": "تم تسجيل خروجك. يرجى تسجيل الدخول مرة أخرى للمتابعة.",
+
   "login": "تسجيل الدخول",
   "signup": "اشتراك",
   "reviewTest": "مراجعة الاختبار",

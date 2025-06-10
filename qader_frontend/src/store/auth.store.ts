@@ -1,20 +1,19 @@
+// qader_frontend/src/store/auth.store.ts
 import { create, StateCreator } from "zustand";
-import {
-  persist,
-  createJSONStorage,
-  PersistOptions,
-  PersistStorage,
-} from "zustand/middleware";
-import type { UserProfile, LogoutPayload } from "@/types/api/auth.types";
-import { logoutUserApi } from "@/services/auth.service";
+import { persist, createJSONStorage, PersistOptions } from "zustand/middleware";
 import { useMemo } from "react";
+import type { UserProfile } from "@/types/api/auth.types";
+import { logoutUserApi } from "@/services/auth.service";
+import { PATHS } from "@/constants/paths";
+import { getLocaleFromPathname } from "@/utils/locale";
 
+// --- State and Actions Interfaces ---
 interface AuthStateCore {
   accessToken: string | null;
   refreshToken: string | null;
   user: UserProfile | null;
-  isAuthenticated: boolean; // This will be derived/set based on tokens/user
-  isProfileComplete: boolean; // This will be derived/set based on user
+  isAuthenticated: boolean;
+  isProfileComplete: boolean;
   isRefreshingToken: boolean;
 }
 
@@ -33,42 +32,44 @@ interface AuthActions {
 
 export interface AuthState extends AuthStateCore, AuthActions {}
 
-type PersistedAuthState = Pick<
-  AuthStateCore,
-  "accessToken" | "refreshToken" | "user" // Only persist these core values
-  // isAuthenticated and isProfileComplete will be derived or set by actions
->;
-
+// --- Zustand Store Implementation ---
 const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
+  // --- Initial State ---
   accessToken: null,
   refreshToken: null,
   user: null,
-  // isAuthenticated and isProfileComplete are effectively derived or set by actions
-  // Their initial values here will be overridden by rehydration or login
   isAuthenticated: false,
   isProfileComplete: false,
   isRefreshingToken: false,
 
+  // --- Actions ---
   login: (tokens, userData) => {
     set({
       accessToken: tokens.access,
       refreshToken: tokens.refresh,
       user: userData,
-      isAuthenticated: true, // Set explicitly on login
-      isProfileComplete: userData.profile_complete, // Set explicitly on login
+      isAuthenticated: true,
+      isProfileComplete: userData.profile_complete,
       isRefreshingToken: false,
     });
   },
 
+  /**
+   * --- LOGOUT ACTION (UPDATED & ENHANCED) ---
+   */
   logout: async () => {
     const currentRefreshToken = get().refreshToken;
     if (currentRefreshToken) {
       try {
         await logoutUserApi({ refresh: currentRefreshToken });
       } catch (error) {
-        console.error("Logout API call failed:", error);
+        console.warn(
+          "Logout API call failed, proceeding with client-side cleanup.",
+          error
+        );
       }
     }
+
     set({
       accessToken: null,
       refreshToken: null,
@@ -77,36 +78,33 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
       isProfileComplete: false,
       isRefreshingToken: false,
     });
+    localStorage.removeItem("qader-auth-storage");
   },
 
   setTokens: (tokens) => {
     set((state) => ({
       accessToken: tokens.access,
-      refreshToken:
-        tokens.refresh !== undefined ? tokens.refresh : state.refreshToken,
-      isAuthenticated: !!tokens.access, // Derived from new access token
+      refreshToken: tokens.refresh ?? state.refreshToken,
+      isAuthenticated: !!tokens.access,
       isRefreshingToken: false,
-      // user and isProfileComplete remain unchanged unless explicitly set by another action
     }));
   },
 
   setUser: (userData) => {
     set((state) => ({
       user: userData,
-      // isAuthenticated should ideally be driven by tokens mostly
-      // If setting user to null, and tokens are still there, user might still be "authenticated session-wise"
-      // but for UI, this might be okay.
-      isAuthenticated: !!(state.accessToken && userData), // Or simply !!(state.accessToken)
-      isProfileComplete: userData?.profile_complete ?? false, // Derived from new user data
+      isAuthenticated: !!(state.accessToken && userData),
+      isProfileComplete: userData?.profile_complete ?? false,
     }));
   },
 
   updateUserProfile: (updatedUserData) => {
     set((state) => {
-      const newUser = state.user ? { ...state.user, ...updatedUserData } : null;
+      if (!state.user) return {};
+      const newUser = { ...state.user, ...updatedUserData };
       return {
         user: newUser,
-        isProfileComplete: newUser?.profile_complete ?? state.isProfileComplete, // Update if new data has it
+        isProfileComplete: newUser.profile_complete ?? state.isProfileComplete,
       };
     });
   },
@@ -121,62 +119,44 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
   },
 });
 
+// --- Persistence Configuration ---
+type PersistedAuthState = Pick<
+  AuthStateCore,
+  "accessToken" | "refreshToken" | "user"
+>;
+
 const persistOptions: PersistOptions<AuthState, PersistedAuthState> = {
   name: "qader-auth-storage",
-  storage: createJSONStorage(
-    () => localStorage
-  ) as PersistStorage<PersistedAuthState>,
+  storage: createJSONStorage(() => localStorage),
   partialize: (state): PersistedAuthState => ({
-    // Persist only core token and user data
     accessToken: state.accessToken,
     refreshToken: state.refreshToken,
     user: state.user,
   }),
-  // onRehydrateStorage is for side effects. The merging of `PersistedAuthState`
-  // into the main `AuthState` is handled by the persist middleware itself.
-  // We will rely on selectors or actions to correctly set/derive isAuthenticated and isProfileComplete
-  // after rehydration.
-  onRehydrateStorage: () => (rehydratedState, error) => {
+  onRehydrateStorage: () => (state, error) => {
     if (error) {
       console.error("Failed to rehydrate auth state:", error);
       return;
     }
-    if (rehydratedState) {
-      // The `persist` middleware will merge `rehydratedState` (accessToken, refreshToken, user)
-      // into the store. Now, we need to ensure `isAuthenticated` and `isProfileComplete`
-      // reflect this rehydrated state.
-      // We can trigger an update after the initial rehydration merge.
-      // This is a bit of a workaround for deriving state post-rehydration.
-      Promise.resolve().then(() => {
-        // Ensure this runs after the current event loop tick
-        useAuthStore.setState((currentState) => ({
-          ...currentState, // keep existing actions and non-persisted state
-          isAuthenticated: !!(
-            currentState.accessToken && currentState.refreshToken
-          ),
-          isProfileComplete: currentState.user?.profile_complete ?? false,
-        }));
-      });
+    if (state) {
+      state.isAuthenticated = !!(state.accessToken && state.refreshToken);
+      state.isProfileComplete = state.user?.profile_complete ?? false;
     }
   },
-  // A simpler onRehydrateStorage if you don't need to immediately set derived state:
-  // onRehydrateStorage: () => (state, error) => {
-  //   if (error) console.error("Failed to rehydrate auth state:", error);
-  //   // Derived state (isAuthenticated, isProfileComplete) will be calculated by selectors/hooks
-  // },
-
-  // Consider versioning if your persisted state shape changes often
-  // version: 1,
-  // migrate: (persistedState, version) => { ... }
 };
 
 export const useAuthStore = create<AuthState>()(
   persist(authStoreCreator, persistOptions)
 );
 
-// Custom hooks for consuming the store
+// --- CORRECTED CUSTOM HOOKS (Your original, performant pattern) ---
+
+/**
+ * Custom hook to select core authentication state.
+ * This is optimized to prevent re-renders if the selected state hasn't changed.
+ * `useMemo` ensures the returned object has a stable identity.
+ */
 export const useAuthCore = (): AuthStateCore => {
-  // Select individual state pieces
   const accessToken = useAuthStore((state) => state.accessToken);
   const refreshToken = useAuthStore((state) => state.refreshToken);
   const user = useAuthStore((state) => state.user);
@@ -184,7 +164,6 @@ export const useAuthCore = (): AuthStateCore => {
   const isProfileComplete = useAuthStore((state) => state.isProfileComplete);
   const isRefreshingToken = useAuthStore((state) => state.isRefreshingToken);
 
-  // Memoize the object. It will only re-create the object if one of these dependencies changes.
   return useMemo(
     () => ({
       accessToken,
