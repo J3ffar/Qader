@@ -525,9 +525,8 @@ class UserTestAttemptReviewView(generics.GenericAPIView):
     def get(self, request, attempt_id, *args, **kwargs):
         test_attempt = self.get_object()
 
-        all_questions_queryset = test_attempt.get_questions_queryset().prefetch_related(
-            "subsection",
-            "skill",
+        all_questions_queryset = test_attempt.get_questions_queryset().select_related(
+            "subsection__section", "skill"
         )
         all_question_ids_ordered = list(
             all_questions_queryset.values_list("id", flat=True)

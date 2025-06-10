@@ -338,7 +338,7 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
 
         # Optimize related object fetching
-        queryset = queryset.select_related("subsection", "skill")
+        queryset = queryset.select_related("subsection__section", "skill")
 
         # Annotate with 'user_has_starred' status for the current user if authenticated
         if user.is_authenticated:

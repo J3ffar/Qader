@@ -99,6 +99,10 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
       e.g., context={'user_attempts_map': {101: uqa_obj_1, 102: uqa_obj_2}}
     """
 
+    section = LearningSectionBasicSerializer(
+        source="subsection.section", read_only=True
+    )
+
     # Use nested serializers for rich, consistent data
     subsection = LearningSubSectionSerializer(read_only=True)
     skill = SkillSerializer(read_only=True, required=False)
@@ -128,6 +132,7 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
             "correct_answer",  # The choice key, e.g., "A"
             "explanation",
             # Relational Context
+            "section",
             "subsection",
             "skill",
             # User-Specific Context
