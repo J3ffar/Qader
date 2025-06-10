@@ -43,7 +43,7 @@ from django.utils.functional import Promise
 from django.utils.encoding import force_str
 
 # Import the serializer for the list response
-from apps.learning.api.serializers import QuestionListSerializer
+from apps.learning.api.serializers import UnifiedQuestionSerializer
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 
@@ -180,7 +180,7 @@ class EmergencyModeSessionUpdateView(generics.UpdateAPIView):
     description="Retrieves questions based on the suggested plan for an active emergency mode session.",
     responses={
         200: OpenApiResponse(
-            response=QuestionListSerializer(many=True),
+            response=UnifiedQuestionSerializer(many=True),
             description="List of questions for the session.",
         ),
         400: OpenApiResponse(
@@ -201,7 +201,7 @@ class EmergencyModeQuestionsView(generics.ListAPIView):
     """
 
     permission_classes = [permissions.IsAuthenticated, IsSubscribed]
-    serializer_class = QuestionListSerializer
+    serializer_class = UnifiedQuestionSerializer
     pagination_class = None
 
     def get_queryset(self):

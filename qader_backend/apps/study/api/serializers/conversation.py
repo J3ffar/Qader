@@ -12,7 +12,7 @@ from apps.users.api.serializers import (
     SimpleUserSerializer,
 )
 from apps.learning.api.serializers import (
-    QuestionDetailSerializer,
+    UnifiedQuestionSerializer,
 )  # Assumes a simple user serializer exists
 
 
@@ -193,6 +193,6 @@ class AIQuestionResponseSerializer(serializers.Serializer):
         read_only=True, help_text=_("The encouraging message from the AI.")
     )
     # Embed the simple question details directly
-    question = QuestionDetailSerializer(
+    question = UnifiedQuestionSerializer(
         read_only=True, help_text=_("The question posed by the AI.")
     )

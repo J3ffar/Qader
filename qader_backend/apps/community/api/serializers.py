@@ -11,7 +11,7 @@ from apps.learning.models import LearningSection  # Import the actual model
 
 # --- Nested Serializers (Assume these exist and are correctly defined) ---
 from apps.users.api.serializers import SimpleUserSerializer
-from apps.learning.api.serializers import LearningSectionBasicSerializer
+from apps.learning.api.serializers import LearningSectionSerializer
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -109,7 +109,7 @@ class CommunityPostListSerializer(TaggitSerializer, serializers.ModelSerializer)
     # Expects 'content_excerpt' property on the model or annotation
     content_excerpt = serializers.CharField(read_only=True)
     # Use basic serializer for related section in list view
-    section_filter = LearningSectionBasicSerializer(read_only=True)
+    section_filter = LearningSectionSerializer(read_only=True)
 
     class Meta:
         model = CommunityPost
@@ -211,7 +211,7 @@ class CommunityPostDetailSerializer(TaggitSerializer, serializers.ModelSerialize
 
     author = SimpleUserSerializer(read_only=True)
     tags = TagListSerializerField(read_only=True)
-    section_filter = LearningSectionBasicSerializer(read_only=True)
+    section_filter = LearningSectionSerializer(read_only=True)
     reply_count = serializers.IntegerField(
         source="reply_count_annotated", read_only=True
     )

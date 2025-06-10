@@ -29,7 +29,7 @@ from apps.study.api.serializers import (
     attempts as attempt_serializers,
 )  # Unified answer response
 from apps.learning.api.serializers import (
-    QuestionListSerializer,
+    UnifiedQuestionSerializer,
 )  # For question list response
 from apps.api.exceptions import UsageLimitExceeded
 
@@ -207,7 +207,7 @@ class TraditionalPracticeStartView(generics.GenericAPIView):
         ),
     ],
     responses={
-        200: QuestionListSerializer(many=True),
+        200: UnifiedQuestionSerializer(many=True),
         400: OpenApiResponse(description="Invalid filter parameters."),
         401: OpenApiResponse(description="Authentication required."),
         403: OpenApiResponse(description="Permission Denied (Subscription required)."),
@@ -216,7 +216,7 @@ class TraditionalPracticeStartView(generics.GenericAPIView):
 class TraditionalQuestionListView(generics.ListAPIView):
     """Provides a list of questions for traditional learning based on filters."""
 
-    serializer_class = QuestionListSerializer
+    serializer_class = UnifiedQuestionSerializer
     permission_classes = [IsAuthenticated, IsSubscribed]
     pagination_class = None  # Use 'limit' parameter instead of standard pagination
 

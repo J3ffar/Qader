@@ -224,8 +224,21 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
                 question=question,
                 answer_data=serializer.validated_data,
             )
+            user_attempt_for_question = UserQuestionAttempt.objects.get(
+                test_attempt=test_attempt, question=question
+            )
+            context = {"user_attempts_map": {question.id: user_attempt_for_question}}
+
+            # Prepare the final payload for the serializer
+            response_payload = {
+                "question": question,
+                "feedback_message": result_data.get("feedback_message"),
+            }
+
             response_serializer = (
-                attempt_serializers.UserQuestionAttemptResponseSerializer(result_data)
+                attempt_serializers.UserQuestionAttemptResponseSerializer(
+                    response_payload, context=context
+                )
             )
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         except DRFValidationError as e:
@@ -547,17 +560,20 @@ class UserTestAttemptReviewView(generics.GenericAPIView):
                     pk__in=incorrect_or_skipped_question_ids
                 )
 
+        # --- KEY CHANGE ---
+        # The context now contains the `user_attempts_map` which the
+        # UnifiedQuestionSerializer will use to populate `user_answer_details`.
         context = self.get_serializer_context()
         context["user_attempts_map"] = user_attempts_map
-        # context["attempt"] = test_attempt # Not strictly needed here if response_data contains 'attempt'
 
-        # Prepare data for the main review serializer
-        # The 'attempt' key here is crucial for source="attempt.xxx" in the serializer
         response_data = {
             "attempt_id": test_attempt.id,
             "questions": review_questions_queryset,
-            "attempt": test_attempt,  # This object will be used by UserTestAttemptReviewSerializer for score fields
+            "attempt": test_attempt,
         }
+
+        # The new UserTestAttemptReviewSerializer now internally uses UnifiedQuestionSerializer,
+        # which will receive the context we've prepared.
         serializer = self.get_serializer(response_data, context=context)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

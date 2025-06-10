@@ -17,7 +17,7 @@ from apps.users.api.serializers import (
     SimpleUserSerializer,
 )  # Assuming a simple user serializer exists
 from apps.learning.api.serializers import (
-    QuestionListSerializer,
+    UnifiedQuestionSerializer,
 )  # To show questions during challenge
 
 User = get_user_model()
@@ -226,11 +226,11 @@ class ChallengeDetailSerializer(ChallengeListSerializer):  # Inherit list fields
         """Only return questions if the challenge is ongoing and user is participant."""
         user = self.context["request"].user
         if obj.status == ChallengeStatus.ONGOING and obj.is_participant(user):
-            # Use the efficient QuestionListSerializer
+            # Use the efficient UnifiedQuestionSerializer
             question_qs = obj.get_questions_queryset()
-            # Pass user context to QuestionListSerializer if it needs it (e.g., for is_starred)
+            # Pass user context to UnifiedQuestionSerializer if it needs it (e.g., for is_starred)
             serializer_context = {"request": self.context["request"]}
-            return QuestionListSerializer(
+            return UnifiedQuestionSerializer(
                 question_qs, many=True, context=serializer_context
             ).data
         return None

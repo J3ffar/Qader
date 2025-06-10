@@ -6,7 +6,6 @@ from .attempts import (
     UserQuestionAttemptResponseSerializer,  # Unified Answer Response
     UserTestAttemptCompletionResponseSerializer,  # Unified Completion Response
     UserTestAttemptReviewSerializer,
-    UserTestAttemptReviewQuestionSerializer,
 )
 from .level_assessment import (
     LevelAssessmentStartSerializer,
@@ -49,7 +48,6 @@ __all__ = [
     "UserQuestionAttemptResponseSerializer",
     "UserTestAttemptCompletionResponseSerializer",
     "UserTestAttemptReviewSerializer",
-    "UserTestAttemptReviewQuestionSerializer",
     # --- Level Assessment ---
     "LevelAssessmentStartSerializer",
     "LevelAssessmentCompletionResponseSerializer",

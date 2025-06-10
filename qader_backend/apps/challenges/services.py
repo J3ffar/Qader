@@ -30,7 +30,7 @@ from .api.serializers import (
     ChallengeDetailSerializer,
     ChallengeAttemptSerializer,
     ChallengeListSerializer,
-    QuestionListSerializer,  # Assuming this exists and works standalone
+    UnifiedQuestionSerializer,  # Assuming this exists and works standalone
     ChallengeResultSerializer,  # Import the result serializer
 )
 
@@ -140,8 +140,8 @@ def broadcast_challenge_start(challenge: Challenge):
     group_name = f"challenge_{challenge.id}"
     try:
         questions_qs = challenge.get_questions_queryset()
-        # Ensure QuestionListSerializer doesn't strictly require a request context
-        question_serializer = QuestionListSerializer(
+        # Ensure UnifiedQuestionSerializer doesn't strictly require a request context
+        question_serializer = UnifiedQuestionSerializer(
             questions_qs, many=True, context={"request": None}
         )
 

@@ -7,7 +7,7 @@ from apps.study.models import UserTestAttempt, Question, UserQuestionAttempt
 from apps.learning.models import LearningSubSection, Skill
 
 # Use unified serializers where appropriate
-from apps.learning.api.serializers import QuestionListSerializer
+from apps.learning.api.serializers import UnifiedQuestionSerializer
 from apps.study.api.serializers.attempts import UserTestAttemptStartResponseSerializer
 from apps.api.utils import get_user_from_context
 
@@ -127,7 +127,7 @@ class TraditionalPracticeStartResponseSerializer(serializers.Serializer):
         help_text=_("The sequence number of this attempt for traditional practice."),
     )
     # The initial list of questions fetched (can be empty)
-    questions = QuestionListSerializer(many=True, read_only=True)
+    questions = UnifiedQuestionSerializer(many=True, read_only=True)
 
 
 # --- Serializers for Traditional Actions (Hints/Reveals) ---

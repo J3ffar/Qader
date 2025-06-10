@@ -10,6 +10,9 @@
   "hidePassword": "Hide password",
   "yes": "yes",
   "no": "no",
+
+  "login": "login",
+  "signup": "signup",
   "reviewTest": "Review Test",
 
   "language": "Language",

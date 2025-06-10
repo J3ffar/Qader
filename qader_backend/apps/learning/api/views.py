@@ -31,8 +31,7 @@ from .serializers import (
     LearningSubSectionDetailSerializer,
     LearningSubSectionSerializer,
     SkillSerializer,
-    QuestionListSerializer,
-    QuestionDetailSerializer,
+    UnifiedQuestionSerializer,
     StarActionSerializer,
 )
 
@@ -268,13 +267,13 @@ class SkillViewSet(viewsets.ReadOnlyModelViewSet):
                 type=OpenApiTypes.STR,
             ),
         ],
-        responses={200: QuestionListSerializer(many=True)},
+        responses={200: UnifiedQuestionSerializer(many=True)},
         tags=["Learning Content"],
     ),
     retrieve=extend_schema(
         summary="Retrieve Question Details",
         description="Retrieves full details for a single question, including the correct answer and explanation. Requires subscription.",
-        responses={200: QuestionDetailSerializer},
+        responses={200: UnifiedQuestionSerializer},
         tags=["Learning Content"],
     ),
 )
@@ -327,13 +326,10 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_serializer_class(self) -> Type[BaseSerializer]:
         """Return appropriate serializer class based on action."""
-        if self.action == "retrieve":
-            return QuestionDetailSerializer
-        elif self.action in ["star", "unstar"]:
-            return (
-                StarActionSerializer  # Use minimal serializer for action documentation
-            )
-        return QuestionListSerializer
+        if self.action in ["star", "unstar"]:
+            return StarActionSerializer
+        # Use the unified serializer for both list and retrieve
+        return UnifiedQuestionSerializer
 
     def get_queryset(self) -> QuerySet[Question]:
         """Applies optimizations and custom filtering."""
