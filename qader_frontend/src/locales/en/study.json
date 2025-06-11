@@ -236,6 +236,11 @@
       "statusCorrect": "Correct",
       "statusIncorrect": "Incorrect",
       "statusNotAnswered": "Not Answered",
+
+      "detailedBreakdownTitle": "Detailed Breakdown",
+      "tableHeaderCorrectAnswer": "Correct Answer",
+      "skipped": "Skipped",
+      "noQuestionsFound": "No questions were found for this attempt.",
       "errors": {
         "fetchDetailsFailed": "Could not load the test attempt details. Please try again or go back."
       }

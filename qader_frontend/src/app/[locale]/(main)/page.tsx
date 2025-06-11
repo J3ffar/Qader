@@ -10,22 +10,22 @@ import CallToActionSection from "@/components/sections/home/CallToActionSection"
 
 export default function Home() {
   const [myData, setMyData] = useState<any>();
-  useEffect(() => {
-    const fetchHomepageContent = async () => {
-      try {
-        const res = await fetch(
-          "https://qader.vip/ar/api/v1/content/homepage/"
-        );
-        const data: any = await res.json();
-        setMyData(data);
-        console.log("📦 Homepage API Response:", data);
-      } catch (error) {
-        console.error("❌ Failed to fetch homepage data:", error);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchHomepageContent = async () => {
+  //     try {
+  //       const res = await fetch(
+  //         "https://qader.vip/ar/api/v1/content/homepage/"
+  //       );
+  //       const data: any = await res.json();
+  //       setMyData(data);
+  //       console.log("📦 Homepage API Response:", data);
+  //     } catch (error) {
+  //       console.error("❌ Failed to fetch homepage data:", error);
+  //     }
+  //   };
 
-    fetchHomepageContent();
-  }, []);
+  //   fetchHomepageContent();
+  // }, []);
 
   return (
     <div>

@@ -236,6 +236,10 @@
       "statusCorrect": "صحيح",
       "statusIncorrect": "غير صحيح",
       "statusNotAnswered": "لم يُجب عليه",
+      "detailedBreakdownTitle": "تفاصيل مُفصّلة",
+      "tableHeaderCorrectAnswer": "الإجابة الصحيحة",
+      "skipped": "تم التخطي",
+      "noQuestionsFound": "لم يتم العثور على أي أسئلة لهذه المحاولة",
       "errors": {
         "fetchDetailsFailed": "تعذر تحميل تفاصيل محاولة الاختبار. يرجى المحاولة مرة أخرى أو العودة."
       }

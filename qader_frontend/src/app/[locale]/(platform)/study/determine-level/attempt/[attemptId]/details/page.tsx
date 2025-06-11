@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
@@ -39,7 +39,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 
 import { getTestAttemptDetails } from "@/services/study.service";
-import { UserTestAttemptDetail } from "@/types/api/study.types";
+import {
+  UserTestAttemptDetail,
+  UnifiedQuestion,
+} from "@/types/api/study.types";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
@@ -61,6 +64,17 @@ const LevelAssessmentDetailsPage = () => {
     queryFn: () => getTestAttemptDetails(attemptId),
     enabled: !!attemptId,
   });
+
+  // Use useMemo to create an efficient lookup map for attempted questions.
+  // This avoids repeatedly searching the array inside the render loop.
+  const attemptedQuestionsMap = useMemo(() => {
+    if (!attemptDetails?.attempted_questions) {
+      return new Map();
+    }
+    return new Map(
+      attemptDetails.attempted_questions.map((aq) => [aq.question_id, aq])
+    );
+  }, [attemptDetails?.attempted_questions]);
 
   if (isLoading) return <DetailsPageSkeleton />;
 
@@ -98,11 +112,11 @@ const LevelAssessmentDetailsPage = () => {
     score_verbal,
     score_quantitative,
     configuration_snapshot,
-    attempted_questions,
+    included_questions,
   } = attemptDetails;
 
   return (
-    <div className="container mx-auto p-5">
+    <div className="container mx-auto max-w-full p-5">
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
@@ -129,7 +143,7 @@ const LevelAssessmentDetailsPage = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Summary Section */}
+          {/* Summary Section (No changes needed) */}
           <div>
             <h3 className="mb-4 text-lg font-semibold">{t("summaryTitle")}</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
@@ -157,7 +171,7 @@ const LevelAssessmentDetailsPage = () => {
 
           <Separator />
 
-          {/* Configuration Section */}
+          {/* Configuration Section (No changes needed) */}
           {configuration_snapshot && (
             <div>
               <h3 className="mb-4 text-lg font-semibold">
@@ -191,17 +205,20 @@ const LevelAssessmentDetailsPage = () => {
           {/* Answered Questions Table */}
           <div>
             <h3 className="mb-4 text-lg font-semibold">
-              {t("answeredQuestionsTitle")}
+              {t("detailedBreakdownTitle")}
             </h3>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="rtl:text-right">
+                    <TableHead className="w-[50%] rtl:text-right">
                       {t("tableHeaderQuestion")}
                     </TableHead>
                     <TableHead className="text-center">
                       {t("tableHeaderYourAnswer")}
+                    </TableHead>
+                    <TableHead className="text-center">
+                      {t("tableHeaderCorrectAnswer")}
                     </TableHead>
                     <TableHead className="text-center">
                       {t("tableHeaderStatus")}
@@ -209,30 +226,57 @@ const LevelAssessmentDetailsPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {attempted_questions.map((q) => (
-                    <TableRow key={q.question_id}>
-                      <TableCell className="font-medium">
-                        {q.question_text_preview}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="secondary">{q.selected_answer}</Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {q.is_correct === true && (
-                          <CheckCircle2 className="mx-auto h-5 w-5 text-green-500" />
-                        )}
-                        {q.is_correct === false && (
-                          <XCircle className="mx-auto h-5 w-5 text-red-500" />
-                        )}
-                        {q.is_correct === null && (
-                          <MinusCircle className="mx-auto h-5 w-5 text-muted-foreground" />
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {included_questions.map((question, index) => {
+                    const userAttempt = attemptedQuestionsMap.get(question.id);
+                    const selectedAnswer = userAttempt?.selected_answer;
+                    const isCorrect = userAttempt?.is_correct;
+
+                    return (
+                      <TableRow key={question.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-start gap-2">
+                            <span className="text-muted-foreground">
+                              {index + 1}.
+                            </span>
+                            <span className="flex-1">
+                              {question.question_text}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {selectedAnswer ? (
+                            <Badge variant="secondary">{selectedAnswer}</Badge>
+                          ) : (
+                            <Badge variant="outline">{t("skipped")}</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="default">
+                            {question.correct_answer}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {isCorrect === true && (
+                            <CheckCircle2 className="mx-auto h-5 w-5 text-green-500" />
+                          )}
+                          {isCorrect === false && (
+                            <XCircle className="mx-auto h-5 w-5 text-red-500" />
+                          )}
+                          {isCorrect === null || isCorrect === undefined ? (
+                            <MinusCircle className="mx-auto h-5 w-5 text-muted-foreground" />
+                          ) : null}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
+            {included_questions.length === 0 && (
+              <div className="mt-4 text-center text-muted-foreground">
+                {t("noQuestionsFound")}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -240,6 +284,7 @@ const LevelAssessmentDetailsPage = () => {
   );
 };
 
+// InfoCard and Skeleton components remain unchanged.
 const InfoCard = ({
   title,
   value,

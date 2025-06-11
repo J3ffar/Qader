@@ -22,6 +22,7 @@ import type {
   LogoutPayload,
 } from "@/types/api/auth.types";
 import { ApiError } from "@/lib/errors"; // Import our custom error
+import { useAuthStore } from "@/store/auth.store";
 
 // All functions below are solid. They correctly delegate to the apiClient.
 // No changes are needed for most of them.
@@ -117,11 +118,38 @@ export const completeUserProfile = (
   });
 };
 
-export const logoutUserApi = (payload: LogoutPayload): Promise<void> => {
-  return apiClient<void>("/auth/logout/", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+export const logoutUserApi = async (payload: LogoutPayload): Promise<void> => {
+  const locale = getLocaleFromPathname() || "ar";
+  const url = `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/logout/`;
+
+  // Get the access token directly from the store for the Authorization header.
+  const accessToken = useAuthStore.getState().accessToken;
+
+  // If there's no access token, we can't even attempt the call, so we just return.
+  if (!accessToken) {
+    return;
+  }
+
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        // The backend's LogoutView requires this header to identify the user
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    // We don't care about the response. Whether it's 204 or 401,
+    // we are proceeding with client-side logout regardless.
+  } catch (error) {
+    // Also ignore network errors. The user needs to be logged out on the client.
+    console.warn(
+      "Network error during API logout call. Proceeding with client-side cleanup.",
+      error
+    );
+  }
 };
 
 /**

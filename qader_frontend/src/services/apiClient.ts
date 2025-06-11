@@ -48,14 +48,14 @@ export const apiClient = async <T = any>(
   endpoint: string,
   options: CustomRequestInit = {}
 ): Promise<T> => {
-  // Use a single call to getState() for efficiency and readability.
-  const { accessToken, refreshToken, setTokens, logout, setIsRefreshingToken } =
-    useAuthStore.getState();
+  // Get current state. The token will be the old one on first run,
+  // and the new one on the retry run.
+  const { accessToken, refreshToken } = useAuthStore.getState();
+
   const currentLocale = options.locale || getLocaleFromPathname() || "ar";
   let baseUrl = `${API_BASE_URL}/${currentLocale}/api/${API_VERSION}${
     endpoint.startsWith("/") ? endpoint : `/${endpoint}`
   }`;
-
   if (options.params) {
     const queryParams = new URLSearchParams(
       Object.entries(options.params).flatMap(([key, value]) =>
@@ -74,8 +74,10 @@ export const apiClient = async <T = any>(
     Accept: "application/json",
     "Content-Type": "application/json",
   };
-  if (accessToken && !options.isPublic)
+  // This correctly adds the auth header using the token from the store
+  if (accessToken && !options.isPublic) {
     defaultHeaders["Authorization"] = `Bearer ${accessToken}`;
+  }
 
   const finalHeaders = new Headers({ ...defaultHeaders, ...options.headers });
   if (options.body instanceof FormData) finalHeaders.delete("Content-Type");
@@ -88,12 +90,9 @@ export const apiClient = async <T = any>(
     if (!response.ok) {
       // --- Start of 401 Unauthorized Handling ---
       if (response.status === 401 && !options.isPublic && !options.isRetry) {
-        // If there's no refresh token, we can't recover. Logout immediately.
         if (!refreshToken) {
           console.log("No refresh token found. Logging out.");
-          // Our new robust logout function will handle the redirect.
           useAuthStore.getState().logout();
-          // Hang the promise to let the redirect take over without any further processing.
           return new Promise(() => {});
         }
 
@@ -108,45 +107,39 @@ export const apiClient = async <T = any>(
 
         return refreshTokenApi({ refresh: refreshToken })
           .then((refreshResponse) => {
-            // Success: update tokens and retry the original request
-            useAuthStore
-              .getState()
-              .setTokens({ access: refreshResponse.access });
+            // The refresh token was valid and we got a new access token.
+
+            // 1. **FIX**: Update the store with the new access token AND the new refresh token.
+            // If the backend doesn't send a new refresh token, we keep the existing one.
+            useAuthStore.getState().setTokens({
+              access: refreshResponse.access,
+              refresh: refreshResponse.refresh, // This is the crucial addition
+            });
+
+            // 2. Unblock any other requests that were waiting.
             processQueue(null, refreshResponse.access);
 
-            // Retry the original request with the new access token
-            const newHeaders = new Headers(config.headers);
-            newHeaders.set("Authorization", `Bearer ${refreshResponse.access}`);
-            return apiClient(endpoint, {
-              ...options,
-              headers: Object.fromEntries(newHeaders.entries()),
-              isRetry: true,
-            });
+            // 3. Retry the original request. This part is already correct from the last fix.
+            console.log(
+              "Token refreshed successfully. Retrying original request."
+            );
+            return apiClient(endpoint, { ...options, isRetry: true });
           })
+
           .catch((refreshError) => {
-            // --- CATASTROPHIC FAILURE: Refresh token is invalid ---
+            // This block is now correctly reserved for when the REFRESH TOKEN truly fails.
             console.error(
-              "Unrecoverable session error. Refresh token failed. Initiating logout.",
+              "Unrecoverable session error: Refresh token failed. Initiating logout.",
               refreshError
             );
-
-            // 1. Dispatch an event to show a user-friendly toast message.
             appEvents.dispatch("auth:session-expired");
-
-            // 2. Call the master logout function. It handles state clearing and the hard redirect.
             useAuthStore.getState().logout();
-
-            // 3. Reject queued requests to prevent them from hanging indefinitely.
             const apiError = new ApiError(
               getApiErrorMessage(refreshError, "Session expired"),
               401,
               refreshError.data || {}
             );
             processQueue(apiError, null);
-
-            // 4. Return a promise that never resolves. This prevents the original caller
-            // (e.g., TanStack Query) from attempting further actions like retries
-            // while the page is redirecting.
             return new Promise<T>(() => {});
           })
           .finally(() => {
@@ -155,18 +148,13 @@ export const apiClient = async <T = any>(
           });
       }
 
-      // --- End of 401 Handling ---
-
-      // Handle other non-401 errors (e.g., 400, 404, 500)
       const errorData = (await response
         .json()
         .catch(() => ({}))) as ApiErrorDetail;
-      // CHANGE: Use your purpose-built error message parser.
       const errorMessage = getApiErrorMessage(
         { status: response.status, data: errorData },
         `Request failed with status ${response.status}`
       );
-
       throw new ApiError(errorMessage, response.status, errorData);
     }
 
@@ -176,7 +164,6 @@ export const apiClient = async <T = any>(
     if (error instanceof ApiError) {
       throw error;
     }
-    // CHANGE: Use your parser for network errors or other exceptions too.
     const message = getApiErrorMessage(error, "A network error occurred.");
     throw new ApiError(
       message,

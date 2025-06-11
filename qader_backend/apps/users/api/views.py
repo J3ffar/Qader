@@ -285,7 +285,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class LogoutView(views.APIView):
     """Blacklists the provided refresh token."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request: Request) -> Response:
         user_identifier = f"'{request.user.username}' (ID: {request.user.id})"

@@ -1,11 +1,8 @@
-// qader_frontend/src/store/auth.store.ts
 import { create, StateCreator } from "zustand";
 import { persist, createJSONStorage, PersistOptions } from "zustand/middleware";
 import { useMemo } from "react";
 import type { UserProfile } from "@/types/api/auth.types";
 import { logoutUserApi } from "@/services/auth.service";
-import { PATHS } from "@/constants/paths";
-import { getLocaleFromPathname } from "@/utils/locale";
 
 // --- State and Actions Interfaces ---
 interface AuthStateCore {
@@ -26,7 +23,7 @@ interface AuthActions {
   setTokens: (tokens: { access: string; refresh?: string }) => void;
   setUser: (userData: UserProfile | null) => void;
   updateUserProfile: (updatedUserData: Partial<UserProfile>) => void;
-  setIsProfileComplete: (isComplete: boolean) => void; // Can keep this if needed for direct manipulation
+  setIsProfileComplete: (isComplete: boolean) => void;
   setIsRefreshingToken: (isRefreshing: boolean) => void;
 }
 
@@ -55,25 +52,23 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
   },
 
   /**
-   * --- LOGOUT ACTION (UPDATED & ENHANCED) ---
+   * --- LOGOUT ACTION ---
+   * This action handles complete session termination.
    */
   logout: async () => {
     const currentRefreshToken = get().refreshToken;
     if (currentRefreshToken) {
       try {
-        // Attempt to invalidate the token on the backend.
-        // We don't wait for this to complete before cleaning up the client.
         await logoutUserApi({ refresh: currentRefreshToken });
       } catch (error) {
-        // This is expected if the token is already invalid. Log it and continue.
         console.warn(
-          "Logout API call failed (likely due to an already invalid token), proceeding with client-side cleanup.",
+          "Logout API call failed (this is expected if the refresh token was already invalid).",
           error
         );
       }
     }
 
-    // 1. Reset the state in Zustand's memory
+    // 1. Reset the state in Zustand's memory.
     set({
       accessToken: null,
       refreshToken: null,
@@ -83,15 +78,10 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
       isRefreshingToken: false,
     });
 
-    // 2. Explicitly remove the persisted state from localStorage. This prevents
-    //    Zustand's rehydration logic from loading stale, invalid credentials.
-    localStorage.removeItem("qader-auth-storage");
-
-    // 3. Perform a HARD redirect. This is crucial. It clears all React component
-    //    state, memory, and hooks, preventing errors like the stray /settings fetch.
-    //    The user is cleanly redirected to the homepage as a logged-out visitor.
-    const locale = getLocaleFromPathname() || "ar"; // Default to 'ar' if locale is somehow missing
-    window.location.href = `/${locale}${PATHS.HOME}`;
+    // 2. **IMPROVEMENT**: Use the persist middleware's own API to clear storage.
+    // This is cleaner than `localStorage.removeItem` and prevents potential
+    // race conditions with the middleware's hydration/persistence logic.
+    useAuthStore.persist.clearStorage();
   },
 
   setTokens: (tokens) => {
@@ -123,7 +113,6 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
   },
 
   setIsProfileComplete: (isComplete: boolean) => {
-    // If direct setting is needed
     set({ isProfileComplete: isComplete });
   },
 
@@ -161,8 +150,6 @@ const persistOptions: PersistOptions<AuthState, PersistedAuthState> = {
 export const useAuthStore = create<AuthState>()(
   persist(authStoreCreator, persistOptions)
 );
-
-// --- CORRECTED CUSTOM HOOKS (Your original, performant pattern) ---
 
 /**
  * Custom hook to select core authentication state.
@@ -229,5 +216,5 @@ export const useAuthActions = (): AuthActions => {
       setIsProfileComplete,
       setIsRefreshingToken,
     ]
-  ); // Dependencies are stable function references
+  );
 };

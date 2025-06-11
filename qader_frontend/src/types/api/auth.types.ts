@@ -82,6 +82,7 @@ export interface RefreshTokenPayload {
 }
 export interface RefreshTokenResponse {
   access: string;
+  refresh?: string;
 }
 
 // For /auth/logout/
