@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -43,6 +43,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import ScorePieChart from "@/components/features/platform/study/determine-level/ScorePieChart";
+import { useAuthActions, useAuthStore } from "@/store/auth.store";
+import { UserProfile } from "@/types/api/auth.types";
 
 import {
   getTestAttemptReview,
@@ -108,7 +110,7 @@ const getQualitativeLevelInfo = (
 const LevelAssessmentScorePage = () => {
   const params = useParams();
   const router = useRouter();
-  const queryClient = useQueryClient(); // Get the query client instance
+  const queryClient = useQueryClient();
   const t = useTranslations("Study.determineLevel.score");
   const tLevel = useTranslations("Study.determineLevel.badgeColors");
   const tCommon = useTranslations("Common");
@@ -116,17 +118,17 @@ const LevelAssessmentScorePage = () => {
 
   const attemptId = params.attemptId as string;
 
-  // --- CORRECTED DATA ACCESS LOGIC ---
+  // Get auth state and actions for updating global user profile ---
+  const { user } = useAuthStore();
+  const { updateUserProfile } = useAuthActions();
+  const hasUpdatedProfileRef = useRef(false);
 
-  // 1. PRIMARY: Synchronously read the full completion data directly from the cache.
-  // This is the idiomatic way to get cached data without triggering a fetch.
   const completionData =
     queryClient.getQueryData<UserTestAttemptCompletionResponse>([
       QUERY_KEYS.USER_TEST_ATTEMPT_COMPLETION_RESULT,
       attemptId,
     ]);
 
-  // 2. FALLBACK: Fetch the review data ONLY if the cached completion data does not exist.
   const {
     data: reviewData,
     isLoading: isLoadingReview,
@@ -134,10 +136,56 @@ const LevelAssessmentScorePage = () => {
   } = useQuery<UserTestAttemptReviewResponse, Error>({
     queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_REVIEW, attemptId],
     queryFn: () => getTestAttemptReview(attemptId),
-    enabled: !!attemptId && !completionData, // This logic remains correct.
+    enabled: !!attemptId && !completionData,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  useEffect(() => {
+    if (completionData && user && !hasUpdatedProfileRef.current) {
+      const totalPointsEarned =
+        (completionData.points_from_test_completion_event ?? 0) +
+        (completionData.points_from_correct_answers_this_test ?? 0);
+
+      const newStreakDays = completionData.streak_info?.current_days;
+
+      const profileUpdates: Partial<UserProfile> = {};
+      let hasGamificationUpdate = false;
+
+      if (totalPointsEarned > 0) {
+        profileUpdates.points = user.points + totalPointsEarned;
+        hasGamificationUpdate = true;
+      }
+
+      if (
+        newStreakDays !== undefined &&
+        newStreakDays !== user.current_streak_days
+      ) {
+        profileUpdates.current_streak_days = newStreakDays;
+        hasGamificationUpdate = true;
+      }
+
+      if (Object.keys(profileUpdates).length > 0) {
+        // 1. Update the global client-side state for immediate UI feedback in the header
+        updateUserProfile(profileUpdates);
+        hasUpdatedProfileRef.current = true;
+
+        // 2. --- NEW: Invalidate server-state caches ---
+        // If points or streak were updated, the data for their dropdowns is now stale.
+        if (hasGamificationUpdate) {
+          console.log("Invalidating gamification query caches...");
+          // Invalidate the weekly points summary so the dropdown refetches
+          queryClient.invalidateQueries({
+            queryKey: [QUERY_KEYS.WEEKLY_POINTS_SUMMARY],
+          });
+          // Invalidate the study days log for the streak dropdown
+          queryClient.invalidateQueries({
+            queryKey: [QUERY_KEYS.STUDY_DAYS_LOG],
+          });
+        }
+      }
+    }
+  }, [completionData, user, updateUserProfile, t, queryClient]);
 
   const isLoading = isLoadingReview && !completionData;
   const combinedData = completionData || reviewData;
@@ -163,7 +211,6 @@ const LevelAssessmentScorePage = () => {
     retakeMutation.mutate();
   };
 
-  // The rest of the logic remains unchanged as it correctly handles `combinedData`.
   const displayData = useMemo(() => {
     if (!combinedData) return null;
 
