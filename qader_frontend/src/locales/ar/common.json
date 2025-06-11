@@ -40,5 +40,13 @@
   "status": {
     "notAvailable": "غير متوفر",
     "notAvailableShort": "غ/م"
+  },
+
+  "DataTablePagination": {
+    "firstPage": "انتقال إلى الصفحة الأولى",
+    "previousPage": "انتقال إلى الصفحة السابقة",
+    "nextPage": "انتقال إلى الصفحة التالية",
+    "lastPage": "انتقال إلى الصفحة الأخيرة",
+    "pageInfo": "صفحة {currentPage} من {totalPages}"
   }
 }

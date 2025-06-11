@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { PencilLine, ListFilter } from "lucide-react"; // Removed FileText, Loader2, Ban as they are now in AttemptActionButtons
+import { PencilLine, ListFilter } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,26 +36,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getTestAttempts, cancelTestAttempt } from "@/services/study.service";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
-import { UserTestAttemptList } from "@/types/api/study.types";
+import {
+  PaginatedUserTestAttempts,
+  UserTestAttemptList,
+} from "@/types/api/study.types";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner"; // Sonner Toast still used for general success/error messages
+import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
-// ConfirmationDialog is not directly used here anymore, as it's now in AttemptActionButtons
-// import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
-
-// +++ Import the new component for action buttons +++
 import { AttemptActionButtons } from "./_components/AttemptActionButtons";
+import { DataTablePagination } from "@/components/shared/DataTablePagination"; // Assumes component from previous step exists
+
+// Constants
+const PAGE_SIZE = 20; // Number of attempts to show per page
 
 // =================================================================
 // HELPER FUNCTIONS (unchanged)
 // =================================================================
 
-/**
- * Maps a performance score level key to a specific Tailwind CSS class string for styling.
- * This is more robust as it relies on keys, not translated text.
- * @param levelKey - The performance level key (e.g., 'excellent', 'good', 'weak').
- * @returns A string of CSS classes.
- */
 const getBadgeStyle = (levelKey?: string): string => {
   if (!levelKey)
     return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200";
@@ -74,17 +71,10 @@ const getBadgeStyle = (levelKey?: string): string => {
   }
 };
 
-/**
- * Maps a numeric score to a qualitative level key.
- * This centralizes the business logic for determining performance levels.
- * @param score - The numeric score (e.g., 85).
- * @returns A level key (e.g., 'veryGood').
- */
 const mapScoreToLevelKey = (score: number | null | undefined): string => {
   if (score === null || score === undefined) {
     return "notApplicable";
   }
-  // These thresholds can be adjusted based on business requirements
   if (score >= 90) return "excellent";
   if (score >= 80) return "veryGood";
   if (score >= 65) return "good";
@@ -98,21 +88,31 @@ const mapScoreToLevelKey = (score: number | null | undefined): string => {
 const LevelAssessmentPage = () => {
   const t = useTranslations("Study.determineLevel");
   const tBadge = useTranslations("Study.determineLevel.badgeColors");
-  const tActions = useTranslations("Study.determineLevel.actions"); // Translations for action buttons and dialogs
+  const tActions = useTranslations("Study.determineLevel.actions");
   const queryClient = useQueryClient();
 
+  const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<"date" | "percentage">("date");
 
+  const ordering = sortBy === "date" ? "-date" : "-score_percentage";
+
+  // +++ FIX: Explicitly provide the generic types for data and error to useQuery. +++
   const {
     data: attemptsData,
     isLoading,
+    isFetching,
     error,
-  } = useQuery({
+  } = useQuery<PaginatedUserTestAttempts, Error>({
     queryKey: [
       QUERY_KEYS.USER_TEST_ATTEMPTS,
-      { attempt_type: "level_assessment" },
+      { attempt_type: "level_assessment", page, ordering },
     ],
-    queryFn: () => getTestAttempts({ attempt_type: "level_assessment" }),
+    queryFn: () =>
+      getTestAttempts({
+        attempt_type: "level_assessment",
+        page,
+        ordering,
+      }),
   });
 
   const cancelAttemptMutation = useMutation({
@@ -120,10 +120,7 @@ const LevelAssessmentPage = () => {
     onSuccess: (_, attemptId) => {
       toast.success(tActions("cancelDialog.successToast", { attemptId }));
       queryClient.invalidateQueries({
-        queryKey: [
-          QUERY_KEYS.USER_TEST_ATTEMPTS,
-          { attempt_type: "level_assessment" },
-        ],
+        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
       });
     },
     onError: (err: any) => {
@@ -135,42 +132,35 @@ const LevelAssessmentPage = () => {
     },
   });
 
-  // REFACTORED useMemo hook to be type-safe
-  const attempts = useMemo(() => {
-    if (!attemptsData?.results) return [];
+  const { attempts, pageCount, canPreviousPage, canNextPage } = useMemo(() => {
+    // With the fix above, `attemptsData` is now correctly typed, so `.results` is known.
+    const results = attemptsData?.results ?? [];
 
-    // Define a type for our enhanced attempt object for better type safety
-    type EnhancedAttempt = UserTestAttemptList & {
-      quantitative_level_key: string;
-      verbal_level_key: string;
+    // TypeScript can now infer `attempt` is of type `UserTestAttemptList`, fixing the implicit `any` error.
+    const enhancedAttempts = results.map((attempt) => ({
+      ...attempt,
+      quantitative_level_key: mapScoreToLevelKey(
+        attempt.performance?.quantitative
+      ),
+      verbal_level_key: mapScoreToLevelKey(attempt.performance?.verbal),
+    }));
+
+    return {
+      attempts: enhancedAttempts,
+      // `attemptsData.count` is now correctly typed.
+      pageCount: attemptsData?.count
+        ? Math.ceil(attemptsData.count / PAGE_SIZE)
+        : 1,
+      // `attemptsData.previous` and `next` are now correctly typed.
+      canPreviousPage: !!attemptsData?.previous,
+      canNextPage: !!attemptsData?.next,
     };
+  }, [attemptsData]);
 
-    // Map the raw API data to our enhanced structure, adding the level keys
-    const enhancedAttempts: EnhancedAttempt[] = attemptsData.results.map(
-      (attempt) => ({
-        ...attempt,
-        quantitative_level_key: mapScoreToLevelKey(
-          attempt.performance?.quantitative
-        ),
-        verbal_level_key: mapScoreToLevelKey(attempt.performance?.verbal),
-      })
-    );
-
-    // Sort the enhanced data based on the user's selection
-    const sorted = enhancedAttempts.sort((a, b) => {
-      if (sortBy === "date") {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      }
-      if (sortBy === "percentage") {
-        return (b.score_percentage || 0) - (a.score_percentage || 0);
-      }
-      return 0;
-    });
-
-    return sorted;
-  }, [attemptsData, sortBy]);
-
-  // --- Removed renderActionButtons function as it's now a dedicated component ---
+  const handleSortChange = (value: "date" | "percentage") => {
+    setPage(1);
+    setSortBy(value);
+  };
 
   if (isLoading) {
     return <DetermineLevelPageSkeleton />;
@@ -189,7 +179,10 @@ const LevelAssessmentPage = () => {
     );
   }
 
-  if (!attempts || attempts.length === 0) {
+  // `attemptsData.count` is now correctly typed.
+  const hasNoAttemptsAtAll = !attemptsData?.count;
+
+  if (hasNoAttemptsAtAll) {
     return (
       <div className="flex min-h-[calc(100vh-150px)] flex-col items-center justify-center p-4 text-center">
         <Image
@@ -237,9 +230,7 @@ const LevelAssessmentPage = () => {
               <ListFilter className="h-5 w-5 text-muted-foreground" />
               <Select
                 value={sortBy}
-                onValueChange={(value: "date" | "percentage") =>
-                  setSortBy(value)
-                }
+                onValueChange={handleSortChange}
                 dir={
                   typeof document !== "undefined"
                     ? (document.documentElement.dir as "rtl" | "ltr")
@@ -259,7 +250,7 @@ const LevelAssessmentPage = () => {
             </div>
           </div>
 
-          {/* Desktop Table */}
+          {/* Desktop Table (no changes needed here) */}
           <div className="hidden rounded-xl border md:block">
             <Table>
               <TableHeader>
@@ -291,7 +282,6 @@ const LevelAssessmentPage = () => {
                 {attempts.map((attempt) => (
                   <TableRow
                     key={attempt.attempt_id}
-                    // Apply opacity for abandoned tests
                     className={cn({
                       "opacity-60": attempt.status === "abandoned",
                     })}
@@ -316,28 +306,27 @@ const LevelAssessmentPage = () => {
                     <TableCell>
                       <span
                         className={cn(
-                          "px-2 py-1 rounded-md text-xs font-medium",
-                          getBadgeStyle(attempt.quantitative_level_key) // Corrected
+                          "rounded-md px-2 py-1 text-xs font-medium",
+                          getBadgeStyle(attempt.quantitative_level_key)
                         )}
                       >
-                        {tBadge(attempt.quantitative_level_key)}{" "}
-                        {/* Corrected */}
+                        {tBadge(attempt.quantitative_level_key)}
                       </span>
                     </TableCell>
                     <TableCell>
                       <span
                         className={cn(
-                          "px-2 py-1 rounded-md text-xs font-medium",
-                          getBadgeStyle(attempt.verbal_level_key) // Corrected
+                          "rounded-md px-2 py-1 text-xs font-medium",
+                          getBadgeStyle(attempt.verbal_level_key)
                         )}
                       >
-                        {tBadge(attempt.verbal_level_key)} {/* Corrected */}
+                        {tBadge(attempt.verbal_level_key)}
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
                       <span
                         className={cn(
-                          "px-2 py-1 rounded-md text-xs font-medium",
+                          "rounded-md px-2 py-1 text-xs font-medium",
                           {
                             "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100":
                               attempt.status === "completed",
@@ -352,7 +341,6 @@ const LevelAssessmentPage = () => {
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
-                      {/* +++ Use the new AttemptActionButtons component +++ */}
                       <AttemptActionButtons
                         attempt={attempt}
                         cancelAttemptMutation={cancelAttemptMutation}
@@ -364,7 +352,7 @@ const LevelAssessmentPage = () => {
             </Table>
           </div>
 
-          {/* Mobile Accordion */}
+          {/* Mobile Accordion (no changes needed here) */}
           <div className="space-y-3 md:hidden">
             <Accordion type="single" collapsible className="w-full">
               {attempts.map((attempt) => (
@@ -372,7 +360,6 @@ const LevelAssessmentPage = () => {
                   value={`item-${attempt.attempt_id}`}
                   key={attempt.attempt_id}
                   className="rounded-lg border dark:border-gray-700"
-                  // +++ Disable entire accordion item if abandoned +++
                   disabled={attempt.status === "abandoned"}
                 >
                   <AccordionTrigger className="p-4 hover:no-underline disabled:opacity-60">
@@ -381,11 +368,7 @@ const LevelAssessmentPage = () => {
                         <p className="font-medium">
                           {new Date(attempt.date).toLocaleDateString(
                             undefined,
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            }
+                            { year: "numeric", month: "short", day: "numeric" }
                           )}
                         </p>
                         <p className="text-sm text-muted-foreground">
@@ -426,27 +409,25 @@ const LevelAssessmentPage = () => {
                         </strong>{" "}
                         <span
                           className={cn(
-                            "px-2 py-1 rounded-md text-xs",
-                            getBadgeStyle(attempt.quantitative_level_key) // Corrected
+                            "rounded-md px-2 py-1 text-xs",
+                            getBadgeStyle(attempt.quantitative_level_key)
                           )}
                         >
-                          {tBadge(attempt.quantitative_level_key)}{" "}
-                          {/* Corrected */}
+                          {tBadge(attempt.quantitative_level_key)}
                         </span>
                       </p>
                       <p>
                         <strong>{t("attemptsTable.verbalPerformance")}:</strong>{" "}
                         <span
                           className={cn(
-                            "px-2 py-1 rounded-md text-xs",
-                            getBadgeStyle(attempt.verbal_level_key) // Corrected
+                            "rounded-md px-2 py-1 text-xs",
+                            getBadgeStyle(attempt.verbal_level_key)
                           )}
                         >
-                          {tBadge(attempt.verbal_level_key)} {/* Corrected */}
+                          {tBadge(attempt.verbal_level_key)}
                         </span>
                       </p>
                       <div className="mt-3">
-                        {/* +++ Use the new AttemptActionButtons component +++ */}
                         <AttemptActionButtons
                           attempt={attempt}
                           cancelAttemptMutation={cancelAttemptMutation}
@@ -458,13 +439,23 @@ const LevelAssessmentPage = () => {
               ))}
             </Accordion>
           </div>
+
+          <DataTablePagination
+            page={page}
+            pageCount={pageCount}
+            setPage={setPage}
+            canPreviousPage={canPreviousPage}
+            canNextPage={canNextPage}
+            isFetching={isFetching}
+            className="mt-4"
+          />
         </CardContent>
       </Card>
     </div>
   );
 };
 
-// Skeleton component remains unchanged as it was correct
+// Skeleton component remains unchanged
 const DetermineLevelPageSkeleton = () => {
   return (
     <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
