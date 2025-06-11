@@ -130,6 +130,10 @@
         "title": "Submit Answers?",
         "description": "Are you sure you want to submit all your answers and finish the test?",
         "confirmButton": "Yes, Submit"
+      },
+      "questionLoadError": {
+        "title": "Question loading error",
+        "description": "The options for question {questionId} could not be loaded. Please try refreshing the page or contact support."
       }
     },
     "review": {

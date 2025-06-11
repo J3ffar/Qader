@@ -106,6 +106,14 @@ const LevelAssessmentAttemptPage = () => {
     }
   }, [isSuccess, attemptDetails]);
 
+  // ========== START DIAGNOSTIC LOGGING ==========
+  useEffect(() => {
+    if (attemptDetails) {
+      console.log("DIAGNOSTIC: Full attemptDetails object:", attemptDetails);
+    }
+  }, [attemptDetails]);
+  // ==========  END DIAGNOSTIC LOGGING  ==========
+
   const questions: UnifiedQuestion[] = useMemo(
     () => attemptDetails?.included_questions || [],
     [attemptDetails]
@@ -113,6 +121,18 @@ const LevelAssessmentAttemptPage = () => {
 
   const currentQuestion: UnifiedQuestion | undefined =
     questions[currentQuestionIndex];
+
+  // ========== START DIAGNOSTIC LOGGING ==========
+  useEffect(() => {
+    if (currentQuestion) {
+      console.log("DIAGNOSTIC: Current Question object:", currentQuestion);
+      console.log(
+        "DIAGNOSTIC: Current Question OPTIONS:",
+        currentQuestion.options
+      );
+    }
+  }, [currentQuestion]);
+  // ==========  END DIAGNOSTIC LOGGING  ==========
 
   useEffect(() => {
     if (
