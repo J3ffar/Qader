@@ -1,4 +1,3 @@
-// src/services/study.service.ts
 import { apiClient } from "./apiClient";
 import {
   PaginatedUserTestAttempts,

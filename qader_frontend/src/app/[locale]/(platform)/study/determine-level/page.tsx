@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { PencilLine, ListFilter, FileText, Loader2, Ban } from "lucide-react";
+import { PencilLine, ListFilter } from "lucide-react"; // Removed FileText, Loader2, Ban as they are now in AttemptActionButtons
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,12 +38,16 @@ import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import { UserTestAttemptList } from "@/types/api/study.types";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "sonner"; // Sonner Toast still used for general success/error messages
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
-import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
+// ConfirmationDialog is not directly used here anymore, as it's now in AttemptActionButtons
+// import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
+
+// +++ Import the new component for action buttons +++
+import { AttemptActionButtons } from "./_components/AttemptActionButtons";
 
 // =================================================================
-// CORRECTED HELPER FUNCTIONS
+// HELPER FUNCTIONS (unchanged)
 // =================================================================
 
 /**
@@ -94,6 +98,7 @@ const mapScoreToLevelKey = (score: number | null | undefined): string => {
 const LevelAssessmentPage = () => {
   const t = useTranslations("Study.determineLevel");
   const tBadge = useTranslations("Study.determineLevel.badgeColors");
+  const tActions = useTranslations("Study.determineLevel.actions"); // Translations for action buttons and dialogs
   const queryClient = useQueryClient();
 
   const [sortBy, setSortBy] = useState<"date" | "percentage">("date");
@@ -113,7 +118,7 @@ const LevelAssessmentPage = () => {
   const cancelAttemptMutation = useMutation({
     mutationFn: cancelTestAttempt,
     onSuccess: (_, attemptId) => {
-      toast.success(t("cancelDialog.successToast", { attemptId }));
+      toast.success(tActions("cancelDialog.successToast", { attemptId }));
       queryClient.invalidateQueries({
         queryKey: [
           QUERY_KEYS.USER_TEST_ATTEMPTS,
@@ -124,7 +129,7 @@ const LevelAssessmentPage = () => {
     onError: (err: any) => {
       const errorMessage = getApiErrorMessage(
         err,
-        t("cancelDialog.errorToastGeneric")
+        tActions("cancelDialog.errorToastGeneric")
       );
       toast.error(errorMessage);
     },
@@ -165,55 +170,7 @@ const LevelAssessmentPage = () => {
     return sorted;
   }, [attemptsData, sortBy]);
 
-  const renderActionButtons = (attempt: UserTestAttemptList) => {
-    const isCancelable = attempt.status === "started";
-
-    return (
-      <div className="flex flex-col justify-center gap-2 sm:flex-row">
-        <Button variant="outline" size="sm" asChild>
-          <Link href={PATHS.STUDY.DETERMINE_LEVEL.REVIEW(attempt.attempt_id)}>
-            <FileText className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
-            {attempt.status === "completed"
-              ? t("attemptsTable.reviewTest")
-              : t("attemptsTable.viewDetails")}
-          </Link>
-        </Button>
-        {isCancelable && (
-          <ConfirmationDialog
-            triggerButton={
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={
-                  cancelAttemptMutation.isPending &&
-                  cancelAttemptMutation.variables === attempt.attempt_id
-                }
-              >
-                {cancelAttemptMutation.isPending &&
-                cancelAttemptMutation.variables === attempt.attempt_id ? (
-                  <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
-                ) : (
-                  <Ban className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
-                )}
-                {t("attemptsTable.cancelTest")}
-              </Button>
-            }
-            title={t("cancelDialog.title")}
-            description={t("cancelDialog.description", {
-              attemptId: attempt.attempt_id,
-            })}
-            confirmActionText={t("cancelDialog.confirmButton")}
-            onConfirm={() => cancelAttemptMutation.mutate(attempt.attempt_id)}
-            isConfirming={
-              cancelAttemptMutation.isPending &&
-              cancelAttemptMutation.variables === attempt.attempt_id
-            }
-            confirmButtonVariant="destructive"
-          />
-        )}
-      </div>
-    );
-  };
+  // --- Removed renderActionButtons function as it's now a dedicated component ---
 
   if (isLoading) {
     return <DetermineLevelPageSkeleton />;
@@ -332,7 +289,13 @@ const LevelAssessmentPage = () => {
               </TableHeader>
               <TableBody>
                 {attempts.map((attempt) => (
-                  <TableRow key={attempt.attempt_id}>
+                  <TableRow
+                    key={attempt.attempt_id}
+                    // Apply opacity for abandoned tests
+                    className={cn({
+                      "opacity-60": attempt.status === "abandoned",
+                    })}
+                  >
                     <TableCell>
                       {new Date(attempt.date).toLocaleDateString(undefined, {
                         year: "numeric",
@@ -389,7 +352,11 @@ const LevelAssessmentPage = () => {
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
-                      {renderActionButtons(attempt)}
+                      {/* +++ Use the new AttemptActionButtons component +++ */}
+                      <AttemptActionButtons
+                        attempt={attempt}
+                        cancelAttemptMutation={cancelAttemptMutation}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -405,8 +372,10 @@ const LevelAssessmentPage = () => {
                   value={`item-${attempt.attempt_id}`}
                   key={attempt.attempt_id}
                   className="rounded-lg border dark:border-gray-700"
+                  // +++ Disable entire accordion item if abandoned +++
+                  disabled={attempt.status === "abandoned"}
                 >
-                  <AccordionTrigger className="p-4 hover:no-underline">
+                  <AccordionTrigger className="p-4 hover:no-underline disabled:opacity-60">
                     <div className="flex w-full items-center justify-between">
                       <div className="text-start rtl:text-right">
                         <p className="font-medium">
@@ -476,7 +445,13 @@ const LevelAssessmentPage = () => {
                           {tBadge(attempt.verbal_level_key)} {/* Corrected */}
                         </span>
                       </p>
-                      <div className="mt-3">{renderActionButtons(attempt)}</div>
+                      <div className="mt-3">
+                        {/* +++ Use the new AttemptActionButtons component +++ */}
+                        <AttemptActionButtons
+                          attempt={attempt}
+                          cancelAttemptMutation={cancelAttemptMutation}
+                        />
+                      </div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>

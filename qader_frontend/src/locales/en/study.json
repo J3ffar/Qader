@@ -59,6 +59,21 @@
       "viewDetails": "View Details",
       "cancelTest": "Cancel Test"
     },
+    "actions": {
+      "reviewTest": "Review Test",
+      "viewDetails": "View Details",
+      "continueTest": "Continue Test",
+      "cancelTest": "Cancel Test",
+      "continueTestTooltip": "This feature is under development and will be available soon.",
+      "abandonedTooltip": "Abandoned tests cannot be resumed or reviewed.",
+      "cancelDialog": {
+        "title": "Are you sure you want to cancel this test?",
+        "description": "This action cannot be undone. Your progress in test attempt #{attemptId} will be lost.",
+        "confirmButton": "Yes, Cancel Test",
+        "successToast": "Test attempt #{attemptId} has been successfully cancelled.",
+        "errorToastGeneric": "Could not cancel the test. Please try again."
+      }
+    },
     "cancelDialog": {
       "title": "Confirm Cancellation",
       "description": "Are you sure you want to cancel test attempt #{attemptId}? This action cannot be undone.",
@@ -231,6 +246,7 @@
       "sections": "Sections",
       "answeredQuestionsTitle": "Answered Questions",
       "tableHeaderQuestion": "Question",
+
       "tableHeaderYourAnswer": "Your Answer",
       "tableHeaderStatus": "Result",
       "statusCorrect": "Correct",
