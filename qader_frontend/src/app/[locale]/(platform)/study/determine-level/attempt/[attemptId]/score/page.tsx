@@ -165,6 +165,10 @@ const LevelAssessmentScorePage = () => {
         hasGamificationUpdate = true;
       }
 
+      if (user.level_determined === false) {
+        profileUpdates.level_determined = true;
+      }
+
       if (Object.keys(profileUpdates).length > 0) {
         // 1. Update the global client-side state for immediate UI feedback in the header
         updateUserProfile(profileUpdates);
