@@ -9,6 +9,7 @@ import { NProgressHandler } from "@/components/global/NProgressHandler";
 import { Toaster } from "@/components/ui/sonner";
 import { locales as appLocales } from "@/config/i18n.config";
 import "@/app/globals.css";
+import { cn } from "@/lib/utils";
 
 // Fonts
 const ibm = IBM_Plex_Sans_Arabic({
@@ -86,7 +87,11 @@ export default async function LocaleLayout({
       suppressHydrationWarning
     >
       <body
-        className={`${ibm.variable} ${harmattan.variable} font-body bg-background text-foreground antialiased`}
+        className={cn(
+          "font-body bg-background text-foreground antialiased",
+          ibm.variable, // Apply the variable class
+          harmattan.variable
+        )}
       >
         <NextIntlClientProvider locale={currentLocale} messages={messages}>
           <Providers

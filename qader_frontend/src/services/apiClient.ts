@@ -1,10 +1,11 @@
 import { useAuthStore } from "@/store/auth.store";
-import { refreshTokenApi } from "./auth.service"; // This now uses a direct fetch
+import { refreshTokenApi } from "./auth.service";
 import { API_BASE_URL, API_VERSION } from "@/constants/api";
 import { getLocaleFromPathname } from "@/utils/locale";
 import { ApiError } from "@/lib/errors";
-import type { ApiErrorDetail } from "@/types/api/auth.types";
 import { appEvents } from "@/lib/events";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import type { ApiErrorDetail } from "@/types/api/auth.types";
 
 interface CustomRequestInit extends RequestInit {
   isPublic?: boolean;
@@ -43,15 +44,6 @@ const processQueue = (error: ApiError | null, token: string | null = null) => {
   failedQueue = [];
 };
 
-/**
- * A robust API client with automatic token refreshing.
- * It wraps the native `fetch` API to provide a consistent interface for all API calls.
- * - Automatically adds Authorization header.
- * - Handles 401 errors by attempting to refresh the token.
- * - Queues concurrent requests during token refresh to avoid race conditions.
- * - Constructs API URLs with locale and version.
- * - Handles FormData and JSON request bodies.
- */
 export const apiClient = async <T = any>(
   endpoint: string,
   options: CustomRequestInit = {}
@@ -59,22 +51,19 @@ export const apiClient = async <T = any>(
   // Use a single call to getState() for efficiency and readability.
   const { accessToken, refreshToken, setTokens, logout, setIsRefreshingToken } =
     useAuthStore.getState();
-
   const currentLocale = options.locale || getLocaleFromPathname() || "ar";
   let baseUrl = `${API_BASE_URL}/${currentLocale}/api/${API_VERSION}${
     endpoint.startsWith("/") ? endpoint : `/${endpoint}`
   }`;
 
-  // Build query string from params object
   if (options.params) {
-    const queryParams = new URLSearchParams();
-    Object.entries(options.params).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        value.forEach((item) => queryParams.append(key, String(item)));
-      } else if (value !== undefined && value !== null) {
-        queryParams.append(key, String(value));
-      }
-    });
+    const queryParams = new URLSearchParams(
+      Object.entries(options.params).flatMap(([key, value]) =>
+        Array.isArray(value)
+          ? value.map((v) => [key, String(v)])
+          : [[key, String(value)]]
+      )
+    );
     const queryString = queryParams.toString();
     if (queryString) {
       baseUrl += `?${queryString}`;
@@ -85,47 +74,33 @@ export const apiClient = async <T = any>(
     Accept: "application/json",
     "Content-Type": "application/json",
   };
-
-  if (accessToken && !options.isPublic) {
+  if (accessToken && !options.isPublic)
     defaultHeaders["Authorization"] = `Bearer ${accessToken}`;
-  }
 
   const finalHeaders = new Headers({ ...defaultHeaders, ...options.headers });
-  if (options.body instanceof FormData) {
-    // Let the browser set the Content-Type for FormData, which includes the boundary.
-    finalHeaders.delete("Content-Type");
-  }
+  if (options.body instanceof FormData) finalHeaders.delete("Content-Type");
 
-  const config: RequestInit = {
-    ...options,
-    headers: finalHeaders,
-  };
+  const config: RequestInit = { ...options, headers: finalHeaders };
 
   try {
     const response = await fetch(baseUrl, config);
 
-    // If response is not OK, we need to handle it.
     if (!response.ok) {
-      // The most important case: Unauthorized.
+      // --- Start of 401 Unauthorized Handling ---
       if (response.status === 401 && !options.isPublic && !options.isRetry) {
-        // If there's no refresh token, we can't recover. Logout immediately.
         if (!refreshToken) {
-          await logout();
-          throw new ApiError(
-            "Session expired. No refresh token available.",
-            401,
-            { detail: "No refresh token." }
-          );
+          // No way to recover, trigger logout immediately.
+          useAuthStore.getState().logout();
+          // Hang the promise to let the redirect take over.
+          return new Promise(() => {});
         }
 
-        // If a refresh is already in progress, queue this request and wait.
         if (isCurrentlyRefreshing) {
           return new Promise<T>((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           });
         }
 
-        // Start the token refresh process.
         isCurrentlyRefreshing = true;
         setIsRefreshingToken(true);
 
@@ -133,33 +108,30 @@ export const apiClient = async <T = any>(
           refreshTokenApi({ refresh: refreshToken })
             .then((refreshResponse) => {
               setTokens({ access: refreshResponse.access });
-              // After successful refresh, retry the original request with the new token.
               const newHeaders = new Headers(config.headers);
               newHeaders.set(
                 "Authorization",
                 `Bearer ${refreshResponse.access}`
               );
-              // Re-run the original fetch call
               resolve(
                 apiClient(endpoint, {
                   ...options,
                   headers: Object.fromEntries(newHeaders.entries()),
-                  isRetry: true, // Mark as retry to prevent infinite loops
+                  isRetry: true,
                 })
               );
               processQueue(null, refreshResponse.access);
             })
-            .catch(async (refreshError) => {
-              // If refresh fails, logout the user and reject all queued requests.
-              appEvents.dispatch("auth:session-expired");
-              await useAuthStore.getState().logout();
-              const error = new ApiError(
-                refreshError.message || "Session expired. Please log in again.",
-                refreshError.status || 401,
-                refreshError.data || { detail: "Token refresh failed." }
+            .catch((refreshError) => {
+              // --- CATASTROPHIC FAILURE: The redirect logic from previous answer ---
+              console.error(
+                "Unrecoverable session error. Refresh token failed. Initiating logout.",
+                refreshError
               );
-              processQueue(error, null);
-              reject(error);
+              appEvents.dispatch("auth:session-expired");
+              useAuthStore.getState().logout();
+              // Hang the promise to let the redirect complete without interruption.
+              return new Promise(() => {});
             })
             .finally(() => {
               isCurrentlyRefreshing = false;
@@ -167,36 +139,33 @@ export const apiClient = async <T = any>(
             });
         });
       }
+      // --- End of 401 Handling ---
 
-      // Handle other non-401 errors.
-      const errorData = (await response.json().catch(() => ({
-        detail: `API Error: ${response.statusText || response.status}`,
-      }))) as ApiErrorDetail;
-
-      throw new ApiError(
-        errorData.detail || `Request failed with status ${response.status}`,
-        response.status,
-        errorData
+      // Handle other non-401 errors (e.g., 400, 404, 500)
+      const errorData = (await response
+        .json()
+        .catch(() => ({}))) as ApiErrorDetail;
+      // CHANGE: Use your purpose-built error message parser.
+      const errorMessage = getApiErrorMessage(
+        { status: response.status, data: errorData },
+        `Request failed with status ${response.status}`
       );
+
+      throw new ApiError(errorMessage, response.status, errorData);
     }
 
-    // For 204 No Content, return an empty object.
-    if (response.status === 204) {
-      return {} as T;
-    }
-
-    // For successful responses, parse and return the JSON body.
+    if (response.status === 204) return {} as T;
     return (await response.json()) as T;
   } catch (error) {
-    // If the error is already our custom ApiError, just re-throw it.
     if (error instanceof ApiError) {
       throw error;
     }
-
-    // For network errors or other exceptions, wrap them in our custom error.
-    const networkError = error as Error;
-    throw new ApiError(networkError.message || "A network error occurred.", 0, {
-      detail: networkError.message,
-    });
+    // CHANGE: Use your parser for network errors or other exceptions too.
+    const message = getApiErrorMessage(error, "A network error occurred.");
+    throw new ApiError(
+      message,
+      (error as any).status || 0,
+      (error as any).data || { detail: message }
+    );
   }
 };

@@ -237,7 +237,7 @@ const StartLevelAssessmentForm: React.FC = () => {
     mutationErrorMsg && (
       <Alert variant="destructive" className="mb-4">
         <AlertTitle>
-          {t("api.startErrorTitle") /* Add this translation */}
+          {t("api.startError") /* Add this translation */}
         </AlertTitle>
         <AlertDescription>{mutationErrorMsg}</AlertDescription>
       </Alert>
