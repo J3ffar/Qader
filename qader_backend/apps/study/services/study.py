@@ -961,14 +961,17 @@ def _start_test_attempt_base(
     """
     # 1. Check for existing active attempt
     if UserTestAttempt.objects.filter(
-        user=user, status=UserTestAttempt.Status.STARTED
+        user=user,
+        status=UserTestAttempt.Status.STARTED,
+        attempt_type=attempt_type,
     ).exists():
+        attempt_type_display = UserTestAttempt.AttemptType(attempt_type).label
         raise DRFValidationError(
             {
                 "non_field_errors": [
                     _(
-                        "Please complete or cancel your ongoing test before starting a new one."
-                    )
+                        "You already have an active '{attempt_type}' in progress. Please complete or cancel it before starting another of the same type."
+                    ).format(attempt_type=attempt_type_display)
                 ]
             }
         )

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-28 00:50+0300\n"
+"POT-Creation-Date: 2025-06-11 14:57+0300\n"
 "PO-Revision-Date: 2023-10-27 10:00+0000\n"
 "Last-Translator: Your Name <your.email@example.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -81,176 +81,185 @@ msgstr "مُنشأ بواسطة"
 msgid "You must have an active subscription to perform this action."
 msgstr "يجب أن يكون لديك اشتراك نشط لتنفيذ هذا الإجراء."
 
-#: .\apps\users\api\serializers.py:137
+#: .\apps\users\api\serializers.py:128
+#, fuzzy
+#| msgid "Subscription"
+msgid "Custom Subscription"
+msgstr "الاشتراك"
+
+#: .\apps\users\api\serializers.py:204
 msgid "Confirm Password"
 msgstr "تأكيد كلمة المرور"
 
-#: .\apps\users\api\serializers.py:155
+#: .\apps\users\api\serializers.py:222
 msgid "This email address is pending confirmation or already registered."
 msgstr "عنوان البريد الإلكتروني هذا بانتظار التأكيد أو مسجل بالفعل."
 
-#: .\apps\users\api\serializers.py:159
+#: .\apps\users\api\serializers.py:226
 msgid "A user with this email already exists."
 msgstr "مستخدم بهذا البريد الإلكتروني موجود بالفعل."
 
-#: .\apps\users\api\serializers.py:167
+#: .\apps\users\api\serializers.py:234
 msgid "Password fields didn't match."
 msgstr "حقلي كلمة المرور غير متطابقين."
 
-#: .\apps\users\api\serializers.py:190
+#: .\apps\users\api\serializers.py:257
 msgid ""
 "Could not generate a suitable username. Please try a different full name or "
 "contact support."
-msgstr "تعذر إنشاء اسم مستخدم مناسب. يرجى تجربة اسم كامل مختلف أو الاتصال بالدعم."
+msgstr ""
+"تعذر إنشاء اسم مستخدم مناسب. يرجى تجربة اسم كامل مختلف أو الاتصال بالدعم."
 
-#: .\apps\users\api\serializers.py:225
+#: .\apps\users\api\serializers.py:292
 msgid ""
 "We encountered an issue creating your username. Please try a slightly "
 "different full name or try again later."
-msgstr "واجهنا مشكلة في إنشاء اسم المستخدم الخاص بك. يرجى تجربة اسم كامل مختلف قليلاً أو المحاولة لاحقًا."
+msgstr ""
+"واجهنا مشكلة في إنشاء اسم المستخدم الخاص بك. يرجى تجربة اسم كامل مختلف قليلاً "
+"أو المحاولة لاحقًا."
 
-#: .\apps\users\api\serializers.py:233
+#: .\apps\users\api\serializers.py:300
 msgid "This email address is already registered."
 msgstr "عنوان البريد الإلكتروني هذا مسجل بالفعل."
 
-#: .\apps\users\api\serializers.py:237
+#: .\apps\users\api\serializers.py:304
 msgid "Signup failed due to a data conflict. Please try again."
 msgstr "فشل التسجيل بسبب تعارض في البيانات. يرجى المحاولة مرة أخرى."
 
-#: .\apps\users\api\serializers.py:244
+#: .\apps\users\api\serializers.py:311
 msgid "An unexpected error occurred during signup. Please try again later."
 msgstr "حدث خطأ غير متوقع أثناء التسجيل. يرجى المحاولة لاحقًا."
 
-#: .\apps\users\api\serializers.py:258
+#: .\apps\users\api\serializers.py:325
 msgid ""
 "Set or update your username. Must be unique. Allowed characters: letters, "
 "digits and './+/-/_' (see below for file content) only."
-msgstr "قم بتعيين أو تحديث اسم المستخدم الخاص بك. يجب أن يكون فريدًا. الأحرف المسموح بها: أحرف وأرقام و './+/-/_' (انظر أدناه لمحتوى الملف) فقط."
+msgstr ""
+"قم بتعيين أو تحديث اسم المستخدم الخاص بك. يجب أن يكون فريدًا. الأحرف المسموح "
+"بها: أحرف وأرقام و './+/-/_' (انظر أدناه لمحتوى الملف) فقط."
 
-#: .\apps\users\api\serializers.py:293
+#: .\apps\users\api\serializers.py:360
 msgid "Optional: Enter a serial code to activate a paid subscription."
 msgstr "اختياري: أدخل رمز تسلسلي لتفعيل اشتراك مدفوع."
 
-#: .\apps\users\api\serializers.py:379 .\apps\users\api\serializers.py:773
+#: .\apps\users\api\serializers.py:446 .\apps\users\api\serializers.py:888
 msgid "This username is already taken. Please choose another one."
 msgstr "اسم المستخدم هذا مستخدم بالفعل. يرجى اختيار اسم آخر."
 
-#: .\apps\users\api\serializers.py:405
+#: .\apps\users\api\serializers.py:472
 msgid "This field is required to complete your profile."
 msgstr "هذا الحقل مطلوب لاستكمال ملفك الشخصي."
 
-#: .\apps\users\api\serializers.py:429 .\apps\users\api\serializers.py:1074
+#: .\apps\users\api\serializers.py:496 .\apps\users\api\serializers.py:1189
 msgid "Invalid or already used serial code."
 msgstr "رمز تسلسلي غير صالح أو مستخدم بالفعل."
 
-#: .\apps\users\api\serializers.py:432 .\apps\users\api\serializers.py:1079
+#: .\apps\users\api\serializers.py:499 .\apps\users\api\serializers.py:1194
 msgid "Error validating serial code."
 msgstr "خطأ في التحقق من صحة الرمز التسلسلي."
 
-#: .\apps\users\api\serializers.py:444
+#: .\apps\users\api\serializers.py:511
 msgid "You cannot use your own referral code."
 msgstr "لا يمكنك استخدام رمز الإحالة الخاص بك."
 
-#: .\apps\users\api\serializers.py:448
+#: .\apps\users\api\serializers.py:515
 msgid "Invalid referral code provided."
 msgstr "تم توفير رمز إحالة غير صالح."
 
-#: .\apps\users\api\serializers.py:451
+#: .\apps\users\api\serializers.py:518
 msgid "Error validating referral code."
 msgstr "خطأ في التحقق من صحة رمز الإحالة."
 
-#: .\apps\users\api\serializers.py:460 .\apps\users\api\serializers.py:742
+#: .\apps\users\api\serializers.py:527 .\apps\users\api\serializers.py:857
 #, python-brace-format
 msgid "Image size cannot exceed {size}MB."
 msgstr "حجم الصورة لا يمكن أن يتجاوز {size} ميجابايت."
 
-#: .\apps\users\api\serializers.py:533
-msgid "Number of unread notifications for the user."
-msgstr "عدد الإشعارات غير المقروءة للمستخدم."
-
-#: .\apps\users\api\serializers.py:684
+#: .\apps\users\api\serializers.py:799
 msgid ""
 "Update your username. Must be unique. Allowed characters: letters, digits "
 "and './+/-/_' (see below for file content) only."
-msgstr "قم بتحديث اسم المستخدم الخاص بك. يجب أن يكون فريدًا. الأحرف المسموح بها: أحرف وأرقام و './+/-/_' (انظر أدناه لمحتوى الملف) فقط."
+msgstr ""
+"قم بتحديث اسم المستخدم الخاص بك. يجب أن يكون فريدًا. الأحرف المسموح بها: أحرف "
+"وأرقام و './+/-/_' (انظر أدناه لمحتوى الملف) فقط."
 
-#: .\apps\users\api\serializers.py:797
+#: .\apps\users\api\serializers.py:912
 msgid "Auto dark mode start time must be before end time."
 msgstr "وقت بدء الوضع الداكن التلقائي يجب أن يكون قبل وقت الانتهاء."
 
-#: .\apps\users\api\serializers.py:800
+#: .\apps\users\api\serializers.py:915
 msgid "Auto dark mode end time must be after start time."
 msgstr "وقت انتهاء الوضع الداكن التلقائي يجب أن يكون بعد وقت البدء."
 
-#: .\apps\users\api\serializers.py:821
+#: .\apps\users\api\serializers.py:936
 msgid "Current Password"
 msgstr "كلمة المرور الحالية"
 
-#: .\apps\users\api\serializers.py:828 .\apps\users\api\serializers.py:897
-#: .\apps\users\api\serializers.py:1001
+#: .\apps\users\api\serializers.py:943 .\apps\users\api\serializers.py:1012
+#: .\apps\users\api\serializers.py:1116
 msgid "New Password"
 msgstr "كلمة المرور الجديدة"
 
-#: .\apps\users\api\serializers.py:834 .\apps\users\api\serializers.py:903
-#: .\apps\users\api\serializers.py:1007
+#: .\apps\users\api\serializers.py:949 .\apps\users\api\serializers.py:1018
+#: .\apps\users\api\serializers.py:1122
 msgid "Confirm New Password"
 msgstr "تأكيد كلمة المرور الجديدة"
 
-#: .\apps\users\api\serializers.py:842
+#: .\apps\users\api\serializers.py:957
 msgid "Incorrect current password."
 msgstr "كلمة المرور الحالية غير صحيحة."
 
-#: .\apps\users\api\serializers.py:849 .\apps\users\api\serializers.py:911
-#: .\apps\users\api\serializers.py:1021
+#: .\apps\users\api\serializers.py:964 .\apps\users\api\serializers.py:1026
+#: .\apps\users\api\serializers.py:1136
 msgid "New password fields didn't match."
 msgstr "حقلي كلمة المرور الجديدة غير متطابقين."
 
-#: .\apps\users\api\serializers.py:855
+#: .\apps\users\api\serializers.py:970
 msgid "New password cannot be the same as the current password."
 msgstr "كلمة المرور الجديدة لا يمكن أن تكون نفس كلمة المرور الحالية."
 
-#: .\apps\users\api\serializers.py:865 .\apps\users\api\serializers.py:921
+#: .\apps\users\api\serializers.py:980 .\apps\users\api\serializers.py:1036
 msgid "Email or Username"
 msgstr "البريد الإلكتروني أو اسم المستخدم"
 
-#: .\apps\users\api\serializers.py:884
+#: .\apps\users\api\serializers.py:999
 msgid "An error occurred while validating the identifier."
 msgstr "حدث خطأ أثناء التحقق من صحة المعرّف."
 
-#: .\apps\users\api\serializers.py:922
+#: .\apps\users\api\serializers.py:1037
 msgid "The email address or username used to request the OTP."
 msgstr ""
 "عنوان البريد الإلكتروني أو اسم المستخدم المستخدم لطلب رمز التحقق لمرة واحدة "
 "(OTP)."
 
-#: .\apps\users\api\serializers.py:926
+#: .\apps\users\api\serializers.py:1041
 msgid "OTP Code"
 msgstr "رمز التحقق لمرة واحدة (OTP)"
 
-#: .\apps\users\api\serializers.py:930
+#: .\apps\users\api\serializers.py:1045
 #, python-brace-format
 msgid "The {otp_length}-digit OTP sent to your email."
 msgstr ""
 "رمز التحقق لمرة واحدة (OTP) المكون من {otp_length} أرقام المرسل إلى بريدك "
 "الإلكتروني."
 
-#: .\apps\users\api\serializers.py:945
+#: .\apps\users\api\serializers.py:1060
 msgid "User account is inactive."
 msgstr "حساب المستخدم غير نشط."
 
-#: .\apps\users\api\serializers.py:947
+#: .\apps\users\api\serializers.py:1062
 msgid "User with this identifier not found."
 msgstr "لم يتم العثور على مستخدم بهذا المعرّف."
 
-#: .\apps\users\api\serializers.py:952
+#: .\apps\users\api\serializers.py:1067
 msgid "Error identifying user account."
 msgstr "خطأ في تحديد حساب المستخدم."
 
-#: .\apps\users\api\serializers.py:964
+#: .\apps\users\api\serializers.py:1079
 msgid "The OTP provided is invalid or has expired."
 msgstr "رمز التحقق لمرة واحدة (OTP) المقدم غير صالح أو انتهت صلاحيته."
 
-#: .\apps\users\api\serializers.py:976
+#: .\apps\users\api\serializers.py:1091
 msgid ""
 "No active OTP found for this user or it has expired. Please request a new "
 "one."
@@ -258,46 +267,46 @@ msgstr ""
 "لم يتم العثور على رمز تحقق لمرة واحدة (OTP) نشط لهذا المستخدم أو انتهت "
 "صلاحيته. يرجى طلب رمز جديد."
 
-#: .\apps\users\api\serializers.py:985
+#: .\apps\users\api\serializers.py:1100
 msgid "An error occurred during OTP verification."
 msgstr "حدث خطأ أثناء التحقق من رمز التحقق لمرة واحدة (OTP)."
 
-#: .\apps\users\api\serializers.py:994
+#: .\apps\users\api\serializers.py:1109
 msgid "Reset Token"
 msgstr "رمز إعادة التعيين"
 
-#: .\apps\users\api\serializers.py:995
+#: .\apps\users\api\serializers.py:1110
 msgid "The secure token received after OTP verification."
 msgstr "الرمز الآمن الذي تم استلامه بعد التحقق من رمز التحقق لمرة واحدة (OTP)."
 
-#: .\apps\users\api\serializers.py:1045
+#: .\apps\users\api\serializers.py:1160
 msgid "Invalid or expired reset token. Please verify OTP again."
 msgstr ""
 "رمز إعادة التعيين غير صالح أو منتهي الصلاحية. يرجى التحقق من رمز التحقق لمرة "
 "واحدة (OTP) مرة أخرى."
 
-#: .\apps\users\api\serializers.py:1052
+#: .\apps\users\api\serializers.py:1167
 msgid "An error occurred while validating the reset token."
 msgstr "حدث خطأ أثناء التحقق من صحة رمز إعادة التعيين."
 
-#: .\apps\users\api\serializers.py:1062 .\apps\users\api\serializers.py:1092
+#: .\apps\users\api\serializers.py:1177 .\apps\users\api\serializers.py:1207
 #: .\apps\users\models.py:108
 msgid "Serial Code"
 msgstr "الرمز التسلسلي"
 
-#: .\apps\users\api\serializers.py:1063
+#: .\apps\users\api\serializers.py:1178
 msgid "The new serial code to activate or extend subscription."
 msgstr "الرمز التسلسلي الجديد لتفعيل أو تمديد الاشتراك."
 
-#: .\apps\users\api\serializers.py:1089
+#: .\apps\users\api\serializers.py:1204
 msgid "Plan Type"
 msgstr "نوع الخطة"
 
-#: .\apps\users\api\serializers.py:1091
+#: .\apps\users\api\serializers.py:1206
 msgid "Redeemed On"
 msgstr "تم الاسترداد في"
 
-#: .\apps\users\api\serializers.py:1093 .\apps\users\models.py:56
+#: .\apps\users\api\serializers.py:1208 .\apps\users\models.py:56
 msgid "Duration (Days)"
 msgstr "المدة (أيام)"
 
@@ -406,7 +415,8 @@ msgstr "تمت إعادة تعيين كلمة المرور بنجاح."
 #: .\apps\users\api\views.py:1426
 msgid ""
 "An unexpected error occurred while resetting your password. Please try again."
-msgstr "حدث خطأ غير متوقع أثناء إعادة تعيين كلمة المرور. يرجى المحاولة مرة أخرى."
+msgstr ""
+"حدث خطأ غير متوقع أثناء إعادة تعيين كلمة المرور. يرجى المحاولة مرة أخرى."
 
 #: .\apps\users\api\views.py:1498
 msgid "Invalid or expired password reset link."
@@ -856,6 +866,9 @@ msgstr ""
 #: .\apps\users\services.py:129
 msgid "You have reached your limit for asking AI questions today."
 msgstr ""
+
+#~ msgid "Number of unread notifications for the user."
+#~ msgstr "عدد الإشعارات غير المقروءة للمستخدم."
 
 #~ msgid "Failed to send password reset email. Please try again later."
 #~ msgstr ""
