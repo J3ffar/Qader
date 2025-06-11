@@ -88,10 +88,12 @@ export const apiClient = async <T = any>(
     if (!response.ok) {
       // --- Start of 401 Unauthorized Handling ---
       if (response.status === 401 && !options.isPublic && !options.isRetry) {
+        // If there's no refresh token, we can't recover. Logout immediately.
         if (!refreshToken) {
-          // No way to recover, trigger logout immediately.
+          console.log("No refresh token found. Logging out.");
+          // Our new robust logout function will handle the redirect.
           useAuthStore.getState().logout();
-          // Hang the promise to let the redirect take over.
+          // Hang the promise to let the redirect take over without any further processing.
           return new Promise(() => {});
         }
 
@@ -102,43 +104,57 @@ export const apiClient = async <T = any>(
         }
 
         isCurrentlyRefreshing = true;
-        setIsRefreshingToken(true);
+        useAuthStore.getState().setIsRefreshingToken(true);
 
-        return new Promise<T>((resolve, reject) => {
-          refreshTokenApi({ refresh: refreshToken })
-            .then((refreshResponse) => {
-              setTokens({ access: refreshResponse.access });
-              const newHeaders = new Headers(config.headers);
-              newHeaders.set(
-                "Authorization",
-                `Bearer ${refreshResponse.access}`
-              );
-              resolve(
-                apiClient(endpoint, {
-                  ...options,
-                  headers: Object.fromEntries(newHeaders.entries()),
-                  isRetry: true,
-                })
-              );
-              processQueue(null, refreshResponse.access);
-            })
-            .catch((refreshError) => {
-              // --- CATASTROPHIC FAILURE: The redirect logic from previous answer ---
-              console.error(
-                "Unrecoverable session error. Refresh token failed. Initiating logout.",
-                refreshError
-              );
-              appEvents.dispatch("auth:session-expired");
-              useAuthStore.getState().logout();
-              // Hang the promise to let the redirect complete without interruption.
-              return new Promise(() => {});
-            })
-            .finally(() => {
-              isCurrentlyRefreshing = false;
-              setIsRefreshingToken(false);
+        return refreshTokenApi({ refresh: refreshToken })
+          .then((refreshResponse) => {
+            // Success: update tokens and retry the original request
+            useAuthStore
+              .getState()
+              .setTokens({ access: refreshResponse.access });
+            processQueue(null, refreshResponse.access);
+
+            // Retry the original request with the new access token
+            const newHeaders = new Headers(config.headers);
+            newHeaders.set("Authorization", `Bearer ${refreshResponse.access}`);
+            return apiClient(endpoint, {
+              ...options,
+              headers: Object.fromEntries(newHeaders.entries()),
+              isRetry: true,
             });
-        });
+          })
+          .catch((refreshError) => {
+            // --- CATASTROPHIC FAILURE: Refresh token is invalid ---
+            console.error(
+              "Unrecoverable session error. Refresh token failed. Initiating logout.",
+              refreshError
+            );
+
+            // 1. Dispatch an event to show a user-friendly toast message.
+            appEvents.dispatch("auth:session-expired");
+
+            // 2. Call the master logout function. It handles state clearing and the hard redirect.
+            useAuthStore.getState().logout();
+
+            // 3. Reject queued requests to prevent them from hanging indefinitely.
+            const apiError = new ApiError(
+              getApiErrorMessage(refreshError, "Session expired"),
+              401,
+              refreshError.data || {}
+            );
+            processQueue(apiError, null);
+
+            // 4. Return a promise that never resolves. This prevents the original caller
+            // (e.g., TanStack Query) from attempting further actions like retries
+            // while the page is redirecting.
+            return new Promise<T>(() => {});
+          })
+          .finally(() => {
+            isCurrentlyRefreshing = false;
+            useAuthStore.getState().setIsRefreshingToken(false);
+          });
       }
+
       // --- End of 401 Handling ---
 
       // Handle other non-401 errors (e.g., 400, 404, 500)

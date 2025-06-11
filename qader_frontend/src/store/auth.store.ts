@@ -61,15 +61,19 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
     const currentRefreshToken = get().refreshToken;
     if (currentRefreshToken) {
       try {
+        // Attempt to invalidate the token on the backend.
+        // We don't wait for this to complete before cleaning up the client.
         await logoutUserApi({ refresh: currentRefreshToken });
       } catch (error) {
+        // This is expected if the token is already invalid. Log it and continue.
         console.warn(
-          "Logout API call failed, proceeding with client-side cleanup.",
+          "Logout API call failed (likely due to an already invalid token), proceeding with client-side cleanup.",
           error
         );
       }
     }
 
+    // 1. Reset the state in Zustand's memory
     set({
       accessToken: null,
       refreshToken: null,
@@ -78,10 +82,15 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
       isProfileComplete: false,
       isRefreshingToken: false,
     });
+
+    // 2. Explicitly remove the persisted state from localStorage. This prevents
+    //    Zustand's rehydration logic from loading stale, invalid credentials.
     localStorage.removeItem("qader-auth-storage");
-    // Use window.location.href for a hard redirect. This is crucial as it clears
-    // all component state and ensures the user lands cleanly on the login page.
-    const locale = getLocaleFromPathname() || "ar"; // Default to 'ar'
+
+    // 3. Perform a HARD redirect. This is crucial. It clears all React component
+    //    state, memory, and hooks, preventing errors like the stray /settings fetch.
+    //    The user is cleanly redirected to the homepage as a logged-out visitor.
+    const locale = getLocaleFromPathname() || "ar"; // Default to 'ar' if locale is somehow missing
     window.location.href = `/${locale}${PATHS.HOME}`;
   },
 

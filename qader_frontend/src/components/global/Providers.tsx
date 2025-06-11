@@ -60,7 +60,7 @@ export function Providers({
       <QueryClientProvider client={queryClient}>
         {/* The SessionExpiredHandler is placed here. It's a client component
             that will be active on every page, ready to listen for our event. */}
-        <SessionExpiredHandler />
+        {/* <SessionExpiredHandler />  */}
 
         {children}
 
