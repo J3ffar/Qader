@@ -19,11 +19,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { QuestionState } from "./TraditionalLearningSession"; // Import the shared state type
+import { QuestionState } from "./TraditionalLearningSession";
+import { UnifiedQuestion } from "@/types/api/study.types";
+
+type OptionKey = "A" | "B" | "C" | "D";
 
 interface Props {
   attemptId: string;
-  questionId: number;
+  question: UnifiedQuestion; // Now needs the full question object
   questionState?: QuestionState;
   setQuestionStates: React.Dispatch<
     React.SetStateAction<Record<number, QuestionState>>
@@ -32,14 +35,14 @@ interface Props {
 
 export const PracticeControls: React.FC<Props> = ({
   attemptId,
-  questionId,
+  question,
   questionState,
   setQuestionStates,
 }) => {
   const t = useTranslations("Study.traditionalLearning.session");
   const commonT = useTranslations("Common");
+  const questionId = question.id;
 
-  // This flag is now used ONLY for tools that should be disabled post-answer.
   const isAnswered =
     questionState?.status === "correct" ||
     questionState?.status === "incorrect";
@@ -54,17 +57,33 @@ export const PracticeControls: React.FC<Props> = ({
     }));
   };
 
+  // --- Mutations ---
+
   const hintMutation = useMutation({
     mutationFn: () => getHintForQuestion(attemptId, questionId),
     onSuccess: (data) => {
       if (data.hint) {
         updateQuestionState({ revealedHint: data.hint });
-        toast.info(t("api.hintSuccess"), { description: data.hint });
+        toast.info(t("api.hintSuccess")); // Simple toast, UI will update
       } else {
         toast.info(t("api.hintNotAvailable"));
       }
     },
     onError: (err) => toast.error(getApiErrorMessage(err, t("api.hintError"))),
+  });
+
+  const explanationMutation = useMutation({
+    mutationFn: () => revealExplanationForQuestion(attemptId, questionId),
+    onSuccess: (data) => {
+      if (data.explanation) {
+        updateQuestionState({ revealedExplanation: data.explanation });
+        toast.info(t("api.explanationRevealSuccess")); // Simple toast
+      } else {
+        toast.info(t("api.explanationNotAvailable"));
+      }
+    },
+    onError: (err) =>
+      toast.error(getApiErrorMessage(err, t("api.explanationRevealError"))),
   });
 
   const answerMutation = useMutation({
@@ -77,33 +96,34 @@ export const PracticeControls: React.FC<Props> = ({
       toast.error(getApiErrorMessage(err, t("api.answerRevealError"))),
   });
 
-  const explanationMutation = useMutation({
-    mutationFn: () => revealExplanationForQuestion(attemptId, questionId),
-    onSuccess: (data) => {
-      if (data.explanation) {
-        updateQuestionState({ revealedExplanation: data.explanation });
-        // Show explanation in a more persistent toast
-        toast.info(t("api.explanationRevealSuccess"), {
-          description: data.explanation,
-          duration: 10000,
-        });
-      } else {
-        toast.info(t("api.explanationNotAvailable"));
-      }
-    },
-    onError: (err) =>
-      toast.error(getApiErrorMessage(err, t("api.explanationRevealError"))),
-  });
-
   const eliminateMutation = useMutation({
     mutationFn: () => recordEliminationForQuestion(attemptId, questionId),
     onSuccess: () => {
-      updateQuestionState({ usedElimination: true });
-      toast.success(t("api.eliminateSuccess"));
+      // NEW: Client-side logic to choose an option to eliminate
+      const options = Object.keys(question.options) as OptionKey[];
+      const incorrectOptions = options.filter(
+        (opt) => opt !== question.correct_answer
+      );
+
+      // Find an incorrect option that hasn't already been eliminated
+      const optionToEliminate = incorrectOptions.find(
+        (opt) => !questionState?.eliminatedOptions?.includes(opt)
+      );
+
+      if (optionToEliminate) {
+        const currentEliminated = questionState?.eliminatedOptions || [];
+        updateQuestionState({
+          usedElimination: true,
+          eliminatedOptions: [...currentEliminated, optionToEliminate],
+        });
+        toast.success(t("api.eliminateSuccess"));
+      }
     },
     onError: (err) =>
       toast.error(getApiErrorMessage(err, t("api.eliminateError"))),
   });
+
+  // --- Render Logic ---
 
   return (
     <Card>
@@ -213,3 +233,6 @@ export const PracticeControls: React.FC<Props> = ({
     </Card>
   );
 };
+
+// A helper for DRY principle, but omitted for brevity in this response.
+// The main logic is in the button `disabled` props above.

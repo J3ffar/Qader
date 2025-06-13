@@ -22,29 +22,25 @@ import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import type { UnifiedQuestion } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
-
-// UI & Shared Components
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
-
-// Child Components specific to this feature
 import { QuestionDisplay } from "./QuestionDisplay";
 import { PracticeControls } from "./PracticeControls";
 import { AnswerFeedbackDialog, FeedbackData } from "./AnswerFeedbackDialog";
+import { SessionStats } from "./SessionStats"; // NEW
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Local type definitions for state management
 type OptionKey = "A" | "B" | "C" | "D";
 export interface QuestionState {
   status: "unanswered" | "correct" | "incorrect";
   selectedAnswer: OptionKey | null;
-  feedback?: string;
   revealedAnswer?: OptionKey;
   revealedExplanation?: string;
   revealedHint?: string;
   usedElimination?: boolean;
+  eliminatedOptions?: OptionKey[];
 }
 
 export default function TraditionalLearningSession({
@@ -61,6 +57,11 @@ export default function TraditionalLearningSession({
   const [questionStates, setQuestionStates] = useState<
     Record<number, QuestionState>
   >({});
+  // NEW: State for session-wide statistics
+  const [sessionStats, setSessionStats] = useState({
+    correct: 0,
+    incorrect: 0,
+  });
   const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
   const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null);
 
@@ -99,8 +100,14 @@ export default function TraditionalLearningSession({
         [variables.questionId]: {
           ...prev[variables.questionId],
           status: isCorrect ? "correct" : "incorrect",
-          feedback: data.feedback_message,
         },
+      }));
+
+      // NEW: Update session stats
+      setSessionStats((prev) => ({
+        ...prev,
+        correct: isCorrect ? prev.correct + 1 : prev.correct,
+        incorrect: !isCorrect ? prev.incorrect + 1 : prev.incorrect,
       }));
 
       setFeedbackData({
@@ -133,10 +140,7 @@ export default function TraditionalLearningSession({
     selectedAnswer: OptionKey
   ) => {
     const currentState = questionStates[questionId]?.status;
-    if (currentState === "correct" || currentState === "incorrect") {
-      return;
-    }
-
+    if (currentState === "correct" || currentState === "incorrect") return;
     setQuestionStates((prev) => ({
       ...prev,
       [questionId]: {
@@ -158,10 +162,6 @@ export default function TraditionalLearningSession({
       setCurrentQuestionIndex((prev) => prev - 1);
     }
   };
-
-  // *** THE CHANGE IS HERE ***
-  // This function is now simplified. Its only job is to close the dialog.
-  // Navigation is now fully controlled by the user via the "Next" button.
   const handleFeedbackDialogClose = () => {
     setFeedbackData(null);
   };
@@ -268,13 +268,17 @@ export default function TraditionalLearningSession({
               </div>
             )}
           </main>
-
           <aside className="space-y-6 lg:col-span-1">
+            {/* NEW: Display session stats */}
+            <SessionStats
+              correct={sessionStats.correct}
+              incorrect={sessionStats.incorrect}
+            />
             {currentQuestion && (
               <>
                 <PracticeControls
                   attemptId={attemptId}
-                  questionId={currentQuestion.id}
+                  question={currentQuestion} // Pass the full question object
                   questionState={currentQuestionState}
                   setQuestionStates={setQuestionStates}
                 />
@@ -304,7 +308,6 @@ export default function TraditionalLearningSession({
           </aside>
         </div>
       </div>
-
       <AnswerFeedbackDialog
         isOpen={!!feedbackData}
         feedback={feedbackData}
