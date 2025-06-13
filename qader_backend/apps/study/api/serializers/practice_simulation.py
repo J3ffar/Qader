@@ -134,22 +134,6 @@ class PracticeSimulationStartSerializer(serializers.Serializer):
 
     def validate(self, data):
         """Performs basic validation and checks for active attempts."""
-        user = get_user_from_context(self.context)
-
-        # Check for ANY active 'started' attempt
-        if UserTestAttempt.objects.filter(
-            user=user,
-            status=UserTestAttempt.Status.STARTED,
-        ).exists():
-            raise serializers.ValidationError(
-                {
-                    "non_field_errors": [
-                        _(
-                            "You already have an ongoing test attempt. Please complete or cancel it first."
-                        )
-                    ]
-                }
-            )
 
         # Further validation (limits, question availability) handled by the service.
         return data

@@ -53,22 +53,6 @@ class LevelAssessmentStartSerializer(serializers.Serializer):
 
     def validate(self, data):
         """Performs basic validation and checks for active attempts."""
-        user = get_user_from_context(self.context)
-
-        # Check for ANY active 'started' attempt right away (quick check)
-        if UserTestAttempt.objects.filter(
-            user=user,
-            status=UserTestAttempt.Status.STARTED,
-        ).exists():
-            raise serializers.ValidationError(
-                {
-                    "non_field_errors": [
-                        _(
-                            "You already have an ongoing test attempt. Please complete or cancel it first."
-                        )
-                    ]
-                }
-            )
 
         # Further validation (like usage limits, question availability)
         # will be handled by the service function called by the view.
