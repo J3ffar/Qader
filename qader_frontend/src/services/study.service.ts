@@ -8,6 +8,11 @@ import {
   SubmitAnswerResponse,
   UserTestAttemptCompletionResponse,
   UserTestAttemptReviewResponse,
+  TraditionalPracticeStartResponse,
+  HintResponse,
+  RevealCorrectAnswerResponse,
+  RevealExplanationResponse,
+  StartTraditionalPracticePayload,
 } from "@/types/api/study.types";
 import { API_ENDPOINTS } from "@/constants/api"; // Assuming this exists and has study endpoints
 
@@ -106,6 +111,82 @@ export const retakeTestAttempt = async (
 ): Promise<UserTestAttemptStartResponse> => {
   return apiClient<UserTestAttemptStartResponse>(
     `${STUDY_API_BASE}/attempts/${attemptId}/retake/`,
+    {
+      method: "POST",
+    }
+  );
+};
+
+/**
+ * Corresponds to: POST /study/start/traditional/
+ * @description Starts a new traditional practice session.
+ */
+export const startTraditionalPractice = async (
+  payload: StartTraditionalPracticePayload
+): Promise<TraditionalPracticeStartResponse> => {
+  return apiClient<TraditionalPracticeStartResponse>(
+    `${STUDY_API_BASE}/start/traditional/`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+};
+
+/**
+ * Corresponds to: POST /study/start/traditional/attempts/{attempt_id}/questions/{question_id}/hint/
+ */
+export const getHintForQuestion = async (
+  attemptId: string,
+  questionId: number
+): Promise<HintResponse> => {
+  return apiClient<HintResponse>(
+    `${STUDY_API_BASE}/start/traditional/attempts/${attemptId}/questions/${questionId}/hint/`,
+    {
+      method: "POST",
+    }
+  );
+};
+
+/**
+ * Corresponds to: POST /study/start/traditional/attempts/{attempt_id}/questions/{question_id}/reveal-answer/
+ */
+export const revealCorrectAnswerForQuestion = async (
+  attemptId: string,
+  questionId: number
+): Promise<RevealCorrectAnswerResponse> => {
+  return apiClient<RevealCorrectAnswerResponse>(
+    `${STUDY_API_BASE}/start/traditional/attempts/${attemptId}/questions/${questionId}/reveal-answer/`,
+    {
+      method: "POST",
+    }
+  );
+};
+
+/**
+ * Corresponds to: POST /study/start/traditional/attempts/{attempt_id}/questions/{question_id}/reveal-explanation/
+ */
+export const revealExplanationForQuestion = async (
+  attemptId: string,
+  questionId: number
+): Promise<RevealExplanationResponse> => {
+  return apiClient<RevealExplanationResponse>(
+    `${STUDY_API_BASE}/start/traditional/attempts/${attemptId}/questions/${questionId}/reveal-explanation/`,
+    {
+      method: "POST",
+    }
+  );
+};
+
+/**
+ * Corresponds to: POST /study/start/traditional/attempts/{attempt_id}/questions/{question_id}/eliminate/
+ */
+export const recordEliminationForQuestion = async (
+  attemptId: string,
+  questionId: number
+): Promise<{ detail: string }> => {
+  return apiClient<{ detail: string }>(
+    `${STUDY_API_BASE}/start/traditional/attempts/${attemptId}/questions/${questionId}/eliminate/`,
     {
       method: "POST",
     }

@@ -194,3 +194,33 @@ export interface StartLevelAssessmentPayload {
   sections: string[]; // e.g., ["verbal", "quantitative"]
   num_questions: number;
 }
+
+export interface StartTraditionalPracticePayload {
+  subsections?: string[];
+  skills?: string[];
+  num_questions?: number;
+  starred?: boolean;
+  not_mastered?: boolean;
+}
+
+export interface TraditionalPracticeStartResponse {
+  attempt_id: number;
+  status: "started";
+  attempt_number_for_type: number;
+  questions: UnifiedQuestion[];
+}
+
+export interface HintResponse {
+  question_id: number;
+  hint: string | null;
+}
+
+export interface RevealCorrectAnswerResponse {
+  question_id: number;
+  correct_answer: "A" | "B" | "C" | "D";
+}
+
+export interface RevealExplanationResponse {
+  question_id: number;
+  explanation: string | null;
+}

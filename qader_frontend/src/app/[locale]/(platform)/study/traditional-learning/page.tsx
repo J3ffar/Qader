@@ -1,190 +1,326 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { ListFilter, Sparkles, History } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import {
-  PencilSquareIcon,
-  ArrowRightEndOnRectangleIcon,
-  ExclamationTriangleIcon,
-  CheckIcon,
-} from "@heroicons/react/24/outline";
-import axios from "axios";
-import { useRouter } from "next/navigation";
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { cn } from "@/lib/utils";
 
-const TraditionalEdu = () => {
-  const [isMounted, setIsMounted] = useState(false);
-  const [checkedSections, setCheckedSections] = useState({
-    section1: false,
-    section2: false,
+import { getTestAttempts, cancelTestAttempt } from "@/services/study.service";
+import { QUERY_KEYS } from "@/constants/queryKeys";
+import { PaginatedUserTestAttempts } from "@/types/api/study.types";
+import { DataTablePagination } from "@/components/shared/DataTablePagination";
+import TraditionalLearningConfigForm from "@/components/features/platform/study/traditional-learning/TraditionalLearningConfigForm";
+import { AttemptActionButtons } from "./_components/AttemptActionButtons";
+
+const PAGE_SIZE = 20;
+
+export default function TraditionalLearningHubPage() {
+  const t = useTranslations("Study.traditionalLearning.list");
+  const queryClient = useQueryClient();
+
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<"date">("date"); // Only date sorting for now
+
+  const {
+    data: attemptsData,
+    isLoading,
+    isFetching,
+    error,
+  } = useQuery<PaginatedUserTestAttempts, Error>({
+    queryKey: [
+      QUERY_KEYS.USER_TEST_ATTEMPTS,
+      { attempt_type: "traditional", page, ordering: "-date" },
+    ],
+    queryFn: () =>
+      getTestAttempts({
+        attempt_type: "traditional",
+        page,
+        ordering: "-date",
+      }),
   });
-  const [count, setCount] = useState(0);
-  const [isActiveOne, setIsActiveOne] = useState(false);
-  const [isActiveTwo, setIsActiveTwo] = useState(false);
-  const router = useRouter();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const cancelAttemptMutation = useMutation({
+    mutationFn: cancelTestAttempt,
+    onSuccess: (_, attemptId) => {
+      toast.success(t("actions.cancelDialog.successToast", { attemptId }));
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
+      });
+    },
+    onError: (err) => {
+      toast.error(
+        getApiErrorMessage(err, t("actions.cancelDialog.errorToastGeneric"))
+      );
+    },
+  });
 
-  const handleToggle = (section: "section1" | "section2") => {
-    setCheckedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
+  const { attempts, pageCount, canPreviousPage, canNextPage } = useMemo(() => {
+    const results = attemptsData?.results ?? [];
+    return {
+      attempts: results,
+      pageCount: attemptsData?.count
+        ? Math.ceil(attemptsData.count / PAGE_SIZE)
+        : 1,
+      canPreviousPage: !!attemptsData?.previous,
+      canNextPage: !!attemptsData?.next,
+    };
+  }, [attemptsData]);
 
-  const handlePlus = () => setCount((prev) => prev + 1);
-  const handleMinus = () => setCount((prev) => Math.max(0, prev - 1));
+  if (isLoading) {
+    return <TraditionalLearningPageSkeleton />;
+  }
 
-  const handleStartTest = async () => {
-    try {
-      
-      // const accessToken = localStorage.getItem("accessToken");
-      // const selectedSubsections = [];
+  if (error) {
+    return (
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+        <Alert variant="destructive">
+          <AlertTitle>{t("errors.fetchFailedTitle")}</AlertTitle>
+          <AlertDescription>
+            {t("errors.fetchFailedDescription")}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
-      // if (checkedSections.section1) selectedSubsections.push("القسم الكمى");
-      // if (checkedSections.section2) selectedSubsections.push("القسم اللفظى");
-      
-      // const response = await axios.post(
-      //   "https://qader.vip/ar/api/v1/study/start/traditional/",
-      //   {
-      //     subsections: selectedSubsections,
-      //     skills: [],
-      //     num_questions: count,
-      //     starred: isActiveOne,
-      //     not_mastered: isActiveTwo,
-      //   },
-      //   {
-      //     headers: {
-      //       Authorization: `Bearer ${accessToken}`,
-      //       "Content-Type": "application/json",
-      //     },
-      //   }
-      // );
-      
-
-      // const attemptId = response.data.attempt_id;
-      router.push(`/student/traditional/1`);
-    } catch (error) {
-      console.error("Failed to start traditional practice test:", error);
-    }
-  };
-
-  if (!isMounted) return null;
+  const hasAttempts = (attemptsData?.count ?? 0) > 0;
 
   return (
-    <div className="p-5 dark:bg-[#081028]">
-      <div className="one">
-        <p className="font-bold">اختر الاقسام التى تريد التدريب عليها</p>
-        <p className="text-gray-600">اختر من بين الاقسام الاساسية والفرعية</p>
-        <div className="flex gap-5 mt-4">
-          {/* القسم الكمي */}
-          <div
-            className="11 border rounded-2xl cursor-pointer"
-            onClick={() => handleToggle("section1")}
-          >
-            <div className="flex gap-2 bg-gray-100 rounded-t-2xl p-4 dark:bg-[#7E89AC]">
-              <input
-                type="checkbox"
-                checked={checkedSections.section1}
-                onChange={() => {}}
-                className="appearance-none w-5 h-5 rounded-full border border-gray-400 bg-white checked:bg-[#2f80ed] focus:outline-none cursor-pointer transition"
-              />
-              <p className="font-bold">القسم الكمى</p>
-            </div>
-            <div className="p-5 flex gap-3 flex-wrap max-md:flex-col">
-              {[...Array(5)].map((_, idx) => (
-                <p key={idx} className="p-2 border w-fit rounded-lg">استيعاب المقروء</p>
-              ))}
-            </div>
-          </div>
+    <div className="container mx-auto space-y-8 p-4 md:p-6 lg:p-8">
+      {/* Configuration Form is always visible */}
+      <TraditionalLearningConfigForm />
 
-          <div
-            className="22 border rounded-2xl cursor-pointer"
-            onClick={() => handleToggle("section2")}
-          >
-            <div className="flex gap-2 bg-gray-100 rounded-t-2xl p-4 dark:bg-[#7E89AC]">
-              <input
-                type="checkbox"
-                checked={checkedSections.section2}
-                onChange={() => {}}
-                className="appearance-none w-5 h-5 rounded-full border border-gray-400 bg-white checked:bg-[#2f80ed] focus:outline-none cursor-pointer transition"
-              />
-              <p className="font-bold">القسم اللفظى</p>
+      {/* Attempts List, only shown if there are attempts */}
+      {hasAttempts && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <History className="h-6 w-6 text-primary" />
+              <CardTitle>{t("attemptsLogTitle")}</CardTitle>
             </div>
-            <div className="p-5 flex gap-3 flex-wrap max-md:flex-col">
-              {[...Array(5)].map((_, idx) => (
-                <p key={idx} className="p-2 border w-fit rounded-lg">استيعاب المقروء</p>
-              ))}
+          </CardHeader>
+          <CardContent>
+            {/* Desktop Table */}
+            <div className="hidden rounded-xl border md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("table.date")}</TableHead>
+                    <TableHead className="text-center">
+                      {t("table.numQuestions")}
+                    </TableHead>
+                    <TableHead className="text-center">
+                      {t("table.status")}
+                    </TableHead>
+                    <TableHead className="w-[180px] text-center">
+                      {t("table.actions")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attempts.map((attempt) => (
+                    <TableRow
+                      key={attempt.attempt_id}
+                      className={cn({
+                        "opacity-60": attempt.status === "abandoned",
+                      })}
+                    >
+                      <TableCell>
+                        {new Date(attempt.date).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {attempt.num_questions}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span
+                          className={cn(
+                            "rounded-md px-2 py-1 text-xs font-medium",
+                            {
+                              "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100":
+                                attempt.status === "started",
+                              "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100":
+                                attempt.status === "completed",
+                              "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100":
+                                attempt.status === "abandoned",
+                            }
+                          )}
+                        >
+                          {attempt.status_display}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <AttemptActionButtons
+                          attempt={attempt}
+                          cancelAttemptMutation={cancelAttemptMutation}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          </div>
+
+            {/* Mobile Accordion */}
+            <div className="space-y-3 md:hidden">
+              <Accordion type="single" collapsible className="w-full">
+                {attempts.map((attempt) => (
+                  <AccordionItem
+                    value={`item-${attempt.attempt_id}`}
+                    key={attempt.attempt_id}
+                    className="rounded-lg border"
+                  >
+                    <AccordionTrigger className="p-4 hover:no-underline">
+                      <div className="flex w-full items-center justify-between">
+                        <p className="font-medium">
+                          {new Date(attempt.date).toLocaleDateString()}
+                        </p>
+                        <span
+                          className={cn(
+                            "me-2 rounded-md px-2 py-1 text-xs font-medium rtl:ms-2 rtl:me-0",
+                            {
+                              "bg-yellow-100 text-yellow-700":
+                                attempt.status === "started",
+                              "bg-green-100 text-green-700":
+                                attempt.status === "completed",
+                              "bg-red-100 text-red-700":
+                                attempt.status === "abandoned",
+                            }
+                          )}
+                        >
+                          {attempt.status_display}
+                        </span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-4 pt-0">
+                      <div className="space-y-3">
+                        <p>
+                          <strong>{t("table.numQuestions")}:</strong>{" "}
+                          {attempt.num_questions}
+                        </p>
+                        <AttemptActionButtons
+                          attempt={attempt}
+                          cancelAttemptMutation={cancelAttemptMutation}
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+
+            <DataTablePagination
+              page={page}
+              pageCount={pageCount}
+              setPage={setPage}
+              canPreviousPage={canPreviousPage}
+              canNextPage={canNextPage}
+              isFetching={isFetching}
+              className="mt-4"
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {!hasAttempts && !isLoading && (
+        <div className="rounded-lg border-2 border-dashed p-8 text-center text-muted-foreground">
+          <History className="mx-auto mb-4 h-12 w-12" />
+          <h3 className="mb-2 text-xl font-semibold">{t("noAttemptsTitle")}</h3>
+          <p>{t("noAttemptsDescription")}</p>
         </div>
-
-        <p className="font-bold mt-4">خيارات متقدمة</p>
-        <p className="text-gray-600">وصف وصف وصف وصف وصف وصف</p>
-        <div className="flex gap-5 mt-4">
-          <div className="border rounded-2xl cursor-pointer flex-1/2">
-            <div className="flex gap-2 bg-gray-100 rounded-t-2xl p-4 dark:bg-[#7E89AC]">
-              <p className="font-bold">عدد الاسئلة للتعلم</p>
-            </div>
-            <div className="p-5 flex justify-center items-center gap-3">
-              <button onClick={handleMinus} className="text-4xl text-[#0a60c2] cursor-pointer">-</button>
-              <span className="border-[#0a60c2] border p-3 rounded-lg cursor-default">{count}</span>
-              <button onClick={handlePlus} className="text-xl text-[#0a60c2] cursor-pointer">+</button>
-            </div>
-          </div>
-
-          <div className="border rounded-2xl cursor-pointer flex-1/2">
-            <div className="flex gap-2 bg-gray-100 rounded-t-2xl p-4 dark:bg-[#7E89AC]">
-              <p className="font-bold">الاسئلة المميزة بنجمة</p>
-            </div>
-            <div className="p-5 flex justify-center items-center gap-3">
-              <div
-                onClick={() => setIsActiveOne(!isActiveOne)}
-                className={`w-12 h-6 rounded-full cursor-pointer flex items-center px-0.5 transition-colors duration-300 ${
-                  isActiveOne ? "bg-blue-500" : "bg-gray-300"
-                }`}
-              >
-                <div
-                  className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
-                    isActiveOne ? "-translate-x-6" : "translate-x-0"
-                  }`}
-                ></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border rounded-2xl cursor-pointer flex-1/2">
-            <div className="flex gap-2 bg-gray-100 rounded-t-2xl p-4 dark:bg-[#7E89AC]">
-              <p className="font-bold">الاسئلة التى لم تتقنها</p>
-            </div>
-            <div className="p-5 flex justify-center items-center gap-3">
-              <div
-                onClick={() => setIsActiveTwo(!isActiveTwo)}
-                className={`w-12 h-6 rounded-full cursor-pointer flex items-center px-0.5 transition-colors duration-300 ${
-                  isActiveTwo ? "bg-blue-500" : "bg-gray-300"
-                }`}
-              >
-                <div
-                  className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
-                    isActiveTwo ? "-translate-x-6" : "translate-x-0"
-                  }`}
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-center mt-4">
-          <button
-            className="flex justify-center gap-2 bg-[#074182] text-white px-6 py-2 rounded-md font-semibold disabled:opacity-50"
-            onClick={handleStartTest}
-          >
-            <PencilSquareIcon className="w-7 h-7 font-bold" />
-            ابدأ الاختبار
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
-};
+}
 
-export default TraditionalEdu;
+// Skeleton remains in the same file for simplicity
+const TraditionalLearningPageSkeleton = () => (
+  <div className="container mx-auto space-y-8 p-4 md:p-6 lg:p-8">
+    {/* Config Form Skeleton */}
+    <div className="mx-auto max-w-4xl space-y-8">
+      <Skeleton className="h-[200px] w-full" />
+      <Skeleton className="h-[300px] w-full" />
+      <div className="flex justify-end">
+        <Skeleton className="h-12 w-48" />
+      </div>
+    </div>
+
+    {/* Attempts List Skeleton */}
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-8 w-48" />
+      </CardHeader>
+      <CardContent>
+        <div className="hidden rounded-xl border md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {[...Array(4)].map((_, i) => (
+                  <TableHead key={i}>
+                    <Skeleton className="h-5 w-24" />
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(3)].map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <Skeleton className="h-5 w-32" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="mx-auto h-5 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="mx-auto h-6 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="mx-auto h-9 w-32" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="mt-4 flex items-center justify-between">
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+);
