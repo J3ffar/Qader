@@ -342,6 +342,7 @@
       "outOf": "of",
       "next": "Next",
       "previous": "Previous",
+      "continue": "Continue",
       "submitAnswer": "Submit Answer",
       "correct": "Correct!",
       "incorrect": "Incorrect",
