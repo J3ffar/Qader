@@ -13,6 +13,8 @@ import {
   RevealCorrectAnswerResponse,
   RevealExplanationResponse,
   StartTraditionalPracticePayload,
+  StatisticsParams,
+  UserStatistics,
 } from "@/types/api/study.types";
 import { API_ENDPOINTS } from "@/constants/api"; // Assuming this exists and has study endpoints
 
@@ -191,4 +193,12 @@ export const recordEliminationForQuestion = async (
       method: "POST",
     }
   );
+};
+
+export const getUserStatistics = (
+  params?: StatisticsParams
+): Promise<UserStatistics> => {
+  return apiClient<UserStatistics>(API_ENDPOINTS.STUDY.STATISTICS, {
+    /* params TODO: Fix typesafe problem to send the params [Type 'StatisticsParams | undefined' is not assignable to type 'Record<string, string | number | boolean | string[]> | undefined'.]*/
+  });
 };

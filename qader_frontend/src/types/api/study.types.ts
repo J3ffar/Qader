@@ -224,3 +224,107 @@ export interface RevealExplanationResponse {
   question_id: number;
   explanation: string | null;
 }
+
+// Params for the statistics API call
+export interface StatisticsParams {
+  [key: string]: string | undefined; // This is the fix. It adds the index signature.
+  aggregation_period?: "daily" | "weekly" | "monthly" | "yearly";
+  start_date?: string; // YYYY-MM-DD
+  end_date?: string; // YYYY-MM-DD
+}
+
+// Full response structure for GET /study/statistics/
+export interface UserStatistics {
+  overall: {
+    mastery_level: {
+      verbal: number | null;
+      quantitative: number | null;
+    };
+    study_streaks: {
+      current_days: number;
+      longest_days: number;
+    };
+    activity_summary: {
+      total_questions_answered: number;
+      total_tests_completed: number;
+    };
+  };
+  performance_by_section: {
+    [section_slug: string]: {
+      name: string;
+      overall_accuracy: number | null;
+      subsections: {
+        [subsection_slug: string]: {
+          name: string;
+          accuracy: number | null;
+          attempts: number;
+        };
+      };
+    };
+  };
+  skill_proficiency_summary: Array<{
+    skill_slug: string;
+    skill_name: string;
+    proficiency_score: number;
+    accuracy: number | null;
+    attempts: number;
+  }>;
+  test_history_summary: Array<{
+    attempt_id: number;
+    date: string;
+    type: string;
+    type_value: string;
+    overall_score: number | null;
+    verbal_score: number | null;
+    quantitative_score: number | null;
+    num_questions: number;
+  }>;
+  performance_trends_by_test_type: {
+    [test_type_value: string]: Array<{
+      // Structure for aggregated data
+      period_start_date?: string;
+      average_score?: number | null;
+      average_verbal_score?: number | null;
+      average_quantitative_score?: number | null;
+      test_count?: number;
+      // Structure for non-aggregated data
+      attempt_id?: number;
+      date?: string;
+      score?: number | null;
+      verbal_score?: number | null;
+      quantitative_score?: number | null;
+      num_questions?: number;
+    }>;
+  };
+  average_scores_by_test_type: {
+    [test_type_value: string]: {
+      attempt_type_value: string;
+      attempt_type_display: string;
+      average_score: number | null;
+      average_verbal_score: number | null;
+      average_quantitative_score: number | null;
+      test_count: number;
+    };
+  };
+  time_analytics: {
+    overall_average_time_per_question_seconds: number | null;
+    average_time_per_question_by_correctness: {
+      correct: {
+        average_time_seconds: number | null;
+        question_count: number;
+      };
+      incorrect: {
+        average_time_seconds: number | null;
+        question_count: number;
+      };
+    };
+    average_test_duration_by_type: {
+      [test_type_value: string]: {
+        attempt_type_value: string;
+        attempt_type_display: string;
+        average_duration_seconds: number | null;
+        test_count: number;
+      };
+    };
+  };
+}

@@ -21,5 +21,6 @@ export const QUERY_KEYS = {
   USER_TEST_ATTEMPT_DETAIL: "userTestAttemptDetail", // (attemptId: number | string) => [USER_TEST_ATTEMPT_DETAIL, attemptId]
   USER_TEST_ATTEMPT_REVIEW: "userTestAttemptReview",
   USER_TEST_ATTEMPT_COMPLETION_RESULT: "userTestAttemptCompletionResult",
+  USER_STATISTICS: "userStatistics",
   // ... other query keys
 };

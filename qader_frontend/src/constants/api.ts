@@ -21,6 +21,9 @@ export const API_ENDPOINTS = {
     APPLY_SERIAL_CODE: "/users/me/apply-serial-code/",
     // ... other user endpoints
   },
+  STUDY: {
+    STATISTICS: "/study/statistics/",
+  },
   NOTIFICATIONS: {
     LIST: "/notifications/",
     MARK_READ: "/notifications/mark-read/",
