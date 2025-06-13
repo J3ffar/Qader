@@ -397,7 +397,9 @@
       "overallScore": "Overall",
       "verbalScore": "Verbal",
       "quantScore": "Quantitative",
-      "notEnoughData": "Not enough data to display chart."
+      "notEnoughData": "Not enough data to display chart.",
+      "filterPlaceholder": "Filter by test type",
+      "allTestTypes": "All Test Types"
     },
     "breakdown": {
       "title": "Performance by Section",
@@ -418,12 +420,19 @@
       "testType": "Test",
       "score": "Score",
       "action": "Action",
-      "review": "Review"
+      "review": "Review",
+      "viewAllHistory": "View All History"
     },
     "timeAnalytics": {
       "title": "Time Analysis",
       "correct": "Avg. time / correct answer",
       "incorrect": "Avg. time / incorrect answer"
+    },
+    "actionableInsights": {
+      "title": "Actionable Insights",
+      "description": "Review your recent activity and identify skills to focus on.",
+      "skillsTab": "Skill Analysis",
+      "testsTab": "Recent Tests"
     }
   }
 }

@@ -11,8 +11,9 @@ export function OverallStatsCards({ overallStats }: Props) {
   const t = useTranslations("Study.statistics.cards");
   const { mastery_level, study_streaks, activity_summary } = overallStats;
 
+  // Refactored to a 2x2 grid for better responsiveness
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
@@ -22,7 +23,9 @@ export function OverallStatsCards({ overallStats }: Props) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {mastery_level.verbal?.toFixed(1) ?? "N/A"}%
+            {mastery_level.verbal != null
+              ? `${mastery_level.verbal.toFixed(1)}%`
+              : "N/A"}
           </div>
           <p className="text-xs text-muted-foreground">{t("currentLevel")}</p>
         </CardContent>
@@ -36,7 +39,9 @@ export function OverallStatsCards({ overallStats }: Props) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {mastery_level.quantitative?.toFixed(1) ?? "N/A"}%
+            {mastery_level.quantitative != null
+              ? `${mastery_level.quantitative.toFixed(1)}%`
+              : "N/A"}
           </div>
           <p className="text-xs text-muted-foreground">{t("currentLevel")}</p>
         </CardContent>

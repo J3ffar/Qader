@@ -36,7 +36,6 @@ const SkillListItem = ({
     </div>
   );
 };
-
 export function SkillProficiencyLists({ skills }: Props) {
   const t = useTranslations("Study.statistics.skillProficiency");
 
@@ -47,37 +46,31 @@ export function SkillProficiencyLists({ skills }: Props) {
   const strongestSkills = sortedByProficiency.slice(0, 5);
   const weakestSkills = sortedByProficiency.slice(-5).reverse();
 
+  // The component now returns the Tabs directly, without a Card wrapper.
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("title")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="strongest" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="strongest">{t("strongest")}</TabsTrigger>
-            <TabsTrigger value="weakest">{t("weakest")}</TabsTrigger>
-          </TabsList>
-          <TabsContent value="strongest" className="space-y-2 pt-2">
-            {strongestSkills.map((skill) => (
-              <SkillListItem
-                key={skill.skill_slug}
-                skill={skill}
-                icon={TrendingUp}
-              />
-            ))}
-          </TabsContent>
-          <TabsContent value="weakest" className="space-y-2 pt-2">
-            {weakestSkills.map((skill) => (
-              <SkillListItem
-                key={skill.skill_slug}
-                skill={skill}
-                icon={TrendingDown}
-              />
-            ))}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+    <Tabs defaultValue="strongest" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="strongest">{t("strongest")}</TabsTrigger>
+        <TabsTrigger value="weakest">{t("weakest")}</TabsTrigger>
+      </TabsList>
+      <TabsContent value="strongest" className="mt-4 space-y-2">
+        {strongestSkills.map((skill) => (
+          <SkillListItem
+            key={skill.skill_slug}
+            skill={skill}
+            icon={TrendingUp}
+          />
+        ))}
+      </TabsContent>
+      <TabsContent value="weakest" className="mt-4 space-y-2">
+        {weakestSkills.map((skill) => (
+          <SkillListItem
+            key={skill.skill_slug}
+            skill={skill}
+            icon={TrendingDown}
+          />
+        ))}
+      </TabsContent>
+    </Tabs>
   );
 }

@@ -32,6 +32,19 @@
     "errorCode": "Error Code: 404"
   },
 
+  "testTypes": {
+    "level_assessment": "Level Assessment",
+    "traditional": "traditional",
+    "practice": "practice",
+    "simulation": "simulation",
+    "default": "Test"
+  },
+  "error": {
+    "title": "An Error Occurred",
+    "generic": "Something went wrong. Please try again later.",
+    "retry": "Click here to retry"
+  },
+
   "errors": {
     "generic": "An error occurred. Please try again.",
     "fetchFailedTitle": "Failed to fetch data"

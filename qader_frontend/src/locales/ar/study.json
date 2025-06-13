@@ -380,49 +380,58 @@
     }
   },
   "statistics": {
-    "pageTitle": "Statistics & Progress",
-    "pageDescription": "Track your performance and see how you improve over time.",
+    "pageTitle": "الإحصائيات والتقدم",
+    "pageDescription": "تتبع أداءك وشاهد كيف تتحسن بمرور الوقت.",
     "cards": {
-      "verbalMastery": "Verbal Mastery",
-      "quantMastery": "Quantitative Mastery",
-      "currentLevel": "Current estimated level",
-      "studyStreak": "Study Streak",
-      "consecutiveDays": "{count, plural, =0 {No streak} one {# consecutive day} other {# consecutive days}}",
-      "testsCompleted": "Tests Completed",
-      "totalThisPeriod": "In the current period"
+      "verbalMastery": "إتقان القسم اللفظي",
+      "quantMastery": "إتقان القسم الكمي",
+      "currentLevel": "المستوى التقديري الحالي",
+      "studyStreak": "سلسلة المذاكرة",
+      "consecutiveDays": "{count, plural, =0 {لا يوجد سلسلة} one {# يوم متواصل} two {# يومان متواصلان} few {# أيام متتالية} many {# يومًا متتاليًا} other {# يوم متتالي}}",
+      "testsCompleted": "الاختبارات المكتملة",
+      "totalThisPeriod": "في الفترة الحالية"
     },
     "charts": {
-      "performanceTrendTitle": "Performance Trend",
-      "overallScore": "Overall",
-      "verbalScore": "Verbal",
-      "quantScore": "Quantitative",
-      "notEnoughData": "Not enough data to display chart."
+      "performanceTrendTitle": "اتجاه الأداء",
+      "overallScore": "الإجمالي",
+      "verbalScore": "اللفظي",
+      "quantScore": "الكمي",
+      "notEnoughData": "لا توجد بيانات كافية لعرض الرسم البياني.",
+      "filterPlaceholder": "تصفية حسب نوع الاختبار",
+      "allTestTypes": "جميع أنواع الاختبارات"
     },
     "breakdown": {
-      "title": "Performance by Section",
-      "description": "See your strengths and weaknesses in each major test section.",
-      "overallAccuracy": "Overall Accuracy",
-      "viewSubsections": "View subsection details",
-      "attempts": "{count} {count, plural, one {attempt} other {attempts}}",
-      "noData": "No Section Data Available",
-      "noDataHint": "Complete some tests or practice sessions to see your breakdown here."
+      "title": "الأداء حسب الأقسام",
+      "description": "شاهد نقاط قوتك وضعفك في كل قسم رئيسي من الاختبار.",
+      "overallAccuracy": "الدقة الكلية",
+      "viewSubsections": "عرض تفاصيل الأقسام الفرعية",
+      "attempts": "{count, plural, one {# محاولة} two {# محاولتان} few {# محاولات} many {# محاولة} other {# محاولة}}",
+      "noData": "لا توجد بيانات للأقسام",
+      "noDataHint": "أكمل بعض الاختبارات أو الجلسات التدريبية لرؤية تفصيل أداءك هنا."
     },
     "skillProficiency": {
-      "title": "Skill Analysis",
-      "strongest": "Strongest",
-      "weakest": "To Improve"
+      "title": "تحليل المهارات",
+      "strongest": "الأقوى",
+      "weakest": "للتحسين"
     },
     "recentTests": {
-      "title": "Recent Activity",
-      "testType": "Test",
-      "score": "Score",
-      "action": "Action",
-      "review": "Review"
+      "title": "النشاط الأخير",
+      "testType": "الاختبار",
+      "score": "الدرجة",
+      "action": "الإجراء",
+      "review": "مراجعة",
+      "viewAllHistory": "عرض كل السجل"
     },
     "timeAnalytics": {
-      "title": "Time Analysis",
-      "correct": "Avg. time / correct answer",
-      "incorrect": "Avg. time / incorrect answer"
+      "title": "تحليل الوقت",
+      "correct": "متوسط الوقت / الإجابة الصحيحة",
+      "incorrect": "متوسط الوقت / الإجابة الخاطئة"
+    },
+    "actionableInsights": {
+      "title": "رؤى قابلة للتنفيذ",
+      "description": "راجع نشاطك الأخير وحدد المهارات التي يجب التركيز عليها.",
+      "skillsTab": "تحليل المهارات",
+      "testsTab": "الاختبارات الأخيرة"
     }
   }
 }

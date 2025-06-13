@@ -1,5 +1,9 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+
 import {
   Table,
   TableBody,
@@ -8,12 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useLocale, useTranslations } from "next-intl";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { CardFooter } from "@/components/ui/card";
 import type { UserStatistics } from "@/types/api/study.types";
 import { PATHS } from "@/constants/paths";
 
@@ -32,14 +33,12 @@ const getScoreVariant = (
 
 export function RecentTestsTable({ tests }: Props) {
   const t = useTranslations("Study.statistics.recentTests");
+  const tCommon = useTranslations("Common");
   const locale = useLocale();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("title")}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <>
+      <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -52,7 +51,12 @@ export function RecentTestsTable({ tests }: Props) {
             {tests.slice(0, 5).map((test) => (
               <TableRow key={test.attempt_id}>
                 <TableCell>
-                  <p className="font-medium">{test.type}</p>
+                  <p className="font-medium">
+                    {/* Use translated test type name */}
+                    {tCommon(`testTypes.${test.type_value}` as any, {
+                      defaultMessage: test.type,
+                    })}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(test.date).toLocaleDateString(locale, {
                       day: "numeric",
@@ -82,7 +86,13 @@ export function RecentTestsTable({ tests }: Props) {
             ))}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </div>
+      <CardFooter className="justify-center border-t px-6 pt-6">
+        <Button asChild variant="outline" className="w-full">
+          {/* TODO: Update this link when the full history page is created */}
+          <Link href={"/study/history"}>{t("viewAllHistory")}</Link>
+        </Button>
+      </CardFooter>
+    </>
   );
 }
