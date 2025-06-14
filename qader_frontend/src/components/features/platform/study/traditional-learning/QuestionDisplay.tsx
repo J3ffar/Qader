@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { useTranslations } from "next-intl";
 import { CheckCircle, Info, Lightbulb, XCircle } from "lucide-react";
