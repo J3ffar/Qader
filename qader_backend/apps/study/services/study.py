@@ -731,67 +731,57 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                 f"Failed to disconnect 'gamify_on_test_completed' signal (UID: gamify_test_completed) for attempt {test_attempt.id}. Gamification might run twice if calculate_scores saves."
             )
 
+        # --- REFACTORED LOGIC STARTS HERE ---
+
         test_attempt.status = UserTestAttempt.Status.COMPLETED
         test_attempt.end_time = timezone.now()
 
-        answered_count = 0
         total_questions = test_attempt.num_questions
-        correct_answers_in_test_count = 0
 
-        if test_attempt.attempt_type != UserTestAttempt.AttemptType.TRADITIONAL:
-            question_attempts_qs = test_attempt.question_attempts.select_related(
-                "question__subsection__section", "question__skill"
-            ).all()
-            answered_count = question_attempts_qs.count()
-            correct_answers_in_test_count = question_attempts_qs.filter(
-                is_correct=True
-            ).count()
+        # This block is now unified for ALL attempt types, including Traditional.
+        question_attempts_qs = test_attempt.question_attempts.select_related(
+            "question__subsection__section", "question__skill"
+        ).all()
+        answered_count = question_attempts_qs.count()
+        correct_answers_in_test_count = question_attempts_qs.filter(
+            is_correct=True
+        ).count()
 
-            if answered_count < total_questions:
-                logger.warning(
-                    f"Test attempt {test_attempt.id} (Type: {test_attempt.attempt_type}) completed by user {user.id} with only {answered_count}/{total_questions} questions answered."
-                )
-            elif (
-                answered_count > total_questions and total_questions > 0
-            ):  # Should not happen
-                logger.error(
-                    f"Data inconsistency: Test attempt {test_attempt.id} has {answered_count} answers recorded but expected {total_questions}. Scoring based on recorded answers."
-                )
-
-            # Calculate scores and save them (this will update score_percentage, etc.)
-            try:
-                test_attempt.calculate_and_save_scores(
-                    question_attempts_qs=question_attempts_qs
-                )  # This method now saves itself
-            except Exception as e:
-                # Log and potentially set status to ERROR if score calculation is critical
-                logger.exception(
-                    f"Error calculating or saving scores for test attempt {test_attempt.id}, user {user.id}: {e}"
-                )
-                # Consider if we should halt or proceed with partial data
-
-            logger.info(
-                f"Test attempt {test_attempt.id} (Type: {test_attempt.attempt_type}) scores calculated for user {user.id}. Score: {test_attempt.score_percentage}%"
+        if total_questions > 0 and answered_count < total_questions:
+            logger.warning(
+                f"Test attempt {test_attempt.id} (Type: {test_attempt.get_attempt_type_display()}) completed by user {user.id} with only {answered_count}/{total_questions} questions answered."
             )
-        else:  # For Traditional type
-            question_attempts_qs = test_attempt.question_attempts.all()
-            answered_count = question_attempts_qs.count()
-            correct_answers_in_test_count = question_attempts_qs.filter(
-                is_correct=True
-            ).count()
-            logger.info(
-                f"Traditional practice session {test_attempt.id} marked as completed for user {user.id}."
+        elif (
+            total_questions > 0 and answered_count > total_questions
+        ):  # Should not happen
+            logger.error(
+                f"Data inconsistency: Test attempt {test_attempt.id} has {answered_count} answers recorded but expected {total_questions}. Scoring based on recorded answers."
             )
-            # For traditional, scores are typically not applicable in the same way,
-            # but results_summary might be populated if questions were answered.
-            # No specific score calculation needed here, model defaults are fine.
+
+        # Calculate scores and save them (this will update score_percentage, etc. for all types)
+        try:
+            test_attempt.calculate_and_save_scores(
+                question_attempts_qs=question_attempts_qs
+            )  # This method saves score fields itself
+            logger.info(
+                f"Test attempt {test_attempt.id} (Type: {test_attempt.get_attempt_type_display()}) scores calculated for user {user.id}. Score: {test_attempt.score_percentage}%"
+            )
+        except Exception as e:
+            # Log and set status to ERROR if score calculation is critical
+            logger.exception(
+                f"Error calculating or saving scores for test attempt {test_attempt.id}, user {user.id}: {e}"
+            )
+            test_attempt.status = UserTestAttempt.Status.ERROR
 
         # Save status and end_time. Score fields were saved by calculate_and_save_scores.
+        # This needs to run AFTER score calculation in case of errors.
         service_controlled_update_fields = ["status", "end_time", "updated_at"]
         test_attempt.save(update_fields=service_controlled_update_fields)
         logger.info(
             f"Status and end_time saved for test_attempt {test_attempt.id}. Status is now {test_attempt.status.label}."
         )
+
+        # --- REFACTORED LOGIC ENDS HERE ---
 
         # Initialize gamification_results before the try block
         gamification_results = {
@@ -862,6 +852,8 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
 
     # --- Generate Smart Analysis (AI or Fallback) ---
     smart_analysis = AI_ANALYSIS_DEFAULT_FALLBACK  # Default fallback
+    # The `smart_analysis` logic can remain different for traditional vs. other types.
+    # Our goal was to fix the score, not the analysis text.
     if test_attempt.attempt_type != UserTestAttempt.AttemptType.TRADITIONAL:
         # Only generate AI analysis for non-traditional tests that have scores
         if (
@@ -892,6 +884,7 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
                 "Test completed. Scores are not available for detailed analysis at this time."
             )
     else:
+        # This simple analysis for Traditional is fine to keep.
         smart_analysis = _("Practice session ended.")
         if answered_count > 0:
             smart_analysis = _(
@@ -925,7 +918,7 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
         "answered_question_count": answered_count,
         "total_questions": total_questions,
         "correct_answers_in_test_count": correct_answers_in_test_count,
-        "smart_analysis": smart_analysis,  # This is now AI-powered or a robust fallback
+        "smart_analysis": smart_analysis,
         "points_from_test_completion_event": points_from_test_completion_event,
         "points_from_correct_answers_this_test": points_from_correct_answers_this_test,
         "badges_won": badges_won_for_response,
