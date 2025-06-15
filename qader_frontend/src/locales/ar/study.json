@@ -329,6 +329,40 @@
           "errorToastGeneric": "تعذر إلغاء الاختبار. يرجى المحاولة مرة أخرى."
         }
       }
+    },
+    "quiz": {
+      "title": "اختبار تدريبي",
+      "simulationTitle": "اختبار محاكاة",
+      "question": "سؤال",
+      "outOf": "من أصل",
+      "next": "التالي",
+      "previous": "السابق",
+      "submitAnswers": "إرسال وإنهاء",
+      "endTest": "إنهاء الاختبار",
+      "testAlreadyCompletedRedirecting": "لقد اكتمل هذا الاختبار بالفعل. يتم تحويلك...",
+      "noQuestionsTitle": "لا توجد أسئلة متاحة",
+      "noQuestionsDescription": "تعذر تحميل الأسئلة لهذا الاختبار. قد يكون الاختبار غير صالح أو حدث خطأ.",
+      "api": {
+        "answerSubmitError": "فشل إرسال الإجابة للسؤال {questionId}: {error}",
+        "testCompletedSuccess": "تم إكمال الاختبار بنجاح!",
+        "testCompleteError": "فشل إكمال الاختبار: {error}",
+        "testCancelledSuccess": "تم إلغاء الاختبار بنجاح.",
+        "testCancelError": "فشل إلغاء الاختبار: {error}"
+      },
+      "cancelDialog": {
+        "title": "إنهاء الاختبار؟",
+        "description": "هل أنت متأكد أنك تريد إنهاء الاختبار الحالي؟ سيتم حفظ تقدمك ويمكنك مراجعته لاحقًا.",
+        "confirmButton": "نعم، إنهاء الاختبار"
+      },
+      "completeDialog": {
+        "title": "إرسال الإجابات النهائية؟",
+        "description": "هل أنت متأكد أنك تريد إرسال إجاباتك وإنهاء الاختبار؟",
+        "confirmButton": "نعم، إرسال وإنهاء"
+      },
+      "questionLoadError": {
+        "title": "خطأ في تحميل السؤال",
+        "description": "تعذر تحميل خيارات السؤال {questionId}. يرجى المحاولة مرة أخرى أو الاتصال بالدعم."
+      }
     }
   },
 

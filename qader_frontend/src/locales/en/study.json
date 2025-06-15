@@ -333,6 +333,40 @@
           "errorToastGeneric": "Could not cancel the test. Please try again."
         }
       }
+    },
+    "quiz": {
+      "title": "Practice Test",
+      "simulationTitle": "Simulation Test",
+      "question": "Question",
+      "outOf": "of",
+      "next": "Next",
+      "previous": "Previous",
+      "submitAnswers": "Submit & Finish",
+      "endTest": "End Test",
+      "testAlreadyCompletedRedirecting": "This test has already been completed. Redirecting you...",
+      "noQuestionsTitle": "No Questions Available",
+      "noQuestionsDescription": "Could not load questions for this test. It might be invalid or an error occurred.",
+      "api": {
+        "answerSubmitError": "Failed to submit answer for question {questionId}: {error}",
+        "testCompletedSuccess": "Test completed successfully!",
+        "testCompleteError": "Failed to complete the test: {error}",
+        "testCancelledSuccess": "Test cancelled successfully.",
+        "testCancelError": "Failed to cancel the test: {error}"
+      },
+      "cancelDialog": {
+        "title": "End Test?",
+        "description": "Are you sure you want to end the current test? Your progress will be saved, and you can review it later.",
+        "confirmButton": "Yes, End Test"
+      },
+      "completeDialog": {
+        "title": "Submit Final Answers?",
+        "description": "Are you sure you want to submit your answers and finish the test?",
+        "confirmButton": "Yes, Submit & Finish"
+      },
+      "questionLoadError": {
+        "title": "Question Loading Error",
+        "description": "The options for question {questionId} could not be loaded. Please try again or contact support."
+      }
     }
   },
 
