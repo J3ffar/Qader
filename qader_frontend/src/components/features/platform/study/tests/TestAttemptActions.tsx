@@ -134,7 +134,7 @@ const TestAttemptActions = ({
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="start">
                   <DropdownMenuItem asChild>
                     <Link href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id)}>
                       <ListChecks className="me-2 h-4 w-4" />
