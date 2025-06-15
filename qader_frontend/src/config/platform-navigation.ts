@@ -71,7 +71,7 @@ export const PLATFORM_SIDEBAR_SECTIONS: PlatformSidebarNavSection[] = [
       {
         labelKey: "PlatformSidebar.items.tests",
         icon: FilePenLine,
-        href: PATHS.STUDY.SIMULATION_TESTS.HOME,
+        href: PATHS.STUDY.TESTS.LIST,
       },
       {
         labelKey: "PlatformSidebar.items.statistics",

@@ -15,6 +15,7 @@ import {
   StartTraditionalPracticePayload,
   StatisticsParams,
   UserStatistics,
+  StartPracticeSimulationPayload,
 } from "@/types/api/study.types";
 import { API_ENDPOINTS } from "@/constants/api"; // Assuming this exists and has study endpoints
 
@@ -23,6 +24,7 @@ const STUDY_API_BASE = "/study"; // Or define more specific paths in API_ENDPOIN
 // Corresponds to: GET /study/attempts/
 export const getTestAttempts = async (params?: {
   attempt_type?: string;
+  attempt_type__in?: string;
   ordering?: string;
   page?: number;
   status?: string;
@@ -128,6 +130,22 @@ export const startTraditionalPractice = async (
 ): Promise<TraditionalPracticeStartResponse> => {
   return apiClient<TraditionalPracticeStartResponse>(
     `${STUDY_API_BASE}/start/traditional/`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+};
+
+/**
+ * Corresponds to: POST /study/start/practice-simulation/
+ * @description Starts a new practice or simulation test based on user configuration.
+ */
+export const startPracticeSimulationTest = async (
+  payload: StartPracticeSimulationPayload
+): Promise<UserTestAttemptStartResponse> => {
+  return apiClient<UserTestAttemptStartResponse>(
+    `${STUDY_API_BASE}/start/practice-simulation/`,
     {
       method: "POST",
       body: JSON.stringify(payload),

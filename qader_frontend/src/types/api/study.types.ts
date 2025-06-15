@@ -195,6 +195,22 @@ export interface StartLevelAssessmentPayload {
   num_questions: number;
 }
 
+/**
+ * Payload for starting a Practice or Simulation Test.
+ * API: POST /study/start/practice-simulation/
+ */
+export interface StartPracticeSimulationPayload {
+  test_type: "practice" | "simulation";
+  config: {
+    name?: string | null;
+    subsections?: string[];
+    skills?: string[];
+    num_questions: number;
+    starred?: boolean;
+    not_mastered?: boolean;
+  };
+}
+
 export interface StartTraditionalPracticePayload {
   subsections?: string[];
   skills?: string[];

@@ -40,8 +40,17 @@ export const PATHS = {
       HOME: "/study/conversation-learning", // Main page for this learning mode
     },
 
-    SIMULATION_TESTS: {
-      HOME: "/study/simulation-tests", // List of available simulation tests
+    TESTS: {
+      LIST: "/study/tests",
+      START: "/study/tests/start",
+      ATTEMPT: (attemptId: number | string) =>
+        `/study/tests/attempt/${attemptId}`,
+      SCORE: (attemptId: number | string) =>
+        `/study/tests/attempt/${attemptId}/score`,
+      REVIEW: (attemptId: number | string, incorrectOnly = false) =>
+        `/study/tests/attempt/${attemptId}/review${
+          incorrectOnly ? "?incorrect_only=true" : ""
+        }`,
     },
 
     REWARDS_AND_COMPETITIONS: "/study/rewards-and-competitions",

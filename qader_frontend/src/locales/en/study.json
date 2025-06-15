@@ -275,6 +275,57 @@
     "apiError": "An error occurred while fetching data. Please try again."
   },
 
+  "tests": {
+    "title": "Practice & Simulation Tests",
+    "startForm": {
+      "pageTitle": "Configure Your Test",
+      "pageDescription": "Customize your test by selecting the mode, topics, and number of questions to match your study goals.",
+      "settingsTitle": "Test Configuration",
+      "settingsDescription": "Set up your test session.",
+      "testType": "Test Mode",
+      "practice": "Practice",
+      "simulation": "Simulation",
+      "numQuestions": "Number of Questions",
+      "starredLabel": "Practice only starred questions",
+      "notMasteredLabel": "Focus on unmastered skills",
+      "submit": "Start Test",
+      "validation": {
+        "atLeastOneSubsection": "Please select at least one topic to practice.",
+        "numQuestionsMin": "Number of questions must be at least 5.",
+        "numQuestionsMax": "Number of questions must not exceed 120."
+      },
+      "api": {
+        "startSuccess": "Test started successfully! Good luck."
+      }
+    },
+    "list": {
+      "title": "Test History",
+      "description": "Review your past tests to track your progress.",
+      "startNewTest": "Start New Test",
+      "noAttemptsTitle": "No Tests Taken Yet",
+      "noAttemptsDescription": "Your practice and simulation tests will appear here.",
+      "api": {
+        "retakeSuccess": "New test created! Redirecting..."
+      },
+      "table": {
+        "testType": "Test Type",
+        "date": "Date",
+        "numQuestions": "Questions",
+        "score": "Score",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "actions": {
+        "openMenu": "Open menu",
+        "review": "Full Review",
+        "reviewIncorrect": "Review Incorrect Only",
+        "retake": "Retake Similar Test",
+        "inProgress": "In Progress",
+        "inProgressTooltip": "This test has not been completed yet."
+      }
+    }
+  },
+
   "traditionalLearning": {
     "title": "Traditional Learning",
     "description": "Master concepts with targeted practice questions.",
@@ -381,6 +432,7 @@
       "skill": "Skill"
     }
   },
+
   "statistics": {
     "pageTitle": "Statistics & Progress",
     "pageDescription": "Track your performance and see how you improve over time.",
