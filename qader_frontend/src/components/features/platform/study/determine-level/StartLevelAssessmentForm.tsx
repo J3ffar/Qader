@@ -330,7 +330,7 @@ const StartLevelAssessmentForm: React.FC = () => {
                       </label>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="space-y-3 p-4 pt-0">
+                  <AccordionContent className="grid grid-cols-1 gap-3 p-4 pt-0 sm:grid-cols-4">
                     {section.subsections.map((subsection) => (
                       <div
                         key={subsection.slug}

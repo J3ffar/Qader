@@ -182,7 +182,7 @@ const StartTestForm: React.FC = () => {
                   {section.subsections.map((subsection) => (
                     <div
                       key={subsection.slug}
-                      className="flex items-center space-x-2 rtl:space-x-reverse"
+                      className="flex items-center space-x-3 ps-4 rtl:space-x-reverse rtl:pe-4"
                     >
                       <Checkbox
                         id={subsection.slug}
@@ -200,7 +200,7 @@ const StartTestForm: React.FC = () => {
                       />
                       <label
                         htmlFor={subsection.slug}
-                        className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        className="mr-3 cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
                         {subsection.name}
                       </label>
