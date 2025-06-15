@@ -128,7 +128,7 @@ export default function TraditionalLearningSession({
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
       });
-      router.push(PATHS.STUDY.TRADITIONAL_LEARNING.HOME);
+      router.push(PATHS.STUDY.TRADITIONAL_LEARNING.LIST);
     },
     onError: (err) => {
       toast.error(getApiErrorMessage(err, t("api.sessionCompleteError")));

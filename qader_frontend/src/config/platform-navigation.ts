@@ -56,7 +56,7 @@ export const PLATFORM_SIDEBAR_SECTIONS: PlatformSidebarNavSection[] = [
       {
         labelKey: "PlatformSidebar.items.traditionalLearning",
         icon: BookOpenText,
-        href: PATHS.STUDY.TRADITIONAL_LEARNING.HOME,
+        href: PATHS.STUDY.TRADITIONAL_LEARNING.LIST,
       },
       {
         labelKey: "PlatformSidebar.items.emergencyMode",
