@@ -59,14 +59,16 @@ const TestAttemptsList = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[150px]">{t("table.testType")}</TableHead>
-              <TableHead>{t("table.date")}</TableHead>
+              <TableHead className="w-[150px] text-right">
+                {t("table.testType")}
+              </TableHead>
+              <TableHead className="text-right">{t("table.date")}</TableHead>
               <TableHead className="text-center">
                 {t("table.numQuestions")}
               </TableHead>
               <TableHead className="text-center">{t("table.score")}</TableHead>
               <TableHead className="text-center">{t("table.status")}</TableHead>
-              <TableHead className="w-[240px] text-center">
+              <TableHead className="text-center">
                 {t("table.actions")}
               </TableHead>
             </TableRow>
