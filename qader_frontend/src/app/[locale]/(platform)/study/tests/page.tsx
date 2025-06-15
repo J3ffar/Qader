@@ -1,4 +1,3 @@
-// src/app/[locale]/(platform)/study/tests/page.tsx
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -7,13 +6,18 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { PlusCircle, ListChecks, ListXIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTablePagination } from "@/components/shared/DataTablePagination";
-import { getTestAttempts, retakeTestAttempt } from "@/services/study.service";
+import {
+  getTestAttempts,
+  retakeTestAttempt,
+  cancelTestAttempt,
+} from "@/services/study.service";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import {
@@ -23,17 +27,18 @@ import {
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { toast } from "sonner";
 import TestAttemptsList from "@/components/features/platform/study/tests/TestAttemptsList";
-import { useRouter } from "next/navigation";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 const TestsPage = () => {
   const t = useTranslations("Study.tests.list");
+  const tActions = useTranslations("Study.tests.list.actions");
   const tCommon = useTranslations("Common");
   const queryClient = useQueryClient();
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [retakingId, setRetakingId] = useState<number | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
 
   const { data, isLoading, isFetching, error } = useQuery<
     PaginatedUserTestAttempts,
@@ -51,36 +56,42 @@ const TestsPage = () => {
       }),
   });
 
-  // +++ FIX: Explicitly type the useMutation hook +++
   const retakeMutation = useMutation<
     UserTestAttemptStartResponse,
     Error,
     number
   >({
     mutationFn: retakeTestAttempt,
-    onMutate: (attemptId) => {
-      // `attemptId` is now correctly inferred as `number`, matching the state type.
-      setRetakingId(attemptId);
-    },
+    onMutate: (attemptId) => setRetakingId(attemptId),
     onSuccess: (data) => {
       toast.success(t("api.retakeSuccess"));
+      router.push(PATHS.STUDY.TESTS.ATTEMPT(data.attempt_id));
+    },
+    onError: (err: any) =>
+      toast.error(getApiErrorMessage(err, tCommon("errors.generic"))),
+    onSettled: () => setRetakingId(null),
+  });
+
+  const cancelAttemptMutation = useMutation<void, Error, number>({
+    mutationFn: cancelTestAttempt,
+    onMutate: (attemptId) => setCancellingId(attemptId),
+    onSuccess: (_, attemptId) => {
+      toast.success(tActions("cancelDialog.successToast", { attemptId }));
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
       });
-      router.push(PATHS.STUDY.TESTS.ATTEMPT(data.attempt_id));
     },
     onError: (err: any) => {
-      toast.error(getApiErrorMessage(err, tCommon("errors.generic")));
+      toast.error(
+        getApiErrorMessage(err, tActions("cancelDialog.errorToastGeneric"))
+      );
     },
-    onSettled: () => {
-      setRetakingId(null);
-    },
+    onSettled: () => setCancellingId(null),
   });
 
   const { attempts, pageCount, canPreviousPage, canNextPage } = useMemo(() => {
-    const results = data?.results ?? [];
     return {
-      attempts: results,
+      attempts: data?.results ?? [],
       pageCount: data?.count ? Math.ceil(data.count / PAGE_SIZE) : 1,
       canPreviousPage: !!data?.previous,
       canNextPage: !!data?.next,
@@ -88,7 +99,6 @@ const TestsPage = () => {
   }, [data]);
 
   const handleRetake = (attemptId: number) => {
-    // This call is now type-checked against the `number` generic we provided.
     retakeMutation.mutate(attemptId);
   };
 
@@ -163,6 +173,8 @@ const TestsPage = () => {
                 onRetake={handleRetake}
                 isRetaking={retakeMutation.isPending}
                 retakeAttemptId={retakingId}
+                cancelAttemptMutation={cancelAttemptMutation}
+                cancellingAttemptId={cancellingId}
               />
               <DataTablePagination
                 page={page}

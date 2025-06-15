@@ -1,7 +1,7 @@
-// src/components/features/platform/study/tests/TestAttemptsList.tsx
 "use client";
 
 import { useTranslations } from "next-intl";
+import { UseMutationResult } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -17,7 +17,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { cn } from "@/lib/utils";
 import { UserTestAttemptList } from "@/types/api/study.types";
 import TestAttemptActions from "./TestAttemptActions";
 
@@ -26,6 +25,8 @@ type TestAttemptsListProps = {
   onRetake: (attemptId: number) => void;
   isRetaking: boolean;
   retakeAttemptId: number | null;
+  cancelAttemptMutation: UseMutationResult<void, Error, number, unknown>;
+  cancellingAttemptId: number | null;
 };
 
 const TestAttemptsList = ({
@@ -33,9 +34,10 @@ const TestAttemptsList = ({
   onRetake,
   isRetaking,
   retakeAttemptId,
+  cancelAttemptMutation,
+  cancellingAttemptId,
 }: TestAttemptsListProps) => {
   const t = useTranslations("Study.tests.list");
-  const commonT = useTranslations("Common");
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -57,14 +59,14 @@ const TestAttemptsList = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t("table.testType")}</TableHead>
+              <TableHead className="w-[150px]">{t("table.testType")}</TableHead>
               <TableHead>{t("table.date")}</TableHead>
               <TableHead className="text-center">
                 {t("table.numQuestions")}
               </TableHead>
               <TableHead className="text-center">{t("table.score")}</TableHead>
               <TableHead className="text-center">{t("table.status")}</TableHead>
-              <TableHead className="text-center">
+              <TableHead className="w-[240px] text-center">
                 {t("table.actions")}
               </TableHead>
             </TableRow>
@@ -101,6 +103,8 @@ const TestAttemptsList = ({
                     onRetake={onRetake}
                     isRetaking={isRetaking}
                     retakeAttemptId={retakeAttemptId}
+                    cancelAttemptMutation={cancelAttemptMutation}
+                    cancellingAttemptId={cancellingAttemptId}
                   />
                 </TableCell>
               </TableRow>
@@ -157,6 +161,8 @@ const TestAttemptsList = ({
                       onRetake={onRetake}
                       isRetaking={isRetaking}
                       retakeAttemptId={retakeAttemptId}
+                      cancelAttemptMutation={cancelAttemptMutation}
+                      cancellingAttemptId={cancellingAttemptId}
                     />
                   </div>
                 </div>

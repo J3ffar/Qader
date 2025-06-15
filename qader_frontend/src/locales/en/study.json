@@ -320,8 +320,18 @@
         "review": "Full Review",
         "reviewIncorrect": "Review Incorrect Only",
         "retake": "Retake Similar Test",
-        "inProgress": "In Progress",
-        "inProgressTooltip": "This test has not been completed yet."
+        "inProgressTooltip": "This test has not been completed yet.",
+        "abandonedTooltip": "This test was abandoned and cannot be continued or reviewed.",
+        "continueTest": "Continue Test",
+        "continueTestTooltip": "This feature is under development. Please end this test and start a new one for now.",
+        "cancelTest": "Cancel Test",
+        "cancelDialog": {
+          "title": "Are you sure you want to cancel this test?",
+          "description": "This action cannot be undone. Your progress in test attempt #{attemptId} will be lost.",
+          "confirmButton": "Yes, Cancel Test",
+          "successToast": "Test attempt #{attemptId} has been successfully cancelled.",
+          "errorToastGeneric": "Could not cancel the test. Please try again."
+        }
       }
     }
   },
