@@ -22,5 +22,10 @@ export const QUERY_KEYS = {
   USER_TEST_ATTEMPT_REVIEW: "userTestAttemptReview",
   USER_TEST_ATTEMPT_COMPLETION_RESULT: "userTestAttemptCompletionResult",
   USER_STATISTICS: "userStatistics",
-  // ... other query keys
+
+  CONVERSATION_START: "conversationStart",
+  CONVERSATION_SEND_MESSAGE: "conversationSendMessage",
+  CONVERSATION_ASK_QUESTION: "conversationAskQuestion",
+  CONVERSATION_CONFIRM_UNDERSTANDING: "conversationConfirmUnderstanding",
+  CONVERSATION_SUBMIT_ANSWER: "conversationSubmitAnswer",
 };

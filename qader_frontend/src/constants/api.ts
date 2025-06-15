@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
   },
   STUDY: {
     STATISTICS: "/study/statistics/",
+    CONVERSATIONS: "/study/conversations",
   },
   NOTIFICATIONS: {
     LIST: "/notifications/",
