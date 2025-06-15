@@ -367,6 +367,36 @@
         "title": "Question Loading Error",
         "description": "The options for question {questionId} could not be loaded. Please try again or contact support."
       }
+    },
+    "score": {
+      "pageTitle": "Test Result",
+      "yourScoreIsReady": "Your Test Result is Ready!",
+      "overallScore": "Overall Score",
+      "timeTaken": "Time Taken",
+      "minutes": "min",
+      "currentLevel": "Performance Level",
+      "correctAnswers": "Correct Answers",
+      "incorrectAnswers": "Incorrect Answers",
+      "skipped": "Skipped",
+      "scoreDistribution": "Score Distribution",
+      "detailedPerformance": "Detailed Performance by Topic",
+      "section": "Section",
+      "correct": "Correct",
+      "total": "Total",
+      "score": "Score",
+      "smartAnalysisTitle": "Smart Analysis",
+      "pointsEarned": "Points Earned",
+      "currentStreak": "Study Streak",
+      "days": "Days",
+      "badgesUnlocked": "Badges Unlocked",
+      "backToOverview": "Back to Test List",
+      "retakeTest": "Retake Similar Test",
+      "errors": {
+        "fetchReviewFailed": "Failed to load test result data. The test might be incomplete or an error occurred."
+      },
+      "api": {
+        "retakeSuccess": "New test created successfully! Redirecting you..."
+      }
     }
   },
 
