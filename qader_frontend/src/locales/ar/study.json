@@ -288,7 +288,7 @@
       "validation": {
         "atLeastOneSubsection": "الرجاء اختيار موضوع واحد على الأقل للتدريب.",
         "numQuestionsMin": "يجب أن يكون عدد الأسئلة 5 على الأقل.",
-        "numQuestionsMax": "يجب ألا يتجاوز عدد الأسئلة 120."
+        "numQuestionsMax": "يجب ألا يتجاوز عدد الأسئلة 100."
       },
       "api": {
         "startSuccess": "تم بدء الاختبار بنجاح! بالتوفيق."

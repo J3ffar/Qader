@@ -292,7 +292,7 @@
       "validation": {
         "atLeastOneSubsection": "Please select at least one topic to practice.",
         "numQuestionsMin": "Number of questions must be at least 5.",
-        "numQuestionsMax": "Number of questions must not exceed 120."
+        "numQuestionsMax": "Number of questions must not exceed 100."
       },
       "api": {
         "startSuccess": "Test started successfully! Good luck."
