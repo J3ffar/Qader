@@ -16,13 +16,13 @@ from apps.study.models import (
     UserQuestionAttempt,
 )
 from apps.study.api.serializers.conversation import (
+    AIConfirmUnderstandingResponseSerializer,
     AIQuestionResponseSerializer,
     ConversationSessionListSerializer,
     ConversationSessionDetailSerializer,
     ConversationSessionCreateSerializer,
     ConversationMessageSerializer,
     ConversationUserMessageInputSerializer,
-    ConfirmUnderstandingSerializer,
     ConversationTestQuestionSerializer,
     ConversationTestSubmitSerializer,
     ConversationTestResultSerializer,
@@ -75,7 +75,7 @@ class ConversationViewSet(
             "list": ConversationSessionListSerializer,
             "create": ConversationSessionCreateSerializer,
             "send_message": ConversationUserMessageInputSerializer,  # Input
-            "confirm_understanding": ConversationTestQuestionSerializer,  # Output
+            "confirm_understanding": AIConfirmUnderstandingResponseSerializer,
             "submit_test_answer": ConversationTestSubmitSerializer,  # Input
             "ask_question": None,  # No input serializer needed
             # Add other actions if needed
@@ -360,27 +360,21 @@ class ConversationViewSet(
 
     @extend_schema(
         summary="Confirm Understanding ('Got It')",
-        request=None,  # No request body needed, uses session context
+        description="User confirms understanding of the current topic. The AI responds with an encouraging message and a new, related question to test this understanding.",
+        request=None,
         responses={
-            200: ConversationTestQuestionSerializer,  # Returns the test question
-            204: None,  # No Content if no test question is generated
-            400: {"detail": "Error message"},
+            200: AIConfirmUnderstandingResponseSerializer,  # Returns the AI message and test question
+            204: {
+                "description": "Success, but no suitable test question could be found."
+            },
+            400: {"description": "No topic context found to test against."},
         },
-        parameters=[
-            OpenApiParameter(
-                name="id",
-                location=OpenApiParameter.PATH,
-                description="Conversation Session ID",
-                required=True,
-                type=OpenApiTypes.INT,
-            ),
-        ],
     )
     @action(detail=True, methods=["post"], url_path="confirm-understanding")
     def confirm_understanding(self, request, pk=None):
         """
-        User confirms understanding of the current topic. Triggers a test question.
-        Relies on `current_topic_question` being set in the session context.
+        User confirms understanding. Triggers the service to find a related
+        test question and generate an AI preface message.
         """
         session = self.get_object()
         if session.status == ConversationSession.Status.COMPLETED:
@@ -389,11 +383,7 @@ class ConversationViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        original_question = session.current_topic_question
-        if not original_question:
-            logger.warning(
-                f"'Got It' clicked for session {session.id} but no current_topic_question set."
-            )
+        if not session.current_topic_question:
             return Response(
                 {
                     "detail": _(
@@ -403,47 +393,26 @@ class ConversationViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Select a test question based on the original concept/skill
-        test_question = conversation.select_test_question_for_concept(
-            original_question, request.user
-        )
+        # Call the service function to handle the logic
+        response_data = conversation.prepare_understanding_test(session, request.user)
 
-        if not test_question:
-            logger.info(
-                f"No suitable test question found after 'Got It' for session {session.id}, original Q {original_question.id}."
-            )
-            # Optionally send an AI message saying "Great! Let's move on." or similar
-            # For now, return No Content to indicate success but no test follows
+        if not response_data:
+            # Service couldn't find a question, return No Content
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        # Return the selected test question for the frontend to display
-        serializer = ConversationTestQuestionSerializer(
-            test_question, context=self.get_serializer_context()
-        )
-        logger.info(
-            f"Presenting test question {test_question.id} to user {request.user.username} for session {session.id}"
+        # We need to pass context to the nested UnifiedQuestionSerializer
+        serializer_context = self.get_serializer_context()
+        serializer_context["exclude_sensitive_fields"] = True
+
+        serializer = self.get_serializer(
+            instance=response_data, context=serializer_context
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="Submit Answer to Conversation Test",
         request=ConversationTestSubmitSerializer,
-        responses={
-            200: ConversationTestResultSerializer,
-            400: {"description": "Session completed or invalid input."},
-            404: {"description": "Question not found."},
-            500: {"description": "Internal server error."},
-            503: {"description": "AI service unavailable (for feedback generation)."},
-        },
-        parameters=[
-            OpenApiParameter(
-                name="id",
-                location=OpenApiParameter.PATH,
-                description="Conversation Session ID",
-                required=True,
-                type=OpenApiTypes.INT,
-            ),
-        ],
+        responses={200: ConversationTestResultSerializer},
     )
     @action(detail=True, methods=["post"], url_path="submit-test-answer")
     def submit_test_answer(self, request, pk=None):
@@ -458,75 +427,60 @@ class ConversationViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        test_question_instance = serializer.validated_data["question_id"]
-        selected_answer = serializer.validated_data["selected_answer"]
-        user = request.user
-        ai_feedback_text = _("Feedback generation pending.")  # Default message
+        input_serializer = self.get_serializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+        validated_data = input_serializer.validated_data
 
         try:
-            # 1. Record the attempt (atomic transaction within the service)
+            # 1. Record the attempt
             attempt = conversation.record_conversation_test_attempt(
-                user=user,
+                user=request.user,
                 session=session,
-                test_question=test_question_instance,
-                selected_answer=selected_answer,
+                test_question=validated_data["question_id"],
+                selected_answer=validated_data["selected_answer"],
             )
 
-            # 2. Get AI Feedback (outside the attempt recording transaction potentially)
+            # 2. Get AI Feedback
+            ai_feedback_text = _("Could not generate feedback at this time.")
             try:
                 ai_feedback_text = conversation.get_ai_feedback_on_answer(
-                    session=session,
-                    attempt=attempt,
+                    session=session, attempt=attempt
                 )
-            except Exception as feedback_error:
-                # Log the feedback error but don't fail the whole request,
-                # as the answer *was* recorded.
+            except Exception as e:
                 logger.error(
-                    f"Failed to get AI feedback for attempt {attempt.id}: {feedback_error}",
+                    f"Failed to get AI feedback for attempt {attempt.id}: {e}",
                     exc_info=True,
-                )
-                ai_feedback_text = _(
-                    "Answer recorded, but an error occurred while generating feedback."
                 )
 
-            # 3. Save AI Feedback as a Conversation Message (separate transaction)
-            # Use atomic=True to ensure this save succeeds or fails cleanly.
-            try:
-                with transaction.atomic():
-                    ai_msg = ConversationMessage.objects.create(
-                        session=session,
-                        sender_type=ConversationMessage.SenderType.AI,
-                        message_text=ai_feedback_text,
-                        # Do NOT link this feedback message to the original question via related_question
-                        # It's feedback ABOUT the attempt.
-                    )
-                    logger.info(
-                        f"AI feedback message saved (ID: {ai_msg.id}) for attempt {attempt.id}"
-                    )
-            except Exception as msg_save_error:
-                # Log error saving the message, but proceed with response
-                logger.error(
-                    f"Failed to save AI feedback message for attempt {attempt.id}: {msg_save_error}",
-                    exc_info=True,
-                )
-                # The ai_feedback_text variable still holds the generated text for the response
+            # 3. Save AI Feedback as a Conversation Message
+            conversation.ConversationMessage.objects.create(
+                session=session,
+                sender_type=conversation.ConversationMessage.SenderType.AI,
+                message_text=ai_feedback_text,
+            )
 
             # 4. Prepare and return the response
-            # Serialize the attempt result first
-            result_serializer = ConversationTestResultSerializer(
+            # The serializer now expects 'ai_feedback' in its instance data.
+            response_payload = {"attempt": attempt, "ai_feedback": ai_feedback_text}
+
+            # To properly serialize, we pass the attempt object as the main instance
+            # and inject the feedback via context, which the serializer can pick up.
+            # A cleaner way is to adjust the serializer `to_representation` or fields.
+            # For simplicity here, let's build the final dict and pass it to a simple serializer.
+            # Let's adjust the ConversationTestResultSerializer to make this cleaner.
+
+            # (Assuming we adjust the serializer to take `ai_feedback` in context or init)
+            # For this refactor, let's keep it simple: we pass the attempt and add feedback after.
+            output_serializer = ConversationTestResultSerializer(
                 attempt, context=self.get_serializer_context()
             )
-            response_data = result_serializer.data
-            # Add the generated AI feedback text to the response dictionary
-            response_data["ai_feedback"] = ai_feedback_text
+            response_data = output_serializer.data
+            response_data["ai_feedback"] = ai_feedback_text  # Add the feedback text
 
             return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
-            q_id = test_question_instance.id if test_question_instance else "UNKNOWN"
+            q_id = validated_data["question_id"] if validated_data else "UNKNOWN"
             logger.exception(
                 f"Error during submit_test_answer for session {session.id}, question {q_id}: {e}"
             )

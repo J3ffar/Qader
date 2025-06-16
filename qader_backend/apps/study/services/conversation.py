@@ -181,6 +181,81 @@ def generate_ai_question_and_message(
     return {"ai_message": ai_cheer_message_text, "question": selected_question}
 
 
+@transaction.atomic
+def prepare_understanding_test(
+    session: ConversationSession, user: User
+) -> Optional[Dict[str, Any]]:
+    """
+    Selects a test question for a concept and generates an AI message to introduce it.
+    This service function is called when the user signals 'Got It'.
+
+    Returns:
+        A dict with 'ai_message' and 'test_question' object, or None if no question is found.
+    """
+    original_question = session.current_topic_question
+    if not original_question:
+        logger.warning(
+            f"'Got It' logic triggered for session {session.id} but no current_topic_question set."
+        )
+        return None
+
+    # 1. Select a related test question
+    test_question = select_test_question_for_concept(original_question, user)
+    if not test_question:
+        logger.info(
+            f"No suitable test question found after 'Got It' for session {session.id}, original Q {original_question.id}."
+        )
+        return None
+
+    # 2. Generate an introductory AI message
+    ai_manager = get_ai_manager()
+    ai_message_text = _(
+        "Great! Let's try a related question to solidify your understanding."
+    )  # Fallback
+
+    if ai_manager.is_available():
+        topic_context = (
+            original_question.skill.name
+            if original_question.skill
+            else "the previous topic"
+        )
+        context_params = {"topic_context": topic_context}
+
+        system_prompt = ai_manager._construct_system_prompt(
+            ai_tone_value=session.ai_tone,
+            context_key="generate_understanding_test_preface",
+            context_params=context_params,
+        )
+
+        response_content, error_msg = ai_manager.get_chat_completion(
+            system_prompt_content=system_prompt,
+            messages_for_api=[
+                {"role": "user", "content": "Generate the preface message now."}
+            ],
+            user_id_for_tracking=str(user.id),
+        )
+
+        if error_msg:
+            logger.error(
+                f"AI Manager error generating 'Got It' preface for session {session.id}: {error_msg}"
+            )
+        elif response_content and isinstance(response_content, str):
+            ai_message_text = response_content
+
+    # 3. Save the AI's message to the conversation history for context
+    ConversationMessage.objects.create(
+        session=session,
+        sender_type=ConversationMessage.SenderType.AI,
+        message_text=ai_message_text,
+        # This message is a preface, not about the test question itself yet.
+        # We could link it to the original question for context.
+        related_question=original_question,
+    )
+
+    # 4. Return the data structure for the serializer
+    return {"ai_message": ai_message_text, "test_question": test_question}
+
+
 def process_user_message_with_ai(
     session: ConversationSession,
     user_message_text: str,

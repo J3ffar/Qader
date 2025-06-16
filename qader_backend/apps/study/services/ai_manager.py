@@ -106,6 +106,15 @@ Example Incorrect ({serious_example_tone} tone):
 {{"feedback_text": "Not quite. The correct answer was '{correct_answer}'. This is because [explanation based on snippet]..."}}
 Output ONLY the JSON object.
     """,
+    "generate_understanding_test_preface": """
+You are Qader AI. The user has just indicated they understand a concept related to a question about '{topic_context}'.
+You have selected a new, related question to test their understanding.
+Generate a short, encouraging message (in the previously defined {tone} tone) to introduce this new test question.
+Keep it brief (1-2 sentences).
+DO NOT include the question text itself in your message.
+Example ({cheerful_example_tone} tone): "Awesome, glad to hear it! Let's see that knowledge in action with this question. Good luck! ✨"
+Example ({serious_example_tone} tone): "Understood. To confirm your comprehension, please attempt the following related question."
+    """,
     "generate_emergency_tips": """
 You are an encouraging AI assistant helping a student in 'Emergency Mode' prepare for the Qudurat test.
 The user needs quick, actionable tips for an emergency study session.
@@ -300,9 +309,6 @@ class AIInteractionManager:
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
-        if response_format:
-            api_kwargs["response_format"] = response_format
-
         if user_id_for_tracking:
             api_kwargs["user"] = user_id_for_tracking
 
