@@ -1,13 +1,14 @@
+// src/services/conversation.service.ts
 import { API_ENDPOINTS } from "@/constants/api";
 import {
-  AITone,
+  AIConfirmUnderstandingResponse, // <-- NEW
   AIQuestionResponse,
+  ConversationMessage,
   ConversationSessionDetail,
   ConversationTestResult,
   SendMessagePayload,
   StartConversationPayload,
   SubmitConversationTestAnswerPayload,
-  ConversationMessage,
 } from "@/types/api/conversation.types";
 import { apiClient } from "./apiClient";
 
@@ -44,19 +45,23 @@ export const askForQuestion = (
   );
 };
 
+// UPDATED: Now returns a new response type or can be empty on 204
 export const confirmUnderstanding = (
   sessionId: number
-): Promise<AIQuestionResponse> => {
-  return apiClient<AIQuestionResponse>(
+): Promise<AIConfirmUnderstandingResponse | ""> => {
+  // <-- CHANGED
+  return apiClient<AIConfirmUnderstandingResponse | "">(
     `${CONVO_BASE}/${sessionId}/confirm-understanding/`,
     { method: "POST" }
   );
 };
 
+// UPDATED: Returns the new test result structure
 export const submitConversationTestAnswer = (
   sessionId: number,
   payload: SubmitConversationTestAnswerPayload
 ): Promise<ConversationTestResult> => {
+  // <-- CHANGED
   return apiClient<ConversationTestResult>(
     `${CONVO_BASE}/${sessionId}/submit-test-answer/`,
     {

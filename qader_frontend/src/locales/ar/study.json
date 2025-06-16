@@ -580,6 +580,9 @@
     "emptyStateTitle": "أهلاً بك في التعلم عبر المحادثة!",
     "emptyStateDescription": "ابدأ محادثة جديدة من اللوحة الجانبية للبدء.",
     "aiTyping": "قادر يكتب...",
+    "session": {
+      "explanation": "الشرح"
+    },
     "api": {
       "startSuccess": "تم بدء المحادثة بنجاح!",
       "startError": "فشل بدء المحادثة. يرجى المحاولة مرة أخرى.",

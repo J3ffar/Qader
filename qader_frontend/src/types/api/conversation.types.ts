@@ -12,6 +12,7 @@ export interface ConversationMessage {
 
 export interface ConversationSessionDetail {
   id: number;
+  url: string;
   user: {
     id: number;
     full_name: string;
@@ -22,7 +23,7 @@ export interface ConversationSessionDetail {
   end_time: string | null;
   updated_at: string;
   messages: ConversationMessage[];
-  current_topic_question_id: number | null;
+  current_topic_question: UnifiedQuestion | null; // <-- CHANGED
 }
 
 export interface StartConversationPayload {
@@ -39,17 +40,24 @@ export interface AIQuestionResponse {
   question: UnifiedQuestion;
 }
 
+// NEW: Type for the `confirm-understanding` endpoint response
+export interface AIConfirmUnderstandingResponse {
+  ai_message: string;
+  test_question: UnifiedQuestion;
+}
+
 export interface SubmitConversationTestAnswerPayload {
   question_id: number;
   selected_answer: "A" | "B" | "C" | "D";
 }
 
+// UPDATED: Completely new flat structure for the test result
 export interface ConversationTestResult {
-  question: UnifiedQuestion; // Full question with correct answer and explanation
-  user_answer_details: {
-    selected_choice: "A" | "B" | "C" | "D" | null;
-    is_correct: boolean | null;
-  };
+  id: number;
+  question: UnifiedQuestion; // Includes correct_answer and explanation
+  selected_answer: "A" | "B" | "C" | "D";
+  is_correct: boolean;
+  attempted_at: string; // ISO datetime string
   ai_feedback: string;
 }
 

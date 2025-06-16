@@ -22,8 +22,8 @@ export function ChatInputBar() {
     isSending,
     addMessage,
     setIsSending,
-    setCurrentTestQuestion,
-    currentTestQuestion,
+    setActiveTestQuestion,
+    activeTestQuestion,
   } = useConversationStore();
 
   const [messageText, setMessageText] = useState("");
@@ -55,7 +55,7 @@ export function ChatInputBar() {
       convoService.askForQuestion(payload.sessionId),
     onSuccess: (data) => {
       addMessage({ type: "question", content: data, sender: "ai" });
-      setCurrentTestQuestion(data.question);
+      setActiveTestQuestion(data.question);
     },
   });
 
@@ -65,8 +65,22 @@ export function ChatInputBar() {
     mutationFn: (payload: { sessionId: number }) =>
       convoService.confirmUnderstanding(payload.sessionId),
     onSuccess: (data) => {
-      addMessage({ type: "question", content: data, sender: "ai" });
-      setCurrentTestQuestion(data.question);
+      // UPDATED: Handle new response structure and 204 No Content
+      if (data && data.test_question) {
+        // AI returned a test question
+        addMessage({
+          type: "question",
+          content: {
+            ai_message: data.ai_message,
+            question: data.test_question,
+          },
+          sender: "ai",
+        });
+        setActiveTestQuestion(data.test_question); // <-- RENAMED
+      } else {
+        // Handle 204 No Content or response without a question
+        toast.info("رائع! لننتقل إلى الموضوع التالي. ما الذي ترغب بمناقشته؟");
+      }
     },
   });
 
@@ -91,10 +105,10 @@ export function ChatInputBar() {
   };
 
   // If there's an active test question, the user must answer it first.
-  if (currentTestQuestion) {
+  if (activeTestQuestion) {
     return (
       <div className="animate-pulse border-t p-4 text-center text-muted-foreground">
-        Please answer the question above to continue.
+        الرجاء الإجابة على السؤال أعلاه للاستمرار.
       </div>
     );
   }

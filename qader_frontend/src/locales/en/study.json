@@ -580,6 +580,9 @@
     "emptyStateTitle": "Welcome to Conversational Learning!",
     "emptyStateDescription": "Start a new conversation from the panel on the side to begin.",
     "aiTyping": "Qader is typing...",
+    "session": {
+      "explanation": "explanation"
+    },
     "api": {
       "startSuccess": "New conversation started successfully!",
       "startError": "Failed to start conversation. Please try again.",

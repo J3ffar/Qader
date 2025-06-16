@@ -1,28 +1,29 @@
+// src/components/features/platform/study/conversation-learning/QuestionCard.tsx
 "use client";
 
 import React from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { AlertTriangle } from "lucide-react";
+// No longer need CheckCircleIcon, XCircleIcon as coloring is done via Tailwind classes directly
+// import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 
 import * as convoService from "@/services/conversation.service";
 import { useConversationStore } from "@/store/conversation.store";
 import { QUERY_KEYS } from "@/constants/queryKeys";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"; // Tailwind CSS utility for conditional classes
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
-import { ConversationTestResult } from "@/types/api/conversation.types";
+import { ConversationTestResult } from "@/types/api/conversation.types"; // Correct import for ConversationTestResult
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Loader2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react"; // For loading spinner
 import { UnifiedQuestion } from "@/types/api/study.types";
 
 interface QuestionCardProps {
-  question: UnifiedQuestion; // This can now potentially be incomplete
-  isTestMode: boolean;
-  testResult?: ConversationTestResult;
+  question: UnifiedQuestion;
+  isTestMode: boolean; // Is the user currently answering this question as a test?
+  testResult?: ConversationTestResult; // Populated after answering in non-test mode (i.e., for feedback/review)
 }
 
 export function QuestionCard({
@@ -30,13 +31,14 @@ export function QuestionCard({
   isTestMode,
   testResult,
 }: QuestionCardProps) {
-  const t = useTranslations("study.conversationalLearning");
-  const { sessionId, addMessage, setCurrentTestQuestion } =
+  const t = useTranslations("Study.conversationalLearning");
+  const { sessionId, addMessage, setActiveTestQuestion } =
     useConversationStore();
   const [selectedOption, setSelectedOption] = React.useState<string | null>(
     null
   );
 
+  // Mutation to submit the user's answer to the AI test question
   const submitAnswerMutation = useMutation({
     mutationKey: [QUERY_KEYS.CONVERSATION_SUBMIT_ANSWER],
     mutationFn: (payload: {
@@ -49,23 +51,28 @@ export function QuestionCard({
         selected_answer: payload.answer,
       }),
     onSuccess: (data) => {
-      console.log("API Response for submitAnswer:", data);
-      const isCorrect = data?.user_answer_details?.is_correct;
+      // Add the AI's feedback message to the chat history
       addMessage({ type: "feedback", content: data, sender: "ai" });
-      setCurrentTestQuestion(null);
-      toast.success(isCorrect ? t("api.testCorrect") : t("api.testIncorrect"));
+      // Clear the active test question in the store, as it has been answered
+      setActiveTestQuestion(null);
+      // Show a toast notification based on correctness
+      toast.success(
+        data.is_correct ? t("api.testCorrect") : t("api.testIncorrect")
+      );
     },
     onError: (error) => {
       toast.error(t("api.sendMessageError"), {
         description: getApiErrorMessage(error, t("api.sendMessageError")),
       });
+      // On error, allow the user to re-select an option and try again
       setSelectedOption(null);
     },
   });
 
+  // Handler for when a user clicks on an answer option in test mode
   const handleAnswerSubmit = (optionKey: "A" | "B" | "C" | "D") => {
-    if (!sessionId || !question?.id) return;
-    setSelectedOption(optionKey);
+    if (!sessionId || submitAnswerMutation.isPending) return; // Prevent multiple submissions or if no session
+    setSelectedOption(optionKey); // Visually indicate the selected option immediately
     submitAnswerMutation.mutate({
       sessionId,
       questionId: question.id,
@@ -73,42 +80,35 @@ export function QuestionCard({
     });
   };
 
-  // --- FIX [Part 1]: Guard Clause against missing or malformed question object ---
-  if (!question || !question.options) {
-    console.error("QuestionCard received incomplete data:", {
-      question,
-      testResult,
-    });
-    return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Question Loading Error</AlertTitle>
-        <AlertDescription>
-          The question data could not be displayed correctly. Please try asking
-          again or contact support.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
+  // Determine if a specific option button should show a loading spinner
   const isPending =
     submitAnswerMutation.isPending &&
     submitAnswerMutation.variables?.answer === selectedOption;
-  const userAnswer = testResult?.user_answer_details?.selected_choice;
-  const correctAnswer = testResult?.question?.correct_answer;
+
+  // Extract user's answer and correct answer for displaying feedback/review
+  // These values come directly from the `testResult` prop (which is of type ConversationTestResult)
+  const userAnswer = testResult?.selected_answer;
+  const correctAnswer = testResult?.question.correct_answer;
 
   return (
     <div className="space-y-4">
-      <p className="text-lg font-semibold">{question.question_text}</p>
-      <Separator />
+      {/* Question text */}
+      <p className="text-lg font-semibold text-foreground rtl:text-right">
+        {question.question_text}
+      </p>
+      <Separator /> {/* Visual separator */}
+      {/* Answer options */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {/* This line is now safe because of the guard clause above */}
         {Object.entries(question.options).map(([key, value]) => {
           const optionKey = key as "A" | "B" | "C" | "D";
+
+          // Determine styling based on mode (test vs. feedback) and correctness
           const isSelected = isTestMode
             ? selectedOption === optionKey
             : userAnswer === optionKey;
-          const isCorrect = !isTestMode && correctAnswer === optionKey;
+          const isCorrectOption = !isTestMode && correctAnswer === optionKey;
+          const isUserChoiceAndIncorrect =
+            !isTestMode && isSelected && !isCorrectOption;
 
           return (
             <Button
@@ -116,23 +116,22 @@ export function QuestionCard({
               variant="outline"
               size="lg"
               className={cn(
-                "h-auto justify-start text-start whitespace-normal disabled:opacity-100",
-                isTestMode && "hover:bg-accent hover:text-accent-foreground",
-                !isTestMode &&
-                  isCorrect &&
-                  "bg-green-100 border-green-500 dark:bg-green-900/50 text-green-700 dark:text-green-300",
-                !isTestMode &&
-                  isSelected &&
-                  !isCorrect &&
-                  "bg-red-100 border-red-500 dark:bg-red-900/50 text-red-700 dark:text-red-300"
+                "h-auto justify-start text-start whitespace-normal disabled:opacity-100", // Default styles
+                isTestMode && "hover:bg-accent hover:text-accent-foreground", // Hover effect in test mode
+                isCorrectOption &&
+                  "bg-green-100 border-green-500 text-green-700 dark:bg-green-900/50 dark:text-green-300", // Correct answer styling
+                isUserChoiceAndIncorrect &&
+                  "bg-red-100 border-red-500 text-red-700 dark:bg-red-900/50 dark:text-red-300" // Incorrect user choice styling
               )}
               onClick={() => isTestMode && handleAnswerSubmit(optionKey)}
-              disabled={!isTestMode || submitAnswerMutation.isPending}
+              disabled={!isTestMode || submitAnswerMutation.isPending} // Disable if not in test mode or if submitting
             >
               {isPending && isSelected ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                // Show loader if this option is selected and submission is pending
+                <Loader2 className="mr-2 h-4 w-4 animate-spin rtl:ml-2 rtl:mr-0" />
               ) : (
-                <span className="mr-2 flex h-6 w-6 items-center justify-center rounded-full border rtl:ml-2">
+                // Display option letter
+                <span className="mr-2 flex h-6 w-6 items-center justify-center rounded-full border rtl:ml-2 rtl:mr-0">
                   {key}
                 </span>
               )}
@@ -141,11 +140,16 @@ export function QuestionCard({
           );
         })}
       </div>
+      {/* Explanation section, only visible after a test answer has been submitted (not in test mode) */}
       {!isTestMode && testResult && (
         <div className="mt-4 rounded-md border bg-muted p-4">
-          <h4 className="mb-2 font-bold">Explanation</h4>
-          <p className="text-muted-foreground">
-            {testResult.question?.explanation || "No explanation provided."}
+          <h4 className="mb-2 font-bold text-foreground rtl:text-right">
+            {t("session.explanation")} {/* "Explanation" */}
+          </h4>
+          <p className="leading-relaxed text-muted-foreground rtl:text-right">
+            {/* The explanation is now directly on `testResult.question` */}
+            {testResult.question.explanation ||
+              t("session.explanationNotAvailable")}
           </p>
         </div>
       )}
