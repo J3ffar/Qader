@@ -344,3 +344,65 @@ export interface UserStatistics {
     };
   };
 }
+
+/**
+ * Payload for starting an Emergency Mode session.
+ * API: POST /study/emergency-mode/start/
+ */
+export interface StartEmergencyModePayload {
+  reason?: string;
+  available_time_hours?: number;
+  focus_areas?: Array<"verbal" | "quantitative">;
+}
+
+/**
+ * The structure of an Emergency Mode session object.
+ * API: POST /study/emergency-mode/start/, PATCH /study/emergency-mode/{session_id}/
+ */
+export interface EmergencyModeSession {
+  id: number;
+  start_time: string; // ISO datetime string
+  available_time_hours: number | null;
+  calm_mode_active: boolean;
+  shared_with_admin: boolean;
+  focus_areas: Array<"verbal" | "quantitative">;
+  suggested_plan: {
+    message: string;
+    topics: Array<{
+      topic_name: string;
+      num_questions: number;
+      estimated_time_minutes: number;
+    }>;
+  } | null;
+}
+
+/**
+
+ * Payload for updating an Emergency Mode session's settings.
+ * API: PATCH /study/emergency-mode/{session_id}/
+ */
+export interface UpdateEmergencySessionPayload {
+  calm_mode_active?: boolean;
+  shared_with_admin?: boolean;
+}
+
+/**
+ * Payload for submitting an answer in Emergency Mode.
+ * API: POST /study/emergency-mode/answer/
+ */
+export interface SubmitEmergencyAnswerPayload {
+  question_id: number;
+  selected_answer: "A" | "B" | "C" | "D";
+  session_id: number;
+}
+
+/**
+ * Response after submitting an answer in Emergency Mode.
+ * API: POST /study/emergency-mode/answer/
+ */
+export interface EmergencyModeAnswerResponse {
+  is_correct: boolean;
+  correct_answer: "A" | "B" | "C" | "D";
+  explanation: string | null;
+  feedback_message: string | null;
+}

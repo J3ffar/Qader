@@ -28,4 +28,10 @@ export const QUERY_KEYS = {
   CONVERSATION_ASK_QUESTION: "conversationAskQuestion",
   CONVERSATION_CONFIRM_UNDERSTANDING: "conversationConfirmUnderstanding",
   CONVERSATION_SUBMIT_ANSWER: "conversationSubmitAnswer",
+
+  // Emergency Mode
+  START_EMERGENCY_SESSION: "startEmergencySession", // For mutation
+  UPDATE_EMERGENCY_SESSION: "updateEmergencySession", // For mutation
+  SUBMIT_EMERGENCY_ANSWER: "submitEmergencyAnswer", // For mutation
+  EMERGENCY_QUESTIONS: "emergencyQuestions", // (sessionId: number) => [EMERGENCY_QUESTIONS, sessionId]
 };
