@@ -1,387 +1,301 @@
-from typing import Any
-from unittest.mock import MagicMock
-from rest_framework import (
-    generics,
-    permissions,
-    status,
-    serializers,
-)  # Added serializers
+from rest_framework import generics, status, serializers
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.exceptions import (
-    PermissionDenied,
-    NotFound,
-    ValidationError,
-)  # Added ValidationError
-from django.utils.translation import gettext_lazy as _
+from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
-import logging
+from django.utils.translation import gettext_lazy as _
+from django.db import transaction
+from drf_spectacular.utils import extend_schema
 
 from apps.api.permissions import IsSubscribed
-from apps.study.models import (
-    EmergencyModeSession,
-    UserQuestionAttempt,
-    Question,  # Need Question model
-    UserSkillProficiency,
-)
-from apps.study.services.study import (
-    EMERGENCY_MODE_DEFAULT_QUESTIONS,
-    generate_emergency_plan,
-    update_user_skill_proficiency,
-    get_filtered_questions,  # Import question filtering service
-)
+from apps.study.models import EmergencyModeSession, Question, UserQuestionAttempt
+from apps.study.services import study as study_services
+from apps.learning.api.serializers import UnifiedQuestionSerializer
 from apps.study.api.serializers.emergency import (
     EmergencyModeStartSerializer,
     EmergencyModeStartResponseSerializer,
     EmergencyModeUpdateSerializer,
-    EmergencyModeSessionSerializer,  # Needed for potential detail view
     EmergencyModeAnswerSerializer,
     EmergencyModeAnswerResponseSerializer,
 )
 
-from django.utils.functional import Promise
-from django.utils.encoding import force_str
 
-# Import the serializer for the list response
-from apps.learning.api.serializers import UnifiedQuestionSerializer
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+@extend_schema(tags=["Study - Emergency Mode"])
+class EmergencyModeStartView(APIView):
+    """
+    Starts a new Emergency Mode session for the authenticated user.
 
+    This is the entry point for the Emergency Mode feature. It generates a personalized,
+    hyper-focused study plan based on the user's performance history and any
+    constraints they provide (like available time). The generated plan and a new
+    session ID are returned, which the frontend will use for subsequent calls
+    to fetch questions and submit answers.
 
-logger = logging.getLogger(__name__)
+    **Workflow:**
+    1.  Validates user input (`reason`, `available_time_hours`, `focus_areas`).
+    2.  Calls the `generate_emergency_plan` service to analyze the user's weak skills.
+    3.  Creates an `EmergencyModeSession` instance, storing the generated plan.
+    4.  Returns the session ID and the detailed plan.
 
+    **Endpoint:** `POST /api/v1/study/emergency/start/`
+    """
 
-def _clean_dict_for_json(d: Any) -> Any:
-    """Recursively converts Django translation proxies to strings within a dict/list."""
-    if isinstance(d, dict):
-        return {k: _clean_dict_for_json(v) for k, v in d.items()}
-    elif isinstance(d, list):
-        return [_clean_dict_for_json(v) for v in d]
-    elif isinstance(d, Promise):  # Check if it's a Django lazy translation object
-        return force_str(d)
-    elif isinstance(d, MagicMock):  # Handle MagicMock for robustness in tests
-        return f"MagicMock(name='{d._extract_mock_name() or 'unknown'}')"
-    return d
+    permission_classes = [IsAuthenticated, IsSubscribed]
+    serializer_class = EmergencyModeStartSerializer
+
+    @extend_schema(
+        summary="Start a New Emergency Mode Session",
+        description="Creates a new session and returns a personalized study plan.",
+        request=EmergencyModeStartSerializer,
+        responses={
+            201: EmergencyModeStartResponseSerializer,
+            400: {"description": "Invalid input data provided."},
+            401: {"description": "Authentication credentials were not provided."},
+            403: {"description": "User is not authenticated or not subscribed."},
+            500: {
+                "description": "An internal error occurred while generating the plan."
+            },
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        """
+        Handles the creation of a new emergency mode session.
+
+        **Request Body:**
+        - `reason` (str, optional): The user's reason for starting the session.
+        - `available_time_hours` (int, optional): Hours the user can study now.
+        - `focus_areas` (list[str], optional): e.g., `["verbal", "quantitative"]`.
+
+        **Success Response (201 Created):**
+        - `session_id` (int): The unique ID for this session.
+        - `suggested_plan` (object): A detailed plan object (see `SuggestedPlanSerializer`).
+        """
+        input_serializer = self.serializer_class(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+        data = input_serializer.validated_data
+
+        try:
+            with transaction.atomic():
+                plan = study_services.generate_emergency_plan(
+                    user=request.user,
+                    available_time_hours=data.get("available_time_hours"),
+                    focus_areas=data.get("focus_areas"),
+                )
+                session = EmergencyModeSession.objects.create(
+                    user=request.user,
+                    reason=data.get("reason"),
+                    suggested_plan=plan,
+                )
+
+            response_data = {"session_id": session.id, "suggested_plan": plan}
+            output_serializer = EmergencyModeStartResponseSerializer(response_data)
+            return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(
+                {"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @extend_schema(tags=["Study - Emergency Mode"])
-class EmergencyModeStartView(generics.GenericAPIView):
+class EmergencyModeQuestionsView(APIView):
     """
-    POST /api/v1/study/emergency-mode/start/
-    Initiates Emergency Mode session and returns a study plan.
+    Retrieves the list of recommended questions for an active emergency session.
+
+    After starting a session, the frontend calls this endpoint to get the actual
+    questions the user needs to answer. The questions are selected based on the
+    `suggested_plan` that was generated and stored in the session object.
+
+    **Endpoint:** `GET /api/v1/study/emergency/sessions/{session_id}/questions/`
     """
 
-    permission_classes = [permissions.IsAuthenticated, IsSubscribed]
-    serializer_class = EmergencyModeStartSerializer
+    permission_classes = [IsAuthenticated, IsSubscribed]
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
-        user = request.user
+    @extend_schema(
+        summary="Get Questions for a Session",
+        description="Fetches questions based on the session's generated plan.",
+        responses={
+            200: UnifiedQuestionSerializer(many=True),
+            400: {
+                "description": "The study plan for the session is missing or invalid."
+            },
+            404: {
+                "description": "Emergency session with the given ID not found for this user."
+            },
+        },
+    )
+    def get(self, request, session_id, *args, **kwargs):
+        """
+        Handles the retrieval of questions for a specific session.
 
-        try:
-            plan = generate_emergency_plan(
-                user=user,
-                available_time_hours=validated_data.get("available_time_hours"),
-                focus_areas=validated_data.get("focus_areas"),
-            )
-        except ValidationError as drf_ve:
-            logger.warning(
-                f"Validation error generating plan for user {user.id}: {drf_ve.detail}"
-            )
-            raise
-        except Exception as e:
-            logger.error(
-                f"Unexpected error generating emergency plan for user {user.id}: {e}",
-                exc_info=True,
-            )
-            raise serializers.ValidationError(
-                _(
-                    "Could not generate study plan due to an unexpected issue. Please try again later."
-                )
-            )
+        **Path Parameters:**
+        - `session_id` (int): The ID of the emergency session.
 
-        if not plan or not isinstance(plan.get("target_skills"), list):
-            logger.error(
-                f"generate_emergency_plan returned invalid plan for user {user.id}: {plan}"
-            )
-            raise serializers.ValidationError(
-                _("Failed to generate a valid study plan structure.")
-            )
-
-        # Ensure the plan is cleaned of any Django Promise objects before use
-        cleaned_plan = _clean_dict_for_json(plan)
-
-        session = EmergencyModeSession.objects.create(
-            user=user,
-            reason=validated_data.get("reason"),
-            suggested_plan=cleaned_plan,  # Use cleaned_plan for saving
-            calm_mode_active=False,
-            shared_with_admin=False,
+        **Success Response (200 OK):**
+        - A list of question objects, serialized using `UnifiedQuestionSerializer`.
+          Sensitive fields like `correct_answer` and `explanation` are excluded.
+        """
+        session = get_object_or_404(
+            EmergencyModeSession, pk=session_id, user=request.user
         )
 
-        response_data = {
-            "session_id": session.id,
-            "suggested_plan": cleaned_plan,  # MODIFIED: Use cleaned_plan for response
-        }
-        response_serializer = EmergencyModeStartResponseSerializer(data=response_data)
-        response_serializer.is_valid(raise_exception=True)
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        plan = session.suggested_plan
+        if (
+            not isinstance(plan, dict)
+            or "target_skills" not in plan
+            or "recommended_question_count" not in plan
+        ):
+            return Response(
+                {"detail": _("The study plan for this session is missing or invalid.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            target_skill_slugs = [
+                skill["slug"] for skill in plan.get("target_skills", [])
+            ]
+            question_limit = plan.get("recommended_question_count", 10)
+
+            questions = study_services.get_filtered_questions(
+                user=request.user,
+                limit=question_limit,
+                skills=target_skill_slugs,
+                not_mastered=True,
+                min_required=1,
+            )
+            serializer = UnifiedQuestionSerializer(
+                questions, many=True, context={"exclude_sensitive_fields": True}
+            )
+            return Response(serializer.data)
+        except serializers.ValidationError as e:
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @extend_schema(tags=["Study - Emergency Mode"])
 class EmergencyModeSessionUpdateView(generics.UpdateAPIView):
     """
-    PATCH /api/v1/study/emergency-mode/{session_id}/
-    Updates settings (calm mode, sharing) for an active Emergency Mode session.
+    Updates flags for an ongoing emergency session.
+
+    This endpoint is used to toggle specific boolean flags on the session, such as
+    activating "Calm Mode" or sharing the session status with administrators for support.
+    It uses the `PATCH` method to allow for partial updates.
+
+    **Endpoint:** `PATCH /api/v1/study/emergency/sessions/{session_id}/`
     """
 
-    permission_classes = [permissions.IsAuthenticated, IsSubscribed]
-    serializer_class = (
-        EmergencyModeSessionSerializer  # Serializes the full session for response
-    )
-    queryset = EmergencyModeSession.objects.all()  # Initial queryset
-    lookup_field = "id"
+    permission_classes = [IsAuthenticated, IsSubscribed]
+    queryset = EmergencyModeSession.objects.all()
+    serializer_class = EmergencyModeUpdateSerializer
+    lookup_field = "pk"
     lookup_url_kwarg = "session_id"
 
-    def get_serializer_class(self):
-        if self.request.method == "PATCH" or self.request.method == "PUT":
-            return EmergencyModeUpdateSerializer
-        return EmergencyModeSessionSerializer  # For GET (if enabled) or general context
+    @extend_schema(
+        summary="Update Session Flags",
+        description="Toggles Calm Mode or admin sharing for a session.",
+    )
+    def patch(self, request, *args, **kwargs):
+        """
+        Handles partial updates to the session.
 
-    # Override update to control response serialization
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop("partial", False)
-        instance = self.get_object()
+        **Path Parameters:**
+        - `session_id` (int): The ID of the emergency session to update.
 
-        # Use the input serializer (EmergencyModeUpdateSerializer) for validation and saving
-        # Note: self.get_serializer() will use get_serializer_class()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)  # perform_update calls serializer.save()
+        **Request Body:**
+        - `calm_mode_active` (bool, optional): Set to `true` to activate calm mode.
+        - `shared_with_admin` (bool, optional): Set to `true` to share status with admin.
 
-        if getattr(instance, "_prefetched_objects_cache", None):
-            # If 'prefetch_related' has been used, clear the cache to reflect changes.
-            instance._prefetched_objects_cache = {}
-
-        # For the response, explicitly use the output serializer (EmergencyModeSessionSerializer)
-        output_serializer = EmergencyModeSessionSerializer(instance)
-        return Response(output_serializer.data)
+        **Success Response (200 OK):**
+        - The fully updated `EmergencyModeSession` object.
+        """
+        return super().patch(request, *args, **kwargs)
 
     def get_queryset(self):
-        return EmergencyModeSession.objects.filter(
-            user=self.request.user, end_time__isnull=True
-        )
-
-
-@extend_schema(
-    tags=["Study - Emergency Mode"],
-    summary="Fetch Questions for Emergency Mode Session",
-    description="Retrieves questions based on the suggested plan for an active emergency mode session.",
-    responses={
-        200: OpenApiResponse(
-            response=UnifiedQuestionSerializer(many=True),
-            description="List of questions for the session.",
-        ),
-        400: OpenApiResponse(
-            description="Bad Request (e.g., Invalid plan in session)."
-        ),
-        403: OpenApiResponse(
-            description="Permission Denied (Not owner or inactive session)."
-        ),  # Should be 404 due to get_object_or_404
-        404: OpenApiResponse(
-            description="Not Found (Session ID invalid or not accessible)."
-        ),
-    },
-)
-class EmergencyModeQuestionsView(generics.ListAPIView):
-    """
-    GET /api/v1/study/emergency-mode/{session_id}/questions/
-    Fetches recommended questions based on the active emergency session's plan.
-    """
-
-    permission_classes = [permissions.IsAuthenticated, IsSubscribed]
-    serializer_class = UnifiedQuestionSerializer
-    pagination_class = None
-
-    def get_queryset(self):
-        user = self.request.user
-        session_id = self.kwargs.get("session_id")
-
-        # get_object_or_404 will raise NotFound if session doesn't exist,
-        # or doesn't match user, or is not active.
-        session = get_object_or_404(
-            EmergencyModeSession,
-            pk=session_id,
-            user=user,
-            end_time__isnull=True,
-        )
-
-        plan = session.suggested_plan
-        if not isinstance(plan, dict):
-            logger.error(
-                f"Invalid suggested_plan format for emergency session {session.id}. Plan: {plan}"
-            )
-            raise serializers.ValidationError(  # Use DRF's serializers.ValidationError
-                _("Invalid study plan associated with this session.")
-            )
-
-        target_skills_in_plan = plan.get("target_skills")
-        focus_skill_slugs = []
-        if isinstance(target_skills_in_plan, list):
-            for skill_detail in target_skills_in_plan:
-                if isinstance(skill_detail, dict) and "slug" in skill_detail:
-                    focus_skill_slugs.append(skill_detail["slug"])
-
-        num_questions = plan.get(
-            "recommended_question_count", EMERGENCY_MODE_DEFAULT_QUESTIONS
-        )
-
-        if not focus_skill_slugs:  # If no target skills, can log or use broader filter
-            logger.warning(
-                f"No target skill slugs found in plan for session {session.id}. Fetching general questions."
-            )
-            # Consider if this should default to focus_area_names from plan if target_skills is empty
-
-        if not isinstance(num_questions, int) or num_questions <= 0:
-            logger.warning(
-                f"Invalid 'recommended_question_count' ({num_questions}) in plan for session {session.id}. Using default {EMERGENCY_MODE_DEFAULT_QUESTIONS}."
-            )
-            num_questions = EMERGENCY_MODE_DEFAULT_QUESTIONS
-
-        try:
-            queryset = get_filtered_questions(
-                user=user,
-                limit=num_questions,
-                skills=(
-                    focus_skill_slugs if focus_skill_slugs else None
-                ),  # Pass None if empty
-            )
-            return queryset
-        except (
-            serializers.ValidationError
-        ):  # Catch validation error from get_filtered_questions
-            raise  # Re-raise it
-        except Exception as e:
-            logger.error(
-                f"Error fetching emergency questions for session {session.id}: {e}",
-                exc_info=True,
-            )
-            raise serializers.ValidationError(  # Use DRF's serializers.ValidationError
-                _("Could not retrieve questions for the emergency session plan.")
-            )
+        """Ensures users can only update their own sessions."""
+        return super().get_queryset().filter(user=self.request.user)
 
 
 @extend_schema(tags=["Study - Emergency Mode"])
-class EmergencyModeAnswerView(generics.GenericAPIView):
+class EmergencyModeAnswerView(APIView):
     """
-    POST /api/v1/study/emergency-mode/answer/
-    Submits an answer for a question attempted during an emergency mode session.
+    Submits an answer for a question within a specific emergency session.
+
+    This endpoint records the user's attempt for a single question and provides
+    immediate, simple feedback. Unlike formal tests, the goal here is low-stress
+    practice, so feedback is minimal. It reveals the correct answer and explanation
+    after each attempt.
+
+    **Endpoint:** `POST /api/v1/study/emergency/sessions/{session_id}/answer/`
     """
 
-    permission_classes = [permissions.IsAuthenticated, IsSubscribed]
+    permission_classes = [IsAuthenticated, IsSubscribed]
     serializer_class = EmergencyModeAnswerSerializer
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
-        user = request.user
-        question_id = validated_data["question_id"]
-        selected_answer = validated_data["selected_answer"]
-        session_id = validated_data["session_id"]
+    @extend_schema(
+        summary="Submit an Answer",
+        description="Records an answer attempt and returns immediate feedback.",
+        request=EmergencyModeAnswerSerializer,
+        responses={
+            200: EmergencyModeAnswerResponseSerializer,
+            400: {"description": "Session has ended or invalid input."},
+            404: {"description": "Session or Question not found."},
+        },
+    )
+    def post(self, request, session_id, *args, **kwargs):
+        """
+        Handles the submission of a user's answer.
 
-        skill_feedback = None
-        updated_proficiency_score = None  # Placeholder, can be populated if needed
-        session_progress_data = None
+        **Path Parameters:**
+        - `session_id` (int): The ID of the emergency session.
 
+        **Request Body:**
+        - `question_id` (int): The ID of the question being answered.
+        - `selected_answer` (str): The user's choice (e.g., "A", "B", "C", "D").
+
+        **Success Response (200 OK):**
+        - An object containing immediate feedback: `is_correct`, `correct_answer`, `explanation`, and a simple `feedback` message.
+        """
         session = get_object_or_404(
-            EmergencyModeSession, id=session_id, user=user, end_time__isnull=True
+            EmergencyModeSession, pk=session_id, user=request.user
         )
-        question = get_object_or_404(Question, id=question_id, is_active=True)
+        if session.end_time:
+            return Response(
+                {"detail": _("This session has already ended.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        is_correct = selected_answer == question.correct_answer
+        input_serializer = self.serializer_class(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+        data = input_serializer.validated_data
 
-        # FIX: Initialize feedback_message with "Correct!" or "Incorrect."
-        if is_correct:
-            feedback_message = _("Correct!")
-        else:
-            feedback_message = _("Incorrect.")
+        question = get_object_or_404(Question, pk=data["question_id"])
 
-        try:
-            UserQuestionAttempt.objects.create(
-                user=user,
+        with transaction.atomic():
+            attempt, created = UserQuestionAttempt.objects.update_or_create(
+                user=request.user,
                 question=question,
                 emergency_session=session,
-                selected_answer=selected_answer,
-                is_correct=is_correct,
-                mode=UserQuestionAttempt.Mode.EMERGENCY,
+                defaults={
+                    "selected_answer": data["selected_answer"],
+                    "mode": UserQuestionAttempt.Mode.EMERGENCY,
+                },
             )
-            if question.skill:
-                update_user_skill_proficiency(
-                    user=user, skill=question.skill, is_correct=is_correct
-                )
-                # FIX: Populate skill_feedback if question.skill exists
-                skill_feedback = {
-                    "slug": question.skill.slug,
-                    "name": question.skill.name,
-                    # Add other relevant skill details if needed
-                }
-                # Optionally, get updated proficiency if service returns it
-                # usp_record = UserSkillProficiency.objects.get(user=user, skill=question.skill)
-                # updated_proficiency_score = usp_record.proficiency_score
 
-        except Exception as e:
-            logger.error(
-                f"Error creating UQA or updating proficiency in emergency mode for user {user.id}, q {question_id}: {e}",
-                exc_info=True,
-            )
-            raise serializers.ValidationError(_("Could not record answer attempt."))
-
-        plan = session.suggested_plan
-        if isinstance(plan, dict):
-            recommended_total = plan.get("recommended_question_count")
-            if isinstance(recommended_total, int) and recommended_total > 0:
-                try:
-                    answered_count = UserQuestionAttempt.objects.filter(
-                        emergency_session=session
-                    ).count()
-                    session_progress_data = {
-                        "answered_count": answered_count,
-                        "recommended_total": recommended_total,
-                    }
-                    # Append progress to feedback_message
-                    feedback_message += _(  # Note: += works because Promise becomes str on concat
-                        " You've answered {answered}/{total} questions in this session."
-                    ).format(
-                        answered=answered_count, total=recommended_total
-                    )
-                except Exception as prog_err:
-                    logger.error(
-                        f"Error calculating session progress for session {session.id}: {prog_err}"
-                    )
-            else:
-                logger.warning(
-                    f"Invalid recommended_total in plan for session {session.id}"
-                )
-        else:
-            logger.warning(f"Invalid plan type for session {session.id}")
-
-        insightful_feedback = {
-            "skill_tested": skill_feedback,
-            "skill_proficiency_after_attempt": updated_proficiency_score,
-            "message": str(feedback_message),  # Ensure it's a string
-            "session_progress": session_progress_data,
-        }
+        is_correct = attempt.is_correct
+        feedback_text = (
+            _("Correct! Keep focusing.")
+            if is_correct
+            else _("That was incorrect. Let's review and move on.")
+        )
 
         response_data = {
             "question_id": question.id,
             "is_correct": is_correct,
             "correct_answer": question.correct_answer,
             "explanation": question.explanation,
-            "points_earned": 0,
-            "feedback": insightful_feedback,
+            "feedback": feedback_text,
         }
-        response_serializer = EmergencyModeAnswerResponseSerializer(data=response_data)
-        response_serializer.is_valid(raise_exception=True)
-        return Response(response_serializer.data, status=status.HTTP_200_OK)
+        output_serializer = EmergencyModeAnswerResponseSerializer(response_data)
+        return Response(output_serializer.data, status=status.HTTP_200_OK)

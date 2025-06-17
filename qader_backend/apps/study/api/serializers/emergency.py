@@ -1,8 +1,41 @@
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from apps.study.models import EmergencyModeSession, UserQuestionAttempt
+from apps.learning.api.serializers import UnifiedQuestionSerializer  # Assumed location
 
-# --- Serializer for Starting Emergency Mode ---
+# --- NEW: Nested Serializers for a Detailed Plan ---
+
+
+class TargetSkillSerializer(serializers.Serializer):
+    """Represents a target skill in the emergency plan."""
+
+    slug = serializers.CharField()
+    name = serializers.CharField()
+    reason = serializers.CharField()
+    current_proficiency = serializers.FloatField(allow_null=True)
+    subsection_name = serializers.CharField()
+
+
+class QuickReviewTopicSerializer(serializers.Serializer):
+    """Represents a quick review topic in the emergency plan."""
+
+    slug = serializers.CharField()
+    name = serializers.CharField()
+    description = serializers.CharField(allow_null=True)
+
+
+class SuggestedPlanSerializer(serializers.Serializer):
+    """A detailed, structured representation of the generated emergency plan."""
+
+    focus_area_names = serializers.ListField(child=serializers.CharField())
+    estimated_duration_minutes = serializers.IntegerField(allow_null=True)
+    recommended_question_count = serializers.IntegerField()
+    target_skills = TargetSkillSerializer(many=True)
+    quick_review_topics = QuickReviewTopicSerializer(many=True)
+    motivational_tips = serializers.ListField(child=serializers.CharField())
+
+
+# --- UPDATED: Response Serializer for Starting Emergency Mode ---
 
 
 class EmergencyModeStartSerializer(serializers.Serializer):
@@ -10,7 +43,7 @@ class EmergencyModeStartSerializer(serializers.Serializer):
 
     reason = serializers.CharField(required=False, allow_blank=True, max_length=500)
     available_time_hours = serializers.IntegerField(
-        required=False, min_value=1, max_value=24
+        required=False, min_value=1, max_value=24, allow_null=True
     )
     focus_areas = serializers.ListField(
         child=serializers.ChoiceField(choices=["verbal", "quantitative"]),
@@ -20,15 +53,28 @@ class EmergencyModeStartSerializer(serializers.Serializer):
 
 
 class EmergencyModeStartResponseSerializer(serializers.Serializer):
-    """Serializer for the response after starting emergency mode."""
+    """Serializer for the structured response after starting emergency mode."""
 
-    session_id = serializers.IntegerField()
-    suggested_plan = (
-        serializers.JSONField()
-    )  # Contains focus_skills, recommended_questions, quick_review_topics
+    session_id = serializers.IntegerField(read_only=True)
+    suggested_plan = SuggestedPlanSerializer(read_only=True)
 
 
-# --- Serializer for Updating Emergency Mode Session ---
+# --- UPDATED: Answer Serializer (simpler) ---
+
+
+class EmergencyModeAnswerSerializer(serializers.Serializer):
+    """
+    Serializer for validating an answer submitted in an emergency session.
+    The session_id is now sourced from the URL.
+    """
+
+    question_id = serializers.IntegerField(required=True)
+    selected_answer = serializers.ChoiceField(
+        choices=UserQuestionAttempt.AnswerChoice.choices, required=True
+    )
+
+
+# --- Other serializers can remain as they are, they are well-designed ---
 
 
 class EmergencyModeUpdateSerializer(serializers.ModelSerializer):
@@ -42,7 +88,10 @@ class EmergencyModeUpdateSerializer(serializers.ModelSerializer):
 class EmergencyModeSessionSerializer(serializers.ModelSerializer):
     """Serializer for representing the Emergency Mode Session details."""
 
-    user = serializers.StringRelatedField()  # Or a nested User serializer
+    user = serializers.StringRelatedField()
+    suggested_plan = SuggestedPlanSerializer(
+        read_only=True
+    )  # Use the structured serializer
 
     class Meta:
         model = EmergencyModeSession
@@ -58,39 +107,16 @@ class EmergencyModeSessionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = [
-            "id",
-            "user",
-            "reason",
-            "suggested_plan",
-            "start_time",
-            "end_time",
-            "created_at",
-            "updated_at",
-        ]
-
-
-# --- Serializer for Answering Questions in Emergency Mode ---
-
-
-class EmergencyModeAnswerSerializer(serializers.Serializer):
-    """Serializer for validating an answer submitted in emergency mode."""
-
-    question_id = serializers.IntegerField(required=True)
-    selected_answer = serializers.ChoiceField(
-        choices=UserQuestionAttempt.AnswerChoice.choices, required=True
-    )
-    session_id = serializers.IntegerField(required=True)  # To verify context
+        read_only_fields = fields  # All fields are read-only in this context
 
 
 class EmergencyModeAnswerResponseSerializer(serializers.Serializer):
     """Serializer for the response after submitting an answer."""
 
     question_id = serializers.IntegerField()
-    is_correct = serializers.BooleanField(allow_null=True)  # Null if couldn't determine
+    is_correct = serializers.BooleanField(allow_null=True)
     correct_answer = serializers.ChoiceField(
         choices=UserQuestionAttempt.AnswerChoice.choices
     )
     explanation = serializers.CharField(allow_blank=True, allow_null=True)
-    points_earned = serializers.IntegerField(default=0)  # Typically 0 in emergency mode
-    feedback = serializers.JSONField()
+    feedback = serializers.CharField()  # Simple text feedback is enough for calm mode
