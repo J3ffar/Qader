@@ -22,6 +22,28 @@ interface Props {
   tests: UserStatistics["test_history_summary"];
 }
 
+/**
+ * Determines the correct review page URL based on the test type.
+ * @param typeValue - The API slug for the test type (e.g., 'level_assessment').
+ * @param attemptId - The ID of the test attempt.
+ * @returns The correct URL string for the review page.
+ */
+const getReviewLinkForTest = (typeValue: string, attemptId: number): string => {
+  switch (typeValue) {
+    case "level_assessment":
+      return PATHS.STUDY.DETERMINE_LEVEL.REVIEW(attemptId);
+    case "practice":
+    case "simulation":
+      return PATHS.STUDY.TESTS.REVIEW(attemptId);
+    case "traditional":
+      return PATHS.STUDY.TRADITIONAL_LEARNING.REVIEW(attemptId);
+    // As a fallback, link to the generic test history list.
+    // We can update this if a generic "details" page is added later.
+    default:
+      return PATHS.STUDY.TESTS.LIST;
+  }
+};
+
 const getScoreVariant = (
   score: number | null
 ): "outline" | "secondary" | "destructive" | "default" => {
@@ -35,7 +57,7 @@ export function RecentTestsTable({ tests }: Props) {
   const t = useTranslations("Study.statistics.recentTests");
   const tCommon = useTranslations("Common");
   const locale = useLocale();
-
+  console.log("tests: ", tests);
   return (
     <>
       <div className="overflow-x-auto">
@@ -48,11 +70,10 @@ export function RecentTestsTable({ tests }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tests.slice(0, 5).map((test) => (
+            {tests.map((test) => (
               <TableRow key={test.attempt_id}>
                 <TableCell>
                   <p className="font-medium">
-                    {/* Use translated test type name */}
                     {tCommon(`testTypes.${test.type_value}` as any, {
                       defaultMessage: test.type,
                     })}
@@ -74,8 +95,12 @@ export function RecentTestsTable({ tests }: Props) {
                 </TableCell>
                 <TableCell className="text-right">
                   <Button asChild variant="ghost" size="sm">
+                    {/* The href is now dynamically generated */}
                     <Link
-                      href={PATHS.STUDY.DETERMINE_LEVEL.REVIEW(test.attempt_id)}
+                      href={getReviewLinkForTest(
+                        test.type_value,
+                        test.attempt_id
+                      )}
                     >
                       {t("review")}{" "}
                       <ArrowRight className="h-4 w-4 ltr:ml-2 rtl:mr-2 rtl:rotate-180" />
@@ -89,7 +114,7 @@ export function RecentTestsTable({ tests }: Props) {
       </div>
       <CardFooter className="justify-center border-t px-6 pt-6">
         <Button asChild variant="outline" className="w-full">
-          {/* TODO: Update this link when the full history page is created */}
+          {/* This path can be added to PATHS.ts later for consistency */}
           <Link href={"/study/history"}>{t("viewAllHistory")}</Link>
         </Button>
       </CardFooter>

@@ -516,8 +516,10 @@
       "currentLevel": "Current estimated level",
       "studyStreak": "Study Streak",
       "consecutiveDays": "{count, plural, =0 {No streak} one {# consecutive day} other {# consecutive days}}",
+      "longestStreak": "Longest: {count} days",
       "testsCompleted": "Tests Completed",
-      "totalThisPeriod": "In the current period"
+      "totalThisPeriod": "In the current period",
+      "questionsAnswered": "Questions Answered"
     },
     "charts": {
       "performanceTrendTitle": "Performance Trend",
@@ -553,7 +555,20 @@
     "timeAnalytics": {
       "title": "Time Analysis",
       "correct": "Avg. time / correct answer",
-      "incorrect": "Avg. time / incorrect answer"
+      "incorrect": "Avg. time / incorrect answer",
+      "overallAverage": "Overall avg. time / question",
+      "averageDurationByTypeTitle": "Avg. Test Duration"
+    },
+    "averageScores": {
+      "title": "Test Performance Summary",
+      "description": "Average scores across different types of tests you've completed.",
+      "table": {
+        "type": "Test Type",
+        "count": "Count",
+        "score": "Avg. Score",
+        "verbal": "Avg. Verbal",
+        "quantitative": "Avg. Quant"
+      }
     },
     "actionableInsights": {
       "title": "Actionable Insights",

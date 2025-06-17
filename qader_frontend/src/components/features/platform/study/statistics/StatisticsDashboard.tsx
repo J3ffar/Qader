@@ -13,7 +13,8 @@ import { PerformanceTrendsChart } from "./PerformanceTrendsChart";
 import { SectionPerformanceBreakdown } from "./SectionPerformanceBreakdown";
 import { OverallStatsCards } from "./OverallStatsCards";
 import { TimeAnalyticsCard } from "./TimeAnalyticsCard";
-import { ActionableInsightsTabs } from "./ActionableInsightsTabs"; // New component
+import { AverageScoresByTypeCard } from "./AverageScoresByTypeCard";
+import { ActionableInsightsTabs } from "./ActionableInsightsTabs";
 
 export function StatisticsDashboard() {
   const t = useTranslations("Common");
@@ -22,6 +23,7 @@ export function StatisticsDashboard() {
     queryKey: [QUERY_KEYS.USER_STATISTICS],
     queryFn: () => getUserStatistics(),
     retry: 1,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   if (isLoading) {
@@ -45,36 +47,41 @@ export function StatisticsDashboard() {
   }
 
   if (!data) {
-    return null; // Should be covered by isLoading/isError, but a safe fallback.
+    return null;
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+    <div className="space-y-6">
       {/* Row 1: Key Stats Cards - Full Width */}
-      <div className="lg:col-span-12">
-        <OverallStatsCards overallStats={data.overall} />
-      </div>
+      <OverallStatsCards overallStats={data.overall} />
 
-      {/* Row 2: Main Chart and Side Widgets */}
-      {/* Main Chart takes up 8/12 columns on large screens */}
-      <div className="lg:col-span-8">
-        <PerformanceTrendsChart trends={data.performance_trends_by_test_type} />
-      </div>
+      {/* Row 2: Main Chart - Full Width */}
+      <PerformanceTrendsChart trends={data.performance_trends_by_test_type} />
 
-      {/* Side widgets take up 4/12 columns */}
-      <div className="space-y-6 lg:col-span-4">
-        <TimeAnalyticsCard timeAnalytics={data.time_analytics} />
-        <ActionableInsightsTabs
-          skills={data.skill_proficiency_summary}
-          tests={data.test_history_summary}
-        />
-      </div>
+      {/* Grid for subsequent multi-column rows */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Row 3: Detailed Breakdowns */}
+        <div className="lg:col-span-7">
+          <SectionPerformanceBreakdown
+            performance={data.performance_by_section}
+          />
+        </div>
+        <div className="lg:col-span-5">
+          <ActionableInsightsTabs
+            skills={data.skill_proficiency_summary}
+            tests={data.test_history_summary}
+          />
+        </div>
 
-      {/* Row 3: Full-width detailed breakdown */}
-      <div className="lg:col-span-12">
-        <SectionPerformanceBreakdown
-          performance={data.performance_by_section}
-        />
+        {/* Row 4: Summaries & Secondary Analytics */}
+        <div className="lg:col-span-7">
+          <AverageScoresByTypeCard
+            scoresByType={data.average_scores_by_test_type}
+          />
+        </div>
+        <div className="lg:col-span-5">
+          <TimeAnalyticsCard timeAnalytics={data.time_analytics} />
+        </div>
       </div>
     </div>
   );
