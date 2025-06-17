@@ -560,9 +560,18 @@
       "overallScore": "Overall",
       "verbalScore": "Verbal",
       "quantScore": "Quantitative",
-      "notEnoughData": "Not enough data to display chart.",
       "filterPlaceholder": "Filter by test type",
-      "allTestTypes": "All Test Types"
+      "allTestTypes": "All Test Types",
+      "loading": "Loading Chart...",
+      "loadingDescription": "Please wait while we prepare your performance data.",
+      "notEnoughData": "Not enough data to display chart",
+      "notEnoughDataDescription": "Complete some tests to see your performance trends over time.",
+      "summary": {
+        "average": "Average",
+        "peakScore": "Peak Score",
+        "latestScore": "Latest Score",
+        "avgLabel": "Avg: {value}%"
+      }
     },
     "breakdown": {
       "title": "Performance by Section",

@@ -560,9 +560,18 @@
       "overallScore": "الإجمالي",
       "verbalScore": "اللفظي",
       "quantScore": "الكمي",
-      "notEnoughData": "لا توجد بيانات كافية لعرض الرسم البياني.",
       "filterPlaceholder": "تصفية حسب نوع الاختبار",
-      "allTestTypes": "جميع أنواع الاختبارات"
+      "allTestTypes": "جميع أنواع الاختبارات",
+      "loading": "جارٍ تحميل الرسم البياني...",
+      "loadingDescription": "يرجى الانتظار بينما نقوم بإعداد بيانات أدائك.",
+      "notEnoughData": "لا توجد بيانات كافية لعرض الرسم البياني",
+      "notEnoughDataDescription": "أكمل بعض الاختبارات لترى اتجاهات أدائك بمرور الوقت.",
+      "summary": {
+        "average": "المتوسط",
+        "peakScore": "أعلى درجة",
+        "latestScore": "أحدث درجة",
+        "avgLabel": "المتوسط: {value}%"
+      }
     },
     "breakdown": {
       "title": "تفصيل الأداء حسب الأقسام",
