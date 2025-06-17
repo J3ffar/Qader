@@ -562,6 +562,27 @@
       "errors": {
         "fetchReviewFailed": "Failed to load practice session results. The session might be incomplete or an error occurred."
       }
+    },
+    "review": {
+      "pageTitle": "Review Practice Session",
+      "backToScore": "Back to Score",
+      "backToList": "Back to Practice List",
+      "filterBy": "Filter by:",
+      "allQuestionsOpt": "All",
+      "incorrectOnlyOpt": "Incorrect",
+      "skippedOnlyOpt": "Skipped",
+      "allQuestionsOptFull": "All Questions",
+      "incorrectOnlyOptFull": "Incorrect Questions Only",
+      "skippedOnlyOptFull": "Skipped Questions Only",
+      "previousQuestion": "Previous",
+      "nextQuestion": "Next",
+      "questionXofYShort": "{current} / {total}",
+      "noQuestionsTitle": "No Questions to Show",
+      "noQuestionsInReview": "There are no questions available in this practice session review.",
+      "noQuestionsMatchFilter": "No questions match the current filter.",
+      "errors": {
+        "fetchReviewFailed": "Could not load the practice session review. Please try again or go back."
+      }
     }
   },
 

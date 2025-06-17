@@ -562,6 +562,27 @@
       "errors": {
         "fetchReviewFailed": "فشل تحميل نتائج جلسة التدريب. قد تكون الجلسة غير مكتملة أو حدث خطأ."
       }
+    },
+    "review": {
+      "pageTitle": "مراجعة جلسة التدريب",
+      "backToScore": "العودة إلى النتيجة",
+      "backToList": "العودة إلى قائمة التدريبات",
+      "filterBy": "التصفية حسب:",
+      "allQuestionsOpt": "الكل",
+      "incorrectOnlyOpt": "الخاطئة",
+      "skippedOnlyOpt": "المتخطاة",
+      "allQuestionsOptFull": "جميع الأسئلة",
+      "incorrectOnlyOptFull": "الأسئلة الخاطئة فقط",
+      "skippedOnlyOptFull": "الأسئلة المتخطاة فقط",
+      "previousQuestion": "السابق",
+      "nextQuestion": "التالي",
+      "questionXofYShort": "{current} / {total}",
+      "noQuestionsTitle": "لا توجد أسئلة لعرضها",
+      "noQuestionsInReview": "لا توجد أسئلة متاحة في مراجعة جلسة التدريب هذه.",
+      "noQuestionsMatchFilter": "لا توجد أسئلة تطابق التصفية الحالية.",
+      "errors": {
+        "fetchReviewFailed": "تعذر تحميل مراجعة جلسة التدريب. يرجى المحاولة مرة أخرى أو العودة."
+      }
     }
   },
 
