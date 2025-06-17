@@ -2,13 +2,16 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { SparklesIcon } from "@heroicons/react/24/solid";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Loader2, MessageSquarePlus } from "lucide-react";
+import * as z from "zod";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useConversationStore } from "@/store/conversation.store";
-import {
-  AITone,
-  StartConversationPayload,
-} from "@/types/api/conversation.types";
+import { startConversation } from "@/services/conversation.service";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,59 +28,95 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { AITone } from "@/types/api/conversation.types";
 
-interface ConversationSidebarProps {
-  onStartConversation: (payload: StartConversationPayload) => void;
-  isStarting: boolean;
-}
+const formSchema = z.object({
+  ai_tone: z.enum(["cheerful", "serious"]),
+});
 
-export function ConversationSidebar({
-  onStartConversation,
-  isStarting,
-}: ConversationSidebarProps) {
+type FormValues = z.infer<typeof formSchema>;
+
+export const ConversationSidebar = () => {
   const t = useTranslations("Study.conversationalLearning");
-  const { aiTone, setAiTone } = useConversationStore();
+  const commonT = useTranslations("Common");
+  const { resetConversation, setSessionId, setMessages, setAiTone } =
+    useConversationStore();
 
-  const handleStart = (e: React.FormEvent) => {
-    e.preventDefault();
-    onStartConversation({ ai_tone: aiTone });
+  const { control, handleSubmit } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { ai_tone: "cheerful" },
+  });
+
+  const startConversationMutation = useMutation({
+    mutationFn: startConversation,
+    onSuccess: (data) => {
+      resetConversation();
+      setSessionId(data.id);
+      setMessages(data.messages.map((m) => ({ type: "text", content: m })));
+      setAiTone(data.ai_tone);
+      toast.success(t("api.startSuccess"));
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, t("api.startError")));
+    },
+  });
+
+  const onStart = (values: FormValues) => {
+    startConversationMutation.mutate({ ai_tone: values.ai_tone });
   };
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle>{t("sidebarTitle")}</CardTitle>
-        <CardDescription>{t("description")}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleStart} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="ai-tone">{t("selectTone")}</Label>
-            <Select
-              value={aiTone}
-              onValueChange={(value) => setAiTone(value as AITone)}
-              disabled={isStarting}
+    <aside className="hidden w-80 flex-col space-y-6 border-e bg-card p-4 md:flex">
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("sidebarTitle")}</CardTitle>
+          <CardDescription>{t("description")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onStart)} className="space-y-4">
+            <div>
+              <Label htmlFor="ai-tone">{t("selectTone")}</Label>
+              <Controller
+                name="ai_tone"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <SelectTrigger id="ai-tone" className="mt-1">
+                      <SelectValue placeholder={t("selectTone")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cheerful">
+                        {t("tone.cheerful")}
+                      </SelectItem>
+                      <SelectItem value="serious">
+                        {t("tone.serious")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={startConversationMutation.isPending}
             >
-              <SelectTrigger id="ai-tone">
-                <SelectValue placeholder={t("selectTone")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cheerful">{t("tone.cheerful")}</SelectItem>
-                <SelectItem value="serious">{t("tone.serious")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button type="submit" className="w-full" disabled={isStarting}>
-            {isStarting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin rtl:ml-2" />
-            ) : (
-              <SparklesIcon className="mr-2 h-4 w-4 rtl:ml-2" />
-            )}
-            {t("startConversation")}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+              {startConversationMutation.isPending ? (
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
+              ) : (
+                <MessageSquarePlus className="me-2 h-4 w-4" />
+              )}
+              {startConversationMutation.isPending
+                ? commonT("loading")
+                : t("startConversation")}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+      {/* Future: Conversation History List could go here */}
+    </aside>
   );
-}
+};

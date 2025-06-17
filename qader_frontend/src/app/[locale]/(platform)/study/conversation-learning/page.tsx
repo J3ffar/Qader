@@ -11,7 +11,7 @@ export async function generateMetadata() {
 
 export default function ConversationLearningPage() {
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto">
       <ConversationLearningClient />
     </div>
   );

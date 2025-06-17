@@ -618,24 +618,30 @@
     "sidebarTitle": "محادثة جديدة",
     "selectTone": "اختر نبرة صوت الذكاء الاصطناعي",
     "tone": {
-      "cheerful": "مرحة",
+      "cheerful": "مبهجة",
       "serious": "جدية"
     },
-    "startConversation": "ابدأ المحادثة",
+    "startConversation": "بدء المحادثة",
     "askAQuestion": "اسألني سؤالاً",
-    "testMyUnderstanding": "فهمت، اختبرني!",
-    "inputPlaceholder": "اكتب رسالتك أو سؤالك هنا...",
+    "testMyUnderstanding": "فهمتُ، اختبر فهمي!",
+    "inputPlaceholder": "اكتب رسالتك أو سؤالك...",
     "send": "إرسال",
-    "emptyStateTitle": "أهلاً بك في التعلم عبر المحادثة!",
+    "emptyStateTitle": "مرحباً بك في التعلم عبر المحادثة!",
     "emptyStateDescription": "ابدأ محادثة جديدة من اللوحة الجانبية للبدء.",
     "aiTyping": "قادر يكتب...",
     "session": {
-      "explanation": "الشرح"
+      "explanation": "الشرح",
+      "yourAnswer": "إجابتك",
+      "correctAnswer": "الإجابة الصحيحة",
+      "aiFeedback": "ملاحظات قادر",
+      "submitAnswer": "إرسال الإجابة",
+      "correct": "صحيح!",
+      "incorrect": "غير صحيح"
     },
     "api": {
-      "startSuccess": "تم بدء المحادثة بنجاح!",
-      "startError": "فشل بدء المحادثة. يرجى المحاولة مرة أخرى.",
-      "sendMessageError": "فشل إرسال الرسالة. يرجى التحقق من اتصالك.",
+      "startSuccess": "تم بدء المحادثة الجديدة بنجاح!",
+      "startError": "فشل بدء المحادثة. الرجاء المحاولة مرة أخرى.",
+      "sendMessageError": "فشل إرسال الرسالة. الرجاء التحقق من اتصالك.",
       "testCorrect": "ممتاز! إجابة صحيحة.",
       "testIncorrect": "ليست تمامًا. دعنا نراجع الشرح."
     }

@@ -630,7 +630,13 @@
     "emptyStateDescription": "Start a new conversation from the panel on the side to begin.",
     "aiTyping": "Qader is typing...",
     "session": {
-      "explanation": "explanation"
+      "explanation": "Explanation",
+      "yourAnswer": "Your Answer",
+      "correctAnswer": "Correct Answer",
+      "aiFeedback": "Qader's Feedback",
+      "submitAnswer": "Submit Answer",
+      "correct": "Correct!",
+      "incorrect": "Incorrect"
     },
     "api": {
       "startSuccess": "New conversation started successfully!",
