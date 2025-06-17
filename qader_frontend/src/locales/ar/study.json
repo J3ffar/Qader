@@ -38,6 +38,20 @@
     }
   },
 
+  "review": {
+    "statusCorrect": "صحيح",
+    "statusIncorrect": "غير صحيح",
+    "statusSkipped": "تم التخطي",
+    "yourAnswer": "إجابتك",
+    "explanation": "الشرح",
+    "solutionMethod": "طريقة الحل",
+    "details": "تفاصيل السؤال",
+    "section": "القسم الرئيسي",
+    "subsection": "القسم الفرعي",
+    "skill": "المهارة",
+    "questionXofY": "سؤال {current} من {total}"
+  },
+
   "determineLevel": {
     "title": "تحديد المستوى",
     "description": "اختبر مستواك معنا قبل البدء، ليتم بناء نموذج تعليمي شخصي لك.",
@@ -393,6 +407,26 @@
       },
       "api": {
         "retakeSuccess": "تم إنشاء اختبار جديد بنجاح! جاري توجيهك..."
+      }
+    },
+    "review": {
+      "pageTitle": "مراجعة الاختبار",
+      "backToList": "العودة لقائمة الاختبارات",
+      "backToScore": "العودة للنتيجة",
+      "filterBy": "تصفية حسب:",
+      "allQuestionsOpt": "الكل",
+      "incorrectOnlyOpt": "الأسئلة الخاطئة فقط",
+      "skippedOnlyOpt": "الأسئلة المتخطاة فقط",
+      "allQuestionsOptFull": "جميع الأسئلة",
+      "incorrectOnlyOptFull": "الأسئلة غير الصحيحة فقط",
+      "skippedOnlyOptFull": "الأسئلة المتخطاة فقط",
+      "previousQuestion": "السابق",
+      "nextQuestion": "التالي",
+      "noQuestionsTitle": "لا توجد أسئلة للعرض",
+      "noQuestionsInReview": "لا توجد أسئلة متاحة في هذه المراجعة.",
+      "noQuestionsMatchFilter": "لا توجد أسئلة تتوافق مع التصفية الحالية.",
+      "errors": {
+        "fetchReviewFailed": "تعذر تحميل مراجعة الاختبار. يرجى المحاولة مرة أخرى أو العودة."
       }
     }
   },

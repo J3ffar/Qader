@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import {
@@ -13,42 +13,41 @@ import {
   BookOpen,
   ThumbsDown,
   HelpCircle as HelpCircleIcon,
-  Loader2,
   AlertTriangle,
   Frown,
   FileText,
   TrendingUp,
-  Info,
-  ListCollapse,
+  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 import { getTestAttemptReview } from "@/services/study.service";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import { UserTestAttemptReviewResponse } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
-import { Skeleton } from "@/components/ui/skeleton";
-import Link from "next/link";
 import ReviewQuestionCard from "@/components/shared/ReviewQuestionCard";
 
 type FilterType = "all" | "incorrect" | "skipped";
 
-const LevelAssessmentReviewPage = () => {
+const TestReviewPage = () => {
   const params = useParams();
   const router = useRouter();
-  const t = useTranslations("Study.determineLevel.review");
-  const tScore = useTranslations("Study.determineLevel.score");
+  const searchParams = useSearchParams();
+  const t = useTranslations("Study.tests.review");
   const tCommon = useTranslations("Common");
   const locale = params.locale as string;
   const attemptId = params.attemptId as string;
 
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [filterType, setFilterType] = useState<FilterType>("all");
+  const initialFilter =
+    searchParams.get("incorrect_only") === "true" ? "incorrect" : "all";
+  const [filterType, setFilterType] = useState<FilterType>(initialFilter);
 
   const {
     data: reviewData,
@@ -57,42 +56,47 @@ const LevelAssessmentReviewPage = () => {
   } = useQuery<UserTestAttemptReviewResponse, Error>({
     queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_REVIEW, attemptId],
     queryFn: () => getTestAttemptReview(attemptId),
-    enabled: !!attemptId,
     staleTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
   });
 
-  const allQuestions = useMemo(() => reviewData?.questions || [], [reviewData]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
-  const incorrectQuestions = useMemo(
-    () =>
-      allQuestions.filter((q) => q.user_answer_details?.is_correct === false),
-    [allQuestions]
-  );
+  const {
+    allQuestions,
+    incorrectQuestions,
+    skippedQuestions,
+    filteredQuestions,
+  } = useMemo(() => {
+    const all = reviewData?.questions || [];
+    const incorrect = all.filter(
+      (q) => q.user_answer_details?.is_correct === false
+    );
+    const skipped = all.filter(
+      (q) => q.user_answer_details?.selected_choice === null
+    );
 
-  const skippedQuestions = useMemo(
-    () =>
-      allQuestions.filter(
-        (q) => q.user_answer_details?.selected_choice === null
-      ),
-    [allQuestions]
-  );
-
-  const filteredQuestions = useMemo(() => {
+    let filtered;
     switch (filterType) {
       case "incorrect":
-        return incorrectQuestions;
+        filtered = incorrect;
+        break;
       case "skipped":
-        return skippedQuestions;
-      case "all":
+        filtered = skipped;
+        break;
       default:
-        return allQuestions;
+        filtered = all;
     }
-  }, [filterType, allQuestions, incorrectQuestions, skippedQuestions]);
+    return {
+      allQuestions: all,
+      incorrectQuestions: incorrect,
+      skippedQuestions: skipped,
+      filteredQuestions: filtered,
+    };
+  }, [reviewData, filterType]);
 
   useEffect(() => {
     setCurrentQuestionIndex(0);
-  }, [filterType, allQuestions.length]);
+  }, [filterType]);
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex < filteredQuestions.length - 1) {
@@ -111,77 +115,36 @@ const LevelAssessmentReviewPage = () => {
   if (isLoading) return <ReviewPageSkeleton />;
 
   if (queryError || !reviewData) {
+    // ... Error handling UI (same as example, but with updated paths)
     return (
-      <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6 text-center">
-        <Alert variant="destructive" className="max-w-lg">
-          <AlertTriangle className="mx-auto mb-2 h-6 w-6" />
+      <div className="container mx-auto p-6 text-center">
+        <Alert variant="destructive">
           <AlertTitle>{tCommon("errors.fetchFailedTitle")}</AlertTitle>
           <AlertDescription>
             {getApiErrorMessage(queryError, t("errors.fetchReviewFailed"))}
           </AlertDescription>
         </Alert>
         <Button
-          onClick={() => router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST)}
+          onClick={() => router.push(PATHS.STUDY.TESTS.LIST)}
           variant="outline"
           className="mt-6"
         >
-          {locale === "ar" ? (
-            <ArrowRight className="me-2 h-4 w-4" />
-          ) : (
-            <ArrowLeft className="me-2 h-4 w-4" />
-          )}
           {t("backToList")}
         </Button>
       </div>
     );
   }
 
-  // Check if any score data is present at all
-  if (
-    reviewData.score_percentage === null &&
-    reviewData.score_verbal === null &&
-    reviewData.score_quantitative === null
-  ) {
-    return (
-      <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
-        <Alert variant="default" className="max-w-md text-center">
-          <Info className="mx-auto mb-2 h-6 w-6" />
-          <AlertTitle>{t("errors.scoreDataMissingTitle")}</AlertTitle>
-          <AlertDescription>
-            {t("errors.scoreDataMissingDescription")}
-          </AlertDescription>
-        </Alert>
-        <Button
-          onClick={() => router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST)}
-          variant="outline"
-          className="mt-6"
-        >
-          {locale === "ar" ? (
-            <ArrowRight className="me-2 h-4 w-4" />
-          ) : (
-            <ArrowLeft className="me-2 h-4 w-4" />
-          )}
-          {t("backToOverview")}
-        </Button>
-      </div>
-    );
-  }
-
-  // CORRECTED: Destructure scores directly from the reviewData object
-  const { score_percentage, score_verbal, score_quantitative } = reviewData;
-
   return (
     <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
-      {/* Header Card */}
-      <Card className="overflow-hidden shadow-md">
+      <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            {/* --- MODIFIED HEADER SECTION --- */}
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-grow items-center gap-2">
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST)} // MODIFIED: Go to list page
+                onClick={() => router.push(PATHS.STUDY.TESTS.LIST)} // MODIFIED: Go to list page
                 aria-label={t("backToList")} // MODIFIED: Aria label
                 className="text-primary hover:bg-primary/10"
               >
@@ -193,113 +156,63 @@ const LevelAssessmentReviewPage = () => {
               </Button>
               <h1 className="flex items-center text-xl font-semibold text-primary sm:text-2xl">
                 <FileText className="me-2.5 h-[1.3em] w-[1.3em]" />
-                {t("reviewYourAttempt")}
+                {t("pageTitle")}
               </h1>
             </div>
-
-            {/* NEW: View Details Button */}
             <Button asChild variant="default" size="sm">
-              <Link href={PATHS.STUDY.DETERMINE_LEVEL.DETAILS(attemptId)}>
-                <ListCollapse className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
-                {t("viewDetails")}
+              <Link href={PATHS.STUDY.TESTS.SCORE(attemptId)}>
+                <Sparkles className="me-2 h-4 w-4" />
+                {t("backToScore")}
               </Link>
             </Button>
           </div>
-
-          {/* Score display section (moved below for better layout on small screens) */}
-          {score_percentage !== null && (
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-lg border bg-background p-2 px-3 text-xs shadow-sm sm:text-sm">
-              <div className="flex items-center" title={tScore("overallScore")}>
-                <TrendingUp className="me-1 h-4 w-4 text-primary" />
-                <span className="font-medium">
-                  {score_percentage.toFixed(0)}%
-                </span>
-              </div>
-              {score_verbal !== null && (
-                <>
-                  <span className="text-muted-foreground">|</span>
-                  <div
-                    className="flex items-center"
-                    title={tScore("verbalSection")}
-                  >
-                    <span className="font-medium text-yellow-600 dark:text-yellow-400">
-                      {tScore("verbalSectionShort")}:
-                    </span>
-                    <span className="ms-1 font-medium">
-                      {score_verbal.toFixed(0)}%
-                    </span>
-                  </div>
-                </>
-              )}
-              {score_quantitative !== null && (
-                <>
-                  <span className="text-muted-foreground">|</span>
-                  <div
-                    className="flex items-center"
-                    title={tScore("quantitativeSection")}
-                  >
-                    <span className="font-medium text-blue-600 dark:text-blue-400">
-                      {tScore("quantitativeSectionShort")}:
-                    </span>
-                    <span className="ms-1 font-medium">
-                      {score_quantitative.toFixed(0)}%
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
         </CardHeader>
       </Card>
 
-      {/* Filter Controls Card */}
       <Card>
-        <CardContent>
+        <CardContent className="p-4">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center text-sm font-medium text-muted-foreground">
               <FilterIcon className="me-2 h-4 w-4" />
-              {t("filterBy")}:
+              {t("filterBy")}
             </div>
             <ToggleGroup
               type="single"
               value={filterType}
-              variant="outline"
               onValueChange={(value: FilterType) =>
                 value && setFilterType(value)
               }
-              aria-label={t("filterBy")}
-              className="grid w-full grid-cols-3 gap-1 sm:flex sm:w-auto"
+              className="grid w-full flex-1 grid-cols-3 gap-1 sm:flex sm:w-auto"
             >
               <ToggleGroupItem
                 value="all"
                 aria-label={t("allQuestionsOptFull")}
-                className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
+                className="flex-1 justify-center gap-1.5"
               >
-                <BookOpen className="h-4 w-4" /> {t("allQuestionsOpt")} (
-                {allQuestions.length})
+                <BookOpen className="h-4 w-4" />
+                {t("allQuestionsOpt")} ({allQuestions.length})
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="incorrect"
                 aria-label={t("incorrectOnlyOptFull")}
-                className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
+                className="flex-1 justify-center gap-1.5"
               >
-                <ThumbsDown className="h-4 w-4" /> {t("incorrectOnlyOpt")} (
-                {incorrectQuestions.length})
+                <ThumbsDown className="h-4 w-4" />
+                {t("incorrectOnlyOpt")} ({incorrectQuestions.length})
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="skipped"
                 aria-label={t("skippedOnlyOptFull")}
-                className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
+                className="flex-1 justify-center gap-1.5"
               >
-                <HelpCircleIcon className="h-4 w-4" /> {t("skippedOnlyOpt")} (
-                {skippedQuestions.length})
+                <HelpCircleIcon className="h-4 w-4" />
+                {t("skippedOnlyOpt")} ({skippedQuestions.length})
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
         </CardContent>
       </Card>
 
-      {/* Main Question Review Area */}
       {currentQuestionData ? (
         <div className="space-y-6">
           <ReviewQuestionCard
@@ -308,13 +221,12 @@ const LevelAssessmentReviewPage = () => {
             totalQuestionsInFilter={filteredQuestions.length}
           />
           {filteredQuestions.length > 1 && (
-            <div className="mt-6 flex items-center justify-between rounded-lg border bg-card p-2.5 shadow-sm sm:p-3">
+            <div className="mt-6 flex items-center justify-between rounded-lg border bg-card p-2.5 shadow-sm">
               <Button
                 onClick={handlePreviousQuestion}
                 disabled={currentQuestionIndex === 0}
                 variant="ghost"
                 size="lg"
-                className="text-primary hover:bg-primary/10"
               >
                 {locale === "ar" ? (
                   <ChevronRight className="me-1.5 h-5 w-5" />
@@ -323,18 +235,11 @@ const LevelAssessmentReviewPage = () => {
                 )}
                 {t("previousQuestion")}
               </Button>
-              <span className="text-sm font-medium text-muted-foreground">
-                {t("questionXofYShort", {
-                  current: currentQuestionIndex + 1,
-                  total: filteredQuestions.length,
-                })}
-              </span>
               <Button
                 onClick={handleNextQuestion}
                 disabled={currentQuestionIndex >= filteredQuestions.length - 1}
                 variant="ghost"
                 size="lg"
-                className="text-primary hover:bg-primary/10"
               >
                 {t("nextQuestion")}
                 {locale === "ar" ? (
@@ -447,4 +352,4 @@ const ReviewPageSkeleton = () => {
   );
 };
 
-export default LevelAssessmentReviewPage;
+export default TestReviewPage;
