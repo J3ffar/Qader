@@ -22,6 +22,7 @@ import {
   UnifiedQuestion,
   SubmitEmergencyAnswerPayload,
   EmergencyModeAnswerResponse,
+  StartEmergencyModeResponse,
 } from "@/types/api/study.types";
 import { API_ENDPOINTS } from "@/constants/api"; // Assuming this exists and has study endpoints
 
@@ -230,14 +231,13 @@ export const getUserStatistics = (
 // =================================================================
 // EMERGENCY MODE SERVICE FUNCTIONS
 // =================================================================
-
 /**
- * Corresponds to: POST /study/emergency-mode/start/
+ * Corresponds to: POST /study/emergency/start/
  */
 export const startEmergencyMode = (
   payload: StartEmergencyModePayload
-): Promise<EmergencyModeSession> => {
-  return apiClient<EmergencyModeSession>(
+): Promise<StartEmergencyModeResponse> => {
+  return apiClient<StartEmergencyModeResponse>(
     API_ENDPOINTS.STUDY.EMERGENCY_MODE.START,
     {
       method: "POST",
@@ -247,7 +247,7 @@ export const startEmergencyMode = (
 };
 
 /**
- * Corresponds to: PATCH /study/emergency-mode/{session_id}/
+ * Corresponds to: PATCH /study/emergency/sessions/{session_id}/
  */
 export const updateEmergencySession = ({
   sessionId,
@@ -257,7 +257,7 @@ export const updateEmergencySession = ({
   payload: UpdateEmergencySessionPayload;
 }): Promise<EmergencyModeSession> => {
   return apiClient<EmergencyModeSession>(
-    API_ENDPOINTS.STUDY.EMERGENCY_MODE.UPDATE(sessionId),
+    API_ENDPOINTS.STUDY.EMERGENCY_MODE.SESSION(sessionId),
     {
       method: "PATCH",
       body: JSON.stringify(payload),
@@ -266,7 +266,7 @@ export const updateEmergencySession = ({
 };
 
 /**
- * Corresponds to: GET /study/emergency-mode/{session_id}/questions/
+ * Corresponds to: GET /study/emergency/sessions/{session_id}/questions/
  */
 export const getEmergencyQuestions = (
   sessionId: number
@@ -277,13 +277,17 @@ export const getEmergencyQuestions = (
 };
 
 /**
- * Corresponds to: POST /study/emergency-mode/answer/
+ * Corresponds to: POST /study/emergency/sessions/{session_id}/answer/
  */
-export const submitEmergencyAnswer = (
-  payload: SubmitEmergencyAnswerPayload
-): Promise<EmergencyModeAnswerResponse> => {
+export const submitEmergencyAnswer = ({
+  sessionId,
+  payload,
+}: {
+  sessionId: number;
+  payload: SubmitEmergencyAnswerPayload;
+}): Promise<EmergencyModeAnswerResponse> => {
   return apiClient<EmergencyModeAnswerResponse>(
-    API_ENDPOINTS.STUDY.EMERGENCY_MODE.ANSWER,
+    API_ENDPOINTS.STUDY.EMERGENCY_MODE.ANSWER(sessionId),
     {
       method: "POST",
       body: JSON.stringify(payload),

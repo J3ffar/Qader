@@ -345,9 +345,13 @@ export interface UserStatistics {
   };
 }
 
+// =================================================================
+// EMERGENCY MODE
+// =================================================================
+
 /**
  * Payload for starting an Emergency Mode session.
- * API: POST /study/emergency-mode/start/
+ * API: POST /study/emergency/start/
  */
 export interface StartEmergencyModePayload {
   reason?: string;
@@ -356,30 +360,63 @@ export interface StartEmergencyModePayload {
 }
 
 /**
- * The structure of an Emergency Mode session object.
- * API: POST /study/emergency-mode/start/, PATCH /study/emergency-mode/{session_id}/
+ * A skill targeted in the emergency plan.
+ */
+export interface TargetSkill {
+  slug: string;
+  name: string;
+  reason: string;
+  current_proficiency: number;
+  subsection_name: string;
+}
+
+/**
+ * A topic for quick review in the emergency plan.
+ */
+export interface QuickReviewTopic {
+  slug: string;
+  name: string;
+  description: string;
+}
+
+/**
+ * The detailed study plan returned when starting a session.
+ */
+export interface SuggestedPlan {
+  focus_area_names: string[];
+  estimated_duration_minutes: number;
+  recommended_question_count: number;
+  target_skills: TargetSkill[];
+  quick_review_topics: QuickReviewTopic[];
+  motivational_tips: string[];
+}
+
+/**
+ * Response from starting an Emergency Mode session.
+ * API: POST /study/emergency/start/
+ */
+export interface StartEmergencyModeResponse {
+  session_id: number;
+  suggested_plan: SuggestedPlan;
+}
+
+/**
+ * The full session object, returned when updating settings.
+ * API: PATCH /study/emergency/sessions/{session_id}/
  */
 export interface EmergencyModeSession {
   id: number;
-  start_time: string; // ISO datetime string
+  start_time: string;
   available_time_hours: number | null;
   calm_mode_active: boolean;
   shared_with_admin: boolean;
   focus_areas: Array<"verbal" | "quantitative">;
-  suggested_plan: {
-    message: string;
-    topics: Array<{
-      topic_name: string;
-      num_questions: number;
-      estimated_time_minutes: number;
-    }>;
-  } | null;
+  suggested_plan: SuggestedPlan | null;
 }
 
 /**
-
  * Payload for updating an Emergency Mode session's settings.
- * API: PATCH /study/emergency-mode/{session_id}/
+ * API: PATCH /study/emergency/sessions/{session_id}/
  */
 export interface UpdateEmergencySessionPayload {
   calm_mode_active?: boolean;
@@ -387,22 +424,22 @@ export interface UpdateEmergencySessionPayload {
 }
 
 /**
- * Payload for submitting an answer in Emergency Mode.
- * API: POST /study/emergency-mode/answer/
+ * Payload for submitting an answer in Emergency Mode (body only).
+ * API: POST /study/emergency/sessions/{session_id}/answer/
  */
 export interface SubmitEmergencyAnswerPayload {
   question_id: number;
   selected_answer: "A" | "B" | "C" | "D";
-  session_id: number;
 }
 
 /**
  * Response after submitting an answer in Emergency Mode.
- * API: POST /study/emergency-mode/answer/
+ * API: POST /study/emergency/sessions/{session_id}/answer/
  */
 export interface EmergencyModeAnswerResponse {
+  question_id: number;
   is_correct: boolean;
   correct_answer: "A" | "B" | "C" | "D";
   explanation: string | null;
-  feedback_message: string | null;
+  feedback: string; // Renamed from feedback_message
 }

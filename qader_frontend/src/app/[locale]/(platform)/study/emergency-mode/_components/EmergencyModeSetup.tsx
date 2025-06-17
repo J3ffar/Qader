@@ -45,8 +45,10 @@ const emergencyModeSchema = z.object({
 });
 
 export function EmergencyModeSetup() {
-  const t = useTranslations("Study.emergencyMode");
-  const setSession = useEmergencyModeStore((state) => state.setSession);
+  const t = useTranslations("Study.emergencyMode.setup");
+  const startNewSession = useEmergencyModeStore(
+    (state) => state.startNewSession
+  );
 
   const form = useForm<z.infer<typeof emergencyModeSchema>>({
     resolver: zodResolver(emergencyModeSchema),
@@ -62,7 +64,7 @@ export function EmergencyModeSetup() {
     mutationFn: startEmergencyMode,
     onSuccess: (data) => {
       toast.success(t("sessionStartedToast"));
-      setSession(data);
+      startNewSession(data.session_id, data.suggested_plan);
     },
     onError: (error) => {
       toast.error(t("sessionStartErrorToast"), {

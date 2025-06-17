@@ -26,10 +26,12 @@ export const API_ENDPOINTS = {
     CONVERSATIONS: "/study/conversations",
     EMERGENCY_MODE: {
       START: "/study/emergency-mode/start/",
-      UPDATE: (sessionId: number) => `/study/emergency-mode/${sessionId}/`,
+      SESSION: (sessionId: number) =>
+        `/study/emergency-mode/sessions/${sessionId}/`,
       QUESTIONS: (sessionId: number) =>
-        `/study/emergency-mode/${sessionId}/questions/`,
-      ANSWER: "/study/emergency-mode/answer/",
+        `/study/emergency-mode/sessions/${sessionId}/questions/`,
+      ANSWER: (sessionId: number) =>
+        `/study/emergency-mode/sessions/${sessionId}/answer/`,
     },
   },
   NOTIFICATIONS: {

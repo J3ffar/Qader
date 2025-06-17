@@ -593,31 +593,40 @@
   },
 
   "emergencyMode": {
-    "title": "Emergency Mode",
-    "description": "Is your test approaching fast? Feeling overwhelmed? Activate Emergency Mode to get a focused study plan based on your available time.",
-    "hoursLabel": "How many hours can you study now?",
-    "focusAreasLabel": "Which areas do you want to focus on?",
-    "verbal": "Verbal",
-    "quantitative": "Quantitative",
-    "reasonLabel": "Reason for activating (optional)",
-    "reasonPlaceholder": "e.g., My test is in 3 days and I need to focus on my weaknesses.",
-    "startSessionButton": "Start Emergency Session",
-    "sessionStartedToast": "Emergency session started! Let's get to work.",
-    "sessionStartErrorToast": "Failed to start session",
-    "suggestedPlanTitle": "Your Suggested Plan",
-    "questionsSuffix": "questions",
-    "tipsTitle": "Quick Tips",
-    "tip1": "Manage your stress with deep breaths before you start.",
-    "tip2": "Don't get stuck on one question for too long.",
-    "tip3": "Focus on understanding the concept, not just the answer.",
-    "questionFetchError": "Error Fetching Questions",
-    "unknownError": "An unexpected error occurred. Please try again.",
-    "sessionCompleteTitle": "Session Complete!",
-    "sessionCompleteMessage": "Great work! You've completed your emergency study session.",
-    "returnToSetupButton": "Start Another Session",
-    "sessionErrorTitle": "Session Error",
-    "noActiveSessionError": "No active session found. Please return and start a new one.",
-    "validation_minHours": "You must study for at least 1 hour.",
-    "validation_minFocusAreas": "Please select at least one area to focus on."
+    "setup": {
+      "title": "Emergency Mode",
+      "description": "Is your test approaching fast? Feeling overwhelmed? Activate Emergency Mode to get a focused study plan based on your available time.",
+      "hoursLabel": "How many hours can you study now?",
+      "focusAreasLabel": "Which areas do you want to focus on?",
+      "verbal": "Verbal",
+      "quantitative": "Quantitative",
+      "reasonLabel": "Reason for activating (optional)",
+      "reasonPlaceholder": "e.g., My test is in 3 days and I need to focus on my weaknesses.",
+      "startSessionButton": "Start Emergency Session",
+      "sessionStartedToast": "Emergency session started! Let's get to work.",
+      "sessionStartErrorToast": "Failed to start session",
+      "validation_minHours": "You must study for at least 1 hour.",
+      "validation_minFocusAreas": "Please select at least one area to focus on."
+    },
+    "session": {
+      "settingsTitle": "Session Settings",
+      "calmModeLabel": "Activate Calm Mode",
+      "shareWithAdminLabel": "Share My Status with Administration",
+      "settingsUpdatedToast": "Settings updated successfully",
+      "settingsUpdateErrorToast": "Failed to update settings",
+      "sessionErrorTitle": "Session Error",
+      "noActiveSessionError": "No active session found.",
+      "startNewOneLink": "Start a new one.",
+      "questionFetchError": "Error Fetching Questions",
+      "unknownError": "An unexpected error occurred. Please try again.",
+      "sessionCompleteTitle": "Session Complete!",
+      "sessionCompleteMessage": "Great work! You've completed your emergency study session.",
+      "returnToSetupButton": "Start Another Session"
+    },
+    "plan": {
+      "targetSkillsTitle": "Target Skills",
+      "reviewTopicsTitle": "Quick Review Topics",
+      "tipsTitle": "Motivational Tips"
+    }
   }
 }
