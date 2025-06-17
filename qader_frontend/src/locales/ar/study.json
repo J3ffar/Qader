@@ -621,7 +621,14 @@
       "unknownError": "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
       "sessionCompleteTitle": "اكتملت الجلسة!",
       "sessionCompleteMessage": "عمل رائع! لقد أكملت جلسة المذاكرة الطارئة بنجاح.",
-      "returnToSetupButton": "بدء جلسة أخرى"
+      "returnToSetupButton": "بدء جلسة أخرى",
+      "question": {
+        "title": "سؤال طارئ",
+        "progress": "السؤال {current} من {total}",
+        "submitButton": "إرسال الإجابة",
+        "nextButton": "السؤال التالي",
+        "submitErrorToast": "فشل في إرسال الإجابة"
+      }
     },
     "plan": {
       "targetSkillsTitle": "المهارات المستهدفة",

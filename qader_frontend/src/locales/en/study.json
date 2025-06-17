@@ -621,7 +621,14 @@
       "unknownError": "An unexpected error occurred. Please try again.",
       "sessionCompleteTitle": "Session Complete!",
       "sessionCompleteMessage": "Great work! You've completed your emergency study session.",
-      "returnToSetupButton": "Start Another Session"
+      "returnToSetupButton": "Start Another Session",
+      "question": {
+        "title": "Emergency Question",
+        "progress": "Question {current} of {total}",
+        "submitButton": "Submit Answer",
+        "nextButton": "Next Question",
+        "submitErrorToast": "Failed to submit answer"
+      }
     },
     "plan": {
       "targetSkillsTitle": "Target Skills",

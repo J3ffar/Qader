@@ -20,19 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionPlanDetails } from "./SessionPlanDetails";
-
-// Placeholder for QuestionDisplay which will need its own refactoring for answer submission
-const QuestionDisplayEmergency = ({ question }: { question: any }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>Question: {question.id}</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <p>{question.question_text}</p>
-      {/* TODO: Implement full question display logic with options, submission, etc. */}
-    </CardContent>
-  </Card>
-);
+import { QuestionDisplayEmergency } from "./QuestionDisplayEmergency";
 
 export function EmergencyModeSessionView() {
   const t = useTranslations("Study.emergencyMode.session");
@@ -174,11 +162,16 @@ export function EmergencyModeSessionView() {
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
             >
-              <QuestionDisplayEmergency question={currentQuestion} />
+              {/* THIS IS THE UPDATED PART */}
+              <QuestionDisplayEmergency
+                question={currentQuestion}
+                currentQuestionNumber={currentQuestionIndex + 1}
+                totalQuestions={questions.length}
+              />
             </motion.div>
-          ) : (
+          ) : isLoading ? (
             <Skeleton className="h-96 w-full" />
-          )}
+          ) : null}
         </AnimatePresence>
       </div>
       <div>
