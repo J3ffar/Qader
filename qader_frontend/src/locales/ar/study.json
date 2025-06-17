@@ -538,6 +538,30 @@
       "sessionStatsTitle": "إحصائيات الجلسة",
       "correctAnswers": "إجابات صحيحة",
       "incorrectAnswers": "إجابات خاطئة"
+    },
+    "score": {
+      "pageTitle": "نتائج جلسة التدريب",
+      "yourScoreIsReady": "نتائج جلستك التدريبية جاهزة!",
+      "currentLevel": "مستوى الأداء",
+      "correctAnswers": "الإجابات الصحيحة",
+      "incorrectAnswers": "الإجابات الخاطئة",
+      "skipped": "تم تخطيها",
+      "detailedPerformance": "الأداء التفصيلي حسب الموضوع",
+      "section": "القسم",
+      "correct": "صحيح",
+      "total": "الإجمالي",
+      "score": "الدرجة",
+      "smartAnalysisTitle": "التحليل الذكي",
+      "pointsEarned": "النقاط المكتسبة",
+      "currentStreak": "سلسلة المذاكرة الحالية",
+      "days": "أيام",
+      "badgesUnlocked": "الشارات المفتوحة",
+      "backToOverview": "العودة إلى قائمة التدريب",
+      "startNewSession": "بدء جلسة جديدة",
+      "reviewSession": "مراجعة الجلسة",
+      "errors": {
+        "fetchReviewFailed": "فشل تحميل نتائج جلسة التدريب. قد تكون الجلسة غير مكتملة أو حدث خطأ."
+      }
     }
   },
 

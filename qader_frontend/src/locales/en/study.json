@@ -538,6 +538,30 @@
       "section": "Section",
       "subsection": "Sub-section",
       "skill": "Skill"
+    },
+    "score": {
+      "pageTitle": "Practice Session Results",
+      "yourScoreIsReady": "Your Practice Results are Ready!",
+      "currentLevel": "Performance Level",
+      "correctAnswers": "Correct Answers",
+      "incorrectAnswers": "Incorrect Answers",
+      "skipped": "Skipped",
+      "detailedPerformance": "Detailed Performance by Topic",
+      "section": "Section",
+      "correct": "Correct",
+      "total": "Total",
+      "score": "Score",
+      "smartAnalysisTitle": "Smart Analysis",
+      "pointsEarned": "Points Earned",
+      "currentStreak": "Study Streak",
+      "days": "Days",
+      "badgesUnlocked": "Badges Unlocked",
+      "backToOverview": "Back to Practice List",
+      "startNewSession": "Start New Session",
+      "reviewSession": "Review Session",
+      "errors": {
+        "fetchReviewFailed": "Failed to load practice session results. The session might be incomplete or an error occurred."
+      }
     }
   },
 

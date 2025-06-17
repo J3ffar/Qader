@@ -20,7 +20,10 @@ import {
 } from "@/services/study.service";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
-import type { UnifiedQuestion } from "@/types/api/study.types";
+import type {
+  UnifiedQuestion,
+  UserTestAttemptCompletionResponse,
+} from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -121,17 +124,35 @@ export default function TraditionalLearningSession({
     },
   });
 
-  const completeSessionMutation = useMutation({
-    mutationFn: () => completeTestAttempt(attemptId),
-    onSuccess: () => {
+  const completeSessionMutation = useMutation<
+    UserTestAttemptCompletionResponse,
+    Error,
+    string
+  >({
+    mutationFn: completeTestAttempt,
+    onSuccess: (data, completedAttemptId) => {
       toast.success(t("api.sessionCompletedSuccess"));
+
+      // Invalidate the list view so it shows the 'completed' status
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
       });
-      router.push(PATHS.STUDY.TRADITIONAL_LEARNING.LIST);
+
+      // Cache the detailed completion result for the score page
+      queryClient.setQueryData(
+        [QUERY_KEYS.USER_TEST_ATTEMPT_COMPLETION_RESULT, completedAttemptId],
+        data
+      );
+
+      // Redirect to the new score page
+      router.push(PATHS.STUDY.TRADITIONAL_LEARNING.SCORE(completedAttemptId));
     },
     onError: (err) => {
-      toast.error(getApiErrorMessage(err, t("api.sessionCompleteError")));
+      const errorMessage = getApiErrorMessage(
+        err,
+        t("api.sessionCompleteError")
+      );
+      toast.error(errorMessage);
     },
   });
 
@@ -195,7 +216,7 @@ export default function TraditionalLearningSession({
             title={t("confirmEndTitle")}
             description={t("confirmEndDescription")}
             confirmActionText={t("confirmEndButton")}
-            onConfirm={() => completeSessionMutation.mutate()}
+            onConfirm={() => completeSessionMutation.mutate(attemptId)}
             isConfirming={completeSessionMutation.isPending}
           />
         </header>
@@ -247,7 +268,7 @@ export default function TraditionalLearningSession({
                     </Button>
                   ) : (
                     <Button
-                      onClick={() => completeSessionMutation.mutate()}
+                      onClick={() => completeSessionMutation.mutate(attemptId)}
                       disabled={completeSessionMutation.isPending}
                     >
                       <Send className="me-2 h-4 w-4" />
@@ -261,7 +282,7 @@ export default function TraditionalLearningSession({
                 <p>{t("noMoreQuestions")}</p>
                 <Button
                   className="mt-4"
-                  onClick={() => completeSessionMutation.mutate()}
+                  onClick={() => completeSessionMutation.mutate(attemptId)}
                 >
                   {t("completeSession")}
                 </Button>

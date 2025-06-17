@@ -31,9 +31,10 @@ export const PATHS = {
       LIST: "/study/traditional-learning", // Main page for this learning mode
       SESSION: (attemptId: number | string) =>
         `/study/traditional-learning/session/${attemptId}`,
-      // For now, reviewing a practice session just means re-opening it.
+      SCORE: (attemptId: number | string) =>
+        `/study/traditional-learning/session/${attemptId}/score`,
       REVIEW: (attemptId: number | string) =>
-        `/study/traditional-learning/session/${attemptId}`,
+        `/study/traditional-learning/session/${attemptId}/review`,
     },
 
     CONVERSATIONAL_LEARNING: {
