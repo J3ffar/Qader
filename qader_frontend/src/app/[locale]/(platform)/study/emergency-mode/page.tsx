@@ -2,8 +2,8 @@
 
 import React from "react";
 import { useEmergencyModeStore } from "@/store/emergency.store";
-import { EmergencyModeSetup } from "./_components/EmergencyModeSetup";
-import { EmergencyModeSessionView } from "./_components/EmergencyModeSessionView";
+import { EmergencyModeSetup } from "@/components/features/platform/study/emergency-mode/EmergencyModeSetup";
+import { EmergencyModeSessionView } from "@/components/features/platform/study/emergency-mode/EmergencyModeSessionView";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function EmergencyModePage() {

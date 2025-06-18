@@ -19,8 +19,8 @@ import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SessionPlanDetails } from "./SessionPlanDetails";
 import { QuestionDisplayEmergency } from "./QuestionDisplayEmergency";
+import { SessionPlanDetails } from "./SessionPlanDetails";
 
 export function EmergencyModeSessionView() {
   const t = useTranslations("Study.emergencyMode.session");

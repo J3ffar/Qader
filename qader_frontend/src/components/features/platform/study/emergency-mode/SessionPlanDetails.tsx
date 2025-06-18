@@ -1,5 +1,3 @@
-// src/app/[locale]/(platform)/study/emergency-mode/_components/SessionPlanDetails.tsx
-
 import React from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
