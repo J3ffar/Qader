@@ -35,6 +35,8 @@ class UserProfileInline(admin.StackedInline):
             _("Subscription"),
             {
                 "fields": (
+                    # --- CHANGE 1: ADD 'account_type' HERE ---
+                    "account_type",
                     "subscription_expires_at",
                     "serial_code_used",
                     "is_subscribed",
@@ -105,11 +107,11 @@ class UserAdmin(BaseUserAdmin):
     list_display = (
         "username",
         "email",
-        # 'full_name_from_profile', # Add profile field if desired
         "is_active",
         "is_staff",
         "get_user_role",  # Custom method to display role from profile
-        "get_subscription_status",  # Custom method for subscription status
+        # --- CHANGE 2: REPLACE 'get_subscription_status' with 'get_account_type' ---
+        "get_account_type",
         "date_joined",
         "last_login",
     )
@@ -118,6 +120,8 @@ class UserAdmin(BaseUserAdmin):
     )  # Optimize query for profile access in list_display
     list_filter = BaseUserAdmin.list_filter + (
         "profile__role",
+        # --- CHANGE 3: ADD 'profile__account_type' TO FILTERS ---
+        "profile__account_type",
         "profile__subscription_expires_at",
     )
     search_fields = BaseUserAdmin.search_fields + ("profile__full_name",)
@@ -130,44 +134,31 @@ class UserAdmin(BaseUserAdmin):
     @admin.display(description=_("Role"), ordering="profile__role")
     def get_user_role(self, instance):
         try:
-            # Ensure profile exists (signal should handle this)
             if hasattr(instance, "profile"):
                 return instance.profile.get_role_display()
         except UserProfile.DoesNotExist:
-            pass  # Should not happen if signal is working
+            pass
         return _("No Profile")
 
-    @admin.display(
-        description=_("Subscribed"),
-        boolean=True,
-        ordering="profile__subscription_expires_at",
-    )
-    def get_subscription_status(self, instance):
+    # --- CHANGE 4: REPLACE 'get_subscription_status' METHOD ---
+    @admin.display(description=_("Account Type"), ordering="profile__account_type")
+    def get_account_type(self, instance):
+        """Displays the user's account type from their profile."""
         try:
             if hasattr(instance, "profile"):
-                return instance.profile.is_subscribed
+                # .get_account_type_display() returns the human-readable name
+                return instance.profile.get_account_type_display()
         except UserProfile.DoesNotExist:
             pass
-        return False
-
-    # Optionally, if you want to display full name directly
-    # @admin.display(description=_("Full Name"), ordering='profile__full_name')
-    # def full_name_from_profile(self, instance):
-    #     try:
-    #         if hasattr(instance, 'profile'):
-    #             return instance.profile.full_name
-    #     except UserProfile.DoesNotExist:
-    #         pass
-    #     return ''
+        return _("No Profile")
 
 
 @admin.register(SerialCode)
 class SerialCodeAdmin(admin.ModelAdmin):
-    """Admin interface for managing Serial Codes."""
-
+    # ... (no changes needed in SerialCodeAdmin)
     list_display = (
         "code",
-        "subscription_type",  # Add type to display
+        "subscription_type",
         "duration_days",
         "is_active",
         "is_used",
@@ -177,17 +168,15 @@ class SerialCodeAdmin(admin.ModelAdmin):
         "get_created_by_username",
     )
     list_filter = (
-        "subscription_type",  # Add type filter
+        "subscription_type",
         "is_active",
         "is_used",
         "created_at",
-        "duration_days",  # Keep duration filter if useful
+        "duration_days",
     )
     search_fields = ("code", "used_by__username", "notes", "created_by__username")
     readonly_fields = ("used_by", "used_at", "created_at", "updated_at")
     list_select_related = ("used_by", "created_by")
-
-    # Add the new field to the admin form details view
     fieldsets = (
         (
             None,
@@ -204,9 +193,6 @@ class SerialCodeAdmin(admin.ModelAdmin):
         (_("Usage Information"), {"fields": ("is_used", "used_by", "used_at")}),
         (_("Metadata"), {"fields": ("created_by", "created_at", "updated_at")}),
     )
-
-    # If you prefer 'fields' instead of 'fieldsets':
-    # fields = ('code', 'subscription_type', 'duration_days', 'is_active', 'notes', 'is_used', 'used_by', 'used_at', 'created_by')
 
     @admin.display(description=_("Used By"), ordering="used_by__username")
     def get_used_by_username(self, obj):
@@ -230,6 +216,6 @@ class SerialCodeAdmin(admin.ModelAdmin):
 
 
 # Re-register User model with the custom UserAdmin
-# Ensures the UserProfileInline is used
+# This is correct and should remain
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)

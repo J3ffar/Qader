@@ -480,7 +480,14 @@ class UserProfile(models.Model):
 
     @property
     def is_subscribed(self) -> bool:
-        """Check if the user currently has an active subscription."""
+        """
+        Check if the user currently has an active subscription.
+        This includes users with a permanent access account type.
+        """
+        # A user with permanent access is always considered subscribed.
+        if self.account_type == AccountTypeChoices.PERMANENT:
+            return True
+
         if not self.subscription_expires_at:
             return False
         return timezone.now() < self.subscription_expires_at

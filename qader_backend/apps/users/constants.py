@@ -9,6 +9,7 @@ class AccountTypeChoices(models.TextChoices):
 
     FREE_TRIAL = "FREE_TRIAL", _("Free Trial")  # Limited access, short duration
     SUBSCRIBED = "SUBSCRIBED", _("Subscribed")  # Standard paid subscription
+    PERMANENT = "PERMANENT", _("Permanent Access")
     # Add other potential types later, e.g.:
     # PREMIUM = 'PREMIUM', _('Premium')
     # ENTERPRISE = 'ENTERPRISE', _('Enterprise')

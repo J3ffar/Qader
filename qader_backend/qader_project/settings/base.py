@@ -497,6 +497,14 @@ ACCOUNT_USAGE_LIMITS = {
         LIMIT_MAX_CONVERSATION_MESSAGES: None,
         LIMIT_MAX_AI_QUESTIONS_ASKED: None,
     },
+    AccountTypeChoices.PERMANENT: {
+        # Permanent users have unlimited access to all features.
+        # 'None' signifies unlimited in your existing convention.
+        LIMIT_MAX_TEST_ATTEMPTS_PER_TYPE: None,
+        LIMIT_MAX_QUESTIONS_PER_ATTEMPT: None,
+        LIMIT_MAX_CONVERSATION_MESSAGES: None,
+        LIMIT_MAX_AI_QUESTIONS_ASKED: None,
+    },
     # --- Add other account types later ---
     # AccountTypeChoices.PREMIUM: {
     #     'MAX_TEST_ATTEMPTS_PER_TYPE': None,
