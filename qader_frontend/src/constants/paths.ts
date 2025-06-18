@@ -64,17 +64,16 @@ export const PATHS = {
     ADMIN_SUPPORT: "/study/admin-support", // Ticketing, FAQ, contact for support
     EMERGENCY_MODE: "/study/emergency-mode", // Special mode, perhaps for quick reviews or offline access
 
+    SETTINGS: {
+      HOME: "/study/settings",
+      PROFILE: "/study/settings/profile",
+      ACCOUNT: "/study/settings/account",
+      SUBSCRIPTION: "/study/settings/subscription",
+      NOTIFICATIONS: "/study/settings/notifications",
+    },
     // Consider adding other common study sections here as they are developed
   },
 
-  SETTINGS: {
-    PROFILE: "/settings/profile",
-    ACCOUNT: "/settings/account",
-    SUBSCRIPTION: "/settings/subscription",
-    NOTIFICATIONS: "/settings/notifications",
-    // Main settings page can be one of the above or its own
-    HOME: "/settings", // Or simply "/settings" and redirect to a default tab
-  },
   ADMIN_DASHBOARD: "/admin/dashboard",
   // ... other paths
 };

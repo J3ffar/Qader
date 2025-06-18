@@ -60,7 +60,7 @@ const UserProfileDropdown = forwardRef<
     {
       label: t("settings"),
       icon: Cog6ToothIcon,
-      href: `/${locale}${PATHS.SETTINGS.HOME}`,
+      href: `/${locale}${PATHS.STUDY.SETTINGS.HOME}`,
     }, // Updated path
     {
       label: t("emergencyMode"),

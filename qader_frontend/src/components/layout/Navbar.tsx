@@ -388,7 +388,7 @@ const Navbar = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
-                      router.push(PATHS.SETTINGS.HOME);
+                      router.push(PATHS.STUDY.SETTINGS.HOME);
                       closeMobileMenu();
                     }}
                     className="cursor-pointer"
@@ -504,7 +504,7 @@ const Navbar = () => {
                     variant="outline"
                     className="w-full"
                     onClick={() => {
-                      router.push(PATHS.SETTINGS.HOME);
+                      router.push(PATHS.STUDY.SETTINGS.HOME);
                       closeMobileMenu();
                     }}
                   >

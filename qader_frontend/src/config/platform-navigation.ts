@@ -112,7 +112,7 @@ export const PLATFORM_SIDEBAR_SECTIONS: PlatformSidebarNavSection[] = [
       {
         labelKey: "PlatformSidebar.items.settings",
         icon: Settings,
-        href: PATHS.SETTINGS.HOME,
+        href: PATHS.STUDY.SETTINGS.HOME,
       },
       {
         labelKey: "PlatformSidebar.items.adminSupport",
