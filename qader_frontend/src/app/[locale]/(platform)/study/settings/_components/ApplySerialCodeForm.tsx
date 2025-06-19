@@ -7,9 +7,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+// FIX: Import the Zustand store to update it directly
+import { useAuthStore } from "@/store/auth.store";
 import { applySerialCode } from "@/services/subscription.service";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import type { UserProfile } from "@/types/api/user.types";
 
 import {
   Card,
@@ -43,11 +46,12 @@ export default function ApplySerialCodeForm() {
   const t = useTranslations("Study.settings.subscriptions.applyCode");
   const queryClient = useQueryClient();
 
+  // FIX: Get the updater action from the auth store
+  const { user, updateUserProfile: updateUserInStore } = useAuthStore();
+
   const form = useForm<ApplyCodeFormValues>({
     resolver: zodResolver(applyCodeSchema),
-    defaultValues: {
-      serial_code: "",
-    },
+    defaultValues: { serial_code: "" },
   });
 
   const mutation = useMutation({
@@ -56,10 +60,29 @@ export default function ApplySerialCodeForm() {
       toast.success(t("toast.successTitle"), {
         description: data.detail,
       });
-      // This is the key to updating the UI. It forces a refetch of the user's data.
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_PROFILE_KEY[0]],
-      });
+
+      // --- IMMEDIATE STATE UPDATE ---
+
+      // 1. Update the TanStack Query Cache
+      // This immediately updates the UI for any component using useQuery(['userProfile'])
+      queryClient.setQueryData<UserProfile>(
+        [QUERY_KEYS.USER_PROFILE_KEY, user?.id],
+        (oldData) => {
+          if (!oldData) return undefined;
+          // Return a new user profile object with the updated subscription
+          return {
+            ...oldData,
+            subscription: data.subscription,
+          };
+        }
+      );
+
+      // 2. Update the global Zustand store for any other components that rely on it.
+      updateUserInStore({ subscription: data.subscription });
+
+      // NOTE: We no longer need to invalidate the query, as we have already set the new state.
+      // queryClient.invalidateQueries({ queryKey: [queryKeys.userProfile] }); // <-- REMOVED
+
       form.reset();
     },
     onError: (error) => {

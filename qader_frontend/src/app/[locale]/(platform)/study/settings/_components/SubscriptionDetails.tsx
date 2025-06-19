@@ -20,6 +20,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { SubscriptionDetailResponse } from "@/types/api/auth.types";
 import ApplySerialCodeForm from "./ApplySerialCodeForm";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/auth.store";
+import { cancelSubscription } from "@/services/subscription.service";
+import { toast } from "sonner";
+import { UserProfile } from "@/types/api/user.types";
+import { QUERY_KEYS } from "@/constants/queryKeys";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface SubscriptionDetailsProps {
   currentSubscription: SubscriptionDetailResponse;
@@ -52,17 +70,39 @@ export default function SubscriptionDetails({
 }: SubscriptionDetailsProps) {
   const t = useTranslations("Study.settings.subscriptions");
   const dateLocale = locale === "ar" ? arSA : enUS;
-  console.log(plans);
+  const queryClient = useQueryClient();
+  const { user, updateUserProfile: updateUserInStore } = useAuthStore();
+
   const handlePurchase = (planId: string) => {
     // In a real app, this would redirect to a payment page
     // e.g., router.push(`/checkout?plan=${planId}`)
     alert(`Redirecting to purchase plan: ${planId}`);
   };
 
-  const handleCancel = () => {
-    // TODO: Implement cancel subscription mutation
-    alert("Cancel subscription functionality to be implemented.");
-  };
+  const cancelMutation = useMutation({
+    mutationFn: cancelSubscription,
+    onSuccess: (data) => {
+      toast.success(t("cancelDialog.toast.successTitle"), {
+        description: data.detail,
+      });
+
+      // Instantly update user profile in both caches
+      queryClient.setQueryData<UserProfile>(
+        [QUERY_KEYS.USER_PROFILE_KEY, user?.id],
+        (oldData) =>
+          oldData ? { ...oldData, subscription: data.subscription } : undefined
+      );
+      updateUserInStore({ subscription: data.subscription });
+    },
+    onError: (error) => {
+      toast.error(t("cancelDialog.toast.errorTitle"), {
+        description: getApiErrorMessage(
+          error,
+          t("cancelDialog.toast.errorTitle")
+        ),
+      });
+    },
+  });
 
   return (
     <div className="space-y-8">
@@ -103,14 +143,43 @@ export default function SubscriptionDetails({
                   })}
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCancel}
-                className="text-destructive hover:text-destructive"
-              >
-                {t("current.cancelButton")}
-              </Button>
+
+              {/* FIX: Integrate AlertDialog for cancellation */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                  >
+                    {t("current.cancelButton")}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      {t("cancelDialog.title")}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t("cancelDialog.description")}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>
+                      {t("cancelDialog.cancelButton")}
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => cancelMutation.mutate()}
+                      disabled={cancelMutation.isPending}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {cancelMutation.isPending
+                        ? t("cancelDialog.confirmButtonLoading")
+                        : t("cancelDialog.confirmButton")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
         </CardContent>

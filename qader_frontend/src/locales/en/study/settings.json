@@ -97,6 +97,17 @@
           "successTitle": "Subscription Activated!",
           "errorTitle": "Activation Failed"
         }
+      },
+      "cancelDialog": {
+        "title": "Are you absolutely sure?",
+        "description": "This will cancel your subscription at the end of the current billing period. You will retain access until then. This action cannot be undone.",
+        "cancelButton": "Nevermind",
+        "confirmButton": "Yes, Cancel Subscription",
+        "confirmButtonLoading": "Cancelling...",
+        "toast": {
+          "successTitle": "Subscription Cancelled",
+          "errorTitle": "Cancellation Failed"
+        }
       }
     }
   }
