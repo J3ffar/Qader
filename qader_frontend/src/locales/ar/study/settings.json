@@ -40,6 +40,21 @@
       "toast": {
         "success": "تم تحديث الملف الشخصي بنجاح!",
         "error": "فشل تحديث الملف الشخصي."
+      },
+      "passwordDialog": {
+        "button": "تغيير كلمة المرور",
+        "title": "تغيير كلمة المرور",
+        "description": "أدخل كلمة مرورك الحالية وواحدة جديدة. انقر على حفظ عند الانتهاء.",
+        "currentPasswordLabel": "كلمة المرور الحالية",
+        "newPasswordLabel": "كلمة المرور الجديدة",
+        "confirmPasswordLabel": "تأكيد كلمة المرور الجديدة",
+        "cancelButton": "إلغاء",
+        "saveButton": "حفظ كلمة المرور",
+        "saveButtonLoading": "جارٍ الحفظ...",
+        "toast": {
+          "successTitle": "تم تحديث كلمة المرور!",
+          "errorTitle": "فشل التحديث"
+        }
       }
     },
      "notifications": {

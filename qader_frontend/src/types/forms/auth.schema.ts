@@ -236,3 +236,30 @@ export const createResetPasswordSchema = (t: AuthTFunction) =>
 export type ResetPasswordFormValues = z.infer<
   ReturnType<typeof createResetPasswordSchema>
 >;
+
+// New schema for the change password dialog
+export const createChangePasswordSchema = (t: AuthTFunction) =>
+  z
+    .object({
+      current_password: z
+        .string()
+        .min(1, {
+          message: t("requiredField", { fieldName: t("currentPassword") }),
+        }),
+      new_password: z
+        .string()
+        .min(8, { message: t("passwordMinLength") })
+        .regex(
+          /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&._-])[A-Za-z\d@$!%*?&._-]+$/,
+          { message: t("passwordComplexity") }
+        ),
+      new_password_confirm: z.string(),
+    })
+    .refine((data) => data.new_password === data.new_password_confirm, {
+      message: t("passwordsMismatch"),
+      path: ["new_password_confirm"],
+    });
+
+export type ChangePasswordFormValues = z.infer<
+  ReturnType<typeof createChangePasswordSchema>
+>;

@@ -181,7 +181,7 @@ const PlatformSidebar = ({ isOpen, setIsOpen }: PlatformSidebarProps) => {
     // Use theme variables for colors if you have them defined in globals.css or tailwind.config
     <aside
       className={cn(
-        "sticky top-0 z-60 flex h-screen flex-col bg-primary text-primary-foreground shadow-lg transition-all duration-300 ease-in-out dark:bg-primary-dark",
+        "sticky top-0 z-50 flex h-screen flex-col bg-primary text-primary-foreground shadow-lg transition-all duration-300 ease-in-out dark:bg-primary-dark",
         isOpen ? "w-60" : "w-[72px]" // Slightly wider when open for text, narrower when closed for icons
       )}
       aria-label={tSidebar("PlatformSidebar.sidebarNavigationLabel" as any)} // More generic label

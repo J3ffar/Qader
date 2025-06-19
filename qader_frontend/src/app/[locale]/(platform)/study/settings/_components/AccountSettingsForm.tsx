@@ -33,6 +33,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Edit3 } from "lucide-react";
 import { useRef, useState } from "react";
 import { UserProfile } from "@/types/api/auth.types";
+import ChangePasswordDialog from "./ChangePasswordDialog";
 
 // Schema for form validation
 const accountSettingsSchema = z.object({
@@ -188,14 +189,7 @@ export default function AccountSettingsForm({
               </FormItem>
               <FormItem>
                 <FormLabel>{t("password.label")}</FormLabel>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-start font-normal"
-                >
-                  {t("password.button")}
-                </Button>
-                {/* TODO: Implement password change dialog */}
+                <ChangePasswordDialog />
               </FormItem>
             </div>
 

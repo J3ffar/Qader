@@ -40,6 +40,21 @@
       "toast": {
         "success": "Profile updated successfully!",
         "error": "Failed to update profile."
+      },
+      "passwordDialog": {
+        "button": "Change Password",
+        "title": "Change Your Password",
+        "description": "Enter your current password and a new one. Click save when you're done.",
+        "currentPasswordLabel": "Current Password",
+        "newPasswordLabel": "New Password",
+        "confirmPasswordLabel": "Confirm New Password",
+        "cancelButton": "Cancel",
+        "saveButton": "Save New Password",
+        "saveButtonLoading": "Saving...",
+        "toast": {
+          "successTitle": "Password Updated!",
+          "errorTitle": "Update Failed"
+        }
       }
     },
     "notifications": {

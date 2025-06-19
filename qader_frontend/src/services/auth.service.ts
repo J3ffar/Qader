@@ -9,6 +9,7 @@ import type {
   RequestOtpFormValues,
   VerifyOtpFormValues,
   ResetPasswordFormValues,
+  ChangePasswordFormValues,
 } from "@/types/forms/auth.schema";
 import type {
   LoginResponse,
@@ -229,5 +230,24 @@ export const updateUserProfile = (
     method: "PATCH",
     body,
     headers,
+  });
+};
+
+// Assuming the API returns a simple success message
+export interface ChangePasswordResponse {
+  detail: string;
+}
+
+/**
+ * Changes the password for the currently authenticated user.
+ * @param payload - An object containing current_password, new_password, and new_password_confirm.
+ * @returns A promise that resolves to the API success message.
+ */
+export const changePassword = (
+  payload: ChangePasswordFormValues
+): Promise<ChangePasswordResponse> => {
+  return apiClient<ChangePasswordResponse>("/users/me/change-password/", {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 };
