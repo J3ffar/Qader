@@ -83,6 +83,20 @@
         "title": "الخطط المتاحة",
         "duration": "{days} يوم من الوصول الكامل",
         "purchaseButton": "الترقية الآن"
+      },
+      "applyCode": {
+        "title": "هل لديك كود تفعيل؟",
+        "description": "أدخل كود التفعيل هنا لتنشيط أو تمديد اشتراكك.",
+        "form": {
+          "label": "كود التفعيل",
+          "placeholder": "XXXX-XXXX-XXXX",
+          "buttonSave": "تطبيق الكود",
+          "buttonSaving": "جارٍ التطبيق..."
+        },
+        "toast": {
+          "successTitle": "تم تفعيل الاشتراك!",
+          "errorTitle": "فشل التفعيل"
+        }
       }
     }
   }

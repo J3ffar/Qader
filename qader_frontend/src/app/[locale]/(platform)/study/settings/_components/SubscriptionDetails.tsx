@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { SubscriptionDetailResponse } from "@/types/api/auth.types";
+import ApplySerialCodeForm from "./ApplySerialCodeForm";
 
 interface SubscriptionDetailsProps {
   currentSubscription: SubscriptionDetailResponse;
@@ -115,6 +116,7 @@ export default function SubscriptionDetails({
         </CardContent>
       </Card>
 
+      {!currentSubscription.is_active && <ApplySerialCodeForm />}
       <Separator />
 
       {/* Available Plans */}

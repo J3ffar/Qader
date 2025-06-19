@@ -17,3 +17,13 @@ export interface SubscriptionDetailResponse {
   account_type_key: string | null;
   plan_identifier_key: string | null;
 }
+
+export interface ApplySerialCodePayload {
+  serial_code: string;
+}
+
+// Assuming the API returns the updated subscription details upon success
+export interface ApplySerialCodeResponse {
+  detail: string; // e.g., "Subscription activated successfully."
+  subscription: SubscriptionDetailResponse;
+}

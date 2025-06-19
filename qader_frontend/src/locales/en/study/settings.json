@@ -83,6 +83,20 @@
         "title": "Available Plans",
         "duration": "{days} days of access",
         "purchaseButton": "Upgrade Now"
+      },
+      "applyCode": {
+        "title": "Have a Serial Code?",
+        "description": "Enter your serial code here to activate or extend your subscription.",
+        "form": {
+          "label": "Serial Code",
+          "placeholder": "XXXX-XXXX-XXXX",
+          "buttonSave": "Apply Code",
+          "buttonSaving": "Applying..."
+        },
+        "toast": {
+          "successTitle": "Subscription Activated!",
+          "errorTitle": "Activation Failed"
+        }
       }
     }
   }
