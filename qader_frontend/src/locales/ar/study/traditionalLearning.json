@@ -1,0 +1,156 @@
+{
+  "traditionalLearning": {
+    "title": "التعلم التقليدي",
+    "description": "أتقن المفاهيم من خلال أسئلة تدريب موجهة.",
+    "config": {
+      "pageTitle": "إعداد التعلم التقليدي",
+      "pageDescription": "اختر الأقسام والمواضيع التي ترغب في التدرب عليها. خصص جلستك للتركيز على مجالات محددة.",
+      "sectionsTitle": "اختر الأقسام للتدرب عليها",
+      "sectionsDescription": "اختر من بين الأقسام الرئيسية والفرعية.",
+      "advancedOptionsTitle": "خيارات متقدمة",
+      "advancedOptionsDescription": "حسّن جلسة التدريب الخاصة بك بشكل أكبر.",
+      "numQuestionsLabel": "عدد الأسئلة",
+      "numQuestionsPlaceholder": "مثال: 20",
+      "starredLabel": "الأسئلة المميزة بنجمة فقط",
+      "starredDescription": "تدرب فقط على الأسئلة التي قمت بتمييزها بنجمة.",
+      "notMasteredLabel": "المهارات غير المتقنة فقط",
+      "notMasteredDescription": "ركز على الأسئلة من المهارات التي لم تتقنها بعد.",
+      "startSession": "ابدأ جلسة التدريب",
+      "validation": {
+        "atLeastOneSubsection": "يرجى تحديد قسم فرعي واحد على الأقل للبدء.",
+        "numQuestionsMin": "يجب أن يكون عدد الأسئلة 1 على الأقل.",
+        "numQuestionsMax": "يجب ألا يتجاوز عدد الأسئلة 50."
+      },
+      "api": {
+        "startSuccess": "تم بدء جلسة التدريب بنجاح! بالتوفيق!",
+        "startError": "فشل في بدء جلسة التدريب. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "list": {
+      "startSession": "ابدأ جلسة تدريب جديدة",
+      "attemptsLogTitle": "سجل التدريب",
+      "noAttemptsTitle": "لا يوجد سجل تدريب بعد",
+      "noAttemptsDescription": "ستظهر جلسات التدريب الخاصة بك هنا بمجرد أن تبدأ واحدة. استخدم النموذج أعلاه للبدء!",
+      "table": {
+        "date": "التاريخ",
+        "numQuestions": "الأسئلة",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+      "actions": {
+        "continueSession": "متابعة الجلسة",
+        "reviewSession": "مراجعة",
+        "viewDetails": "عرض التفاصيل",
+        "abandonedTooltip": "تم التخلي عن هذا الاختبار، ولا يمكنك مراجعته",
+        "cancelSession": "إلغاء",
+        "cancelDialog": {
+          "title": "هل أنت متأكد أنك تريد إلغاء هذه الجلسة؟",
+          "description": "لا يمكن التراجع عن هذا الإجراء. ستفقد تقدمك في جلسة التدريب رقم #{attemptId}.",
+          "confirmButton": "نعم، إلغاء الجلسة",
+          "successToast": "تم إلغاء جلسة التدريب رقم #{attemptId} بنجاح.",
+          "errorToastGeneric": "تعذر إلغاء الجلسة. يرجى المحاولة مرة أخرى."
+        }
+      },
+      "errors": {
+        "fetchFailedTitle": "فشل في جلب سجل التدريب",
+        "fetchFailedDescription": "حدث خطأ أثناء تحميل جلسات التدريب الخاصة بك. يرجى المحاولة مرة أخرى لاحقًا."
+      },
+      "sortBy": "الترتيب حسب",
+      "latestDate": "أحدث تاريخ",
+      "statusInProgress": "قيد التقدم"
+    },
+    "session": {
+      "title": "جلسة تدريب",
+      "endSession": "إنهاء الجلسة",
+      "question": "سؤال",
+      "outOf": "من",
+      "next": "التالي",
+      "previous": "السابق",
+      "submitAnswer": "إرسال الإجابة",
+      "continue": "أكمل",
+      "correct": "صحيح!",
+      "incorrect": "غير صحيح",
+      "correctAnswerWas": "الإجابة الصحيحة كانت:",
+      "yourAnswer": "إجابتك:",
+      "noMoreQuestions": "لقد أكملت جميع الأسئلة في هذه الجلسة!",
+      "completeSession": "إنهاء الجلسة",
+      "confirmEndTitle": "إنهاء جلسة التدريب؟",
+      "confirmEndDescription": "هل أنت متأكد أنك تريد إنهاء هذه الجلسة؟ سيتم حفظ تقدمك.",
+      "confirmEndButton": "نعم، إنهاء الجلسة",
+      "api": {
+        "sessionCompletedSuccess": "اكتملت جلسة التدريب!",
+        "sessionCompleteError": "فشل في إنهاء الجلسة: {error}",
+        "hintSuccess": "تم الكشف عن التلميح!",
+        "hintError": "تعذر الحصول على تلميح: {error}",
+        "hintNotAvailable": "لا يوجد تلميح متاح لهذا السؤال.",
+        "answerRevealSuccess": "تم الكشف عن الإجابة الصحيحة.",
+        "answerRevealError": "تعذر الكشف عن الإجابة: {error}",
+        "explanationRevealSuccess": "تم الكشف عن الشرح.",
+        "explanationRevealError": "تعذر الكشف عن الشرح: {error}",
+        "explanationNotAvailable": "لا يوجد شرح متاح لهذا السؤال.",
+        "eliminateSuccess": "تم تسجيل استخدام خيار الحذف.",
+        "eliminateError": "تعذر تسجيل استخدام خيار الحذف: {error}"
+      },
+      "controls": {
+        "title": "أدوات المساعدة",
+        "eliminate": "حذف إجابة",
+        "hint": "الحصول على تلميح",
+        "showSolution": "عرض طريقة الحل",
+        "showAnswer": "الكشف عن الإجابة الصحيحة"
+      },
+      "explanation": "الشرح",
+      "questionDetails": "تفاصيل السؤال",
+      "section": "القسم",
+      "subsection": "القسم الفرعي",
+      "skill": "المهارة",
+      "sessionStatsTitle": "إحصائيات الجلسة",
+      "correctAnswers": "إجابات صحيحة",
+      "incorrectAnswers": "إجابات خاطئة"
+    },
+    "score": {
+      "pageTitle": "نتائج جلسة التدريب",
+      "yourScoreIsReady": "نتائج جلستك التدريبية جاهزة!",
+      "currentLevel": "مستوى الأداء",
+      "correctAnswers": "الإجابات الصحيحة",
+      "incorrectAnswers": "الإجابات الخاطئة",
+      "skipped": "تم تخطيها",
+      "detailedPerformance": "الأداء التفصيلي حسب الموضوع",
+      "section": "القسم",
+      "correct": "صحيح",
+      "total": "الإجمالي",
+      "score": "الدرجة",
+      "smartAnalysisTitle": "التحليل الذكي",
+      "pointsEarned": "النقاط المكتسبة",
+      "currentStreak": "سلسلة المذاكرة الحالية",
+      "days": "أيام",
+      "badgesUnlocked": "الشارات المفتوحة",
+      "backToOverview": "العودة إلى قائمة التدريب",
+      "startNewSession": "بدء جلسة جديدة",
+      "reviewSession": "مراجعة الجلسة",
+      "errors": {
+        "fetchReviewFailed": "فشل تحميل نتائج جلسة التدريب. قد تكون الجلسة غير مكتملة أو حدث خطأ."
+      }
+    },
+    "review": {
+      "pageTitle": "مراجعة جلسة التدريب",
+      "backToScore": "العودة إلى النتيجة",
+      "backToList": "العودة إلى قائمة التدريبات",
+      "filterBy": "التصفية حسب:",
+      "allQuestionsOpt": "الكل",
+      "incorrectOnlyOpt": "الخاطئة",
+      "skippedOnlyOpt": "المتخطاة",
+      "allQuestionsOptFull": "جميع الأسئلة",
+      "incorrectOnlyOptFull": "الأسئلة الخاطئة فقط",
+      "skippedOnlyOptFull": "الأسئلة المتخطاة فقط",
+      "previousQuestion": "السابق",
+      "nextQuestion": "التالي",
+      "questionXofYShort": "{current} / {total}",
+      "noQuestionsTitle": "لا توجد أسئلة لعرضها",
+      "noQuestionsInReview": "لا توجد أسئلة متاحة في مراجعة جلسة التدريب هذه.",
+      "noQuestionsMatchFilter": "لا توجد أسئلة تطابق التصفية الحالية.",
+      "errors": {
+        "fetchReviewFailed": "تعذر تحميل مراجعة جلسة التدريب. يرجى المحاولة مرة أخرى أو العودة."
+      }
+    }
+  }
+}

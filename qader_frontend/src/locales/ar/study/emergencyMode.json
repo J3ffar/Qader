@@ -1,0 +1,46 @@
+{
+  "emergencyMode": {
+    "setup": {
+      "title": "وضع الطوارئ",
+      "description": "اختبارك قريب؟ تشعر بالضغط؟ فعّل وضع الطوارئ للحصول على خطة دراسية مركزة ومناسبة لوقتك المتاح.",
+      "hoursLabel": "كم ساعة يمكنك المذاكرة الآن؟",
+      "focusAreasLabel": "ما هي الأقسام التي تود التركيز عليها؟",
+      "verbal": "اللفظي",
+      "quantitative": "الكمي",
+      "reasonLabel": "سبب التفعيل (اختياري)",
+      "reasonPlaceholder": "مثال: اختباري بعد ٣ أيام وأحتاج للتركيز على نقاط ضعفي.",
+      "startSessionButton": "بدء جلسة الطوارئ",
+      "sessionStartedToast": "تم بدء جلسة الطوارئ! هيا بنا نبدأ.",
+      "sessionStartErrorToast": "فشل في بدء الجلسة",
+      "validation_minHours": "يجب أن تكون مدة المذاكرة ساعة واحدة على الأقل.",
+      "validation_minFocusAreas": "يرجى اختيار قسم واحد على الأقل للتركيز عليه."
+    },
+    "session": {
+      "settingsTitle": "إعدادات الجلسة",
+      "calmModeLabel": "تفعيل الوضع الهادئ",
+      "shareWithAdminLabel": "مشاركة وضعي مع الإدارة",
+      "settingsUpdatedToast": "تم تحديث الإعدادات بنجاح",
+      "settingsUpdateErrorToast": "فشل تحديث الإعدادات",
+      "sessionErrorTitle": "خطأ في الجلسة",
+      "noActiveSessionError": "لم يتم العثور على جلسة نشطة.",
+      "startNewOneLink": "ابدأ جلسة جديدة.",
+      "questionFetchError": "خطأ في جلب الأسئلة",
+      "unknownError": "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
+      "sessionCompleteTitle": "اكتملت الجلسة!",
+      "sessionCompleteMessage": "عمل رائع! لقد أكملت جلسة المذاكرة الطارئة بنجاح.",
+      "returnToSetupButton": "بدء جلسة أخرى",
+      "question": {
+        "title": "سؤال طارئ",
+        "progress": "السؤال {current} من {total}",
+        "submitButton": "إرسال الإجابة",
+        "nextButton": "السؤال التالي",
+        "submitErrorToast": "فشل في إرسال الإجابة"
+      }
+    },
+    "plan": {
+      "targetSkillsTitle": "المهارات المستهدفة",
+      "reviewTopicsTitle": "مواضيع للمراجعة السريعة",
+      "tipsTitle": "نصائح تحفيزية"
+    }
+  }
+}

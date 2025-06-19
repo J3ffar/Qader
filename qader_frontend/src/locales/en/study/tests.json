@@ -1,0 +1,146 @@
+{
+  "tests": {
+    "title": "Practice & Simulation Tests",
+    "startForm": {
+      "pageTitle": "Configure Your Test",
+      "pageDescription": "Customize your test by selecting the mode, topics, and number of questions to match your study goals.",
+      "settingsTitle": "Test Configuration",
+      "settingsDescription": "Set up your test session.",
+      "testType": "Test Mode",
+      "practice": "Practice",
+      "simulation": "Simulation",
+      "numQuestions": "Number of Questions",
+      "starredLabel": "Practice only starred questions",
+      "notMasteredLabel": "Focus on unmastered skills",
+      "submit": "Start Test",
+      "validation": {
+        "atLeastOneSubsection": "Please select at least one topic to practice.",
+        "numQuestionsMin": "Number of questions must be at least 5.",
+        "numQuestionsMax": "Number of questions must not exceed 100."
+      },
+      "api": {
+        "startSuccess": "Test started successfully! Good luck."
+      }
+    },
+    "list": {
+      "title": "Test History",
+      "description": "Review your past tests to track your progress.",
+      "startNewTest": "Start New Test",
+      "noAttemptsTitle": "No Tests Taken Yet",
+      "noAttemptsDescription": "Your practice and simulation tests will appear here.",
+      "api": {
+        "retakeSuccess": "New test created! Redirecting..."
+      },
+      "table": {
+        "testType": "Test Type",
+        "date": "Date",
+        "numQuestions": "Questions",
+        "score": "Score",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "actions": {
+        "openMenu": "Open menu",
+        "review": "Full Review",
+        "reviewIncorrect": "Review Incorrect Only",
+        "retake": "Retake Similar Test",
+        "inProgressTooltip": "This test has not been completed yet.",
+        "abandonedTooltip": "This test was abandoned and cannot be continued or reviewed.",
+        "continueTest": "Continue Test",
+        "continueTestTooltip": "This feature is under development. Please end this test and start a new one for now.",
+        "cancelTest": "Cancel Test",
+        "cancelDialog": {
+          "title": "Are you sure you want to cancel this test?",
+          "description": "This action cannot be undone. Your progress in test attempt #{attemptId} will be lost.",
+          "confirmButton": "Yes, Cancel Test",
+          "successToast": "Test attempt #{attemptId} has been successfully cancelled.",
+          "errorToastGeneric": "Could not cancel the test. Please try again."
+        }
+      }
+    },
+    "quiz": {
+      "title": "Practice Test",
+      "simulationTitle": "Simulation Test",
+      "question": "Question",
+      "outOf": "of",
+      "next": "Next",
+      "previous": "Previous",
+      "submitAnswers": "Submit & Finish",
+      "endTest": "End Test",
+      "testAlreadyCompletedRedirecting": "This test has already been completed. Redirecting you...",
+      "noQuestionsTitle": "No Questions Available",
+      "noQuestionsDescription": "Could not load questions for this test. It might be invalid or an error occurred.",
+      "api": {
+        "answerSubmitError": "Failed to submit answer for question {questionId}: {error}",
+        "testCompletedSuccess": "Test completed successfully!",
+        "testCompleteError": "Failed to complete the test: {error}",
+        "testCancelledSuccess": "Test cancelled successfully.",
+        "testCancelError": "Failed to cancel the test: {error}"
+      },
+      "cancelDialog": {
+        "title": "End Test?",
+        "description": "Are you sure you want to end the current test? Your progress will be saved, and you can review it later.",
+        "confirmButton": "Yes, End Test"
+      },
+      "completeDialog": {
+        "title": "Submit Final Answers?",
+        "description": "Are you sure you want to submit your answers and finish the test?",
+        "confirmButton": "Yes, Submit & Finish"
+      },
+      "questionLoadError": {
+        "title": "Question Loading Error",
+        "description": "The options for question {questionId} could not be loaded. Please try again or contact support."
+      }
+    },
+    "score": {
+      "pageTitle": "Test Result",
+      "yourScoreIsReady": "Your Test Result is Ready!",
+      "overallScore": "Overall Score",
+      "timeTaken": "Time Taken",
+      "minutes": "min",
+      "currentLevel": "Performance Level",
+      "correctAnswers": "Correct Answers",
+      "incorrectAnswers": "Incorrect Answers",
+      "skipped": "Skipped",
+      "scoreDistribution": "Score Distribution",
+      "detailedPerformance": "Detailed Performance by Topic",
+      "section": "Section",
+      "correct": "Correct",
+      "total": "Total",
+      "score": "Score",
+      "smartAnalysisTitle": "Smart Analysis",
+      "pointsEarned": "Points Earned",
+      "currentStreak": "Study Streak",
+      "days": "Days",
+      "badgesUnlocked": "Badges Unlocked",
+      "backToOverview": "Back to Test List",
+      "retakeTest": "Retake Similar Test",
+      "errors": {
+        "fetchReviewFailed": "Failed to load test result data. The test might be incomplete or an error occurred."
+      },
+      "api": {
+        "retakeSuccess": "New test created successfully! Redirecting you..."
+      }
+    },
+    "review": {
+      "pageTitle": "Review Test",
+      "backToList": "Back to Test List",
+      "backToScore": "Back to Score",
+      "filterBy": "Filter by:",
+      "allQuestionsOpt": "All",
+      "incorrectOnlyOpt": "Incorrect",
+      "skippedOnlyOpt": "Skipped",
+      "allQuestionsOptFull": "All Questions",
+      "incorrectOnlyOptFull": "Incorrect Questions Only",
+      "skippedOnlyOptFull": "Skipped Questions Only",
+      "previousQuestion": "Previous",
+      "nextQuestion": "Next",
+      "noQuestionsTitle": "No Questions to Show",
+      "noQuestionsInReview": "There are no questions available in this review.",
+      "noQuestionsMatchFilter": "No questions match the current filter.",
+      "errors": {
+        "fetchReviewFailed": "Could not load the test review. Please try again or go back."
+      }
+    }
+  }
+}

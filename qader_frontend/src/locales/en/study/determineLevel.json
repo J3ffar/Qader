@@ -1,0 +1,238 @@
+{
+  "determineLevel": {
+    "title": "Determine Level",
+    "description": "Test your level with us before you start, so a personalized learning model can be built for you.",
+    "startTest": "Start Level Assessment",
+    "retakeTest": "Retake Level Assessment",
+    "noAttemptsTitle": "Determine Your Level",
+    "noAttemptsDescription": "Test your level with us before you start, so a personalized learning model can be built for you that identifies strengths and weaknesses. You can retake the test more than once.",
+    "attemptsLogTitle": "Level Assessment Log",
+    "attemptsTable": {
+      "date": "Date",
+      "numQuestions": "No. of Questions",
+      "percentage": "Percentage",
+      "quantitativePerformance": "Quantitative Performance",
+      "verbalPerformance": "Verbal Performance",
+      "status": "Status",
+      "statusInProgress": "In Progress",
+      "actions": "Actions",
+      "reviewTest": "Review Test",
+      "viewDetails": "View Details",
+      "cancelTest": "Cancel Test"
+    },
+    "actions": {
+      "reviewTest": "Review Test",
+      "viewDetails": "View Details",
+      "continueTest": "Continue Test",
+      "cancelTest": "Cancel Test",
+      "continueTestTooltip": "This feature is under development and will be available soon.",
+      "abandonedTooltip": "Abandoned tests cannot be resumed or reviewed.",
+      "cancelDialog": {
+        "title": "Are you sure you want to cancel this test?",
+        "description": "This action cannot be undone. Your progress in test attempt #{attemptId} will be lost.",
+        "confirmButton": "Yes, Cancel Test",
+        "successToast": "Test attempt #{attemptId} has been successfully cancelled.",
+        "errorToastGeneric": "Could not cancel the test. Please try again."
+      }
+    },
+    "cancelDialog": {
+      "title": "Confirm Cancellation",
+      "description": "Are you sure you want to cancel test attempt #{attemptId}? This action cannot be undone.",
+      "confirmButton": "Yes, Cancel",
+      "successToast": "Test attempt #{attemptId} has been successfully canceled.",
+      "errorToastGeneric": "Failed to cancel test attempt. Please try again."
+    },
+    "errors": {
+      "fetchFailedTitle": "Failed to Fetch Data",
+      "fetchFailedDescription": "An error occurred while loading level assessment attempts. Please try again later."
+    },
+    "sortBy": "Sort By",
+    "latestDate": "Latest Date",
+    "highestPercentage": "Highest Percentage",
+    "startForm": {
+      "pageTitle": "Start Level Assessment Test",
+      "pageDescription": "Choose the sections you wish to be tested on and select the appropriate number of questions to begin an accurate assessment of your current level.",
+      "title": "Level Assessment Test Settings",
+      "selectSectionsAndCount": "Select Sections and Number of Questions",
+      "selectSectionsDescription": "Select at least one main section or subsection.",
+      "numQuestions": "Number of Questions:",
+      "submit": "Start Test",
+      "validation": {
+        "atLeastOneSection": "Please select at least one main section (by selecting at least one subsection).",
+        "selectAtLeastOneSubsection": "Please select at least one subsection.",
+        "numQuestionsMin": "The number of questions must be at least 5.",
+        "numQuestionsMax": "The number of questions must not exceed 100."
+      },
+      "api": {
+        "startSuccess": "Level assessment test started successfully!",
+        "startError": "Failed to start level assessment test. Please try again."
+      },
+      "errors": {
+        "fetchSectionsFailedTitle": "Failed to Fetch Sections",
+        "fetchSectionsFailedDescription": "We couldn't load the learning sections. Please refresh the page or try again later.",
+        "noSectionsAvailableTitle": "No Sections Available",
+        "noSectionsAvailableDescription": "Sorry, there are currently no learning sections available to start a level assessment test."
+      }
+    },
+    "quiz": {
+      "title": "Level Assessment Test",
+      "question": "Question",
+      "outOf": "of",
+      "next": "Next",
+      "previous": "Previous",
+      "submitAnswers": "Submit Answers",
+      "confirmAnswer": "Confirm Answer",
+      "endTest": "End Test",
+      "timeLeft": "Time Left:",
+      "timeOver": "The time allotted for the test has ended!",
+      "testAlreadyCompletedRedirecting": "This test has already been completed. Redirecting you...",
+      "noQuestionsTitle": "No Questions Available",
+      "noQuestionsDescription": "Could not load questions for this test. The test may be invalid or an error occurred.",
+      "loadingQuestionDetails": "Loading question details...",
+      "noQuestionsApiError": "An error occurred while fetching test questions from the server.",
+      "api": {
+        "answerSubmitError": "Failed to submit answer for question {questionId}: {error}",
+        "testCompletedSuccess": "Test completed successfully!",
+        "testCompleteError": "Failed to complete the test: {error}",
+        "testCancelledSuccess": "Test cancelled successfully.",
+        "testCancelError": "Failed to cancel the test: {error}"
+      },
+      "cancelDialog": {
+        "title": "End Test?",
+        "description": "Are you sure you want to end the current test? Your progress will be saved.",
+        "confirmButton": "Yes, End"
+      },
+      "completeDialog": {
+        "title": "Submit Answers?",
+        "description": "Are you sure you want to submit all your answers and finish the test?",
+        "confirmButton": "Yes, Submit"
+      },
+      "questionLoadError": {
+        "title": "Question loading error",
+        "description": "The options for question {questionId} could not be loaded. Please try refreshing the page or contact support."
+      }
+    },
+    "review": {
+      "title": "Review Test",
+      "yourAnswer": "Your Answer:",
+      "correctAnswer": "Correct Answer:",
+      "explanation": "Explanation:",
+      "questionNavigation": "Browse Questions",
+      "viewScore": "View Final Score",
+      "reviewYourAttempt": "Review Your Attempt",
+      "overallScore": "Overall Score",
+      "verbal": "Verbal",
+      "quantitative": "Quantitative",
+      "backToScorePage": "Back to Score Page",
+      "backToList": "Back to Test List",
+      "viewDetails": "View Details",
+      "filterBy": "Filter by",
+      "allQuestionsOpt": "All",
+      "incorrectOnlyOpt": "Incorrect",
+      "skippedOnlyOpt": "Skipped",
+      "allQuestionsOptFull": "All Questions",
+      "incorrectOnlyOptFull": "Incorrect Questions Only",
+      "skippedOnlyOptFull": "Skipped Questions Only",
+      "questionXofY": "Question {current} of {total}",
+      "questionXofYShort": "{current} / {total}",
+      "details": "Details",
+      "subsection": "Subsection",
+      "skill": "Skill",
+      "previousQuestion": "Previous",
+      "nextQuestion": "Next",
+      "noQuestionsTitle": "No Questions Here",
+      "noQuestionsInReview": "There are no questions available in this review.",
+      "noQuestionsMatchFilter": "No questions match the current filter.",
+      "notAnswered": "Not Answered",
+      "correct": "Correct",
+      "incorrect": "Incorrect",
+      "statusSkipped": "Skipped",
+      "statusCorrect": "Correct",
+      "statusIncorrect": "Incorrect",
+      "errors": {
+        "fetchReviewFailed": "Could not load the test review. Please try again or go back."
+      }
+    },
+    "score": {
+      "title": "Level Assessment Test Result",
+      "yourScoreIsReady": "Your test result is ready!",
+      "overallScore": "Overall Score:",
+      "verbalSection": "Verbal Section",
+      "quantitativeSection": "Quantitative Section",
+      "scoreDistribution": "Score Distribution",
+      "timeTaken": "Time Taken",
+      "currentLevel": "Your Current Level",
+      "adviceDefault": "Great performance! Keep progressing and learning.",
+      "adviceReviewVerbal": "You need to focus more on the Verbal section. Review the related questions.",
+      "adviceReviewQuantitative": "You need to focus more on the Quantitative section. Review the related questions.",
+      "verbalSectionShort": "V",
+      "quantitativeSectionShort": "Q",
+      "minutes": "minute(s)",
+      "retakeTest": "Retake Test",
+      "noScoreDataForChart": "Not enough score data to display the chart.",
+      "errors": {
+        "fetchReviewFailed": "Failed to load test review data. The test might be incomplete or an error occurred."
+      },
+      "api": {
+        "retakeSuccess": "New test created successfully! Redirecting you...",
+        "retakeSuccessNewTest": "New test ({attemptId}) created successfully! Redirecting you...",
+        "retakeError": "Failed to create a new test: {error}"
+      },
+      "correctAnswers": "Correct Answers",
+      "incorrectAnswers": "Incorrect Answers",
+      "skipped": "Skipped",
+      "backToOverview": "Back to Overview",
+      "pointsEarned": "Points Earned",
+      "currentStreak": "Current Streak",
+      "days": "Days",
+      "badgesUnlocked": "Badges Unlocked",
+      "detailedPerformance": "Detailed Performance",
+      "section": "Section",
+      "correct": "Correct",
+      "total": "Total",
+      "score": "Score",
+      "smartAnalysisTitle": "Smart Analysis"
+    },
+    "details": {
+      "pageTitle": "Attempt Details",
+      "backToScorePage": "Back to Score",
+      "summaryTitle": "Summary",
+      "status": "Status",
+      "testDate": "Date",
+      "scoreVerbal": "Verbal Score",
+      "scoreQuantitative": "Quantitative Score",
+      "configurationTitle": "Test Configuration",
+      "numQuestions": "Number of Questions",
+      "numQuestionsSelected": "Number of Questions that had been selected",
+      "sections": "Sections",
+      "answeredQuestionsTitle": "Answered Questions",
+      "tableHeaderQuestion": "Question",
+
+      "tableHeaderYourAnswer": "Your Answer",
+      "tableHeaderStatus": "Result",
+      "statusCorrect": "Correct",
+      "statusIncorrect": "Incorrect",
+      "statusNotAnswered": "Not Answered",
+
+      "detailedBreakdownTitle": "Detailed Breakdown",
+      "tableHeaderCorrectAnswer": "Correct Answer",
+      "skipped": "Skipped",
+      "noQuestionsFound": "No questions were found for this attempt.",
+      "errors": {
+        "fetchDetailsFailed": "Could not load the test attempt details. Please try again or go back."
+      }
+    },
+    "badgeColors": {
+      "excellent": "Excellent",
+      "veryGood": "Very Good",
+      "good": "Good",
+      "acceptable": "Acceptable",
+      "weak": "Weak",
+      "default": "Not Specified",
+      "notAvailable": "N/A",
+      "notApplicable": "Not Applicable"
+    },
+
+    "apiError": "An error occurred while fetching data. Please try again."
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "tests": {
+    "title": "الاختبارات التدريبية والمحاكية",
+    "startForm": {
+      "pageTitle": "تكوين الاختبار الخاص بك",
+      "pageDescription": "قم بتخصيص اختبارك باختيار الوضع والمواضيع وعدد الأسئلة بما يتناسب مع أهداف دراستك.",
+      "settingsTitle": "إعدادات الاختبار",
+      "settingsDescription": "قم بتهيئة جلسة الاختبار الخاصة بك.",
+      "testType": "نوع الاختبار",
+      "practice": "تدريبي",
+      "simulation": "محاكاة",
+      "numQuestions": "عدد الأسئلة",
+      "starredLabel": "تدريب على الأسئلة المميزة فقط",
+      "notMasteredLabel": "التركيز على المهارات غير المتقنة",
+      "submit": "بدء الاختبار",
+      "validation": {
+        "atLeastOneSubsection": "الرجاء اختيار موضوع واحد على الأقل للتدريب.",
+        "numQuestionsMin": "يجب أن يكون عدد الأسئلة 5 على الأقل.",
+        "numQuestionsMax": "يجب ألا يتجاوز عدد الأسئلة 100."
+      },
+      "api": {
+        "startSuccess": "تم بدء الاختبار بنجاح! بالتوفيق."
+      }
+    },
+    "list": {
+      "title": "سجل الاختبارات",
+      "description": "راجع اختباراتك السابقة لتتبع تقدمك.",
+      "startNewTest": "بدء اختبار جديد",
+      "noAttemptsTitle": "لم يتم إجراء أي اختبارات بعد",
+      "noAttemptsDescription": "ستظهر اختباراتك التدريبية والمحاكية هنا.",
+      "api": {
+        "retakeSuccess": "تم إنشاء اختبار جديد! جاري التحويل..."
+      },
+      "table": {
+        "testType": "نوع الاختبار",
+        "date": "التاريخ",
+        "numQuestions": "الأسئلة",
+        "score": "النتيجة",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+      "actions": {
+        "openMenu": "فتح القائمة",
+        "review": "مراجعة كاملة",
+        "reviewIncorrect": "مراجعة الإجابات الخاطئة فقط",
+        "retake": "إعادة الاختبار المشابه",
+        "inProgressTooltip": "لم يكتمل هذا الاختبار بعد.",
+        "abandonedTooltip": "تم التخلي عن هذا الاختبار ولا يمكن متابعته أو مراجعته.",
+        "continueTest": "متابعة الاختبار",
+        "continueTestTooltip": "هذه الميزة قيد التطوير. يرجى إنهاء هذا الاختبار وبدء اختبار جديد حالياً.",
+        "cancelTest": "إلغاء الاختبار",
+        "cancelDialog": {
+          "title": "هل أنت متأكد من رغبتك في إلغاء هذا الاختبار؟",
+          "description": "لا يمكن التراجع عن هذا الإجراء. سيتم فقدان تقدمك في محاولة الاختبار رقم {attemptId}.",
+          "confirmButton": "نعم، إلغاء الاختبار",
+          "successToast": "تم إلغاء محاولة الاختبار رقم {attemptId} بنجاح.",
+          "errorToastGeneric": "تعذر إلغاء الاختبار. يرجى المحاولة مرة أخرى."
+        }
+      }
+    },
+    "quiz": {
+      "title": "اختبار تدريبي",
+      "simulationTitle": "اختبار محاكاة",
+      "question": "سؤال",
+      "outOf": "من أصل",
+      "next": "التالي",
+      "previous": "السابق",
+      "submitAnswers": "إرسال وإنهاء",
+      "endTest": "إنهاء الاختبار",
+      "testAlreadyCompletedRedirecting": "لقد اكتمل هذا الاختبار بالفعل. يتم تحويلك...",
+      "noQuestionsTitle": "لا توجد أسئلة متاحة",
+      "noQuestionsDescription": "تعذر تحميل الأسئلة لهذا الاختبار. قد يكون الاختبار غير صالح أو حدث خطأ.",
+      "api": {
+        "answerSubmitError": "فشل إرسال الإجابة للسؤال {questionId}: {error}",
+        "testCompletedSuccess": "تم إكمال الاختبار بنجاح!",
+        "testCompleteError": "فشل إكمال الاختبار: {error}",
+        "testCancelledSuccess": "تم إلغاء الاختبار بنجاح.",
+        "testCancelError": "فشل إلغاء الاختبار: {error}"
+      },
+      "cancelDialog": {
+        "title": "إنهاء الاختبار؟",
+        "description": "هل أنت متأكد أنك تريد إنهاء الاختبار الحالي؟ سيتم حفظ تقدمك ويمكنك مراجعته لاحقًا.",
+        "confirmButton": "نعم، إنهاء الاختبار"
+      },
+      "completeDialog": {
+        "title": "إرسال الإجابات النهائية؟",
+        "description": "هل أنت متأكد أنك تريد إرسال إجاباتك وإنهاء الاختبار؟",
+        "confirmButton": "نعم، إرسال وإنهاء"
+      },
+      "questionLoadError": {
+        "title": "خطأ في تحميل السؤال",
+        "description": "تعذر تحميل خيارات السؤال {questionId}. يرجى المحاولة مرة أخرى أو الاتصال بالدعم."
+      }
+    },
+    "score": {
+      "pageTitle": "نتيجة الاختبار",
+      "yourScoreIsReady": "نتيجة اختبارك جاهزة!",
+      "overallScore": "الدرجة الكلية",
+      "timeTaken": "الوقت المستغرق",
+      "minutes": "دقيقة",
+      "currentLevel": "مستوى الأداء",
+      "correctAnswers": "الإجابات الصحيحة",
+      "incorrectAnswers": "الإجابات الخاطئة",
+      "skipped": "تم تخطيها",
+      "scoreDistribution": "توزيع الدرجات",
+      "detailedPerformance": "الأداء التفصيلي حسب الموضوع",
+      "section": "القسم",
+      "correct": "صحيح",
+      "total": "الإجمالي",
+      "score": "الدرجة",
+      "smartAnalysisTitle": "تحليل ذكي",
+      "pointsEarned": "النقاط المكتسبة",
+      "currentStreak": "سلسلة المذاكرة",
+      "days": "أيام",
+      "badgesUnlocked": "الشارات التي تم فتحها",
+      "backToOverview": "العودة إلى قائمة الاختبارات",
+      "retakeTest": "إعادة الاختبار المشابه",
+      "errors": {
+        "fetchReviewFailed": "فشل تحميل بيانات نتيجة الاختبار. قد يكون الاختبار غير مكتمل أو حدث خطأ."
+      },
+      "api": {
+        "retakeSuccess": "تم إنشاء اختبار جديد بنجاح! جاري توجيهك..."
+      }
+    },
+    "review": {
+      "pageTitle": "مراجعة الاختبار",
+      "backToList": "العودة لقائمة الاختبارات",
+      "backToScore": "العودة للنتيجة",
+      "filterBy": "تصفية حسب:",
+      "allQuestionsOpt": "الكل",
+      "incorrectOnlyOpt": "الأسئلة الخاطئة فقط",
+      "skippedOnlyOpt": "الأسئلة المتخطاة فقط",
+      "allQuestionsOptFull": "جميع الأسئلة",
+      "incorrectOnlyOptFull": "الأسئلة غير الصحيحة فقط",
+      "skippedOnlyOptFull": "الأسئلة المتخطاة فقط",
+      "previousQuestion": "السابق",
+      "nextQuestion": "التالي",
+      "noQuestionsTitle": "لا توجد أسئلة للعرض",
+      "noQuestionsInReview": "لا توجد أسئلة متاحة في هذه المراجعة.",
+      "noQuestionsMatchFilter": "لا توجد أسئلة تتوافق مع التصفية الحالية.",
+      "errors": {
+        "fetchReviewFailed": "تعذر تحميل مراجعة الاختبار. يرجى المحاولة مرة أخرى أو العودة."
+      }
+    }
+  }
+}

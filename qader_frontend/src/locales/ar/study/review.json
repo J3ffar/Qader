@@ -1,0 +1,15 @@
+{
+  "review": {
+    "statusCorrect": "صحيح",
+    "statusIncorrect": "غير صحيح",
+    "statusSkipped": "تم التخطي",
+    "yourAnswer": "إجابتك",
+    "explanation": "الشرح",
+    "solutionMethod": "طريقة الحل",
+    "details": "تفاصيل السؤال",
+    "section": "القسم الرئيسي",
+    "subsection": "القسم الفرعي",
+    "skill": "المهارة",
+    "questionXofY": "سؤال {current} من {total}"
+  }
+}

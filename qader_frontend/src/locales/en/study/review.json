@@ -1,0 +1,15 @@
+{
+  "review": {
+    "statusCorrect": "Correct",
+    "statusIncorrect": "Incorrect",
+    "statusSkipped": "Skipped",
+    "yourAnswer": "Your Answer",
+    "explanation": "Explanation",
+    "solutionMethod": "Solution Method",
+    "details": "Question Details",
+    "section": "Main Section",
+    "subsection": "Sub-section",
+    "skill": "Skill",
+    "questionXofY": "Question {current} of {total}"
+  }
+}

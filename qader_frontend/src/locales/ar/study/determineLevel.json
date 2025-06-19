@@ -1,0 +1,235 @@
+{
+  "determineLevel": {
+    "title": "تحديد المستوى",
+    "description": "اختبر مستواك معنا قبل البدء، ليتم بناء نموذج تعليمي شخصي لك.",
+    "startTest": "ابدأ تحديد المستوى",
+    "retakeTest": "إعادة تحديد المستوى",
+    "noAttemptsTitle": "حدد مستواك",
+    "noAttemptsDescription": "اختبر مستواك معنا قبل البدء، ليتم بناء نموذج تعليمي شخصي لك يحدد نقاط القوة والضعف، بإمكانك إعادة الاختبار أكثر من مرة.",
+    "attemptsLogTitle": "سجل تحديد المستوى",
+    "attemptsTable": {
+      "date": "التاريخ",
+      "numQuestions": "عدد الأسئلة",
+      "percentage": "النسبة",
+      "quantitativePerformance": "الأداء الكمي",
+      "verbalPerformance": "الأداء اللفظي",
+      "status": "الحالة",
+      "statusInProgress": "جارٍ",
+      "actions": "إجراءات",
+      "reviewTest": "مراجعة الاختبار",
+      "viewDetails": "عرض التفاصيل",
+      "cancelTest": "إلغاء الاختبار"
+    },
+    "actions": {
+      "reviewTest": "مراجعة الاختبار",
+      "viewDetails": "عرض التفاصيل",
+      "continueTest": "متابعة الاختبار",
+      "cancelTest": "إلغاء الاختبار",
+      "continueTestTooltip": "هذه الميزة قيد التطوير وستكون متاحة قريبًا.",
+      "abandonedTooltip": "لا يمكن استئناف أو مراجعة الاختبارات المهجورة.",
+      "cancelDialog": {
+        "title": "هل أنت متأكد أنك تريد إلغاء هذا الاختبار؟",
+        "description": "لا يمكن التراجع عن هذا الإجراء. سيتم فقدان تقدمك في محاولة الاختبار رقم #{attemptId}.",
+        "confirmButton": "نعم، إلغاء الاختبار",
+        "successToast": "تم إلغاء محاولة الاختبار رقم #{attemptId} بنجاح.",
+        "errorToastGeneric": "تعذر إلغاء الاختبار. الرجاء المحاولة مرة أخرى."
+      }
+    },
+    "cancelDialog": {
+      "title": "تأكيد الإلغاء",
+      "description": "هل أنت متأكد أنك تريد إلغاء محاولة الاختبار رقم {attemptId}؟ لا يمكن التراجع عن هذا الإجراء.",
+      "confirmButton": "نعم، إلغاء",
+      "successToast": "تم إلغاء محاولة الاختبار رقم {attemptId} بنجاح.",
+      "errorToastGeneric": "فشل إلغاء محاولة الاختبار. يرجى المحاولة مرة أخرى."
+    },
+    "errors": {
+      "fetchFailedTitle": "فشل جلب البيانات",
+      "fetchFailedDescription": "حدث خطأ أثناء تحميل محاولات تحديد المستوى. يرجى المحاولة مرة أخرى لاحقاً."
+    },
+    "sortBy": "الفرز حسب",
+    "latestDate": "التاريخ الأحدث",
+    "highestPercentage": "النسبة الأعلى",
+    "startForm": {
+      "pageTitle": "ابدأ اختبار تحديد المستوى",
+      "pageDescription": "اختر الأقسام التي ترغب في اختبارها وحدد عدد الأسئلة المناسب لك لبدء تقييم دقيق لمستواك الحالي.",
+      "title": "إعدادات اختبار تحديد المستوى",
+      "selectSectionsAndCount": "اختر الأقسام وعدد الأسئلة",
+      "selectSectionsDescription": "اختر قسمًا واحدًا على الأقل من الأقسام الرئيسية أو الفرعية.",
+      "numQuestions": "عدد الأسئلة:",
+      "submit": "ابدأ الاختبار",
+      "validation": {
+        "atLeastOneSection": "يرجى اختيار قسم رئيسي واحد على الأقل (عن طريق تحديد قسم فرعي واحد على الأقل).",
+        "selectAtLeastOneSubsection": "يرجى تحديد قسم فرعي واحد على الأقل.",
+        "numQuestionsMin": "يجب أن يكون عدد الأسئلة 5 على الأقل.",
+        "numQuestionsMax": "يجب ألا يتجاوز عدد الأسئلة 100."
+      },
+      "api": {
+        "startSuccess": "تم بدء اختبار تحديد المستوى بنجاح!",
+        "startError": "فشل بدء اختبار تحديد المستوى. يرجى المحاولة مرة أخرى."
+      },
+      "errors": {
+        "fetchSectionsFailedTitle": "فشل جلب الأقسام",
+        "fetchSectionsFailedDescription": "لم نتمكن من تحميل أقسام التعلم. يرجى تحديث الصفحة أو المحاولة لاحقاً.",
+        "noSectionsAvailableTitle": "لا توجد أقسام متاحة",
+        "noSectionsAvailableDescription": "عذرًا، لا توجد أقسام تعلم متاحة حاليًا لبدء اختبار تحديد المستوى."
+      }
+    },
+    "quiz": {
+      "title": "اختبار تحديد المستوى",
+      "question": "سؤال",
+      "outOf": "من",
+      "next": "التالي",
+      "previous": "السابق",
+      "submitAnswers": "إرسال الإجابات",
+      "confirmAnswer": "تأكيد الإجابة",
+      "endTest": "إنهاء الاختبار",
+      "timeLeft": "الوقت المتبقي:",
+      "timeOver": "انتهى الوقت المخصص للاختبار!",
+      "testAlreadyCompletedRedirecting": "تم إكمال هذا الاختبار بالفعل. جاري إعادة توجيهك...",
+      "noQuestionsTitle": "لا توجد أسئلة",
+      "noQuestionsDescription": "تعذر تحميل أسئلة هذا الاختبار. قد يكون الاختبار غير صالح أو حدث خطأ ما.",
+      "loadingQuestionDetails": "جاري تحميل تفاصيل السؤال...",
+      "noQuestionsApiError": "حدث خطأ أثناء جلب أسئلة الاختبار من الخادم.",
+      "api": {
+        "answerSubmitError": "فشل إرسال إجابة السؤال {questionId}: {error}",
+        "testCompletedSuccess": "تم إكمال الاختبار بنجاح!",
+        "testCompleteError": "فشل إكمال الاختبار: {error}",
+        "testCancelledSuccess": "تم إلغاء الاختبار بنجاح.",
+        "testCancelError": "فشل إلغاء الاختبار: {error}"
+      },
+      "cancelDialog": {
+        "title": "إنهاء الاختبار؟",
+        "description": "هل أنت متأكد أنك تريد إنهاء الاختبار الحالي؟ سيتم حفظ تقدمك.",
+        "confirmButton": "نعم، إنهاء"
+      },
+      "completeDialog": {
+        "title": "إرسال الإجابات؟",
+        "description": "هل أنت متأكد أنك تريد إرسال جميع إجاباتك وإنهاء الاختبار؟",
+        "confirmButton": "نعم، إرسال"
+      },
+      "questionLoadError": {
+        "title": "خطأ في تحميل السؤال",
+        "description": "تعذر تحميل خيارات السؤال رقم {questionId}. يرجى محاولة تحديث الصفحة أو الاتصال بالدعم."
+      }
+    },
+    "review": {
+      "title": "مراجعة الاختبار",
+      "yourAnswer": "إجابتك:",
+      "correctAnswer": "الإجابة الصحيحة:",
+      "explanation": "الشرح:",
+      "questionNavigation": "تصفح الأسئلة",
+      "viewScore": "عرض النتيجة النهائية",
+      "reviewYourAttempt": "مراجعة محاولتك",
+      "overallScore": "النتيجة الكلية",
+      "verbal": "اللفظي",
+      "quantitative": "الكمي",
+      "backToScorePage": "العودة لصفحة النتيجة",
+      "backToList": "العودة إلى قائمة الاختبارات",
+      "viewDetails": "عرض تفاصيل الاختبار",
+      "filterBy": "التصفية حسب",
+      "allQuestionsOpt": "الكل",
+      "incorrectOnlyOpt": "الأسئلة الخاطئة",
+      "skippedOnlyOpt": "الأسئلة المتجاوزة",
+      "allQuestionsOptFull": "جميع الأسئلة",
+      "incorrectOnlyOptFull": "الأسئلة الخاطئة فقط",
+      "skippedOnlyOptFull": "الأسئلة المتجاوزة فقط",
+      "questionXofY": "سؤال {current} من {total}",
+      "questionXofYShort": "{current} / {total}",
+      "details": "التفاصيل",
+      "subsection": "القسم الفرعي",
+      "skill": "المهارة",
+      "previousQuestion": "السؤال السابق",
+      "nextQuestion": "السؤال التالي",
+      "noQuestionsTitle": "لا توجد أسئلة هنا",
+      "noQuestionsInReview": "لا توجد أسئلة متاحة في هذه المراجعة.",
+      "noQuestionsMatchFilter": "لا توجد أسئلة تطابق التصفية الحالية.",
+      "notAnswered": "لم يتم الإجابة",
+      "correct": "صحيح",
+      "incorrect": "خاطئ",
+      "statusSkipped": "تم التجاوز",
+      "statusCorrect": "صحيح",
+      "statusIncorrect": "خاطئ",
+      "errors": {
+        "fetchReviewFailed": "تعذر تحميل مراجعة الاختبار. يرجى المحاولة مرة أخرى أو العودة."
+      }
+    },
+    "score": {
+      "title": "نتيجة اختبار تحديد المستوى",
+      "yourScoreIsReady": "نتيجتك في الاختبار جاهزة!",
+      "overallScore": "النتيجة الإجمالية:",
+      "verbalSection": "القسم اللفظي",
+      "quantitativeSection": "القسم الكمي",
+      "scoreDistribution": "توزيع الدرجات",
+      "timeTaken": "الوقت المستغرق",
+      "currentLevel": "مستواك الحالي",
+      "adviceDefault": "أداء رائع! استمر في التقدم والتعلم.",
+      "adviceReviewVerbal": "تحتاج إلى التركيز أكثر على القسم اللفظي. قم بمراجعة الأسئلة المتعلقة به.",
+      "adviceReviewQuantitative": "تحتاج إلى التركيز أكثر على القسم الكمي. قم بمراجعة الأسئلة المتعلقة به.",
+      "verbalSectionShort": "ل",
+      "quantitativeSectionShort": "ك",
+      "minutes": "دقيقة",
+      "retakeTest": "إعادة الاختبار",
+      "noScoreDataForChart": "لا توجد بيانات درجات كافية لعرض المخطط.",
+      "errors": {
+        "fetchReviewFailed": "فشل تحميل بيانات مراجعة الاختبار. قد يكون الاختبار غير مكتمل أو حدث خطأ."
+      },
+      "api": {
+        "retakeSuccess": "تم إنشاء اختبار جديد بنجاح! جاري توجيهك...",
+        "retakeSuccessNewTest": "تم إنشاء اختبار جديد ({attemptId}) بنجاح! جاري توجيهك...",
+        "retakeError": "فشل إنشاء اختبار جديد: {error}"
+      },
+      "correctAnswers": "الإجابات الصحيحة",
+      "incorrectAnswers": "الإجابات الخاطئة",
+      "skipped": "متخطاة",
+      "backToOverview": "العودة للمحة عامة",
+      "pointsEarned": "النقاط المكتسبة",
+      "currentStreak": "أيام المذاكرة المتتالية",
+      "days": "أيام",
+      "badgesUnlocked": "الأوسمة المحصلة",
+      "detailedPerformance": "الأداء التفصيلي",
+      "section": "القسم",
+      "correct": "صحيحة",
+      "total": "المجموع",
+      "score": "النتيجة",
+      "smartAnalysisTitle": "التحليل الذكي"
+    },
+    "details": {
+      "pageTitle": "تفاصيل المحاولة",
+      "backToScorePage": "العودة إلى النتيجة",
+      "summaryTitle": "الملخص",
+      "status": "الحالة",
+      "testDate": "التاريخ",
+      "scoreVerbal": "درجة القسم اللفظي",
+      "scoreQuantitative": "درجة القسم الكمي",
+      "configurationTitle": "إعدادات الاختبار",
+      "numQuestions": "عدد الأسئلة",
+      "numQuestionsSelected": "عدد الأسئلة التي تم جلبها",
+      "sections": "الأقسام",
+      "answeredQuestionsTitle": "الأسئلة التي تمت الإجابة عليها",
+      "tableHeaderQuestion": "السؤال",
+      "tableHeaderYourAnswer": "إجابتك",
+      "tableHeaderStatus": "النتيجة",
+      "statusCorrect": "صحيح",
+      "statusIncorrect": "غير صحيح",
+      "statusNotAnswered": "لم يُجب عليه",
+      "detailedBreakdownTitle": "تفاصيل مُفصّلة",
+      "tableHeaderCorrectAnswer": "الإجابة الصحيحة",
+      "skipped": "تم التخطي",
+      "noQuestionsFound": "لم يتم العثور على أي أسئلة لهذه المحاولة",
+      "errors": {
+        "fetchDetailsFailed": "تعذر تحميل تفاصيل محاولة الاختبار. يرجى المحاولة مرة أخرى أو العودة."
+      }
+    },
+    "badgeColors": {
+      "excellent": "ممتاز",
+      "veryGood": "جيد جداً",
+      "good": "جيد",
+      "acceptable": "مقبول",
+      "weak": "ضعيف",
+      "default": "غير محدد",
+      "notAvailable": "غير متوفر",
+      "notApplicable": "غير متاح"
+    },
+    "apiError": "حدث خطأ أثناء جلب البيانات. يرجى المحاولة مرة أخرى."
+  }
+}

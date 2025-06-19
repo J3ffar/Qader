@@ -1,0 +1,81 @@
+{
+  "statistics": {
+    "pageTitle": "الإحصائيات والتقدم",
+    "pageDescription": "تتبع أدائك وشاهد كيف تتحسن بمرور الوقت.",
+    "cards": {
+      "verbalMastery": "إتقان اللفظي",
+      "quantMastery": "إتقان الكمي",
+      "currentLevel": "المستوى التقديري الحالي",
+      "studyStreak": "سلسلة الدراسة",
+      "consecutiveDays": "{count, plural, =0 {لا توجد سلسلة} one {يوم واحد متتالي} two {يومان متتاليان} other {# أيام متتالية}}",
+      "longestStreak": "الأطول: {count} أيام",
+      "testsCompleted": "الاختبارات المكتملة",
+      "totalThisPeriod": "في الفترة الحالية",
+      "questionsAnswered": "الأسئلة المجاب عليها"
+    },
+    "charts": {
+      "performanceTrendTitle": "اتجاه الأداء",
+      "overallScore": "الإجمالي",
+      "verbalScore": "اللفظي",
+      "quantScore": "الكمي",
+      "filterPlaceholder": "تصفية حسب نوع الاختبار",
+      "allTestTypes": "جميع أنواع الاختبارات",
+      "loading": "جارٍ تحميل الرسم البياني...",
+      "loadingDescription": "يرجى الانتظار بينما نقوم بإعداد بيانات أدائك.",
+      "notEnoughData": "لا توجد بيانات كافية لعرض الرسم البياني",
+      "notEnoughDataDescription": "أكمل بعض الاختبارات لترى اتجاهات أدائك بمرور الوقت.",
+      "summary": {
+        "average": "المتوسط",
+        "peakScore": "أعلى درجة",
+        "latestScore": "أحدث درجة",
+        "avgLabel": "المتوسط: {value}%"
+      }
+    },
+    "breakdown": {
+      "title": "تفصيل الأداء حسب الأقسام",
+      "description": "شاهد نقاط قوتك وضعفك في كل قسم رئيسي من أقسام الاختبار.",
+      "overallAccuracy": "الدقة الكلية",
+      "viewSubsections": "عرض تفاصيل الأقسام الفرعية",
+      "attempts": "{count, plural, one {محاولة واحدة} two {محاولتان} other {# محاولات}}",
+      "noData": "لا توجد بيانات للأقسام",
+      "noDataHint": "أكمل بعض الاختبارات أو جلسات التدريب لترى تفصيل أدائك هنا."
+    },
+    "skillProficiency": {
+      "title": "تحليل المهارات",
+      "strongest": "الأقوى",
+      "weakest": "تحتاج لتحسين"
+    },
+    "recentTests": {
+      "title": "النشاط الأخير",
+      "testType": "الاختبار",
+      "score": "النتيجة",
+      "action": "الإجراء",
+      "review": "مراجعة",
+      "viewAllHistory": "عرض كل السجل"
+    },
+    "timeAnalytics": {
+      "title": "تحليل الوقت",
+      "correct": "متوسط الوقت / الإجابة الصحيحة",
+      "incorrect": "متوسط الوقت / الإجابة الخاطئة",
+      "overallAverage": "متوسط الوقت الكلي / السؤال",
+      "averageDurationByTypeTitle": "متوسط مدة الاختبار"
+    },
+    "averageScores": {
+      "title": "ملخص أداء الاختبار",
+      "description": "متوسط الدرجات عبر أنواع الاختبارات المختلفة التي أكملتها.",
+      "table": {
+        "type": "نوع الاختبار",
+        "count": "العدد",
+        "score": "متوسط النتيجة",
+        "verbal": "متوسط اللفظي",
+        "quantitative": "متوسط الكمي"
+      }
+    },
+    "actionableInsights": {
+      "title": "رؤى قابلة للتنفيذ",
+      "description": "راجع نشاطك الأخير وحدد المهارات التي يجب التركيز عليها.",
+      "skillsTab": "تحليل المهارات",
+      "testsTab": "الاختبارات الأخيرة"
+    }
+  }
+}

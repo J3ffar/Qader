@@ -1,0 +1,36 @@
+{
+  "conversationalLearning": {
+    "title": "Learning via Conversation",
+    "description": "Interact with our AI assistant 'Qader' to understand your weak points or ask any question.",
+    "sidebarTitle": "New Conversation",
+    "selectTone": "Select AI Tone",
+    "tone": {
+      "cheerful": "Cheerful",
+      "serious": "Serious"
+    },
+    "startConversation": "Start Conversation",
+    "askAQuestion": "Ask me a question",
+    "testMyUnderstanding": "I've got it, test me!",
+    "inputPlaceholder": "Type your message or question...",
+    "send": "Send",
+    "emptyStateTitle": "Welcome to Conversational Learning!",
+    "emptyStateDescription": "Start a new conversation from the panel on the side to begin.",
+    "aiTyping": "Qader is typing...",
+    "session": {
+      "explanation": "Explanation",
+      "yourAnswer": "Your Answer",
+      "correctAnswer": "Correct Answer",
+      "aiFeedback": "Qader's Feedback",
+      "submitAnswer": "Submit Answer",
+      "correct": "Correct!",
+      "incorrect": "Incorrect"
+    },
+    "api": {
+      "startSuccess": "New conversation started successfully!",
+      "startError": "Failed to start conversation. Please try again.",
+      "sendMessageError": "Failed to send message. Please check your connection.",
+      "testCorrect": "Excellent! Correct answer.",
+      "testIncorrect": "Not quite. Let's review the explanation."
+    }
+  }
+}

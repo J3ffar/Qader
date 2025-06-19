@@ -1,0 +1,153 @@
+{
+  "traditionalLearning": {
+    "title": "Traditional Learning",
+    "description": "Master concepts with targeted practice questions.",
+    "config": {
+      "pageTitle": "Traditional Learning Setup",
+      "pageDescription": "Select the sections and topics you want to practice. Customize your session to focus on specific areas.",
+      "sectionsTitle": "Choose Sections to Practice On",
+      "sectionsDescription": "Select from the main and sub-sections.",
+      "advancedOptionsTitle": "Advanced Options",
+      "advancedOptionsDescription": "Further refine your practice session.",
+      "numQuestionsLabel": "Number of Questions",
+      "numQuestionsPlaceholder": "e.g., 20",
+      "starredLabel": "Starred Questions Only",
+      "starredDescription": "Practice only the questions you have marked with a star.",
+      "notMasteredLabel": "Unmastered Skills Only",
+      "notMasteredDescription": "Focus on questions from skills you haven't mastered yet.",
+      "startSession": "Start Practice Session",
+      "validation": {
+        "atLeastOneSubsection": "Please select at least one subsection to begin.",
+        "numQuestionsMin": "Number of questions must be at least 1.",
+        "numQuestionsMax": "Number of questions must not exceed 50."
+      },
+      "api": {
+        "startSuccess": "Practice session started successfully! Good luck!",
+        "startError": "Failed to start practice session. Please try again."
+      }
+    },
+    "list": {
+      "startSession": "Start New Practice Session",
+      "attemptsLogTitle": "Practice History",
+      "noAttemptsTitle": "No Practice History Yet",
+      "noAttemptsDescription": "Your practice sessions will appear here once you start one. Use the form above to begin!",
+      "table": {
+        "date": "Date",
+        "numQuestions": "Questions",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "actions": {
+        "continueSession": "Continue Session",
+        "reviewSession": "Review",
+        "viewDetails": "View Details",
+        "abandonedTooltip": "This test was abandoned, and you can't review it",
+        "cancelSession": "Cancel",
+        "cancelDialog": {
+          "title": "Are you sure you want to cancel this session?",
+          "description": "This action cannot be undone. Your progress in practice session #{attemptId} will be lost.",
+          "confirmButton": "Yes, Cancel Session",
+          "successToast": "Practice session #{attemptId} has been successfully cancelled.",
+          "errorToastGeneric": "Could not cancel the session. Please try again."
+        }
+      },
+      "errors": {
+        "fetchFailedTitle": "Failed to Fetch Practice History",
+        "fetchFailedDescription": "An error occurred while loading your practice sessions. Please try again later."
+      },
+      "sortBy": "Sort By",
+      "latestDate": "Latest Date",
+      "statusInProgress": "In Progress"
+    },
+    "session": {
+      "title": "Practice Session",
+      "endSession": "End Session",
+      "question": "Question",
+      "outOf": "of",
+      "next": "Next",
+      "previous": "Previous",
+      "continue": "Continue",
+      "submitAnswer": "Submit Answer",
+      "correct": "Correct!",
+      "incorrect": "Incorrect",
+      "correctAnswerWas": "The correct answer was:",
+      "yourAnswer": "Your answer:",
+      "noMoreQuestions": "You've completed all the questions in this session!",
+      "completeSession": "Complete Session",
+      "confirmEndTitle": "End Practice Session?",
+      "confirmEndDescription": "Are you sure you want to end this session? Your progress will be saved.",
+      "confirmEndButton": "Yes, End Session",
+      "api": {
+        "sessionCompletedSuccess": "Practice session completed!",
+        "sessionCompleteError": "Failed to complete the session: {error}",
+        "hintSuccess": "Hint revealed!",
+        "hintError": "Could not get a hint: {error}",
+        "hintNotAvailable": "No hint available for this question.",
+        "answerRevealSuccess": "Correct answer revealed.",
+        "answerRevealError": "Could not reveal the answer: {error}",
+        "explanationRevealSuccess": "Explanation revealed.",
+        "explanationRevealError": "Could not reveal the explanation: {error}",
+        "explanationNotAvailable": "No explanation available for this question.",
+        "eliminateSuccess": "Elimination assist recorded.",
+        "eliminateError": "Could not record elimination: {error}"
+      },
+      "controls": {
+        "title": "Assistance Tools",
+        "eliminate": "Eliminate an Answer",
+        "hint": "Get a Hint",
+        "showSolution": "Show Solution Method",
+        "showAnswer": "Reveal Correct Answer"
+      },
+      "explanation": "Explanation",
+      "questionDetails": "Question Details",
+      "section": "Section",
+      "subsection": "Sub-section",
+      "skill": "Skill"
+    },
+    "score": {
+      "pageTitle": "Practice Session Results",
+      "yourScoreIsReady": "Your Practice Results are Ready!",
+      "currentLevel": "Performance Level",
+      "correctAnswers": "Correct Answers",
+      "incorrectAnswers": "Incorrect Answers",
+      "skipped": "Skipped",
+      "detailedPerformance": "Detailed Performance by Topic",
+      "section": "Section",
+      "correct": "Correct",
+      "total": "Total",
+      "score": "Score",
+      "smartAnalysisTitle": "Smart Analysis",
+      "pointsEarned": "Points Earned",
+      "currentStreak": "Study Streak",
+      "days": "Days",
+      "badgesUnlocked": "Badges Unlocked",
+      "backToOverview": "Back to Practice List",
+      "startNewSession": "Start New Session",
+      "reviewSession": "Review Session",
+      "errors": {
+        "fetchReviewFailed": "Failed to load practice session results. The session might be incomplete or an error occurred."
+      }
+    },
+    "review": {
+      "pageTitle": "Review Practice Session",
+      "backToScore": "Back to Score",
+      "backToList": "Back to Practice List",
+      "filterBy": "Filter by:",
+      "allQuestionsOpt": "All",
+      "incorrectOnlyOpt": "Incorrect",
+      "skippedOnlyOpt": "Skipped",
+      "allQuestionsOptFull": "All Questions",
+      "incorrectOnlyOptFull": "Incorrect Questions Only",
+      "skippedOnlyOptFull": "Skipped Questions Only",
+      "previousQuestion": "Previous",
+      "nextQuestion": "Next",
+      "questionXofYShort": "{current} / {total}",
+      "noQuestionsTitle": "No Questions to Show",
+      "noQuestionsInReview": "There are no questions available in this practice session review.",
+      "noQuestionsMatchFilter": "No questions match the current filter.",
+      "errors": {
+        "fetchReviewFailed": "Could not load the practice session review. Please try again or go back."
+      }
+    }
+  }
+}

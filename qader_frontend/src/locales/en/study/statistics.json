@@ -1,0 +1,81 @@
+{
+  "statistics": {
+    "pageTitle": "Statistics & Progress",
+    "pageDescription": "Track your performance and see how you improve over time.",
+    "cards": {
+      "verbalMastery": "Verbal Mastery",
+      "quantMastery": "Quantitative Mastery",
+      "currentLevel": "Current estimated level",
+      "studyStreak": "Study Streak",
+      "consecutiveDays": "{count, plural, =0 {No streak} one {# consecutive day} other {# consecutive days}}",
+      "longestStreak": "Longest: {count} days",
+      "testsCompleted": "Tests Completed",
+      "totalThisPeriod": "In the current period",
+      "questionsAnswered": "Questions Answered"
+    },
+    "charts": {
+      "performanceTrendTitle": "Performance Trend",
+      "overallScore": "Overall",
+      "verbalScore": "Verbal",
+      "quantScore": "Quantitative",
+      "filterPlaceholder": "Filter by test type",
+      "allTestTypes": "All Test Types",
+      "loading": "Loading Chart...",
+      "loadingDescription": "Please wait while we prepare your performance data.",
+      "notEnoughData": "Not enough data to display chart",
+      "notEnoughDataDescription": "Complete some tests to see your performance trends over time.",
+      "summary": {
+        "average": "Average",
+        "peakScore": "Peak Score",
+        "latestScore": "Latest Score",
+        "avgLabel": "Avg: {value}%"
+      }
+    },
+    "breakdown": {
+      "title": "Performance by Section",
+      "description": "See your strengths and weaknesses in each major test section.",
+      "overallAccuracy": "Overall Accuracy",
+      "viewSubsections": "View subsection details",
+      "attempts": "{count} {count, plural, one {attempt} other {attempts}}",
+      "noData": "No Section Data Available",
+      "noDataHint": "Complete some tests or practice sessions to see your breakdown here."
+    },
+    "skillProficiency": {
+      "title": "Skill Analysis",
+      "strongest": "Strongest",
+      "weakest": "To Improve"
+    },
+    "recentTests": {
+      "title": "Recent Activity",
+      "testType": "Test",
+      "score": "Score",
+      "action": "Action",
+      "review": "Review",
+      "viewAllHistory": "View All History"
+    },
+    "timeAnalytics": {
+      "title": "Time Analysis",
+      "correct": "Avg. time / correct answer",
+      "incorrect": "Avg. time / incorrect answer",
+      "overallAverage": "Overall avg. time / question",
+      "averageDurationByTypeTitle": "Avg. Test Duration"
+    },
+    "averageScores": {
+      "title": "Test Performance Summary",
+      "description": "Average scores across different types of tests you've completed.",
+      "table": {
+        "type": "Test Type",
+        "count": "Count",
+        "score": "Avg. Score",
+        "verbal": "Avg. Verbal",
+        "quantitative": "Avg. Quant"
+      }
+    },
+    "actionableInsights": {
+      "title": "Actionable Insights",
+      "description": "Review your recent activity and identify skills to focus on.",
+      "skillsTab": "Skill Analysis",
+      "testsTab": "Recent Tests"
+    }
+  }
+}
