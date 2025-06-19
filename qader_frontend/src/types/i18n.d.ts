@@ -12,6 +12,7 @@ import type enStatistics from "@/locales/en/study/statistics.json";
 import type enConversationalLearning from "@/locales/en/study/conversationalLearning.json";
 import type enEmergencyMode from "@/locales/en/study/emergencyMode.json";
 import type enReview from "@/locales/en/study/review.json";
+import type enSettings from "@/locales/en/study/settings.json";
 
 // We use an intersection type (&) to merge the types of all our study files
 // into a single, comprehensive 'StudyMessages' type.
@@ -22,7 +23,8 @@ type StudyMessages = typeof enStudyPage &
   typeof enStatistics &
   typeof enConversationalLearning &
   typeof enEmergencyMode &
-  typeof enReview;
+  typeof enReview &
+  typeof enSettings;
 
 /**
  * Represents the complete structure of messages used by next-intl.

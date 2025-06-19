@@ -8,6 +8,9 @@ export const QUERY_KEYS = {
   VERIFY_OTP_KEY: ["verifyPasswordOtp"],
   RESET_PASSWORD_KEY: ["resetPasswordWithOtp"],
 
+  USER_PROFILE_KEY: ["userProfile"],
+  SUBSCRIPTION_PLANS_KEY: ["subscriptionPlans"],
+
   NOTIFICATIONS_LIST: "notificationsList",
   NOTIFICATIONS_UNREAD_COUNT: "notificationsUnreadCount",
   MARK_NOTIFICATIONS_READ: "markNotificationsRead", // For mutation

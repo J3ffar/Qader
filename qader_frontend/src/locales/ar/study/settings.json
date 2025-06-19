@@ -1,0 +1,89 @@
+{
+  "settings": {
+    "title": "الإعدادات",
+    "description": "تحكم في إعدادات حسابك واشتراكاتك وتفضيلات الإشعارات.",
+    "tabs": {
+      "account": "حسابي",
+      "subscriptions": "الاشتراكات",
+      "notifications": "الإشعارات"
+    },
+    "error": {
+      "title": "خطأ",
+      "message": "لم نتمكن من تحميل إعداداتك. يرجى المحاولة مرة أخرى لاحقًا."
+    },
+    "account": {
+      "title": "حسابي",
+      "description": "قم بتحديث بياناتك الشخصية من هنا.",
+      "upload": {
+        "title": "الصورة الشخصية",
+        "description": "ارفع صورة جديدة. نوصي بصورة ذات أبعاد 1:1."
+      },
+      "fullName": {
+        "label": "الاسم الكامل",
+        "placeholder": "اسمك الكامل"
+      },
+      "preferredName": {
+        "label": "الاسم المفضل",
+        "placeholder": "الاسم الذي نناديك به"
+      },
+      "email": {
+        "label": "البريد الإلكتروني"
+      },
+      "password": {
+        "label": "كلمة المرور",
+        "button": "تغيير كلمة المرور"
+      },
+      "buttons": {
+        "save": "حفظ التغييرات",
+        "saving": "جارٍ الحفظ..."
+      },
+      "toast": {
+        "success": "تم تحديث الملف الشخصي بنجاح!",
+        "error": "فشل تحديث الملف الشخصي."
+      }
+    },
+     "notifications": {
+      "title": "الإشعارات والتفضيلات",
+      "description": "خصص طريقة إعلامنا لك واضبط تفضيلات التطبيق.",
+      "reminders": {
+        "title": "تذكيرات المذاكرة",
+        "enableLabel": "تفعيل التذكيرات",
+        "enableDescription": "استقبل إشعارات لمساعدتك على البقاء في المسار الصحيح لدراستك.",
+        "testDateLabel": "تاريخ الاختبار القادم",
+        "reminderTimeLabel": "وقت التذكير اليومي"
+      },
+      "darkMode": {
+        "title": "الوضع الداكن التلقائي",
+        "autoEnableLabel": "تفعيل التبديل التلقائي للمظهر",
+        "autoEnableDescription": "التبديل تلقائيًا بين المظهر الفاتح والداكن بناءً على جدول زمني.",
+        "startTimeLabel": "التبديل للوضع الداكن عند",
+        "endTimeLabel": "التبديل للوضع الفاتح عند"
+      },
+      "buttons": {
+        "save": "حفظ التفضيلات",
+        "saving": "جارٍ الحفظ..."
+      },
+      "toast": {
+        "success": "تم حفظ التفضيلات بنجاح!",
+        "error": "فشل حفظ التفضيلات."
+      }
+    },
+    "subscriptions": {
+      "current": {
+        "title": "الاشتراك الحالي",
+        "description": "إليك تفاصيل خطتك الحالية.",
+        "planName": "الخطة",
+        "noPlan": "لا توجد خطة نشطة",
+        "statusActive": "نشط",
+        "statusInactive": "غير نشط",
+        "expiresAt": "ينتهي في",
+        "cancelButton": "إلغاء الاشتراك"
+      },
+      "available": {
+        "title": "الخطط المتاحة",
+        "duration": "{days} يوم من الوصول الكامل",
+        "purchaseButton": "الترقية الآن"
+      }
+    }
+  }
+}

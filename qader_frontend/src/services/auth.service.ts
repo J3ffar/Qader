@@ -23,6 +23,7 @@ import type {
 } from "@/types/api/auth.types";
 import { ApiError } from "@/lib/errors"; // Import our custom error
 import { useAuthStore } from "@/store/auth.store";
+import { ApiUpdateUserProfileData } from "@/types/api/user.types";
 
 // All functions below are solid. They correctly delegate to the apiClient.
 // No changes are needed for most of them.
@@ -193,32 +194,40 @@ export const getCurrentUserProfile = (): Promise<UserProfile> => {
 };
 
 export const updateUserProfile = (
-  data: Partial<ApiCompleteProfileData>
+  // FIX: The function can accept EITHER a plain object OR FormData
+  data: Partial<ApiUpdateUserProfileData> | FormData
 ): Promise<UserProfile> => {
-  // Check if the payload contains a file. If so, we must use FormData.
-  const hasFile = Object.values(data).some((value) => value instanceof File);
+  // Check if the payload is already FormData. If so, use it directly.
+  const isFormData = data instanceof FormData;
 
   let body: string | FormData;
   const headers: HeadersInit = {};
 
-  if (hasFile) {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (value instanceof File) {
-        formData.append(key, value);
-      } else if (value !== null && value !== undefined) {
-        formData.append(key, String(value));
-      }
-    });
-    body = formData;
+  if (isFormData) {
+    body = data;
   } else {
-    body = JSON.stringify(data);
-    headers["Content-Type"] = "application/json";
+    // If it's a plain object, check for a file inside and build FormData if needed.
+    const hasFile = Object.values(data).some((value) => value instanceof File);
+    if (hasFile) {
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value instanceof File) {
+          formData.append(key, value);
+        } else if (value !== null && value !== undefined) {
+          formData.append(key, String(value));
+        }
+      });
+      body = formData;
+    } else {
+      // No file, so stringify the plain object.
+      body = JSON.stringify(data);
+      headers["Content-Type"] = "application/json";
+    }
   }
 
   return apiClient<UserProfile>("/users/me/", {
     method: "PATCH",
     body,
-    headers, // apiClient will merge/handle these correctly.
+    headers,
   });
 };

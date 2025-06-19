@@ -1,0 +1,89 @@
+{
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your account settings, subscriptions, and notification preferences.",
+    "tabs": {
+      "account": "My Account",
+      "subscriptions": "Subscriptions",
+      "notifications": "Notifications"
+    },
+    "error": {
+      "title": "Error",
+      "message": "Could not load your settings. Please try again later."
+    },
+    "account": {
+      "title": "My Account",
+      "description": "Update your personal details here.",
+      "upload": {
+        "title": "Profile Picture",
+        "description": "Upload a new photo. We recommend a 1:1 aspect ratio."
+      },
+      "fullName": {
+        "label": "Full Name",
+        "placeholder": "Your full name"
+      },
+      "preferredName": {
+        "label": "Preferred Name",
+        "placeholder": "What we should call you"
+      },
+      "email": {
+        "label": "Email Address"
+      },
+      "password": {
+        "label": "Password",
+        "button": "Change Password"
+      },
+      "buttons": {
+        "save": "Save Changes",
+        "saving": "Saving..."
+      },
+      "toast": {
+        "success": "Profile updated successfully!",
+        "error": "Failed to update profile."
+      }
+    },
+    "notifications": {
+      "title": "Notifications & Preferences",
+      "description": "Customize how we notify you and set your app preferences.",
+      "reminders": {
+        "title": "Study Reminders",
+        "enableLabel": "Enable reminders",
+        "enableDescription": "Receive notifications to help you stay on track with your studies.",
+        "testDateLabel": "Upcoming Test Date",
+        "reminderTimeLabel": "Daily Reminder Time"
+      },
+      "darkMode": {
+        "title": "Automatic Dark Mode",
+        "autoEnableLabel": "Enable automatic theme switching",
+        "autoEnableDescription": "Automatically switch between light and dark themes based on a schedule.",
+        "startTimeLabel": "Switch to Dark Mode at",
+        "endTimeLabel": "Switch to Light Mode at"
+      },
+      "buttons": {
+        "save": "Save Preferences",
+        "saving": "Saving..."
+      },
+      "toast": {
+        "success": "Preferences saved successfully!",
+        "error": "Failed to save preferences."
+      }
+    },
+    "subscriptions": {
+      "current": {
+        "title": "Current Subscription",
+        "description": "Here are the details of your active plan.",
+        "planName": "Plan",
+        "noPlan": "No active plan",
+        "statusActive": "Active",
+        "statusInactive": "Inactive",
+        "expiresAt": "Expires on",
+        "cancelButton": "Cancel Subscription"
+      },
+      "available": {
+        "title": "Available Plans",
+        "duration": "{days} days of access",
+        "purchaseButton": "Upgrade Now"
+      }
+    }
+  }
+}

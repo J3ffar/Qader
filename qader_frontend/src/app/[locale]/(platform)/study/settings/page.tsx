@@ -1,93 +1,111 @@
-"use client"
-import React, { useState } from 'react';
+"use client";
 
-export default function SubscriptionSettings() {
-  const [activeTab, setActiveTab] = useState<'current' | 'other'>('current');
-  const [activePlan, setActivePlan] = useState<number>(1);
+import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useAuthStore } from "@/store/auth.store";
+import { getCurrentUserProfile } from "@/services/auth.service";
+import { QUERY_KEYS } from "@/constants/queryKeys";
 
-  const plans = [
-    { id: 1, price: 75, period: 'شهرياً', features: ['الميزة ١', 'الميزة ٢', 'الميزة ٣', 'الميزة ٤'] },
-    { id: 2, price: 75, period: 'كل 3 شهور', features: ['الميزة ١', 'الميزة ٢', 'الميزة ٣', 'الميزة ٤'] },
-    { id: 3, price: 75, period: 'سنويًا', features: ['الميزة ١', 'الميزة ٢', 'الميزة ٣', 'الميزة ٤'] }
-  ];
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from "lucide-react";
+
+import AccountSettingsForm from "./_components/AccountSettingsForm";
+import NotificationsSettingsForm from "./_components/NotificationsSettingsForm";
+import SubscriptionDetails from "./_components/SubscriptionDetails";
+import SettingsPageSkeleton from "./_components/SettingsPageSkeleton";
+import { getSubscriptionPlans } from "@/services/subscription.service";
+
+// Assume this service function exists to fetch plans
+// In a real scenario, this would be in `learning.service.ts` or a `subscription.service.ts`
+// const getSubscriptionPlans = () => apiClient<Plan[]>('/users/subscription-plans/');
+
+export default function SettingsPage() {
+  const t = useTranslations("Study.settings");
+  const userFromStore = useAuthStore((state) => state.user);
+
+  // Fetch current user profile data
+  const {
+    data: userProfile,
+    isLoading: isUserLoading,
+    error: userError,
+  } = useQuery({
+    queryKey: [QUERY_KEYS.USER_PROFILE_KEY, userFromStore?.id],
+    queryFn: getCurrentUserProfile,
+    initialData: userFromStore, // Use Zustand data for initial render, prevents flicker
+    enabled: !!userFromStore?.id,
+  });
+
+  const {
+    data: plans,
+    isLoading: arePlansLoading,
+    error: plansError,
+  } = useQuery({
+    queryKey: [QUERY_KEYS.SUBSCRIPTION_PLANS_KEY],
+    queryFn: getSubscriptionPlans,
+  });
+
+  if ((isUserLoading && !userProfile) || (arePlansLoading && !plans)) {
+    return <SettingsPageSkeleton />;
+  }
+
+  if (userError) {
+    return (
+      <Alert variant="destructive">
+        <Terminal className="h-4 w-4" />
+        <AlertTitle>{t("error.title")}</AlertTitle>
+        <AlertDescription>{t("error.message")}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!userProfile) {
+    // This case handles when user is logged out or data is missing
+    return null;
+  }
+
+  if (plansError) {
+    console.error("Failed to fetch subscription plans:", plansError);
+    // Optionally render an inline error message for the plans section
+  }
 
   return (
-    <div className="p-8 bg-gray-50 dark:bg-[#081028] text-right font-sans text-gray-800">
-      {/* Header Tabs */}
-      <div className="flex justify-end gap-4 mb-4">
-        <button className="border px-4 py-1 rounded dark:border-white dark:text-white">الحساب</button>
-        <button className="border-b-4 border-blue-600 font-semibold px-4 py-1 rounded text-blue-600">
-          الاشتراكات
-        </button>
-      </div>
+    <div className="space-y-6">
+      <header>
+        <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
+        <p className="text-muted-foreground">{t("description")}</p>
+      </header>
+      <Separator />
 
-      {/* Title */}
-      <div className="mb-8">
-        <h2 className="text-lg font-bold mb-1 dark:text-gray-300">الاعدادات</h2>
-        <p className="text-sm text-gray-500">تحكم في اعدادات حسابك على منصة فلان</p>
-      </div>
+      <Tabs defaultValue="account" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="account">{t("tabs.account")}</TabsTrigger>
+          <TabsTrigger value="subscriptions">
+            {t("tabs.subscriptions")}
+          </TabsTrigger>
+          <TabsTrigger value="notifications">
+            {t("tabs.notifications")}
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Toggle Section */}
-      <div className="bg-white dark:bg-[#0B1739] p-4 rounded-lg mb-6">
-        <h3 className="font-semibold mb-2 dark:text-gray-300">المرحلة الحالية</h3>
-        <p className="text-sm text-gray-500 mb-4">هذه هي حزمة اشتراكك الحالية</p>
+        <TabsContent value="account">
+          <AccountSettingsForm user={userProfile} />
+        </TabsContent>
 
-        <h3 className="font-semibold mt-4 mb-2 dark:text-gray-300">المرحلة الأخرى</h3>
-        <p className="text-sm text-gray-500">تعرف على باقي الباقات المتوفرة لدينا</p>
-      </div>
+        <TabsContent value="subscriptions">
+          <SubscriptionDetails
+            currentSubscription={userProfile.subscription}
+            plans={plans || []}
+            arePlansLoading={arePlansLoading}
+            locale={"ar"}
+          />
+        </TabsContent>
 
-      {/* Tabs */}
-      <div className="flex justify-center bg-gray-100 dark:bg-[#0B1739] p-1 rounded-full w-64 mx-auto mb-8">
-        <button
-          onClick={() => setActiveTab('current')}
-          className={`w-1/2 px-4 py-2 rounded-full text-sm font-medium ${
-            activeTab === 'current' ? 'bg-white text-blue-600 shadow' : 'text-gray-500'
-          }`}
-        >
-          الخطة
-        </button>
-        <button
-          onClick={() => setActiveTab('other')}
-          className={`w-1/2 px-4 py-2 rounded-full text-sm font-medium ${
-            activeTab === 'other' ? 'bg-white text-blue-600 shadow' : 'text-gray-500'
-          }`}
-        >
-          الباقة
-        </button>
-      </div>
-
-      {/* Plans */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {plans.map((plan, idx) => (
-          <div
-            key={plan.id}
-            className={`bg-white dark:bg-[#0B1739] p-6 rounded-xl shadow relative ${
-              activePlan === idx ? 'border-2 border-orange-400 z-10' : ''
-            }`}
-          >
-            {activePlan === idx && (
-              <div className="absolute -top-4 right-4 bg-orange-500 text-white text-sm px-3 py-1 rounded-full shadow">
-                الحزمة الحالية
-              </div>
-            )}
-            <h4 className="text-sm font-semibold mb-1 dark:text-gray-300">حزمة البداية</h4>
-            <p className="text-2xl font-bold text-gray-700 mb-1">
-              {plan.price} <span className="text-sm font-normal text-gray-500">#</span>
-            </p>
-            <p className="text-sm text-gray-500 mb-4">{plan.period}</p>
-            <button className="bg-blue-700 text-white w-full py-2 rounded mb-4">ترقية الباقة</button>
-            <hr className="my-4" />
-            <h5 className="font-semibold mb-2 dark:text-gray-300">الميزات</h5>
-            <ul className="text-sm text-gray-600 space-y-1">
-              {plan.features.map((f, i) => (
-                <li key={i} className="flex items-center gap-2">
-                  <span className="text-orange-500 text-xs">●</span> {f}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
+        <TabsContent value="notifications">
+          <NotificationsSettingsForm user={userProfile} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

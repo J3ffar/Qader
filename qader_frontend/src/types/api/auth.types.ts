@@ -3,7 +3,10 @@ export interface SubscriptionDetailResponse {
   is_active: boolean;
   expires_at: string | null; // ISO date string
   serial_code: string | null;
-  account_type: string; // e.g., "Free Trial", "Subscribed"
+  account_type: string;
+  plan_name: string | null;
+  account_type_key: string | null;
+  plan_identifier_key: string | null;
 }
 
 export interface ReferralDetailResponse {
