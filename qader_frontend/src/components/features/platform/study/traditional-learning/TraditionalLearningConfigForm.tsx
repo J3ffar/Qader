@@ -4,7 +4,7 @@ import React, { ReactNode } from "react";
 import { useForm, Controller, FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -50,6 +50,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
   const t = useTranslations("Study.traditionalLearning.config");
   const commonT = useTranslations("Common");
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data: learningSectionsData, error: sectionsError } = useQuery({
     queryKey: queryKeys.learning.sections({}),
@@ -108,6 +109,8 @@ const TraditionalLearningConfigForm: React.FC = () => {
     mutationFn: startTraditionalPractice,
     onSuccess: (data) => {
       toast.success(t("api.startSuccess"));
+      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
+
       router.push(PATHS.STUDY.TRADITIONAL_LEARNING.SESSION(data.attempt_id));
     },
     onError: (error) => {

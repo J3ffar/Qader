@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -75,6 +75,7 @@ const StartLevelAssessmentForm: React.FC = () => {
   const t = useTranslations("Study.determineLevel.startForm");
   const commonT = useTranslations("Common");
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [mutationErrorMsg, setMutationErrorMsg] = useState<string | null>(null);
 
   const {
@@ -194,6 +195,7 @@ const StartLevelAssessmentForm: React.FC = () => {
       // Based on API doc UserTestAttemptStartResponse, it returns questions.
       // Storing in localStorage temporarily is also an option but less ideal.
       // Let's assume the quiz page will re-fetch attempt details including questions using the attempt_id.
+      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
       router.push(PATHS.STUDY.DETERMINE_LEVEL.ATTEMPT(data.attempt_id));
     },
     onError: (error: any) => {

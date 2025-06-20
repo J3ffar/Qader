@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -61,6 +61,7 @@ const StartTestForm: React.FC = () => {
   const t = useTranslations("Study.tests.startForm");
   const commonT = useTranslations("Common");
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [mutationErrorMsg, setMutationErrorMsg] = useState<string | null>(null);
 
   const formSchema = createFormSchema(t);
@@ -106,6 +107,8 @@ const StartTestForm: React.FC = () => {
     mutationFn: startPracticeSimulationTest,
     onSuccess: (data) => {
       toast.success(t("api.startSuccess"));
+      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
+
       router.push(PATHS.STUDY.TESTS.ATTEMPT(data.attempt_id));
     },
     onError: (error: any) => {
