@@ -11,7 +11,7 @@ interface CustomRequestInit extends RequestInit {
   isPublic?: boolean;
   isRetry?: boolean;
   locale?: string;
-  params?: Record<string, string | number | boolean | string[]>;
+  params?: Record<string, any>;
 }
 
 // These are module-level variables to manage the refresh state globally.

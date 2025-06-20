@@ -1,9 +1,7 @@
 import { apiClient } from "./apiClient";
 import type {
   PaginatedDailyPointSummaryResponse,
-  DailyPointSummary,
   PaginatedStudyDayLogResponse,
-  StudyDayLog,
   RewardStoreItem,
 } from "@/types/api/gamification.types";
 import { API_ENDPOINTS } from "@/constants/api";
@@ -18,19 +16,13 @@ interface GetDailyPointsSummaryParams {
 export const getDailyPointsSummary = async (
   params?: GetDailyPointsSummaryParams
 ): Promise<PaginatedDailyPointSummaryResponse> => {
-  const queryParams = new URLSearchParams();
-  if (params?.range) queryParams.append("range", params.range);
-  if (params?.startDate) queryParams.append("start_date", params.startDate);
-  if (params?.endDate) queryParams.append("end_date", params.endDate);
-  if (params?.page) queryParams.append("page", params.page.toString());
-
-  // Corrected endpoint for daily points summary from original API doc
-  const endpoint = `${
-    API_ENDPOINTS.GAMIFICATION.DAILY_POINTS_SUMMARY
-  }?${queryParams.toString()}`;
-  return apiClient<PaginatedDailyPointSummaryResponse>(endpoint, {
-    method: "GET",
-  });
+  return apiClient<PaginatedDailyPointSummaryResponse>(
+    API_ENDPOINTS.GAMIFICATION.DAILY_POINTS_SUMMARY,
+    {
+      method: "GET",
+      params,
+    }
+  );
 };
 
 interface GetStudyDaysParams {
@@ -44,19 +36,13 @@ interface GetStudyDaysParams {
 export const getStudyDaysLog = async (
   params?: GetStudyDaysParams
 ): Promise<PaginatedStudyDayLogResponse> => {
-  const queryParams = new URLSearchParams();
-  if (params?.month) queryParams.append("month", params.month.toString());
-  if (params?.year) queryParams.append("year", params.year.toString());
-  if (params?.date_range_after)
-    queryParams.append("date_range_after", params.date_range_after);
-  if (params?.date_range_before)
-    queryParams.append("date_range_before", params.date_range_before);
-  if (params?.page) queryParams.append("page", params.page.toString());
-
-  const endpoint = `${
-    API_ENDPOINTS.GAMIFICATION.STUDY_DAYS
-  }?${queryParams.toString()}`;
-  return apiClient<PaginatedStudyDayLogResponse>(endpoint, { method: "GET" });
+  return apiClient<PaginatedStudyDayLogResponse>(
+    API_ENDPOINTS.GAMIFICATION.STUDY_DAYS,
+    {
+      method: "GET",
+      params,
+    }
+  );
 };
 
 export const getRewardStoreItems = async (): Promise<RewardStoreItem[]> => {

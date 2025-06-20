@@ -1,7 +1,6 @@
-// src/services/conversation.service.ts
 import { API_ENDPOINTS } from "@/constants/api";
 import {
-  AIConfirmUnderstandingResponse, // <-- NEW
+  AIConfirmUnderstandingResponse,
   AIQuestionResponse,
   ConversationMessage,
   ConversationSessionDetail,
@@ -12,15 +11,16 @@ import {
 } from "@/types/api/conversation.types";
 import { apiClient } from "./apiClient";
 
-const CONVO_BASE = API_ENDPOINTS.STUDY.CONVERSATIONS;
-
 export const startConversation = (
   payload: StartConversationPayload
 ): Promise<ConversationSessionDetail> => {
-  return apiClient<ConversationSessionDetail>(`${CONVO_BASE}/`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  return apiClient<ConversationSessionDetail>(
+    `${API_ENDPOINTS.STUDY.CONVERSATIONS.BASE}`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
 };
 
 export const sendMessage = (
@@ -28,7 +28,7 @@ export const sendMessage = (
   payload: SendMessagePayload
 ): Promise<ConversationMessage> => {
   return apiClient<ConversationMessage>(
-    `${CONVO_BASE}/${sessionId}/messages/`,
+    `${API_ENDPOINTS.STUDY.CONVERSATIONS.MESSAGES(sessionId)}`,
     {
       method: "POST",
       body: JSON.stringify(payload),
@@ -40,7 +40,7 @@ export const askForQuestion = (
   sessionId: number
 ): Promise<AIQuestionResponse> => {
   return apiClient<AIQuestionResponse>(
-    `${CONVO_BASE}/${sessionId}/ask-question/`,
+    `${API_ENDPOINTS.STUDY.CONVERSATIONS.ASK_QUESTION(sessionId)}`,
     { method: "POST" }
   );
 };
@@ -51,7 +51,7 @@ export const confirmUnderstanding = (
 ): Promise<AIConfirmUnderstandingResponse | ""> => {
   // <-- CHANGED
   return apiClient<AIConfirmUnderstandingResponse | "">(
-    `${CONVO_BASE}/${sessionId}/confirm-understanding/`,
+    `${API_ENDPOINTS.STUDY.CONVERSATIONS.CONFIRM_UNDERSTANDING(sessionId)}`,
     { method: "POST" }
   );
 };
@@ -63,7 +63,7 @@ export const submitConversationTestAnswer = (
 ): Promise<ConversationTestResult> => {
   // <-- CHANGED
   return apiClient<ConversationTestResult>(
-    `${CONVO_BASE}/${sessionId}/submit-test-answer/`,
+    `${API_ENDPOINTS.STUDY.CONVERSATIONS.SUBMIT_TEST_ANSWER(sessionId)}`,
     {
       method: "POST",
       body: JSON.stringify(payload),

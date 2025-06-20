@@ -3,16 +3,14 @@ import {
   PaginatedLearningSections,
   LearningSection,
 } from "@/types/api/learning.types";
-// Assuming API_ENDPOINTS might have a specific path for learning, or use a base.
-const LEARNING_API_BASE = "/learning";
+import { API_ENDPOINTS } from "@/constants/api";
 
-// Corresponds to: GET /learning/sections/
 export const getLearningSections = async (params?: {
   ordering?: string;
   page?: number;
 }): Promise<PaginatedLearningSections> => {
   return apiClient<PaginatedLearningSections>(
-    `${LEARNING_API_BASE}/sections/`,
+    API_ENDPOINTS.LEARNING.SECTIONS.LIST,
     {
       method: "GET",
       params,
@@ -24,5 +22,7 @@ export const getLearningSections = async (params?: {
 export const getLearningSectionDetails = async (
   slug: string
 ): Promise<LearningSection> => {
-  return apiClient<LearningSection>(`${LEARNING_API_BASE}/sections/${slug}/`);
+  return apiClient<LearningSection>(
+    API_ENDPOINTS.LEARNING.SECTIONS.DETAIL(slug)
+  );
 };

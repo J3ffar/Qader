@@ -1,5 +1,5 @@
 import { apiClient } from "./apiClient";
-import { API_BASE_URL, API_VERSION } from "@/constants/api";
+import { API_ENDPOINTS, API_BASE_URL, API_VERSION } from "@/constants/api";
 import { getLocaleFromPathname } from "@/utils/locale";
 
 import type {
@@ -32,7 +32,7 @@ import { ApiUpdateUserProfileData } from "@/types/api/user.types";
 export const loginUser = (
   credentials: LoginCredentials
 ): Promise<LoginResponse> => {
-  return apiClient<LoginResponse>("/auth/login/", {
+  return apiClient<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, {
     method: "POST",
     body: JSON.stringify(credentials),
     isPublic: true,
@@ -40,7 +40,7 @@ export const loginUser = (
 };
 
 export const signupUser = (data: ApiSignupData): Promise<SignupResponse> => {
-  return apiClient<SignupResponse>("/auth/signup/", {
+  return apiClient<SignupResponse>(API_ENDPOINTS.AUTH.SIGNUP, {
     method: "POST",
     body: JSON.stringify(data),
     isPublic: true,
@@ -59,7 +59,7 @@ export const confirmEmail = ({
   token,
 }: ConfirmEmailParams): Promise<ConfirmEmailResponse> => {
   return apiClient<ConfirmEmailResponse>(
-    `/auth/confirm-email/${uidb64}/${token}/`,
+    API_ENDPOINTS.AUTH.CONFIRM_EMAIL(uidb64, token),
     {
       method: "GET",
       isPublic: true,
@@ -70,7 +70,7 @@ export const confirmEmail = ({
 export const requestOtp = (
   data: RequestOtpFormValues
 ): Promise<RequestOtpResponse> => {
-  return apiClient<RequestOtpResponse>("/auth/password/reset/request-otp/", {
+  return apiClient<RequestOtpResponse>(API_ENDPOINTS.AUTH.REQUEST_OTP, {
     method: "POST",
     body: JSON.stringify(data),
     isPublic: true,
@@ -80,7 +80,7 @@ export const requestOtp = (
 export const verifyOtp = (
   data: VerifyOtpFormValues
 ): Promise<VerifyOtpResponse> => {
-  return apiClient<VerifyOtpResponse>("/auth/password/reset/verify-otp/", {
+  return apiClient<VerifyOtpResponse>(API_ENDPOINTS.AUTH.VERIFY_OTP, {
     method: "POST",
     body: JSON.stringify(data),
     isPublic: true,
@@ -90,11 +90,14 @@ export const verifyOtp = (
 export const resetPasswordWithOtp = (
   data: ResetPasswordFormValues
 ): Promise<ResetPasswordResponse> => {
-  return apiClient<ResetPasswordResponse>("/auth/password/reset/confirm-otp/", {
-    method: "POST",
-    body: JSON.stringify(data),
-    isPublic: true,
-  });
+  return apiClient<ResetPasswordResponse>(
+    API_ENDPOINTS.AUTH.RESET_PASSWORD_CONFIRM_OTP,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+      isPublic: true,
+    }
+  );
 };
 
 export const completeUserProfile = (
@@ -114,7 +117,7 @@ export const completeUserProfile = (
     formData.append("language", getLocaleFromPathname() || "ar");
   }
 
-  return apiClient<UserProfile>("/users/me/complete-profile/", {
+  return apiClient<UserProfile>(API_ENDPOINTS.USERS.COMPLETE_PROFILE, {
     method: "PATCH",
     body: formData, // apiClient will correctly handle FormData
   });
@@ -122,7 +125,7 @@ export const completeUserProfile = (
 
 export const logoutUserApi = async (payload: LogoutPayload): Promise<void> => {
   const locale = getLocaleFromPathname() || "ar";
-  const url = `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/logout/`;
+  const url = `${API_BASE_URL}/${locale}/api/${API_VERSION}${API_ENDPOINTS.AUTH.LOGOUT}`;
 
   // Get the access token directly from the store for the Authorization header.
   const accessToken = useAuthStore.getState().accessToken;
@@ -163,7 +166,7 @@ export const refreshTokenApi = async (
   payload: RefreshTokenPayload
 ): Promise<RefreshTokenResponse> => {
   const locale = getLocaleFromPathname() || "ar";
-  const url = `${API_BASE_URL}/${locale}/api/${API_VERSION}/auth/token/refresh/`;
+  const url = `${API_BASE_URL}/${locale}/api/${API_VERSION}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -191,7 +194,7 @@ export const refreshTokenApi = async (
 };
 
 export const getCurrentUserProfile = (): Promise<UserProfile> => {
-  return apiClient<UserProfile>("/users/me/");
+  return apiClient<UserProfile>(API_ENDPOINTS.USERS.ME);
 };
 
 export const updateUserProfile = (
@@ -226,7 +229,7 @@ export const updateUserProfile = (
     }
   }
 
-  return apiClient<UserProfile>("/users/me/", {
+  return apiClient<UserProfile>(API_ENDPOINTS.USERS.ME, {
     method: "PATCH",
     body,
     headers,
@@ -246,8 +249,11 @@ export interface ChangePasswordResponse {
 export const changePassword = (
   payload: ChangePasswordFormValues
 ): Promise<ChangePasswordResponse> => {
-  return apiClient<ChangePasswordResponse>("/users/me/change-password/", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  return apiClient<ChangePasswordResponse>(
+    API_ENDPOINTS.USERS.CHANGE_PASSWORD,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
 };

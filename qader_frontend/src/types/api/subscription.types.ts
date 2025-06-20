@@ -27,3 +27,8 @@ export interface ApplySerialCodeResponse {
   detail: string; // e.g., "Subscription activated successfully."
   subscription: SubscriptionDetailResponse;
 }
+
+export interface CancelSubscriptionResponse {
+  detail: string; // e.g., "Your subscription has been cancelled."
+  subscription: SubscriptionDetailResponse; // The updated, inactive subscription object
+}
