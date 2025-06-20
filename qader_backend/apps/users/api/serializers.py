@@ -8,6 +8,8 @@ from django.utils.translation import gettext_lazy as _
 from django.db import transaction, IntegrityError
 from django.core.files.images import get_image_dimensions  # For image validation
 from django.conf import settings
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import authenticate
 
 from rest_framework import serializers
 from rest_framework.request import Request  # For type hinting context
@@ -54,6 +56,56 @@ class SimpleUserSerializer(serializers.ModelSerializer):
         model = User
         fields = ("id", "username", "email")
         read_only_fields = fields
+
+
+class EmailLoginSerializer(TokenObtainPairSerializer):
+    """
+    Serializer for the email login endpoint.
+    It takes 'email' and 'password' and returns an access/refresh token pair.
+    """
+
+    username = serializers.CharField(label=_("Identity"), write_only=True)
+    password = serializers.CharField(
+        label=_("Password"),
+        style={"input_type": "password"},
+        trim_whitespace=False,
+        write_only=True,
+    )
+
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate the credentials and return the token pair.
+        """
+        username = attrs.get("username")
+        password = attrs.get("password")
+
+        # We pass the email as the `username` parameter to `authenticate`.
+        # Our custom EmailOrUsernameBackend will correctly handle this.
+        user = authenticate(
+            request=self.context.get("request"), username=username, password=password
+        )
+
+        if not user:
+            # The custom backend already checks if the user can be authenticated
+            # (e.g., is_active=True).
+            raise serializers.ValidationError(
+                _("No active account found with the given credentials."),
+                code="authorization",
+            )
+
+        # The rest of this method is from the parent TokenObtainPairSerializer,
+        # ensuring the tokens are generated correctly.
+        refresh = self.get_token(user)
+
+        data = {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }
+
+        # The view's post-processing logic relies on `self.user` being set.
+        self.user = user
+
+        return data
 
 
 class SubscriptionDetailSerializer(serializers.Serializer):

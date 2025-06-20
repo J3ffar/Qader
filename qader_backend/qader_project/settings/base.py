@@ -96,6 +96,12 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
 ]
 
+AUTHENTICATION_BACKENDS = [
+    # Use our custom backend for authentication.
+    # It inherits from ModelBackend, so it includes all necessary permission checks.
+    "apps.users.auth_backends.EmailOrUsernameBackend",
+]
+
 ROOT_URLCONF = "qader_project.urls"
 
 TEMPLATES = [

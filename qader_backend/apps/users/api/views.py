@@ -57,6 +57,7 @@ from .serializers import (
     ApplySerialCodeSerializer,
     AuthUserResponseSerializer,
     CompleteProfileSerializer,
+    EmailLoginSerializer,
     InitialSignupSerializer,
     SubscriptionDetailSerializer,
     SubscriptionPlanSerializer,
@@ -137,7 +138,8 @@ COMMON_ERRORS = {
 @extend_schema(
     tags=["Authentication"],
     summary="Obtain JWT Tokens",
-    description="Authenticate with username and password to receive JWT access and refresh tokens, along with basic user profile information. Also establishes a session for WebSocket authentication.",
+    description="Authenticate with email and password to receive JWT access and refresh tokens, along with basic user profile information. Also establishes a session for WebSocket authentication.",
+    request=EmailLoginSerializer,
     responses={
         status.HTTP_200_OK: OpenApiResponse(
             response=inline_serializer(
@@ -166,8 +168,11 @@ COMMON_ERRORS = {
 )
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
-    Customize JWT response to include basic user profile info matching API docs.
+    Customize JWT response to include user profile info.
+    Accepts email and password for login.
     """
+
+    serializer_class = EmailLoginSerializer
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         serializer = self.get_serializer(data=request.data)
