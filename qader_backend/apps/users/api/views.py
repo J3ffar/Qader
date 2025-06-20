@@ -885,7 +885,7 @@ class CompleteProfileView(generics.UpdateAPIView):
 @extend_schema(
     tags=["Authentication"],
     summary="Refresh JWT Access Token",
-    description="Obtains a new JWT access token using a valid, non-blacklisted refresh token.",
+    description="Obtains a new JWT access token using a valid, non-blacklisted refresh token. And it's using the refresh token rotation, which you need to get refresh token also.",
     request=TokenRefreshSerializer,  # Standard request body: {"refresh": "..."}
     responses={
         status.HTTP_200_OK: OpenApiResponse(
@@ -895,7 +895,11 @@ class CompleteProfileView(generics.UpdateAPIView):
             description="Access token refreshed successfully.",
             examples=[
                 OpenApiExample(
-                    "Refresh Success", value={"access": "eyJhbGciOiJIUzI1NiIsIn..."}
+                    "Access and Refresh Success",
+                    value={
+                        "access": "eyJhbGciOiJIUzI1NiIsIn...",
+                        "refresh": "eyJhbGciOiJIUzI1NiIsIn...",
+                    },
                 )
             ],
         ),
