@@ -29,7 +29,7 @@ import {
 } from "@/types/forms/auth.schema"; // Adjust path
 import { signupUser } from "@/services/auth.service"; // Adjust path
 import { PATHS } from "@/constants/paths"; // Adjust path
-import { QUERY_KEYS } from "@/constants/queryKeys"; // Adjust path
+import { queryKeys } from "@/constants/queryKeys";
 
 interface SignupModalProps {
   show: boolean;
@@ -72,7 +72,7 @@ const SignupModal: React.FC<SignupModalProps> = ({
   });
 
   const signupMutation = useMutation({
-    mutationKey: [QUERY_KEYS.SIGNUP],
+    mutationKey: queryKeys.auth.signup(),
     mutationFn: (data: SignupFormValues) => {
       const apiData: ApiSignupData = {
         full_name: data.full_name,

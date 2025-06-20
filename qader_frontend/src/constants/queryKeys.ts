@@ -1,40 +1,98 @@
-export const QUERY_KEYS = {
-  USER: "user",
-  LOGIN: "login",
-  SIGNUP: "signup",
-  CONFIRM_EMAIL: ["confirmEmail"],
-  COMPLETE_PROFILE: ["completeProfile"],
-  REQUEST_OTP_KEY: ["requestPasswordOtp"],
-  VERIFY_OTP_KEY: ["verifyPasswordOtp"],
-  RESET_PASSWORD_KEY: ["resetPasswordWithOtp"],
+export const queryKeys = {
+  // --- AUTH ---
+  auth: {
+    all: ["auth"] as const,
+    login: () => [...queryKeys.auth.all, "login"] as const,
+    signup: () => [...queryKeys.auth.all, "signup"] as const,
+    confirmEmail: (uidb64: string, token: string) =>
+      [...queryKeys.auth.all, "confirmEmail", uidb64, token] as const,
+    requestOtp: () => [...queryKeys.auth.all, "requestOtp"] as const,
+    verifyOtp: () => [...queryKeys.auth.all, "verifyOtp"] as const,
+    resetPassword: () => [...queryKeys.auth.all, "resetPassword"] as const,
+  },
 
-  USER_PROFILE_KEY: ["userProfile"],
-  SUBSCRIPTION_PLANS_KEY: ["subscriptionPlans"],
+  // --- USER ---
+  user: {
+    all: ["user"] as const,
+    profile: (userId: number | null) =>
+      [...queryKeys.user.all, "profile", userId] as const, // For /users/me
+    completeProfile: () => [...queryKeys.user.all, "completeProfile"] as const,
+    subscription: () => [...queryKeys.user.all, "subscription"] as const, // For /users/me
+  },
 
-  NOTIFICATIONS_LIST: "notificationsList",
-  NOTIFICATIONS_UNREAD_COUNT: "notificationsUnreadCount",
-  MARK_NOTIFICATIONS_READ: "markNotificationsRead", // For mutation
-  MARK_ALL_NOTIFICATIONS_READ: "markAllNotificationsRead", // For mutation
-  REWARD_STORE_ITEMS: "rewardStoreItems",
-  WEEKLY_POINTS_SUMMARY: "weeklyPointsSummary",
-  STUDY_DAYS_LOG: "studyDaysLog",
+  // --- NOTIFICATIONS ---
+  notifications: {
+    all: ["notifications"] as const,
+    list: (filters: object) =>
+      [...queryKeys.notifications.all, "list", filters] as const,
+    unreadCount: () => [...queryKeys.notifications.all, "unreadCount"] as const,
+  },
 
-  LEARNING_SECTIONS: "learningSections",
-  USER_TEST_ATTEMPTS: "userTestAttempts",
-  USER_TEST_ATTEMPT_DETAIL: "userTestAttemptDetail", // (attemptId: number | string) => [USER_TEST_ATTEMPT_DETAIL, attemptId]
-  USER_TEST_ATTEMPT_REVIEW: "userTestAttemptReview",
-  USER_TEST_ATTEMPT_COMPLETION_RESULT: "userTestAttemptCompletionResult",
-  USER_STATISTICS: "userStatistics",
+  // --- GAMIFICATION ---
+  gamification: {
+    all: ["gamification"] as const,
+    rewardStoreItems: () =>
+      [...queryKeys.gamification.all, "rewardStore"] as const,
+    pointsSummary: (userId: number | null) =>
+      [...queryKeys.gamification.all, "pointsSummary", userId] as const,
+    studyDaysLog: (userId: number | null) =>
+      [...queryKeys.gamification.all, "studyDaysLog", userId] as const,
+    points: (filters: object) =>
+      [...queryKeys.gamification.all, "points", filters] as const,
+    studyDays: (filters: object) =>
+      [...queryKeys.gamification.all, "studyDays", filters] as const,
+  },
 
-  CONVERSATION_START: "conversationStart",
-  CONVERSATION_SEND_MESSAGE: "conversationSendMessage",
-  CONVERSATION_ASK_QUESTION: "conversationAskQuestion",
-  CONVERSATION_CONFIRM_UNDERSTANDING: "conversationConfirmUnderstanding",
-  CONVERSATION_SUBMIT_ANSWER: "conversationSubmitAnswer",
+  // --- STUDY & TESTS ---
+  study: {
+    all: ["study"] as const,
+    statistics: (filters: object) =>
+      [...queryKeys.study.all, "statistics", filters] as const,
+  },
 
-  // Emergency Mode
-  START_EMERGENCY_SESSION: "startEmergencySession", // For mutation
-  UPDATE_EMERGENCY_SESSION: "updateEmergencySession", // For mutation
-  SUBMIT_EMERGENCY_ANSWER: "submitEmergencyAnswer", // For mutation
-  EMERGENCY_QUESTIONS: "emergencyQuestions", // (sessionId: number) => [EMERGENCY_QUESTIONS, sessionId]
+  tests: {
+    all: ["tests"] as const,
+    lists: () => [...queryKeys.tests.all, "lists"] as const,
+    list: (filters: object) => [...queryKeys.tests.lists(), filters] as const,
+    details: () => [...queryKeys.tests.all, "details"] as const,
+    detail: (attemptId: number | string) =>
+      [...queryKeys.tests.details(), attemptId] as const,
+    review: (attemptId: number | string) =>
+      [...queryKeys.tests.detail(attemptId), "review"] as const,
+    completionResult: (attemptId: number | string) =>
+      [...queryKeys.tests.detail(attemptId), "completionResult"] as const,
+  },
+
+  // --- CONVERSATIONAL LEARNING ---
+  conversations: {
+    all: ["conversations"] as const,
+    session: (sessionId: number) =>
+      [...queryKeys.conversations.all, "session", sessionId] as const,
+    messages: (sessionId: number) =>
+      [...queryKeys.conversations.session(sessionId), "messages"] as const,
+  },
+
+  // --- EMERGENCY MODE ---
+  emergencyMode: {
+    all: ["emergencyMode"] as const,
+    session: (sessionId: number) =>
+      [...queryKeys.emergencyMode.all, "session", sessionId] as const,
+    questions: (sessionId: number) =>
+      [...queryKeys.emergencyMode.session(sessionId), "questions"] as const,
+    submitAnswer: (sessionId: number, questionId: number) =>
+      [
+        ...queryKeys.emergencyMode.questions(sessionId),
+        "answer",
+        questionId,
+      ] as const,
+  },
+
+  // --- LEARNING SECTIONS ---
+  learning: {
+    all: ["learning"] as const,
+    sections: (filters: object) =>
+      [...queryKeys.learning.all, "sections", filters] as const,
+    sectionDetail: (slug: string) =>
+      [...queryKeys.learning.all, "section", slug] as const,
+  },
 };

@@ -31,13 +31,13 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getLearningSections } from "@/services/learning.service";
 import { startTraditionalPractice } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import type {
   LearningSection,
   PaginatedLearningSections,
 } from "@/types/api/learning.types";
+import { queryKeys } from "@/constants/queryKeys";
 
 interface FormValues {
   selectedSubsections: Record<string, boolean>;
@@ -52,7 +52,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
   const router = useRouter();
 
   const { data: learningSectionsData, error: sectionsError } = useQuery({
-    queryKey: [QUERY_KEYS.LEARNING_SECTIONS],
+    queryKey: queryKeys.learning.sections({}),
     queryFn: () => getLearningSections(),
     staleTime: 5 * 60 * 1000,
   });

@@ -39,7 +39,6 @@ import {
   completeTestAttempt,
   cancelTestAttempt,
 } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import type {
   UserTestAttemptDetail,
@@ -49,6 +48,7 @@ import type {
 } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/constants/queryKeys";
 
 type OptionKey = "A" | "B" | "C" | "D";
 interface UserSelections {
@@ -74,7 +74,7 @@ const TestAttemptPage = () => {
     error: attemptError,
     isSuccess,
   } = useQuery<UserTestAttemptDetail, Error>({
-    queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_DETAIL, attemptId],
+    queryKey: queryKeys.tests.detail(attemptId),
     queryFn: () => getTestAttemptDetails(attemptId),
     enabled: !!attemptId,
     staleTime: 5 * 60 * 1000,
@@ -133,12 +133,10 @@ const TestAttemptPage = () => {
     onSuccess: (data, completedAttemptId) => {
       toast.success(t("api.testCompletedSuccess"));
       queryClient.setQueryData(
-        [QUERY_KEYS.USER_TEST_ATTEMPT_COMPLETION_RESULT, completedAttemptId],
+        queryKeys.tests.completionResult(attemptId),
         data
       );
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
       router.push(PATHS.STUDY.TESTS.SCORE(completedAttemptId));
     },
     onError: (error: any) => {
@@ -154,11 +152,9 @@ const TestAttemptPage = () => {
     mutationFn: cancelTestAttempt,
     onSuccess: () => {
       toast.info(t("api.testCancelledSuccess"));
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
       queryClient.removeQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_DETAIL, attemptId],
+        queryKey: queryKeys.tests.detail(attemptId),
       });
       router.push(PATHS.STUDY.TESTS.LIST);
     },

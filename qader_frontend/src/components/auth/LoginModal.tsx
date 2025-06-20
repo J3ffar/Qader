@@ -28,7 +28,7 @@ import {
 import { loginUser } from "@/services/auth.service"; // Adjust path
 import { useAuthActions, useAuthStore } from "@/store/auth.store"; // Adjust path
 import { PATHS } from "@/constants/paths"; // Adjust path
-import { QUERY_KEYS } from "@/constants/queryKeys"; // Adjust path
+import { queryKeys } from "@/constants/queryKeys";
 
 interface LoginModalProps {
   show: boolean;
@@ -62,7 +62,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
   });
 
   const loginMutation = useMutation({
-    mutationKey: [QUERY_KEYS.LOGIN],
+    mutationKey: queryKeys.auth.login(),
     mutationFn: loginUser,
     onSuccess: (data) => {
       storeLogin({ access: data.access, refresh: data.refresh }, data.user);

@@ -13,9 +13,9 @@ import {
   getNotifications,
   markAllNotificationsAsRead,
 } from "@/services/notification.service"; // Path might need adjustment
-import { QUERY_KEYS } from "@/constants/queryKeys"; // Path might need adjustment
 import type { Notification } from "@/types/api/notification.types"; // Path might need adjustment
 import { useAuthStore } from "@/store/auth.store"; // Path might need adjustment
+import { queryKeys } from "@/constants/queryKeys";
 
 interface NotificationsDropdownProps {
   isVisible: boolean;
@@ -35,10 +35,10 @@ const NotificationsDropdown = forwardRef<
     isLoading,
     isError,
   } = useQuery({
-    queryKey: [
-      QUERY_KEYS.NOTIFICATIONS_LIST,
-      { pageSize: 5, ordering: "-created_at_iso" },
-    ],
+    queryKey: queryKeys.notifications.list({
+      pageSize: 5,
+      ordering: "-created_at_iso",
+    }),
     queryFn: () =>
       getNotifications({ pageSize: 5, ordering: "-created_at_iso" }),
     enabled: isVisible, // Only fetch when the dropdown is visible
@@ -49,11 +49,9 @@ const NotificationsDropdown = forwardRef<
     mutationFn: markAllNotificationsAsRead,
     onSuccess: (data) => {
       toast.success(data.detail || t("allReadSuccess"));
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.NOTIFICATIONS_LIST],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.NOTIFICATIONS_UNREAD_COUNT],
+        queryKey: queryKeys.notifications.unreadCount(),
       });
       if (user) {
         updateUserProfile({ unread_notifications_count: 0 });

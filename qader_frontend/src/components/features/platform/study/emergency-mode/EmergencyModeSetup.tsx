@@ -30,8 +30,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Rocket } from "lucide-react";
 import { startEmergencyMode } from "@/services/study.service";
 import { useEmergencyModeStore } from "@/store/emergency.store";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { queryKeys } from "@/constants/queryKeys";
 
 const emergencyModeSchema = z.object({
   available_time_hours: z.coerce
@@ -60,7 +60,7 @@ export function EmergencyModeSetup() {
   });
 
   const { mutate, isPending } = useMutation({
-    mutationKey: [QUERY_KEYS.START_EMERGENCY_SESSION],
+    mutationKey: queryKeys.emergencyMode.all,
     mutationFn: startEmergencyMode,
     onSuccess: (data) => {
       toast.success(t("sessionStartedToast"));

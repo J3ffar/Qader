@@ -33,10 +33,10 @@ import {
 } from "@/types/forms/auth.schema";
 import { signupUser } from "@/services/auth.service";
 import { PATHS } from "@/constants/paths";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { useAuthCore, useAuthStore } from "@/store/auth.store"; // Added useAuthCore
 import { AuthFormCard } from "@/components/auth/AuthFormCard";
 import type { ApiError, SignupResponse } from "@/types/api/auth.types";
+import { queryKeys } from "@/constants/queryKeys";
 
 const signupPageDefaultValues: SignupFormValues = {
   full_name: "",
@@ -91,7 +91,7 @@ export default function SignupPage() {
     ApiError,
     SignupFormValues
   >({
-    mutationKey: [QUERY_KEYS.SIGNUP],
+    mutationKey: queryKeys.auth.signup(),
     mutationFn: (data: SignupFormValues) => {
       const apiPayload: ApiSignupData = {
         full_name: data.full_name,

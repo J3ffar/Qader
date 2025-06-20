@@ -19,8 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthCore } from "@/store/auth.store"; // Adjust path if needed
 import { getRewardStoreItems } from "@/services/gamification.service"; // Adjust path
-import { QUERY_KEYS } from "@/constants/queryKeys"; // Adjust path
 import type { RewardStoreItem } from "@/types/api/gamification.types"; // Adjust path
+import { queryKeys } from "@/constants/queryKeys";
 // import { API_BASE_URL } from "@/constants/api"; // Not used in current logic, but could be for sharing links
 
 interface GiftDropdownProps {
@@ -39,7 +39,7 @@ const GiftDropdown = forwardRef<HTMLDivElement, GiftDropdownProps>(
       isLoading: isLoadingRewards,
       isError: isErrorRewards,
     } = useQuery<RewardStoreItem[], Error>({
-      queryKey: [QUERY_KEYS.REWARD_STORE_ITEMS],
+      queryKey: queryKeys.gamification.rewardStoreItems(),
       queryFn: getRewardStoreItems,
       enabled: isVisible && activeSection === "store" && isAuthenticated,
       staleTime: 1000 * 60 * 5, // 5 minutes

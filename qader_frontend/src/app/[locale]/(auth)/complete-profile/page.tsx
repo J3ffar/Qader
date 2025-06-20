@@ -41,8 +41,8 @@ import {
 import { completeUserProfile } from "@/services/auth.service";
 import { useAuthCore, useAuthActions, useAuthStore } from "@/store/auth.store"; // Added useAuthCore
 import { PATHS } from "@/constants/paths";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import type { ApiError, UserProfile } from "@/types/api/auth.types";
+import { queryKeys } from "@/constants/queryKeys";
 
 const grades = [
   // This list should ideally come from backend or be localized via i18n
@@ -166,7 +166,7 @@ export default function CompleteProfilePage() {
     ApiError, // Error type
     CompleteProfileFormValues // Variables type
   >({
-    mutationKey: [QUERY_KEYS.COMPLETE_PROFILE],
+    mutationKey: queryKeys.user.completeProfile(),
     mutationFn: (formDataValues: CompleteProfileFormValues) => {
       // accessToken is already checked by the useEffect above or available from useAuth()
       if (!useAuthStore.getState().accessToken)

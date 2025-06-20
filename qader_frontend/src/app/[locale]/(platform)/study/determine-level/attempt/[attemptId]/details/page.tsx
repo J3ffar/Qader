@@ -43,9 +43,9 @@ import {
   UserTestAttemptDetail,
   UnifiedQuestion,
 } from "@/types/api/study.types";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { queryKeys } from "@/constants/queryKeys";
 
 const LevelAssessmentDetailsPage = () => {
   const params = useParams();
@@ -60,7 +60,7 @@ const LevelAssessmentDetailsPage = () => {
     isLoading,
     error,
   } = useQuery<UserTestAttemptDetail, Error>({
-    queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_DETAIL, attemptId],
+    queryKey: queryKeys.tests.detail(attemptId),
     queryFn: () => getTestAttemptDetails(attemptId),
     enabled: !!attemptId,
   });

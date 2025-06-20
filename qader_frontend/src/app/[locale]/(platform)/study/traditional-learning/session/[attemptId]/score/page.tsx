@@ -42,13 +42,13 @@ import { useAuthActions, useAuthStore } from "@/store/auth.store";
 import { UserProfile } from "@/types/api/auth.types";
 
 import { getTestAttemptReview } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import {
   UserTestAttemptCompletionResponse,
   UserTestAttemptReviewResponse,
 } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { queryKeys } from "@/constants/queryKeys";
 
 interface QualitativeLevelInfo {
   text: string;
@@ -115,10 +115,9 @@ const TraditionalLearningScorePage = () => {
 
   // 1. Attempt to get fresh data passed from the previous page
   const completionData =
-    queryClient.getQueryData<UserTestAttemptCompletionResponse>([
-      QUERY_KEYS.USER_TEST_ATTEMPT_COMPLETION_RESULT,
-      attemptId,
-    ]);
+    queryClient.getQueryData<UserTestAttemptCompletionResponse>(
+      queryKeys.tests.completionResult(attemptId)
+    );
 
   // 2. Fallback query if the page is loaded directly
   const {
@@ -126,7 +125,7 @@ const TraditionalLearningScorePage = () => {
     isLoading: isLoadingReview,
     error,
   } = useQuery<UserTestAttemptReviewResponse, Error>({
-    queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_REVIEW, attemptId],
+    queryKey: queryKeys.tests.review(attemptId),
     queryFn: () => getTestAttemptReview(attemptId),
     enabled: !!attemptId && !completionData, // Only run if completionData is not available
     staleTime: 5 * 60 * 1000,
@@ -154,10 +153,10 @@ const TraditionalLearningScorePage = () => {
       if (Object.keys(profileUpdates).length > 0) {
         updateUserProfile(profileUpdates);
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.WEEKLY_POINTS_SUMMARY],
+          queryKey: queryKeys.gamification.pointsSummary(user.id),
         });
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.STUDY_DAYS_LOG],
+          queryKey: queryKeys.gamification.studyDaysLog(user.id),
         });
         hasUpdatedProfileRef.current = true;
       }

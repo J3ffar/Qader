@@ -18,7 +18,6 @@ import {
   completeTestAttempt,
   submitAnswer,
 } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import type {
   UnifiedQuestion,
@@ -34,6 +33,7 @@ import { PracticeControls } from "./PracticeControls";
 import { AnswerFeedbackDialog, FeedbackData } from "./AnswerFeedbackDialog";
 import { SessionStats } from "./SessionStats"; // NEW
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { queryKeys } from "@/constants/queryKeys";
 
 type OptionKey = "A" | "B" | "C" | "D";
 export interface QuestionState {
@@ -73,7 +73,7 @@ export default function TraditionalLearningSession({
   }, []);
 
   const { data: attemptDetails, error } = useQuery({
-    queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_DETAIL, attemptId],
+    queryKey: queryKeys.tests.detail(attemptId),
     queryFn: () => getTestAttemptDetails(attemptId),
     refetchOnWindowFocus: false,
   });
@@ -134,13 +134,11 @@ export default function TraditionalLearningSession({
       toast.success(t("api.sessionCompletedSuccess"));
 
       // Invalidate the list view so it shows the 'completed' status
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
 
       // Cache the detailed completion result for the score page
       queryClient.setQueryData(
-        [QUERY_KEYS.USER_TEST_ATTEMPT_COMPLETION_RESULT, completedAttemptId],
+        queryKeys.tests.completionResult(completedAttemptId),
         data
       );
 

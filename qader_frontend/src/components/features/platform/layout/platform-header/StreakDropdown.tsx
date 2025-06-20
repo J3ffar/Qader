@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { getStudyDaysLog } from "@/services/gamification.service"; // Adjust path
-import { QUERY_KEYS } from "@/constants/queryKeys"; // Adjust path
 import { useAuthCore } from "@/store/auth.store"; // Adjust path
 import { PATHS } from "@/constants/paths"; // Adjust path
+import { queryKeys } from "@/constants/queryKeys";
+import { UserProfile } from "@/types/api/auth.types";
 
 interface DayStreakInfo {
   name: string;
@@ -48,11 +49,9 @@ const StreakDropdown = forwardRef<HTMLDivElement, StreakDropdownProps>(
       isLoading,
       isError,
     } = useQuery({
-      queryKey: [
-        QUERY_KEYS.STUDY_DAYS_LOG,
-        formatDateForAPI(firstDayOfWeek),
-        formatDateForAPI(lastDayOfWeek),
-      ],
+      queryKey: queryKeys.gamification.studyDaysLog(
+        user ? (user as UserProfile).id : null
+      ),
       queryFn: () =>
         getStudyDaysLog({
           date_range_after: formatDateForAPI(firstDayOfWeek),

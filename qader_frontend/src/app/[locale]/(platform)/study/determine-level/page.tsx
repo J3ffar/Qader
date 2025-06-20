@@ -34,7 +34,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { getTestAttempts, cancelTestAttempt } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import {
   PaginatedUserTestAttempts,
@@ -45,6 +44,7 @@ import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { AttemptActionButtons } from "./_components/AttemptActionButtons";
 import { DataTablePagination } from "@/components/shared/DataTablePagination"; // Assumes component from previous step exists
+import { queryKeys } from "@/constants/queryKeys";
 
 // Constants
 const PAGE_SIZE = 20; // Number of attempts to show per page
@@ -96,17 +96,17 @@ const LevelAssessmentPage = () => {
 
   const ordering = sortBy === "date" ? "-date" : "-score_percentage";
 
-  // +++ FIX: Explicitly provide the generic types for data and error to useQuery. +++
   const {
     data: attemptsData,
     isLoading,
     isFetching,
     error,
   } = useQuery<PaginatedUserTestAttempts, Error>({
-    queryKey: [
-      QUERY_KEYS.USER_TEST_ATTEMPTS,
-      { attempt_type: "level_assessment", page, ordering },
-    ],
+    queryKey: queryKeys.tests.list({
+      attempt_type: "level_assessment",
+      page,
+      ordering,
+    }),
     queryFn: () =>
       getTestAttempts({
         attempt_type: "level_assessment",
@@ -119,9 +119,7 @@ const LevelAssessmentPage = () => {
     mutationFn: cancelTestAttempt,
     onSuccess: (_, attemptId) => {
       toast.success(tActions("cancelDialog.successToast", { attemptId }));
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
     },
     onError: (err: any) => {
       const errorMessage = getApiErrorMessage(
@@ -133,10 +131,8 @@ const LevelAssessmentPage = () => {
   });
 
   const { attempts, pageCount, canPreviousPage, canNextPage } = useMemo(() => {
-    // With the fix above, `attemptsData` is now correctly typed, so `.results` is known.
     const results = attemptsData?.results ?? [];
 
-    // TypeScript can now infer `attempt` is of type `UserTestAttemptList`, fixing the implicit `any` error.
     const enhancedAttempts = results.map((attempt) => ({
       ...attempt,
       quantitative_level_key: mapScoreToLevelKey(

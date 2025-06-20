@@ -25,7 +25,6 @@ import { useAuthStore } from "@/store/auth.store";
 import { cancelSubscription } from "@/services/subscription.service";
 import { toast } from "sonner";
 import { UserProfile } from "@/types/api/user.types";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import {
   AlertDialog,
@@ -38,6 +37,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { queryKeys } from "@/constants/queryKeys";
 
 interface SubscriptionDetailsProps {
   currentSubscription: SubscriptionDetailResponse;
@@ -88,7 +88,7 @@ export default function SubscriptionDetails({
 
       // Instantly update user profile in both caches
       queryClient.setQueryData<UserProfile>(
-        [QUERY_KEYS.USER_PROFILE_KEY, user?.id],
+        queryKeys.user.profile((user as UserProfile).id),
         (oldData) =>
           oldData ? { ...oldData, subscription: data.subscription } : undefined
       );

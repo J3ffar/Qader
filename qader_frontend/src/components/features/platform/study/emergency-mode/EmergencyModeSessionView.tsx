@@ -8,7 +8,6 @@ import {
   getEmergencyQuestions,
   updateEmergencySession,
 } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle } from "lucide-react";
@@ -21,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuestionDisplayEmergency } from "./QuestionDisplayEmergency";
 import { SessionPlanDetails } from "./SessionPlanDetails";
+import { queryKeys } from "@/constants/queryKeys";
 
 export function EmergencyModeSessionView() {
   const t = useTranslations("Study.emergencyMode.session");
@@ -44,14 +44,14 @@ export function EmergencyModeSessionView() {
     isError,
     error,
   } = useQuery({
-    queryKey: [QUERY_KEYS.EMERGENCY_QUESTIONS, sessionId],
+    queryKey: queryKeys.emergencyMode.questions(sessionId as number),
     queryFn: () => getEmergencyQuestions(sessionId!),
     enabled: !!sessionId && questions.length === 0,
     staleTime: Infinity,
   });
 
   const { mutate: updateSettings } = useMutation({
-    mutationKey: [QUERY_KEYS.UPDATE_EMERGENCY_SESSION, sessionId],
+    mutationKey: queryKeys.emergencyMode.session(sessionId as number),
     mutationFn: (payload: {
       calm_mode_active?: boolean;
       shared_with_admin?: boolean;

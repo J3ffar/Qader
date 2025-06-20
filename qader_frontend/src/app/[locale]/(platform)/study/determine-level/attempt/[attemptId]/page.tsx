@@ -39,7 +39,6 @@ import {
   completeTestAttempt,
   cancelTestAttempt,
 } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import type {
   UserTestAttemptDetail,
@@ -48,6 +47,7 @@ import type {
   UserTestAttemptCompletionResponse,
 } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { queryKeys } from "@/constants/queryKeys";
 
 type OptionKey = "A" | "B" | "C" | "D";
 interface UserSelections {
@@ -81,7 +81,7 @@ const LevelAssessmentAttemptPage = () => {
     error: attemptError,
     isSuccess,
   } = useQuery<UserTestAttemptDetail, Error>({
-    queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_DETAIL, attemptId],
+    queryKey: queryKeys.tests.detail(attemptId),
     queryFn: () => getTestAttemptDetails(attemptId),
     enabled: !!attemptId,
     staleTime: 5 * 60 * 1000,
@@ -168,11 +168,11 @@ const LevelAssessmentAttemptPage = () => {
     onSuccess: (data, attemptId) => {
       toast.success(t("api.testCompletedSuccess"));
       queryClient.setQueryData(
-        [QUERY_KEYS.USER_TEST_ATTEMPT_COMPLETION_RESULT, attemptId],
+        queryKeys.tests.completionResult(attemptId),
         data
       );
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
+        queryKey: queryKeys.tests.lists(),
       });
       router.push(PATHS.STUDY.DETERMINE_LEVEL.SCORE(attemptId));
     },
@@ -186,11 +186,9 @@ const LevelAssessmentAttemptPage = () => {
     mutationFn: cancelTestAttempt,
     onSuccess: () => {
       toast.success(t("api.testCancelledSuccess"));
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
       queryClient.removeQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_DETAIL, attemptId],
+        queryKey: queryKeys.tests.detail(attemptId),
       });
       router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST);
     },

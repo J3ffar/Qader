@@ -34,12 +34,12 @@ import { Switch } from "@/components/ui/switch";
 
 import { getLearningSections } from "@/services/learning.service";
 import { startPracticeSimulationTest } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import type { LearningSection } from "@/types/api/learning.types";
 import type { StartPracticeSimulationPayload } from "@/types/api/study.types";
 import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { queryKeys } from "@/constants/queryKeys";
 
 // Form Schema Definition
 const createFormSchema = (t: any) =>
@@ -68,7 +68,7 @@ const StartTestForm: React.FC = () => {
 
   const { data: learningSectionsData, isLoading: isLoadingSections } = useQuery(
     {
-      queryKey: [QUERY_KEYS.LEARNING_SECTIONS],
+      queryKey: queryKeys.learning.sections({}),
       queryFn: () => getLearningSections(),
       staleTime: 10 * 60 * 1000,
     }

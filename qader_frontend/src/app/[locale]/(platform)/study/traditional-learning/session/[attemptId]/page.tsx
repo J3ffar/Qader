@@ -4,9 +4,9 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
 import { getTestAttemptDetails } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import TraditionalLearningSession from "@/components/features/platform/study/traditional-learning/TraditionalLearningSession";
 import { Skeleton } from "@/components/ui/skeleton";
+import { queryKeys } from "@/constants/queryKeys";
 
 export default function TraditionalPracticePage() {
   const params = useParams();
@@ -14,7 +14,7 @@ export default function TraditionalPracticePage() {
   const attemptId = params?.attemptId as string;
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_DETAIL, attemptId],
+    queryKey: queryKeys.tests.detail(attemptId),
     queryFn: () => getTestAttemptDetails(attemptId),
     enabled: !!attemptId,
   });

@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/store/auth.store";
 import { getCurrentUserProfile } from "@/services/auth.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -16,6 +15,8 @@ import NotificationsSettingsForm from "./_components/NotificationsSettingsForm";
 import SubscriptionDetails from "./_components/SubscriptionDetails";
 import SettingsPageSkeleton from "./_components/SettingsPageSkeleton";
 import { getSubscriptionPlans } from "@/services/subscription.service";
+import { queryKeys } from "@/constants/queryKeys";
+import { UserProfile } from "@/types/api/auth.types";
 
 // Assume this service function exists to fetch plans
 // In a real scenario, this would be in `learning.service.ts` or a `subscription.service.ts`
@@ -31,7 +32,9 @@ export default function SettingsPage() {
     isLoading: isUserLoading,
     error: userError,
   } = useQuery({
-    queryKey: [QUERY_KEYS.USER_PROFILE_KEY, userFromStore?.id],
+    queryKey: queryKeys.user.profile(
+      userFromStore ? (userFromStore as UserProfile).id : null
+    ),
     queryFn: getCurrentUserProfile,
     initialData: userFromStore, // Use Zustand data for initial render, prevents flicker
     enabled: !!userFromStore?.id,
@@ -42,7 +45,7 @@ export default function SettingsPage() {
     isLoading: arePlansLoading,
     error: plansError,
   } = useQuery({
-    queryKey: [QUERY_KEYS.SUBSCRIPTION_PLANS_KEY],
+    queryKey: queryKeys.user.subscription(),
     queryFn: getSubscriptionPlans,
   });
 

@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { AlertTriangle } from "lucide-react";
 
 import { getUserStatistics } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { StatisticsDashboardSkeleton } from "./StatisticsDashboardSkeleton";
@@ -15,12 +14,15 @@ import { OverallStatsCards } from "./OverallStatsCards";
 import { TimeAnalyticsCard } from "./TimeAnalyticsCard";
 import { AverageScoresByTypeCard } from "./AverageScoresByTypeCard";
 import { ActionableInsightsTabs } from "./ActionableInsightsTabs";
+import { queryKeys } from "@/constants/queryKeys";
 
 export function StatisticsDashboard() {
   const t = useTranslations("Common");
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: [QUERY_KEYS.USER_STATISTICS],
+    queryKey: queryKeys.study.statistics({
+      TODO: "pass time of the statistics",
+    }),
     queryFn: () => getUserStatistics(),
     retry: 1,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes

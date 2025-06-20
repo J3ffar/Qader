@@ -18,7 +18,6 @@ import {
   retakeTestAttempt,
   cancelTestAttempt,
 } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import {
   PaginatedUserTestAttempts,
@@ -27,6 +26,7 @@ import {
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { toast } from "sonner";
 import TestAttemptsList from "@/components/features/platform/study/tests/TestAttemptsList";
+import { queryKeys } from "@/constants/queryKeys";
 
 const PAGE_SIZE = 20;
 
@@ -44,10 +44,7 @@ const TestsPage = () => {
     PaginatedUserTestAttempts,
     Error
   >({
-    queryKey: [
-      QUERY_KEYS.USER_TEST_ATTEMPTS,
-      { types: ["practice", "simulation"], page },
-    ],
+    queryKey: queryKeys.tests.list({ types: ["practice", "simulation"], page }),
     queryFn: () =>
       getTestAttempts({
         attempt_type__in: "practice,simulation",
@@ -77,9 +74,7 @@ const TestsPage = () => {
     onMutate: (attemptId) => setCancellingId(attemptId),
     onSuccess: (_, attemptId) => {
       toast.success(tActions("cancelDialog.successToast", { attemptId }));
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
     },
     onError: (err: any) => {
       toast.error(

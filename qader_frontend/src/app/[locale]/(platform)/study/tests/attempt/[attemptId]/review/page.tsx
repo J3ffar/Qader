@@ -28,11 +28,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 
 import { getTestAttemptReview } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import { UserTestAttemptReviewResponse } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import ReviewQuestionCard from "@/components/shared/ReviewQuestionCard";
+import { queryKeys } from "@/constants/queryKeys";
 
 type FilterType = "all" | "incorrect" | "skipped";
 
@@ -54,7 +54,7 @@ const TestReviewPage = () => {
     isLoading,
     error: queryError,
   } = useQuery<UserTestAttemptReviewResponse, Error>({
-    queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_REVIEW, attemptId],
+    queryKey: queryKeys.tests.review(attemptId),
     queryFn: () => getTestAttemptReview(attemptId),
     staleTime: 10 * 60 * 1000,
   });

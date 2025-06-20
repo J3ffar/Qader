@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth.store";
 import { updateUserProfile } from "@/services/auth.service";
 import type { UserProfile } from "@/types/api/user.types";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { queryKeys } from "@/constants/queryKeys";
 
 const notificationsSchema = z.object({
   notify_reminders_enabled: z.boolean(),
@@ -80,7 +80,7 @@ export default function NotificationsSettingsForm({
       toast.success(t("toast.success"));
       updateUserInStore(updatedUser);
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_PROFILE_KEY[0], user.id],
+        queryKey: queryKeys.user.profile((user as UserProfile).id),
       });
       form.reset(form.getValues()); // Resets dirty state after successful save
     },

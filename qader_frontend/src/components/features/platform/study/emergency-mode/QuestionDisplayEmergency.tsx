@@ -9,7 +9,6 @@ import { toast } from "sonner";
 
 import { useEmergencyModeStore } from "@/store/emergency.store";
 import { submitEmergencyAnswer } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 import { cn } from "@/lib/utils";
@@ -30,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { queryKeys } from "@/constants/queryKeys";
 
 type AnswerOption = "A" | "B" | "C" | "D";
 
@@ -63,7 +63,10 @@ export function QuestionDisplayEmergency({
   }, [question.id]);
 
   const { mutate: submitAnswer, isPending } = useMutation({
-    mutationKey: [QUERY_KEYS.SUBMIT_EMERGENCY_ANSWER, question.id],
+    mutationKey: queryKeys.emergencyMode.submitAnswer(
+      sessionId as number,
+      question.id
+    ),
     mutationFn: (answer: AnswerOption) =>
       submitEmergencyAnswer({
         sessionId: sessionId!,

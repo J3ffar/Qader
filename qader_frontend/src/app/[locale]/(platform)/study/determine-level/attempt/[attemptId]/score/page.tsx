@@ -50,7 +50,6 @@ import {
   getTestAttemptReview,
   retakeTestAttempt,
 } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import {
   UserTestAttemptCompletionResponse,
@@ -58,6 +57,7 @@ import {
   UserTestAttemptStartResponse,
 } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { queryKeys } from "@/constants/queryKeys";
 
 interface QualitativeLevelInfo {
   text: string;
@@ -124,17 +124,16 @@ const LevelAssessmentScorePage = () => {
   const hasUpdatedProfileRef = useRef(false);
 
   const completionData =
-    queryClient.getQueryData<UserTestAttemptCompletionResponse>([
-      QUERY_KEYS.USER_TEST_ATTEMPT_COMPLETION_RESULT,
-      attemptId,
-    ]);
+    queryClient.getQueryData<UserTestAttemptCompletionResponse>(
+      queryKeys.tests.completionResult(attemptId)
+    );
 
   const {
     data: reviewData,
     isLoading: isLoadingReview,
     error,
   } = useQuery<UserTestAttemptReviewResponse, Error>({
-    queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_REVIEW, attemptId],
+    queryKey: queryKeys.tests.review(attemptId),
     queryFn: () => getTestAttemptReview(attemptId),
     enabled: !!attemptId && !completionData,
     staleTime: 5 * 60 * 1000,
@@ -180,11 +179,11 @@ const LevelAssessmentScorePage = () => {
           console.log("Invalidating gamification query caches...");
           // Invalidate the weekly points summary so the dropdown refetches
           queryClient.invalidateQueries({
-            queryKey: [QUERY_KEYS.WEEKLY_POINTS_SUMMARY],
+            queryKey: queryKeys.gamification.pointsSummary(user.id),
           });
           // Invalidate the study days log for the streak dropdown
           queryClient.invalidateQueries({
-            queryKey: [QUERY_KEYS.STUDY_DAYS_LOG],
+            queryKey: queryKeys.gamification.studyDaysLog(user.id),
           });
         }
       }
@@ -201,7 +200,7 @@ const LevelAssessmentScorePage = () => {
         t("api.retakeSuccessNewTest", { attemptId: data.attempt_id })
       );
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
+        queryKey: queryKeys.tests.lists(),
       });
       router.push(PATHS.STUDY.DETERMINE_LEVEL.ATTEMPT(data.attempt_id));
     },

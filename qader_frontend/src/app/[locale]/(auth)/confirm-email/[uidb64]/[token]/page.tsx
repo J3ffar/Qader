@@ -17,8 +17,8 @@ import {
 import { useAuthCore, useAuthActions, useAuthStore } from "@/store/auth.store"; // Added useAuthCore
 import { PATHS } from "@/constants/paths";
 import { Button } from "@/components/ui/button";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import type { ApiError } from "@/types/api/auth.types";
+import { queryKeys } from "@/constants/queryKeys";
 
 export default function ConfirmEmailPage() {
   const tAuth = useTranslations("Auth");
@@ -44,7 +44,7 @@ export default function ConfirmEmailPage() {
     ApiError, // TError
     ConfirmEmailParams // TVariables: { uidb64, token }
   >({
-    mutationKey: [QUERY_KEYS.CONFIRM_EMAIL, uidb64, token], // Include params in key
+    mutationKey: queryKeys.auth.confirmEmail(uidb64, token), // Include params in key
     mutationFn: (data: ConfirmEmailParams) => confirmEmail(data),
     onSuccess: (data) => {
       // data is ConfirmEmailResponse

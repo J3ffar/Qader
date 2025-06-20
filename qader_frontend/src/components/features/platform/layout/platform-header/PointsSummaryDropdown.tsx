@@ -8,9 +8,10 @@ import { EyeIcon } from "@heroicons/react/24/outline"; // Or Lucide equivalent: 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDailyPointsSummary } from "@/services/gamification.service"; // Adjust path
-import { QUERY_KEYS } from "@/constants/queryKeys"; // Adjust path
 import { useAuthCore } from "@/store/auth.store"; // Adjust path
 import { PATHS } from "@/constants/paths"; // Adjust path
+import { queryKeys } from "@/constants/queryKeys";
+import { UserProfile } from "@/types/api/auth.types";
 
 interface DayData {
   name: string;
@@ -30,14 +31,16 @@ const PointsSummaryDropdown = forwardRef<
 >(({ isVisible }, ref) => {
   const t = useTranslations("Nav.PlatformHeader.PointsSummaryDropdown"); // Ensure i18n keys are suitable
   const locale = useLocale();
-  const { isAuthenticated } = useAuthCore();
+  const { user, isAuthenticated } = useAuthCore();
 
   const {
     data: weeklyPointsData,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: [QUERY_KEYS.WEEKLY_POINTS_SUMMARY],
+    queryKey: queryKeys.gamification.pointsSummary(
+      user ? (user as UserProfile).id : null
+    ),
     queryFn: () => getDailyPointsSummary({ range: "week" }),
     enabled: isVisible && isAuthenticated,
     staleTime: 1000 * 60 * 10, // 10 minutes

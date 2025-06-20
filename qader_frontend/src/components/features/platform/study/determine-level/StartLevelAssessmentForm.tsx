@@ -32,12 +32,12 @@ import {
 
 import { getLearningSections } from "@/services/learning.service";
 import { startLevelAssessmentTest } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import type { LearningSection } from "@/types/api/learning.types";
 import type { StartLevelAssessmentPayload } from "@/types/api/study.types";
 import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { queryKeys } from "@/constants/queryKeys";
 
 interface StartLevelAssessmentFormValues {
   selectedSections: Record<
@@ -82,7 +82,7 @@ const StartLevelAssessmentForm: React.FC = () => {
     isLoading: isLoadingSections,
     error: sectionsError,
   } = useQuery({
-    queryKey: [QUERY_KEYS.LEARNING_SECTIONS],
+    queryKey: queryKeys.learning.sections({}),
     queryFn: () => getLearningSections(),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });

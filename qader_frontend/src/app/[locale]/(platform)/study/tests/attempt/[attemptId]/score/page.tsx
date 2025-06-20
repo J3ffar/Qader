@@ -48,7 +48,6 @@ import {
   getTestAttemptReview,
   retakeTestAttempt,
 } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PATHS } from "@/constants/paths";
 import {
   UserTestAttemptCompletionResponse,
@@ -56,6 +55,7 @@ import {
   UserTestAttemptStartResponse,
 } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { queryKeys } from "@/constants/queryKeys";
 
 // Helper Functions are highly reusable
 interface QualitativeLevelInfo {
@@ -122,10 +122,9 @@ const TestScorePage = () => {
 
   // Attempt to get the fresh completion data passed from the quiz page
   const completionData =
-    queryClient.getQueryData<UserTestAttemptCompletionResponse>([
-      QUERY_KEYS.USER_TEST_ATTEMPT_COMPLETION_RESULT,
-      attemptId,
-    ]);
+    queryClient.getQueryData<UserTestAttemptCompletionResponse>(
+      queryKeys.tests.completionResult(attemptId)
+    );
 
   // Fallback to fetching review data if completion data isn't available (e.g., direct navigation)
   const {
@@ -133,7 +132,7 @@ const TestScorePage = () => {
     isLoading: isLoadingReview,
     error,
   } = useQuery<UserTestAttemptReviewResponse, Error>({
-    queryKey: [QUERY_KEYS.USER_TEST_ATTEMPT_REVIEW, attemptId],
+    queryKey: queryKeys.tests.review(attemptId),
     queryFn: () => getTestAttemptReview(attemptId),
     enabled: !!attemptId && !completionData, // Only run if completionData is missing
     staleTime: 5 * 60 * 1000,
@@ -163,10 +162,11 @@ const TestScorePage = () => {
         hasUpdatedProfileRef.current = true;
         // Invalidate server-state caches for UI elements that show points/streak
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.WEEKLY_POINTS_SUMMARY],
+          queryKey: queryKeys.gamification.pointsSummary(user.id),
         });
+        // Invalidate the study days log for the streak dropdown
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.STUDY_DAYS_LOG],
+          queryKey: queryKeys.gamification.studyDaysLog(user.id),
         });
       }
     }
@@ -183,9 +183,7 @@ const TestScorePage = () => {
     mutationFn: retakeTestAttempt,
     onSuccess: (data) => {
       toast.success(t("api.retakeSuccess"));
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
       router.push(PATHS.STUDY.TESTS.ATTEMPT(data.attempt_id));
     },
     onError: (err: any) => {

@@ -26,11 +26,11 @@ import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { cn } from "@/lib/utils";
 import { getTestAttempts, cancelTestAttempt } from "@/services/study.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { PaginatedUserTestAttempts } from "@/types/api/study.types";
 import { DataTablePagination } from "@/components/shared/DataTablePagination";
 import TraditionalLearningConfigForm from "@/components/features/platform/study/traditional-learning/TraditionalLearningConfigForm";
 import { AttemptActionButtons } from "./_components/AttemptActionButtons";
+import { queryKeys } from "@/constants/queryKeys";
 
 const PAGE_SIZE = 20;
 
@@ -46,10 +46,11 @@ export default function TraditionalLearningHubPage() {
     isFetching,
     error,
   } = useQuery<PaginatedUserTestAttempts, Error>({
-    queryKey: [
-      QUERY_KEYS.USER_TEST_ATTEMPTS,
-      { attempt_type: "traditional", page, ordering: "-date" },
-    ],
+    queryKey: queryKeys.tests.list({
+      attempt_type: "traditional",
+      page,
+      ordering: "-date",
+    }),
     queryFn: () =>
       getTestAttempts({
         attempt_type: "traditional",
@@ -62,9 +63,7 @@ export default function TraditionalLearningHubPage() {
     mutationFn: cancelTestAttempt,
     onSuccess: (_, attemptId) => {
       toast.success(t("actions.cancelDialog.successToast", { attemptId }));
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_TEST_ATTEMPTS],
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
     },
     onError: (err) => {
       toast.error(

@@ -10,7 +10,6 @@ import { toast } from "sonner";
 // FIX: Import the Zustand store to update it directly
 import { useAuthStore } from "@/store/auth.store";
 import { applySerialCode } from "@/services/subscription.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import type { UserProfile } from "@/types/api/user.types";
 
@@ -32,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { KeyRound } from "lucide-react";
+import { queryKeys } from "@/constants/queryKeys";
 
 const applyCodeSchema = z.object({
   serial_code: z
@@ -66,7 +66,7 @@ export default function ApplySerialCodeForm() {
       // 1. Update the TanStack Query Cache
       // This immediately updates the UI for any component using useQuery(['userProfile'])
       queryClient.setQueryData<UserProfile>(
-        [QUERY_KEYS.USER_PROFILE_KEY, user?.id],
+        queryKeys.user.profile((user as UserProfile).id),
         (oldData) => {
           if (!oldData) return undefined;
           // Return a new user profile object with the updated subscription

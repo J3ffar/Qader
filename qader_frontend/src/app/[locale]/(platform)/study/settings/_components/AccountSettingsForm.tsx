@@ -9,7 +9,6 @@ import { toast } from "sonner";
 
 import { useAuthStore } from "@/store/auth.store";
 import { updateUserProfile } from "@/services/auth.service";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +33,7 @@ import { User, Edit3 } from "lucide-react";
 import { useRef, useState } from "react";
 import { UserProfile } from "@/types/api/auth.types";
 import ChangePasswordDialog from "./ChangePasswordDialog";
+import { queryKeys } from "@/constants/queryKeys";
 
 // Schema for form validation
 const accountSettingsSchema = z.object({
@@ -74,7 +74,7 @@ export default function AccountSettingsForm({
       toast.success(t("toast.success"));
       updateUserInStore(updatedUser);
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.USER_PROFILE_KEY[0], user.id],
+        queryKey: queryKeys.user.profile(user.id),
       });
     },
     onError: (error) => {

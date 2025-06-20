@@ -24,9 +24,9 @@ import {
 import { loginUser } from "@/services/auth.service";
 import { useAuthCore, useAuthActions, useAuthStore } from "@/store/auth.store"; // Added useAuthCore
 import { PATHS } from "@/constants/paths";
-import { QUERY_KEYS } from "@/constants/queryKeys";
 import { AuthFormCard } from "@/components/auth/AuthFormCard";
 import type { ApiError, LoginResponse } from "@/types/api/auth.types";
+import { queryKeys } from "@/constants/queryKeys";
 
 export default function LoginPage() {
   const tAuth = useTranslations("Auth");
@@ -66,7 +66,7 @@ export default function LoginPage() {
   }, [isAuthenticated, authUser, router, tAuth, searchParams]);
 
   const loginMutation = useMutation<LoginResponse, ApiError, LoginCredentials>({
-    mutationKey: [QUERY_KEYS.LOGIN],
+    mutationKey: queryKeys.auth.login(),
     mutationFn: loginUser,
     onSuccess: (data) => {
       storeLogin({ access: data.access, refresh: data.refresh }, data.user);
