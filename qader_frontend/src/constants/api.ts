@@ -81,6 +81,17 @@ export const API_ENDPOINTS = {
       ELIMINATE: (attemptId: number | string, questionId: number | string) =>
         `/study/start/traditional/attempts/${attemptId}/questions/${questionId}/eliminate/`,
     },
+    CHALLENGES: {
+      LIST_AND_CREATE: "/challenges/challenges/",
+      DETAIL: (id: number | string) => `/challenges/challenges/${id}/`,
+      ACCEPT: (id: number | string) => `/challenges/challenges/${id}/accept/`,
+      DECLINE: (id: number | string) => `/challenges/challenges/${id}/decline/`,
+      CANCEL: (id: number | string) => `/challenges/challenges/${id}/cancel/`,
+      READY: (id: number | string) => `/challenges/challenges/${id}/ready/`,
+      ANSWER: (id: number | string) => `/challenges/challenges/${id}/answer/`,
+      RESULTS: (id: number | string) => `/challenges/challenges/${id}/results/`,
+      REMATCH: (id: number | string) => `/challenges/challenges/${id}/rematch/`,
+    },
   },
   LEARNING: {
     SECTIONS: {

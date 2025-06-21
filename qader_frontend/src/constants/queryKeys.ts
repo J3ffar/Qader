@@ -95,4 +95,13 @@ export const queryKeys = {
     sectionDetail: (slug: string) =>
       [...queryKeys.learning.all, "section", slug] as const,
   },
+  challenges: {
+    all: ["challenges"] as const,
+    lists: () => [...queryKeys.challenges.all, "lists"] as const,
+    list: (filters: object) =>
+      [...queryKeys.challenges.lists(), filters] as const,
+    details: () => [...queryKeys.challenges.all, "details"] as const,
+    detail: (id: number | string) =>
+      [...queryKeys.challenges.details(), id] as const,
+  },
 };

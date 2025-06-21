@@ -1,5 +1,11 @@
 import type { SubscriptionDetailResponse } from "./subscription.types";
 
+export interface SimpleUser {
+  id: number;
+  username: string;
+  profile_picture: string | null;
+}
+
 // From API Docs (Shared Serializer)
 export interface ReferralDetailResponse {
   code: string | null;
@@ -25,7 +31,7 @@ export interface UserProfile {
   is_super: boolean;
   full_name: string;
   preferred_name: string | null;
-  gender: "male" | "female" | "other" | "prefer_not_to_say" | null;
+  gender: "male" | "female" | null;
   grade: string | null;
   has_taken_qiyas_before: boolean | null;
   profile_picture_url: string | null;

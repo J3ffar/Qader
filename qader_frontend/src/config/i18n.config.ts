@@ -29,6 +29,7 @@ export default getRequestConfig(
         emergencyModeMessages,
         reviewMessages,
         settingsMessages,
+        challengesMessages,
       ] = await Promise.all([
         import(`@/locales/${resolvedLocale}/study/StudyPage.json`),
         import(`@/locales/${resolvedLocale}/study/determineLevel.json`),
@@ -39,6 +40,7 @@ export default getRequestConfig(
         import(`@/locales/${resolvedLocale}/study/emergencyMode.json`),
         import(`@/locales/${resolvedLocale}/study/review.json`),
         import(`@/locales/${resolvedLocale}/study/settings.json`),
+        import(`@/locales/${resolvedLocale}/study/challenges.json`),
       ]);
 
       // Merge all study-related messages into a single "Study" namespace
@@ -52,6 +54,7 @@ export default getRequestConfig(
         ...emergencyModeMessages.default,
         ...reviewMessages.default,
         ...settingsMessages.default,
+        ...challengesMessages.default,
       };
 
       // Load other top-level namespaces

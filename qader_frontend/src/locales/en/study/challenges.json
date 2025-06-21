@@ -1,0 +1,32 @@
+{
+  "challenges": {
+    "title": "Challenge Colleagues",
+    "description": "Challenge your colleagues in quick competitions and earn points and badges.",
+    "newChallenge": "New Challenge",
+    "pendingInvites": "Pending Invites",
+    "ongoing": "Ongoing",
+    "history": "Challenge History",
+    "noPendingInvites": "No pending invites at the moment.",
+    "noOngoingChallenges": "No ongoing challenges. Start a new one!",
+    "noHistory": "You haven't participated in any challenges yet.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "cancel": "Cancel",
+    "view": "View",
+    "rematch": "Rematch",
+    "youWon": "You Won!",
+    "youLost": "You Lost.",
+    "draw": "Draw",
+    "waitingForOpponent": "Waiting for opponent...",
+    "vs": "vs",
+    "createChallengeTitle": "Start a New Challenge",
+    "opponentUsername": "Opponent Username",
+    "opponentUsernamePlaceholder": "Leave empty for a random challenge",
+    "challengeType": "Challenge Type",
+    "startChallenge": "Start Challenge",
+    "challengeSentSuccess": "Challenge invitation sent successfully!",
+    "challengeAcceptedSuccess": "Challenge accepted! Get ready...",
+    "errorUserNotFound": "User not found.",
+    "errorGeneric": "Something went wrong. Please try again."
+  }
+}

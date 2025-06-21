@@ -1,0 +1,32 @@
+{
+  "challenges": {
+    "title": "تحدي الزملاء",
+    "description": "تحدى زملائك في منافسات سريعة واكسب النقاط والأوسمة.",
+    "newChallenge": "تحدي جديد",
+    "pendingInvites": "دعوات معلقة",
+    "ongoing": "جارية",
+    "history": "سجل التحديات",
+    "noPendingInvites": "لا توجد دعوات معلقة حاليًا.",
+    "noOngoingChallenges": "لا توجد تحديات جارية. ابدأ تحديًا جديدًا!",
+    "noHistory": "لم تخض أي تحديات بعد.",
+    "accept": "قبول",
+    "decline": "رفض",
+    "cancel": "إلغاء",
+    "view": "عرض",
+    "rematch": "إعادة التحدي",
+    "youWon": "لقد فزت!",
+    "youLost": "لقد خسرت.",
+    "draw": "تعادل",
+    "waitingForOpponent": "في انتظار الخصم...",
+    "vs": "ضد",
+    "createChallengeTitle": "ابدأ تحديًا جديدًا",
+    "opponentUsername": "اسم مستخدم الخصم",
+    "opponentUsernamePlaceholder": "اتركه فارغًا لتحدي عشوائي",
+    "challengeType": "نوع التحدي",
+    "startChallenge": "ابدأ التحدي",
+    "challengeSentSuccess": "تم إرسال دعوة التحدي بنجاح!",
+    "challengeAcceptedSuccess": "تم قبول التحدي! استعد...",
+    "errorUserNotFound": "المستخدم غير موجود.",
+    "errorGeneric": "حدث خطأ ما. الرجاء المحاولة مرة أخرى."
+  }
+}
