@@ -86,7 +86,7 @@ export function StartChallengeDialog({
       form.reset();
     },
     onError: (error) => {
-      const errorMessage = getApiErrorMessage(error);
+      const errorMessage = getApiErrorMessage(error, t("errorGeneric"));
       if (errorMessage.includes("User not found")) {
         // Basic check, improve with specific API error codes
         toast.error(t("errorUserNotFound"));

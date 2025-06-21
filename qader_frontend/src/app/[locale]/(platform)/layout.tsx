@@ -3,6 +3,7 @@
 import { useState } from "react";
 import PlatformHeader from "@/components/features/platform/layout/PlatformHeader";
 import PlatformSidebar from "@/components/features/platform/layout/PlatformSidebar";
+import { WebSocketNotificationHandler } from "@/components/global/WebSocketNotificationHandler";
 
 export default function UserLayout({
   children,
@@ -21,6 +22,7 @@ export default function UserLayout({
         <PlatformHeader isSidebarOpen={isOpen} />
 
         <div className="p-4">{children}</div>
+        <WebSocketNotificationHandler />
       </div>
     </div>
   );

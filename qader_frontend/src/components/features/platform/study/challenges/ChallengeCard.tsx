@@ -41,7 +41,8 @@ export function ChallengeCard({ challenge }: ChallengeCardProps) {
       });
       router.push(PATHS.STUDY.CHALLENGE_COLLEAGUES + `/${challenge.id}`);
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onError: (error) =>
+      toast.error(getApiErrorMessage(error, t("errorGeneric"))),
   });
 
   // ... define other mutations (decline, cancel, rematch) ...

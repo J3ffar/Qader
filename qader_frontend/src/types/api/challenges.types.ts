@@ -1,3 +1,4 @@
+import { UnifiedQuestion } from "./study.types";
 import { SimpleUser } from "./user.types";
 
 export type ChallengeStatus =
@@ -42,8 +43,35 @@ export interface CreateChallengePayload {
   challenge_type: ChallengeType;
 }
 
+interface ChallengeAttempt {
+  id: number;
+  user: SimpleUser;
+  score: number;
+  is_ready: boolean;
+  start_time: string | null;
+  end_time: string | null;
+}
+
 // For GET /challenges/challenges/{id}/
 export interface ChallengeDetail extends ChallengeList {
-  // Add more detailed fields if the API provides them
-  questions?: any[]; // Define a proper Question type later
+  attempts: ChallengeAttempt[];
+  challenge_config: any; // Can be typed more strictly if config structure is known
+  questions: UnifiedQuestion[]; // Use a proper question type
+  accepted_at: string | null;
+  started_at: string | null;
+}
+
+export interface ChallengeAnswerPayload {
+  question_id: number;
+  selected_answer: string; // "A", "B", "C", or "D"
+}
+
+// Type for the response after submitting an answer
+// Based on the WebSocket docs, this is what the backend might return.
+export interface ChallengeAnswerResponse {
+  user_id: number;
+  question_id: number;
+  is_correct: boolean;
+  selected_answer: string;
+  current_score: number;
 }
