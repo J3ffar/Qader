@@ -15,7 +15,7 @@ const intlMiddleware = createNextIntlMiddleware({
     //   ar: "/من-نحن",
     // },
   },
-  localeDetection: true, // Enable automatic locale detection
+  localeDetection: false, // Enable automatic locale detection if needed, it's disable for now
 });
 
 // Paths that require authentication

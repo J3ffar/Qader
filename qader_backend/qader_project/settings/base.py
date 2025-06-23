@@ -67,7 +67,7 @@ INSTALLED_APPS = [
     "taggit",
     "channels",
     "django_redis",
-    "sslserver",
+    # "sslserver",
     # Project apps
     "apps.api",
     "apps.users",

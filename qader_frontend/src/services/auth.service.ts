@@ -36,6 +36,7 @@ export const loginUser = (
     method: "POST",
     body: JSON.stringify(credentials),
     isPublic: true,
+    credentials: "include",
   });
 };
 
@@ -44,6 +45,7 @@ export const signupUser = (data: ApiSignupData): Promise<SignupResponse> => {
     method: "POST",
     body: JSON.stringify(data),
     isPublic: true,
+    credentials: "include",
   });
 };
 

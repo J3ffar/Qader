@@ -77,6 +77,11 @@ LOGGING = {
 # Disable password validators during development for faster user creation
 AUTH_PASSWORD_VALIDATORS = []
 
+# --- Cookie Security for Development ---
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "None"
 
 # For debugging Celery tasks locally without a broker
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
