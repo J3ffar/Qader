@@ -67,35 +67,34 @@ class ChallengeViewSet(
     viewsets.GenericViewSet,
 ):
     """
-    ViewSet for managing Challenges.
+    ViewSet for creating, viewing, and interacting with user challenges.
+    Provides actions for the entire challenge lifecycle, from creation to completion.
     """
 
-    queryset = (
-        Challenge.objects.select_related(
-            "challenger__profile", "opponent__profile", "winner__profile"
-        )
-        .prefetch_related("attempts__user__profile")
-        .all()
-    )
+    serializer_class = ChallengeDetailSerializer  # Default serializer
+    permission_classes = [IsAuthenticated, IsSubscribed]  # Default permissions
     filter_backends = [DjangoFilterBackend]
-    filterset_class = ChallengeFilter  # Define this filter class
+    filterset_class = ChallengeFilter
+    queryset = Challenge.objects.all()
+
+    def get_queryset(self):
+        """
+        Returns a queryset of challenges relevant to the authenticated user.
+        Leverages the custom ChallengeManager for optimized data fetching.
+        """
+        return Challenge.objects.get_for_user(self.request.user)
 
     def get_serializer_class(self):
-        if self.action == "list":
-            return ChallengeListSerializer
-        elif self.action == "create":
-            return ChallengeCreateSerializer
-        elif self.action == "retrieve":
-            return ChallengeDetailSerializer
-        elif self.action == "answer":
-            return ChallengeAnswerSerializer
-        elif self.action == "results":
-            return ChallengeResultSerializer
-        # Default or other actions might use Detail
-        return ChallengeDetailSerializer
+        """Returns the appropriate serializer class based on the action."""
+        action_serializer_map = {
+            "list": ChallengeListSerializer,
+            "create": ChallengeCreateSerializer,
+            "answer": ChallengeAnswerSerializer,
+            "results": ChallengeResultSerializer,
+        }
+        return action_serializer_map.get(self.action, self.serializer_class)
 
     def get_permissions(self):
-        """Instantiates and returns the list of permissions for the action."""
         if self.action == "create":
             permission_classes = [IsAuthenticated, IsSubscribed]
         elif self.action in [
@@ -106,225 +105,131 @@ class ChallengeViewSet(
             "results",
             "rematch",
         ]:
-            # Retrieve needs participant check on object level
             permission_classes = [IsAuthenticated, IsSubscribed, IsParticipant]
-        elif self.action == "accept" or self.action == "decline":
+        elif self.action in ["accept", "decline"]:
             permission_classes = [IsAuthenticated, IsSubscribed, IsInvitedOpponent]
         elif self.action == "cancel":
             permission_classes = [IsAuthenticated, IsSubscribed, IsChallengeOwner]
         else:
-            permission_classes = [IsAuthenticated]  # Default deny? Or IsAdminUser?
+            permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
-        """Filter queryset to only show challenges the user is part of."""
         user = self.request.user
         if user.is_authenticated:
-            # Using Q objects to get challenges where user is challenger OR opponent
             return (
                 super()
                 .get_queryset()
                 .filter(Q(challenger=user) | Q(opponent=user))
                 .distinct()
             )
-        return Challenge.objects.none()  # Should not happen due to permissions
-
-    def perform_create(self, serializer):
-        # The create logic is now handled within ChallengeCreateSerializer using the service
-        challenge = serializer.save()  # This calls serializer.create -> start_challenge
-        # We need to return the newly created challenge instance data
-        # Use the Detail serializer for the response
-        response_serializer = ChallengeDetailSerializer(
-            challenge, context=self.get_serializer_context()
-        )
-        # Manually construct response as perform_create expects None return, but CreateModelMixin handles response
-        # This override is needed because we use a different serializer for response than for request
-        self.response_on_create = Response(
-            response_serializer.data, status=status.HTTP_201_CREATED
-        )
+        return Challenge.objects.none()
 
     def create(self, request, *args, **kwargs):
-        """Override create to use the custom response pattern."""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        # Use the response set in perform_create or default if something went wrong
-        response = getattr(
-            self,
-            "response_on_create",
-            Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers),
-        )
-        return response
+        """
+        Creates a new challenge using the service layer.
+        Uses the `ChallengeCreateSerializer` for input validation and the
+        `ChallengeDetailSerializer` for the response payload.
+        """
+        create_serializer = self.get_serializer(data=request.data)
+        create_serializer.is_valid(raise_exception=True)
+        # The serializer's .save() method calls our service function.
+        instance = create_serializer.save()
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAuthenticated, IsSubscribed, IsInvitedOpponent],
-    )
+        response_serializer = ChallengeDetailSerializer(
+            instance, context=self.get_serializer_context()
+        )
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    # Note: perform_create is no longer needed with the refactored create method.
+
+    @action(detail=True, methods=["post"])  # Permissions defined in get_permissions
     def accept(self, request, pk=None):
-        """Accept a challenge invitation."""
         challenge = self.get_object()
         try:
             updated_challenge = accept_challenge(challenge, request.user)
-            serializer = self.get_serializer(updated_challenge)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer = ChallengeDetailSerializer(
+                updated_challenge, context=self.get_serializer_context()
+            )
+            return Response(serializer.data)
         except (ValidationError, PermissionDenied) as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            raise e  # Let DRF's exception handler manage the response format
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAuthenticated, IsSubscribed, IsInvitedOpponent],
-    )
+    @action(detail=True, methods=["post"])
     def decline(self, request, pk=None):
-        """Decline a challenge invitation."""
         challenge = self.get_object()
-        try:
-            updated_challenge = decline_challenge(challenge, request.user)
-            # Return minimal response for decline
-            return Response({"status": "declined"}, status=status.HTTP_200_OK)
-        except (ValidationError, PermissionDenied) as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        decline_challenge(challenge, request.user)
+        return Response({"status": "declined"}, status=status.HTTP_200_OK)
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAuthenticated, IsSubscribed, IsChallengeOwner],
-    )
+    @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
-        """Cancel a challenge invitation (challenger only)."""
         challenge = self.get_object()
-        try:
-            updated_challenge = cancel_challenge(challenge, request.user)
-            return Response({"status": "cancelled"}, status=status.HTTP_200_OK)
-        except (ValidationError, PermissionDenied) as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        cancel_challenge(challenge, request.user)
+        return Response({"status": "cancelled"}, status=status.HTTP_200_OK)
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAuthenticated, IsSubscribed, IsParticipant],
-    )
+    @action(detail=True, methods=["post"])
     def ready(self, request, pk=None):
-        """Mark participant as ready."""
+        """Marks the current user as ready to start the challenge."""
         challenge = self.get_object()
-        try:
-            updated_challenge, started = set_participant_ready(challenge, request.user)
-            response_data = {
-                "user_status": "ready",
-                "challenge_status": updated_challenge.status,
-                "challenge_started": started,
-            }
-            # Optionally include full challenge details if it just started
-            # if started:
-            #    serializer = ChallengeDetailSerializer(updated_challenge, context=self.get_serializer_context())
-            #    response_data['challenge_details'] = serializer.data
-            return Response(response_data, status=status.HTTP_200_OK)
-        except (ValidationError, PermissionDenied) as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        updated_challenge, started = set_participant_ready(challenge, request.user)
+        response_data = {
+            "user_status": "ready",
+            "challenge_status": updated_challenge.status,
+            "challenge_started": started,
+            "detail": (
+                "Your status is set to ready. Waiting for opponent."
+                if not started
+                else "Challenge is starting now!"
+            ),
+        }
+        return Response(response_data)
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAuthenticated, IsSubscribed, IsParticipant],
-    )
+    @action(detail=True, methods=["post"])
     def answer(self, request, pk=None):
-        """Submit an answer for a question in the challenge."""
         challenge = self.get_object()
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        if challenge.status != ChallengeStatus.ONGOING:
-            return Response(
-                {"detail": "Challenge is not ongoing."},
-                status=status.HTTP_400_BAD_REQUEST,
+        question_attempt, challenge_ended = process_challenge_answer(
+            challenge=challenge, user=request.user, **serializer.validated_data
+        )
+        response_data = {
+            "status": "answer_received",
+            "is_correct": question_attempt.is_correct,
+            "challenge_ended": challenge_ended,
+        }
+        if challenge_ended:
+            challenge.refresh_from_db()
+            result_serializer = ChallengeResultSerializer(
+                challenge, context=self.get_serializer_context()
             )
+            response_data["final_results"] = result_serializer.data
+        return Response(response_data)
 
-        try:
-            question_attempt, challenge_ended = process_challenge_answer(
-                challenge=challenge,
-                user=request.user,
-                question_id=serializer.validated_data["question_id"],
-                selected_answer=serializer.validated_data["selected_answer"],
-                time_taken=serializer.validated_data.get("time_taken_seconds"),
-            )
-            response_data = {
-                "status": "answer_received",
-                "is_correct": question_attempt.is_correct,  # Provide immediate feedback
-                "challenge_ended": challenge_ended,
-            }
-            if challenge_ended:
-                # Refresh challenge object to get updated status/winner after finalization
-                challenge.refresh_from_db()
-                result_serializer = ChallengeResultSerializer(
-                    challenge, context=self.get_serializer_context()
-                )
-                response_data["final_results"] = result_serializer.data
-
-            return Response(response_data, status=status.HTTP_200_OK)
-        except (ValidationError, PermissionDenied) as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(
-        detail=True,
-        methods=["get"],
-        permission_classes=[IsAuthenticated, IsSubscribed, IsParticipant],
-    )
+    @action(detail=True, methods=["get"])
     def results(self, request, pk=None):
-        """Get the results of a completed challenge."""
         challenge = self.get_object()
         if challenge.status != ChallengeStatus.COMPLETED:
             return Response(
-                {"detail": "Challenge is not completed."},
+                {"detail": "Challenge is not completed yet."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        serializer = ChallengeResultSerializer(
-            challenge, context=self.get_serializer_context()
-        )
+        serializer = self.get_serializer(challenge)
         return Response(serializer.data)
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAuthenticated, IsSubscribed, IsParticipant],
-    )
+    @action(detail=True, methods=["post"])
     def rematch(self, request, pk=None):
-        """Initiate a rematch."""
+        """Initiates a rematch for a completed challenge."""
         original_challenge = self.get_object()
-        try:  # <<< ADD try
+        try:
             new_challenge = create_rematch(original_challenge, request.user)
             serializer = ChallengeDetailSerializer(
                 new_challenge, context=self.get_serializer_context()
             )
-            # Use 201 Created for the new resource
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except (
-            DjangoValidationError,
-            ValidationError,
-            PermissionDenied,
-        ) as e:  # <<< ADD except
-            # Handle validation errors from service (Django core or DRF) and permission issues
-            # DRF's handler usually formats DRF's ValidationError well.
-            # For Django core's ValidationError, extract the message.
-            if isinstance(e, DjangoValidationError):
-                # Handle potential list/dict format from Django's ValidationError
-                detail = e.message_dict if hasattr(e, "message_dict") else e.messages
-            elif isinstance(e, (ValidationError, PermissionDenied)):
-                # Use DRF's standard detail attribute
-                detail = e.detail
-            else:  # Fallback for unexpected types caught by base Exception
-                detail = str(e)
-
-            # Determine status code (400 for validation, 403 for permission)
-            error_status = (
-                status.HTTP_403_FORBIDDEN
-                if isinstance(e, PermissionDenied)
-                else status.HTTP_400_BAD_REQUEST
-            )
-
-            return Response({"detail": detail}, status=error_status)
+        except (DjangoValidationError, PermissionDenied, ValidationError) as e:
+            # Let DRF's default exception handler manage the response format.
+            raise e
 
 
 # --- Utility View (Optional) ---
