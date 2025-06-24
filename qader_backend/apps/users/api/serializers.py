@@ -50,12 +50,53 @@ logger = logging.getLogger(__name__)
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
-    """Read-only serializer for basic nested User information."""
+    """
+    Read-only serializer for essential, public-facing user information.
+    Includes key details from the related UserProfile.
+    """
+
+    # Direct fields from the User model
+    # id and username are already included by ModelSerializer
+
+    # Fields sourced from the related UserProfile model
+    full_name = serializers.CharField(source="profile.full_name", read_only=True)
+    preferred_name = serializers.CharField(
+        source="profile.preferred_name", read_only=True, allow_null=True
+    )
+
+    # Use a SerializerMethodField for the profile picture to build the full URL
+    profile_picture_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ("id", "username", "email")
+        fields = (
+            "id",
+            "username",
+            "email",
+            "full_name",
+            "preferred_name",
+            "profile_picture_url",
+        )
         read_only_fields = fields
+
+    def get_profile_picture_url(self, obj: User) -> str | None:
+        """
+        Returns the absolute URL for the user's profile picture.
+        Safely handles cases where the user has no profile or no picture.
+        """
+        request = self.context.get("request")
+
+        # Check if the user has a profile and if that profile has a picture with a URL
+        if (
+            hasattr(obj, "profile")
+            and obj.profile.profile_picture
+            and hasattr(obj.profile.profile_picture, "url")
+        ):
+            url = obj.profile.profile_picture.url
+            if request:
+                return request.build_absolute_uri(url)
+            return url
+        return None
 
 
 class EmailLoginSerializer(TokenObtainPairSerializer):
