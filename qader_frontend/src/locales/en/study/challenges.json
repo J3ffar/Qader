@@ -27,6 +27,18 @@
     "challengeSentSuccess": "Challenge invitation sent successfully!",
     "challengeAcceptedSuccess": "Challenge accepted! Get ready...",
     "errorUserNotFound": "User not found.",
-    "errorGeneric": "Something went wrong. Please try again."
+    "errorGeneric": "Something went wrong. Please try again.",
+    "readyButton": "I'm Ready!",
+    "score": "Score",
+    "answered": "Answered",
+    "waiting": "Waiting...",
+    "challengeStarted": "The challenge has begun! Good luck!",
+    "correctAnswer": "Correct!",
+    "incorrectAnswer": "Incorrect!",
+    "connectingToChallenge": "Connecting to challenge...",
+    "errorLoadingChallenge": "Error loading challenge",
+    "unknownChallengeStatus": "Unknown challenge status",
+    "opponentIsReady": "Opponent is ready",
+    "opponentAnswered": "Opponent has answered"
   }
 }

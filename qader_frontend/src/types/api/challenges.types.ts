@@ -63,6 +63,8 @@ export interface ChallengeDetail
   questions: UnifiedQuestion[]; // Populated when the challenge starts/completes
   accepted_at: string | null;
   started_at: string | null;
+  user_score?: number | null;
+  opponent_score?: number | null;
 }
 
 // From POST /challenges/challenges/{id}/answer/
@@ -78,4 +80,11 @@ export interface ChallengeAnswerResponse {
   challenge_ended: boolean;
   detail: string;
   final_results?: ChallengeDetail; // Only if challenge_ended is true
+}
+
+export interface ChallengeState extends ChallengeDetail {
+  // Map of question ID to an array of user IDs who have answered it
+  answeredBy?: Record<number, number[]>;
+  // Tracks the user ID of the last person who answered
+  lastAnsweredBy?: number | null;
 }

@@ -1,3 +1,4 @@
+// qader_frontend/src/components/features/platform/study/challenges/ChallengeRoom.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -12,6 +13,7 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import {
   ChallengeDetail,
   ChallengeAttempt,
+  ChallengeState,
 } from "@/types/api/challenges.types";
 import { WS_BASE_URL } from "@/constants/api";
 import { useAuthCore } from "@/store/auth.store";
@@ -39,8 +41,8 @@ export function ChallengeRoom({ challengeId }: ChallengeRoomProps) {
   } = useQuery<ChallengeDetail>({
     queryKey: challengeQueryKey,
     queryFn: () => getChallengeDetails(challengeId),
-    staleTime: Infinity, // Data will be kept fresh by WebSockets
-    retry: false, // Don't retry on 403/404, handle error gracefully
+    staleTime: Infinity,
+    retry: false,
   });
 
   const wsUrl = user ? `${WS_BASE_URL}/challenges/${challengeId}/` : null;
@@ -53,9 +55,7 @@ export function ChallengeRoom({ challengeId }: ChallengeRoomProps) {
 
     console.log("WebSocket Message Received:", lastMessage);
     const { type, payload } = lastMessage;
-    // Rationale: This switch statement is now the central hub for real-time updates.
-    // It directly manipulates the TanStack Query cache, ensuring the UI always reflects
-    // the true state of the challenge without needing manual state management.
+
     switch (type) {
       case "challenge.update":
       case "challenge.start":
@@ -67,7 +67,6 @@ export function ChallengeRoom({ challengeId }: ChallengeRoomProps) {
         break;
 
       case "participant.update":
-        // Granular update for a single participant's state (e.g., is_ready, score).
         queryClient.setQueryData<ChallengeDetail>(
           challengeQueryKey,
           (oldData) => {
@@ -82,13 +81,43 @@ export function ChallengeRoom({ challengeId }: ChallengeRoomProps) {
         break;
 
       case "answer.result":
-        // Immediate feedback toast when an answer is submitted by ANY player.
-        // We only show the "correct/incorrect" toast to the user who answered.
-        if (payload.user_id === user?.id) {
-          toast.info(
-            payload.is_correct ? t("correctAnswer") : t("incorrectAnswer")
-          );
-        }
+        queryClient.setQueryData<ChallengeState>(
+          challengeQueryKey,
+          (oldData) => {
+            if (!oldData) return undefined;
+
+            // Update score
+            const newAttempts = oldData.attempts.map((att) =>
+              att.user.id === payload.user_id
+                ? { ...att, score: payload.current_score }
+                : att
+            );
+
+            // Update who has answered the question
+            const currentAnswers =
+              oldData.answeredBy?.[payload.question_id] || [];
+            const newAnsweredBy = {
+              ...oldData.answeredBy,
+              [payload.question_id]: [...currentAnswers, payload.user_id],
+            };
+
+            // Notify current user only
+            if (payload.user_id === user?.id) {
+              toast.info(
+                payload.is_correct ? t("correctAnswer") : t("incorrectAnswer")
+              );
+            } else {
+              toast.info(t("opponentAnswered"));
+            }
+
+            return {
+              ...oldData,
+              attempts: newAttempts,
+              answeredBy: newAnsweredBy,
+              lastAnsweredBy: payload.user_id, // Track who answered last for UI effects
+            };
+          }
+        );
         break;
 
       case "error":
@@ -122,10 +151,9 @@ export function ChallengeRoom({ challengeId }: ChallengeRoomProps) {
   }
 
   if (!challengeData) {
-    return null; // Should be handled by isError
+    return null;
   }
 
-  // Render different UI based on the challenge status from our single source of truth (TanStack Query cache)
   const { status } = challengeData;
   if (status === "pending_invite" || status === "accepted") {
     return (
@@ -136,6 +164,7 @@ export function ChallengeRoom({ challengeId }: ChallengeRoomProps) {
     );
   }
   if (status === "ongoing") {
+    // Rationale: Pass the challenge config to enable the timer
     return <ChallengeInProgress challenge={challengeData} />;
   }
   if (status === "completed") {

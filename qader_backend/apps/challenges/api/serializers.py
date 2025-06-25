@@ -213,7 +213,11 @@ class ChallengeDetailSerializer(ChallengeListSerializer):
         """
         # The primary rule: If the challenge is ongoing or completed,
         # questions are visible to all participants receiving this data.
-        if obj.status in [ChallengeStatus.ONGOING, ChallengeStatus.COMPLETED]:
+        if obj.status in [
+            ChallengeStatus.ACCEPTED,
+            ChallengeStatus.ONGOING,
+            ChallengeStatus.COMPLETED,
+        ]:
             question_qs = obj.get_questions_queryset()
             return UnifiedQuestionSerializer(
                 question_qs, many=True, context=self.context

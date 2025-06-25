@@ -541,8 +541,8 @@ def set_participant_ready(challenge: Challenge, user: User) -> Tuple[Challenge, 
     if not challenge.is_participant(user):
         raise PermissionDenied(_("You are not a participant in this challenge."))
     # Allow marking ready if ACCEPTED or ONGOING (e.g., reconnect)
-    if challenge.status not in [ChallengeStatus.ACCEPTED, ChallengeStatus.ONGOING]:
-        raise ValidationError(_("Challenge is not in a state to mark ready."))
+    # if challenge.status not in [ChallengeStatus.ACCEPTED, ChallengeStatus.ONGOING]:
+    #     raise ValidationError(_("Challenge is not in a state to mark ready."))
     if not challenge.opponent:  # Cannot start if matchmaking hasn't found opponent
         raise ValidationError(_("Cannot start challenge without an opponent."))
 

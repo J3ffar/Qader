@@ -82,7 +82,7 @@ export function ChallengeResults({
 
           <div className="flex flex-col items-center gap-2">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={opponent?.profile_picture as string} />
+              <AvatarImage src={opponent?.profile_picture_url as string} />
               <AvatarFallback>
                 {opponent?.username.charAt(0).toUpperCase()}
               </AvatarFallback>
