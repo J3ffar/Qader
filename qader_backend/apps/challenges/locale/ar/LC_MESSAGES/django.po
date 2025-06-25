@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-17 23:30+0300\n"
+"POT-Creation-Date: 2025-06-25 12:52+0300\n"
 "PO-Revision-Date: 2025-05-18 13:09+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -18,318 +18,364 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
-#: .\apps\challenges\api\serializers.py:156 .\apps\challenges\services.py:340
+#: .\apps\challenges\api\serializers.py:130
+msgid ""
+"Username of the opponent for a direct challenge. Leave blank for random "
+"matchmaking."
+msgstr "اسم مستخدم الخصم لتحدي مباشر. اتركه فارغًا للمطابقة العشوائية."
+
+#: .\apps\challenges\api\serializers.py:134
+msgid "The type of challenge to create."
+msgstr "نوع التحدي المراد إنشاؤه."
+
+#: .\apps\challenges\api\serializers.py:146 .\apps\challenges\services.py:360
 msgid "You cannot challenge yourself."
 msgstr "لا يمكنك تحدي نفسك."
 
-#: .\apps\challenges\api\serializers.py:169
+#: .\apps\challenges\api\serializers.py:155
 msgid "Opponent user not found or inactive."
 msgstr "لم يتم العثور على المستخدم المنافس أو أنه غير نشط."
 
-#: .\apps\challenges\api\serializers.py:206
-msgid "Failed to start challenge due to an internal error."
-msgstr "فشل بدء التحدي بسبب خطأ داخلي."
+#: .\apps\challenges\api\serializers.py:186
+msgid "An unexpected error occurred while creating the challenge."
+msgstr "حدث خطأ غير متوقع أثناء إنشاء التحدي."
 
-#: .\apps\challenges\api\serializers.py:251
-msgid "Invalid question ID for this challenge."
-msgstr "معرف السؤال غير صالح لهذا التحدي."
+#: .\apps\challenges\api\serializers.py:259
+msgid "The ID of the question being answered."
+msgstr "معرف السؤال الذي يتم الإجابة عليه."
 
-#: .\apps\challenges\models.py:18
+#: .\apps\challenges\api\serializers.py:263
+msgid "The selected answer choice (e.g., 'A', 'B')."
+msgstr "خيار الإجابة المحدد (مثال: 'أ', 'ب')."
+
+#: .\apps\challenges\api\serializers.py:271
+msgid "This question is not part of the current challenge."
+msgstr "هذا السؤال ليس جزءًا من التحدي الحالي."
+
+#: .\apps\challenges\api\serializers.py:279
+msgid "Invalid answer choice provided."
+msgstr "تم تقديم خيار إجابة غير صالح."
+
+#: .\apps\challenges\models.py:16
 msgid "Quick Quant (10 Q)"
 msgstr "كمي سريع (10 أسئلة)"
 
-#: .\apps\challenges\models.py:19
+#: .\apps\challenges\models.py:17
 msgid "Medium Verbal (15 Q, No Hints)"
 msgstr "لفظي متوسط (15 سؤال، بدون تلميحات)"
 
-#: .\apps\challenges\models.py:20
+#: .\apps\challenges\models.py:18
 msgid "Comprehensive (20 Q)"
 msgstr "شامل (20 سؤال)"
 
-#: .\apps\challenges\models.py:21
+#: .\apps\challenges\models.py:19
 msgid "Speed Challenge (5 Min)"
 msgstr "تحدي السرعة (5 دقائق)"
 
-#: .\apps\challenges\models.py:22
+#: .\apps\challenges\models.py:20
 msgid "Accuracy Challenge"
 msgstr "تحدي الدقة"
 
-#: .\apps\challenges\models.py:23
+#: .\apps\challenges\models.py:21
 msgid "Custom"
 msgstr "مخصص"
 
-#: .\apps\challenges\models.py:28
+#: .\apps\challenges\models.py:26
 msgid "Pending Invite"
 msgstr "دعوة معلقة"
 
-#: .\apps\challenges\models.py:31
+#: .\apps\challenges\models.py:29
 msgid "Pending Matchmaking"
 msgstr "مطابقة معلقة"
 
-#: .\apps\challenges\models.py:34
+#: .\apps\challenges\models.py:32
 msgid "Accepted / Waiting Start"
 msgstr "مقبول / بانتظار البدء"
 
-#: .\apps\challenges\models.py:36
+#: .\apps\challenges\models.py:34
 msgid "Ongoing"
 msgstr "قيد التقدم"
 
-#: .\apps\challenges\models.py:37
+#: .\apps\challenges\models.py:35
 msgid "Completed"
 msgstr "مكتمل"
 
-#: .\apps\challenges\models.py:38
+#: .\apps\challenges\models.py:36
 msgid "Declined"
 msgstr "مرفوض"
 
-#: .\apps\challenges\models.py:39
+#: .\apps\challenges\models.py:37
 msgid "Cancelled"
 msgstr "ملغى"
 
-#: .\apps\challenges\models.py:40
+#: .\apps\challenges\models.py:38
 msgid "Expired"
 msgstr "منتهي الصلاحية"
 
-#: .\apps\challenges\models.py:50
+#: .\apps\challenges\models.py:76
 msgid "Challenger"
 msgstr "المتحدي"
 
-#: .\apps\challenges\models.py:57
+#: .\apps\challenges\models.py:83
 msgid "Opponent"
 msgstr "المنافس"
 
-#: .\apps\challenges\models.py:63
+#: .\apps\challenges\models.py:89
 msgid "challenge type"
 msgstr "نوع التحدي"
 
-#: .\apps\challenges\models.py:66
+#: .\apps\challenges\models.py:92
 msgid "Identifier for the predefined type of challenge."
 msgstr "معرف لنوع التحدي المحدد مسبقًا."
 
-#: .\apps\challenges\models.py:69
+#: .\apps\challenges\models.py:95
 msgid "status"
 msgstr "الحالة"
 
-#: .\apps\challenges\models.py:77
+#: .\apps\challenges\models.py:102
 msgid "challenge configuration"
 msgstr "تكوين التحدي"
 
-#: .\apps\challenges\models.py:78
+#: .\apps\challenges\models.py:103
 msgid "Specific parameters for this challenge instance."
 msgstr "معلمات محددة لنسخة التحدي هذه."
 
-#: .\apps\challenges\models.py:82
+#: .\apps\challenges\models.py:106
 msgid "question IDs"
 msgstr "معرفات الأسئلة"
 
-#: .\apps\challenges\models.py:84
+#: .\apps\challenges\models.py:108
 msgid "Ordered list of question IDs included in this challenge."
 msgstr "قائمة مرتبة بمعرفات الأسئلة المتضمنة في هذا التحدي."
 
-#: .\apps\challenges\models.py:90
+#: .\apps\challenges\models.py:114
 msgid "Winner"
 msgstr "الفائز"
 
-#: .\apps\challenges\models.py:94 .\apps\challenges\models.py:186
-msgid "created at"
-msgstr "تاريخ الإنشاء"
-
-#: .\apps\challenges\models.py:95
+#: .\apps\challenges\models.py:118
 msgid "accepted at"
 msgstr "تاريخ القبول"
 
-#: .\apps\challenges\models.py:97
+#: .\apps\challenges\models.py:119
 msgid "started at"
 msgstr "تاريخ البدء"
 
-#: .\apps\challenges\models.py:99
+#: .\apps\challenges\models.py:120
 msgid "completed at"
 msgstr "تاريخ الانتهاء"
 
-#: .\apps\challenges\models.py:103
+#: .\apps\challenges\models.py:123
 msgid "Challenger Points Awarded"
 msgstr "النقاط الممنوحة للمتحدي"
 
-#: .\apps\challenges\models.py:106
+#: .\apps\challenges\models.py:126
 msgid "Opponent Points Awarded"
 msgstr "النقاط الممنوحة للمنافس"
 
-#: .\apps\challenges\models.py:110 .\apps\challenges\models.py:160
+#: .\apps\challenges\models.py:130 .\apps\challenges\models.py:183
 msgid "Challenge"
 msgstr "التحدي"
 
-#: .\apps\challenges\models.py:111
+#: .\apps\challenges\models.py:131
 msgid "Challenges"
 msgstr "التحديات"
 
-#: .\apps\challenges\models.py:116
+#: .\apps\challenges\models.py:136
 msgid "Random/Pending"
 msgstr "عشوائي/معلق"
 
-#: .\apps\challenges\models.py:167
+#: .\apps\challenges\models.py:145
+msgid "Challenger and opponent cannot be the same person."
+msgstr "لا يمكن أن يكون المتحدي والخصم نفس الشخص."
+
+#: .\apps\challenges\models.py:189
 msgid "User"
 msgstr "المستخدم"
 
-#: .\apps\challenges\models.py:170
+#: .\apps\challenges\models.py:191
 msgid "score"
 msgstr "النتيجة"
 
-#: .\apps\challenges\models.py:174
+#: .\apps\challenges\models.py:193
 msgid "is ready"
 msgstr "جاهز"
 
-#: .\apps\challenges\models.py:177
-msgid ""
-"Indicates if the user has joined the challenge screen and is ready to start."
-msgstr "يشير إلى ما إذا كان المستخدم قد انضم إلى شاشة التحدي وجاهز للبدء."
+#: .\apps\challenges\models.py:195
+msgid "Indicates if the user is ready to start."
+msgstr "يشير إلى ما إذا كان المستخدم جاهزًا للبدء."
 
-#: .\apps\challenges\models.py:181
+#: .\apps\challenges\models.py:197
 msgid "user start time"
 msgstr "وقت بدء المستخدم"
 
-#: .\apps\challenges\models.py:184
+#: .\apps\challenges\models.py:198
 msgid "user end time"
 msgstr "وقت انتهاء المستخدم"
 
-#: .\apps\challenges\models.py:187
-msgid "updated at"
-msgstr "تاريخ التحديث"
-
-#: .\apps\challenges\models.py:194
-msgid "Question Attempts in this Challenge"
+#: .\apps\challenges\models.py:203
+msgid "Question Attempts"
 msgstr "محاولات الأسئلة في هذا التحدي"
 
-#: .\apps\challenges\models.py:198
+#: .\apps\challenges\models.py:208
 msgid "Challenge Attempt"
 msgstr "محاولة التحدي"
 
-#: .\apps\challenges\models.py:199
+#: .\apps\challenges\models.py:209
 msgid "Challenge Attempts"
 msgstr "محاولات التحدي"
 
 #: .\apps\challenges\services.py:52
-msgid "Quick Quant Challenge"
-msgstr "تحدي كمي سريع"
+msgid "A fast-paced challenge focusing on 10 quantitative questions."
+msgstr "تحدي سريع يركز على 10 أسئلة كمية."
 
 #: .\apps\challenges\services.py:61
-msgid "Medium Verbal Challenge"
-msgstr "تحدي لفظي متوسط"
+msgid "Test your verbal skills with 15 questions and no hints allowed."
+msgstr "اختبر مهاراتك اللفظية بـ 15 سؤالًا وبدون تلميحات مسموح بها."
 
 #: .\apps\challenges\services.py:70
-msgid "Comprehensive Challenge"
-msgstr "تحدي شامل"
+msgid ""
+"A balanced test of 20 questions from both quantitative and verbal sections."
+msgstr "اختبار متوازن من 20 سؤالًا من الأقسام الكمية واللفظية."
 
-#: .\apps\challenges\services.py:292
+#: .\apps\challenges\services.py:80
+msgid "Solve as many questions as you can in 5 minutes. Speed is key!"
+msgstr "حل أكبر عدد ممكن من الأسئلة في 5 دقائق. السرعة هي المفتاح!"
+
+#: .\apps\challenges\services.py:90
+msgid ""
+"Focus on precision. Answer 15 questions with no time pressure. Highest "
+"accuracy wins."
+msgstr "ركز على الدقة. أجب على 15 سؤالًا بدون ضغط وقت. أعلى دقة تفوز."
+
+#: .\apps\challenges\services.py:312
 msgid "No suitable questions found for this challenge configuration."
 msgstr "لم يتم العثور على أسئلة مناسبة لتكوين التحدي هذا."
 
-#: .\apps\challenges\services.py:336
+#: .\apps\challenges\services.py:356
 msgid "Invalid challenger user."
 msgstr "مستخدم المتحدي غير صالح."
 
-#: .\apps\challenges\services.py:338
+#: .\apps\challenges\services.py:358
 msgid "Invalid opponent user specified."
 msgstr "تم تحديد مستخدم منافس غير صالح."
 
-#: .\apps\challenges\services.py:350
+#: .\apps\challenges\services.py:370
 msgid "Invalid challenge type specified."
 msgstr "تم تحديد نوع تحدي غير صالح."
 
-#: .\apps\challenges\services.py:356
+#: .\apps\challenges\services.py:376
 msgid "Could not find suitable questions for this challenge type."
 msgstr "تعذر العثور على أسئلة مناسبة لنوع التحدي هذا."
 
-#: .\apps\challenges\services.py:371
+#: .\apps\challenges\services.py:391
 #, python-brace-format
 msgid "Random challenge started with {username}!"
 msgstr "بدأ تحدي عشوائي مع {username}!"
 
-#: .\apps\challenges\services.py:377
+#: .\apps\challenges\services.py:397
 msgid "Searching for a random opponent..."
 msgstr "البحث عن منافس عشوائي..."
 
-#: .\apps\challenges\services.py:381
+#: .\apps\challenges\services.py:401
 #, python-brace-format
 msgid "Challenge issued to {username}!"
 msgstr "تم إصدار تحدي لـ {username}!"
 
-#: .\apps\challenges\services.py:425 .\apps\challenges\services.py:451
+#: .\apps\challenges\services.py:445 .\apps\challenges\services.py:471
 msgid "You are not the invited opponent."
 msgstr "أنت لست المنافس المدعو."
 
-#: .\apps\challenges\services.py:427 .\apps\challenges\services.py:453
+#: .\apps\challenges\services.py:447 .\apps\challenges\services.py:473
 msgid "Challenge is not pending invitation."
 msgstr "التحدي ليس بانتظار الدعوة."
 
-#: .\apps\challenges\services.py:476
+#: .\apps\challenges\services.py:496
 msgid "Only the challenger can cancel."
 msgstr "المتحدي فقط يمكنه الإلغاء."
 
-#: .\apps\challenges\services.py:481
+#: .\apps\challenges\services.py:501
 msgid "Challenge cannot be cancelled in its current state."
 msgstr "لا يمكن إلغاء التحدي في حالته الحالية."
 
-#: .\apps\challenges\services.py:505 .\apps\challenges\services.py:568
+#: .\apps\challenges\services.py:525 .\apps\challenges\services.py:588
 msgid "You are not a participant in this challenge."
 msgstr "أنت لست مشاركًا في هذا التحدي."
 
-#: .\apps\challenges\services.py:508
+#: .\apps\challenges\services.py:528
 msgid "Challenge is not in a state to mark ready."
 msgstr "التحدي ليس في حالة تسمح بتحديد الجاهزية."
 
-#: .\apps\challenges\services.py:510
+#: .\apps\challenges\services.py:530
 msgid "Cannot start challenge without an opponent."
 msgstr "لا يمكن بدء التحدي بدون منافس."
 
-#: .\apps\challenges\services.py:570
+#: .\apps\challenges\services.py:590
 msgid "Challenge is not ongoing."
 msgstr "التحدي ليس قيد التقدم."
 
-#: .\apps\challenges\services.py:572
+#: .\apps\challenges\services.py:592
 msgid "Invalid question for this challenge."
 msgstr "سؤال غير صالح لهذا التحدي."
 
-#: .\apps\challenges\services.py:577
+#: .\apps\challenges\services.py:597
 msgid "Question not found."
 msgstr "لم يتم العثور على السؤال."
 
-#: .\apps\challenges\services.py:587
+#: .\apps\challenges\services.py:607
 msgid "Challenge participation record not found."
 msgstr "لم يتم العثور على سجل مشاركة التحدي."
 
-#: .\apps\challenges\services.py:592
+#: .\apps\challenges\services.py:612
 msgid "You have already answered this question in this challenge."
 msgstr "لقد أجبت بالفعل على هذا السؤال في هذا التحدي."
 
-#: .\apps\challenges\services.py:789 .\apps\challenges\services.py:810
+#: .\apps\challenges\services.py:801 .\apps\challenges\services.py:822
 msgid "Tie/Completed"
 msgstr "تعادل/مكتمل"
 
-#: .\apps\challenges\services.py:792 .\apps\challenges\services.py:813
+#: .\apps\challenges\services.py:804 .\apps\challenges\services.py:825
 msgid "Win"
 msgstr "فوز"
 
-#: .\apps\challenges\services.py:794 .\apps\challenges\services.py:815
+#: .\apps\challenges\services.py:806 .\apps\challenges\services.py:827
 msgid "Loss"
 msgstr "خسارة"
 
-#: .\apps\challenges\services.py:800 .\apps\challenges\services.py:821
+#: .\apps\challenges\services.py:812 .\apps\challenges\services.py:833
 #, python-brace-format
 msgid "Challenge #{cid} vs {opp} - Result: {res}"
 msgstr "التحدي رقم {cid} ضد {opp} - النتيجة: {res}"
 
-#: .\apps\challenges\services.py:859
+#: .\apps\challenges\services.py:860
 msgid "Can only rematch completed challenges."
 msgstr "يمكن إعادة تحدي التحديات المكتملة فقط."
 
-#: .\apps\challenges\services.py:862
+#: .\apps\challenges\services.py:863
 msgid "You were not a participant in the original challenge."
 msgstr "لم تكن مشاركًا في التحدي الأصلي."
 
-#: .\apps\challenges\services.py:868
+#: .\apps\challenges\services.py:869
 msgid "Cannot rematch a challenge that didn't have two participants."
 msgstr "لا يمكن إعادة تحدي لم يكن فيه مشاركان."
 
-#: .\apps\challenges\services.py:880
+#: .\apps\challenges\services.py:881
 msgid "Cannot rematch this challenge (missing opponent)."
 msgstr "لا يمكن إعادة تحدي هذا التحدي (المنافس مفقود)."
+
+#~ msgid "Failed to start challenge due to an internal error."
+#~ msgstr "فشل بدء التحدي بسبب خطأ داخلي."
+
+#~ msgid "created at"
+#~ msgstr "تاريخ الإنشاء"
+
+#~ msgid "updated at"
+#~ msgstr "تاريخ التحديث"
+
+#~ msgid "Quick Quant Challenge"
+#~ msgstr "تحدي كمي سريع"
+
+#~ msgid "Medium Verbal Challenge"
+#~ msgstr "تحدي لفظي متوسط"
+
+#~ msgid "Comprehensive Challenge"
+#~ msgstr "تحدي شامل"

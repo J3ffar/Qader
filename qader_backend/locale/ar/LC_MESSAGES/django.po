@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-11 14:56+0300\n"
+"POT-Creation-Date: 2025-06-25 12:51+0300\n"
 "PO-Revision-Date: 2023-10-27 10:00+0000\n"
 "Last-Translator: Your Name <your.email@example.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -46,11 +46,11 @@ msgstr ""
 msgid "Qader"
 msgstr "قادر"
 
-#: .\qader_project\settings\base.py:180
+#: .\qader_project\settings\base.py:186
 msgid "Arabic"
 msgstr "العربية"
 
-#: .\qader_project\settings\base.py:181
+#: .\qader_project\settings\base.py:187
 msgid "English"
 msgstr "الإنجليزية"
 

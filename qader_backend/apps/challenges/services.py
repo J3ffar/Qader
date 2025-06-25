@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext
 from channels.layers import get_channel_layer  # Add channel layer import
 from asgiref.sync import async_to_sync
 
@@ -362,10 +363,14 @@ def start_challenge(
     # Consider adding checks for active challenges, subscription status etc. here
 
     try:
-        config = CHALLENGE_CONFIGS[
-            ChallengeType(challenge_type)
-        ].copy()  # Validate choice & copy
-        config["name"] = str(config.get("name", challenge_type))
+        base_config = CHALLENGE_CONFIGS.get(challenge_type)
+        if not base_config:
+            # This check is more direct than creating a ChallengeType enum instance first
+            raise KeyError
+
+        # Create a deep copy to avoid modifying the original settings dict
+        config = base_config.copy()
+
     except (KeyError, ValueError):
         raise ValidationError(_("Invalid challenge type specified."))
 
@@ -376,6 +381,22 @@ def start_challenge(
             _("Could not find suitable questions for this challenge type.")
         )
     config["num_questions"] = len(question_ids)  # Store actual number used
+    print(config)
+
+    # We use gettext() (non-lazy) here to immediately resolve the translation.
+    description_str = gettext(config.get("description", ""))
+
+    # Re-build the dictionary with only JSON-serializable types.
+    serializable_config = {
+        "num_questions": config.get("num_questions"),
+        "time_limit_seconds": config.get("time_limit_seconds"),
+        "allow_hints": config.get("allow_hints", False),
+        "sections": config.get("sections", []),
+        "description": description_str,  # Use the resolved string
+        # Add other potential config flags here if needed
+        "is_speed_challenge": config.get("is_speed_challenge", False),
+        "is_accuracy_challenge": config.get("is_accuracy_challenge", False),
+    }
 
     message = ""
     initial_status = ChallengeStatus.PENDING_INVITE
@@ -407,7 +428,7 @@ def start_challenge(
         opponent=opponent,  # Can be None if PENDING_MATCHMAKING
         challenge_type=challenge_type,
         status=initial_status,
-        challenge_config=config,
+        challenge_config=serializable_config,
         question_ids=question_ids,
     )
 
