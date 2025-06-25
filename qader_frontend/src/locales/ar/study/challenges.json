@@ -1,32 +1,87 @@
 {
   "challenges": {
     "title": "تحدي الزملاء",
-    "description": "تحدى زملائك في منافسات سريعة واكسب النقاط والأوسمة.",
-    "newChallenge": "تحدي جديد",
+    "description": "تحدَّ زملائك في مسابقات سريعة واكسب النقاط والشارات.",
+    "myChallenges": "تحدياتي",
+    "newChallenge": "تحدٍ جديد",
     "pendingInvites": "دعوات معلقة",
-    "ongoing": "جارية",
+    "ongoing": "قيد التقدم",
     "history": "سجل التحديات",
-    "noPendingInvites": "لا توجد دعوات معلقة حاليًا.",
-    "noOngoingChallenges": "لا توجد تحديات جارية. ابدأ تحديًا جديدًا!",
-    "noHistory": "لم تخض أي تحديات بعد.",
+    "noPendingInvites": "لا توجد دعوات معلقة. تحدَّ زميلًا!",
+    "noOngoingChallenges": "لا توجد تحديات قيد التقدم. ابدأ تحديًا جديدًا!",
+    "noHistory": "لم تشارك في أي تحديات بعد.",
+
     "accept": "قبول",
     "decline": "رفض",
     "cancel": "إلغاء",
     "view": "عرض",
-    "rematch": "إعادة التحدي",
-    "youWon": "لقد فزت!",
-    "youLost": "لقد خسرت.",
-    "draw": "تعادل",
-    "waitingForOpponent": "في انتظار الخصم...",
+    "rematch": "إعادة تحدي",
+    "you": "أنت",
     "vs": "ضد",
+
+    "youWon": "لقد فزت",
+    "youLost": "لقد خسرت",
+    "draw": "تعادل",
+
+    "inviteSent": "تم إرسال الدعوة",
+    "pendingForYou": "معلقة لك",
+    "waitingForOpponent": "في انتظار الخصم",
+
     "createChallengeTitle": "ابدأ تحديًا جديدًا",
+    "createChallengeDescription": "حدد خصمك ونوع التحدي الذي ترغب في بدئه.",
     "opponentUsername": "اسم مستخدم الخصم",
     "opponentUsernamePlaceholder": "اتركه فارغًا لتحدي عشوائي",
     "challengeType": "نوع التحدي",
+    "selectChallengeType": "اختر نوع التحدي",
     "startChallenge": "ابدأ التحدي",
+
+    "youAreReady": "أنت جاهز",
+    "gettingYouReady": "جارٍ التجهيز...",
+    "opponentIsReady": "الخصم جاهز",
+    "startingChallenge": "كلاكما جاهزان! جارٍ بدء التحدي...",
+    "challengeLobbyTitle": "غرفة انتظار التحدي",
+
+    "question": "سؤال",
+    "score": "النقاط",
+    "answered": "تمت الإجابة على",
+    "waiting": "في انتظار...",
+
+    "challengeOver": "انتهى التحدي!",
+    "backToHub": "العودة إلى المركز",
+
+    "correctAnswer": "إجابة صحيحة!",
+    "incorrectAnswer": "إجابة خاطئة!",
+    "opponentAnswered": "لقد أجاب الخصم",
+
     "challengeSentSuccess": "تم إرسال دعوة التحدي بنجاح!",
+    "challengeSentAndReady": "تم إرسال دعوة التحدي بنجاح!",
     "challengeAcceptedSuccess": "تم قبول التحدي! استعد...",
+    "challengeDeclined": "تم رفض التحدي.",
+    "challengeCancelled": "تم إلغاء التحدي.",
+    "rematchSentAndReady": "تم إرسال تحدي الإعادة! استعد...",
+    "acceptingAndPreparing": "جارٍ قبول التحدي وتجهيز غرفة الانتظار...",
+    "challengeAcceptedAndReady": "تم قبول التحدي! أنت جاهز.",
+    "creatingAndPreparing": "جارٍ إنشاء التحدي وتجهيز غرفة الانتظار...",
+    "challengeStarted": "لقد بدأ التحدي! حظًا موفقًا!",
+    "challengeEnded": "انتهى التحدي.",
     "errorUserNotFound": "المستخدم غير موجود.",
-    "errorGeneric": "حدث خطأ ما. الرجاء المحاولة مرة أخرى."
+    "errorGeneric": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+
+    "connection": {
+      "connecting": "جارٍ الاتصال...",
+      "connected": "متصل",
+      "disconnected": "غير متصل",
+      "reconnecting": "جارٍ إعادة الاتصال...",
+      "error": "خطأ في الاتصال"
+    },
+
+    "aria": {
+      "declineInvite": "رفض دعوة التحدي",
+      "cancelInvite": "إلغاء دعوة التحدي",
+      "viewChallenge": "عرض التحدي الجاري",
+      "startRematch": "بدء تحدي الإعادة"
+    },
+
+    "loading": "جارٍ التحميل..."
   }
 }

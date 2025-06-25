@@ -1,9 +1,7 @@
-// src/components/features/platform/study/challenges/room/ChallengeLobby.tsx
+// qader_frontend/src/components/features/platform/study/challenges/room/ChallengeLobby.tsx
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import { CheckCircle, Hourglass, Loader2 } from "lucide-react";
 
 import {
@@ -13,32 +11,27 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChallengeHeader } from "./ChallengeHeader";
 import { ChallengeDetail } from "@/types/api/challenges.types";
 import { ConnectionStatus } from "@/hooks/useWebSocket";
 import { useAuthCore } from "@/store/auth.store";
-import { markAsReady } from "@/services/challenges.service";
-import { queryKeys } from "@/constants/queryKeys";
-import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
+// Helper component for status display remains useful
 const PlayerStatus = ({
   isReady,
-  isOpponent,
+  label,
 }: {
   isReady: boolean;
-  isOpponent: boolean;
+  label: string;
 }) => {
-  const t = useTranslations("Study.challenges");
   return isReady ? (
     <Badge variant="default" className="gap-2 bg-green-500 hover:bg-green-600">
-      <CheckCircle className="h-4 w-4" />{" "}
-      {isOpponent ? t("opponentIsReady") : t("readyButton")}
+      <CheckCircle className="h-4 w-4" /> {label}
     </Badge>
   ) : (
     <Badge variant="secondary" className="gap-2">
-      <Hourglass className="h-4 w-4 animate-pulse" /> {t("waiting")}
+      <Hourglass className="h-4 w-4 animate-pulse" /> {label}
     </Badge>
   );
 };
@@ -54,8 +47,6 @@ export function ChallengeLobby({
 }: ChallengeLobbyProps) {
   const t = useTranslations("Study.challenges");
   const { user } = useAuthCore();
-  const queryClient = useQueryClient();
-  const challengeQueryKey = queryKeys.challenges.detail(challenge.id);
 
   const currentUserAttempt = challenge.attempts.find(
     (att) => att.user.id === user?.id
@@ -63,27 +54,20 @@ export function ChallengeLobby({
   const opponentAttempt = challenge.attempts.find(
     (att) => att.user.id !== user?.id
   );
-
-  const readyMutation = useMutation({
-    mutationFn: () => markAsReady(challenge.id),
-    onSuccess: () => {
-      toast.success(t("markedAsReady"));
-      queryClient.setQueryData<ChallengeDetail>(
-        challengeQueryKey,
-        (oldData) => {
-          if (!oldData) return undefined;
-          return {
-            ...oldData,
-            attempts: oldData.attempts.map((att) =>
-              att.user.id === user?.id ? { ...att, is_ready: true } : att
-            ),
-          };
-        }
-      );
-    },
-    onError: (error) =>
-      toast.error(getApiErrorMessage(error, t("errorGeneric"))),
-  });
+  const getConnectionStatusText = (status: ConnectionStatus): string => {
+    switch (status) {
+      case "connecting":
+        return t("connection.connecting");
+      case "open":
+        return t("connection.connected");
+      case "closed":
+        return t("connection.disconnected");
+      // case "reconnecting":
+      //   return t("connection.reconnecting");
+      default:
+        return t("connection.error");
+    }
+  };
 
   const bothPlayersReady =
     challenge.attempts.length === 2 &&
@@ -98,7 +82,8 @@ export function ChallengeLobby({
           variant={connectionStatus === "open" ? "default" : "destructive"}
           className="mx-auto mt-2"
         >
-          {connectionStatus}
+          {/* Use the new function here */}
+          {getConnectionStatusText(connectionStatus)}
         </Badge>
       </CardHeader>
       <CardContent className="p-6 md:p-8 space-y-8">
@@ -107,34 +92,32 @@ export function ChallengeLobby({
         <div className="flex justify-around items-center">
           <PlayerStatus
             isReady={currentUserAttempt?.is_ready || false}
-            isOpponent={false}
+            label={t(
+              currentUserAttempt?.is_ready ? "youAreReady" : "gettingYouReady"
+            )}
           />
-          <div></div>
+          <div />
           <PlayerStatus
             isReady={opponentAttempt?.is_ready || false}
-            isOpponent={true}
+            label={t(
+              opponentAttempt?.is_ready
+                ? "opponentIsReady"
+                : "waitingForOpponent"
+            )}
           />
         </div>
 
-        <div className="mt-8 text-center">
-          {bothPlayersReady ? (
-            <div className="flex items-center justify-center gap-2 text-xl font-semibold text-primary">
+        <div className="mt-8 text-center h-10">
+          {bothPlayersReady && (
+            <div className="flex items-center justify-center gap-2 text-xl font-semibold text-primary animate-fade-in">
               <Loader2 className="h-6 w-6 animate-spin" />
               <p>{t("startingChallenge")}</p>
             </div>
-          ) : (
-            <Button
-              size="lg"
-              onClick={() => readyMutation.mutate()}
-              disabled={currentUserAttempt?.is_ready || readyMutation.isPending}
-            >
-              {readyMutation.isPending && (
-                <Loader2 className="ltr:mr-2 rtl:ml-2 h-4 w-4 animate-spin" />
-              )}
-              {currentUserAttempt?.is_ready
-                ? t("waitingForOpponent")
-                : t("readyButton")}
-            </Button>
+          )}
+          {!bothPlayersReady && !opponentAttempt?.is_ready && (
+            <div className="flex items-center justify-center gap-2 text-lg font-semibold text-muted-foreground animate-pulse">
+              <p>{t("waitingForOpponent")}...</p>
+            </div>
           )}
         </div>
       </CardContent>

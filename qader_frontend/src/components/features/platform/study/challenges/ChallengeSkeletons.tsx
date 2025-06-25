@@ -11,26 +11,29 @@ import {
 export function ChallengeCardSkeleton() {
   return (
     <Card>
-      <CardContent className="p-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Rationale: This skeleton mirrors the new "You vs Opponent" layout */}
+        <div className="flex items-center gap-2">
           <Skeleton className="h-10 w-10 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-[150px]" />
+          <Skeleton className="h-4 w-8" /> {/* "You" */}
+          <Skeleton className="h-4 w-4" /> {/* "vs" */}
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-4 w-24" /> {/* "Opponent Name" */}
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col items-end gap-2">
+            <Skeleton className="h-5 w-[80px]" />
             <Skeleton className="h-3 w-[100px]" />
           </div>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Skeleton className="h-5 w-[80px]" />
-          <Skeleton className="h-4 w-[60px]" />
+          <Skeleton className="h-8 w-12" /> {/* Score */}
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-end">
-        <Skeleton className="h-8 w-[100px]" />
+        <Skeleton className="h-9 w-[100px]" />
       </CardFooter>
     </Card>
   );
 }
-
 const PlayerCardSkeleton = () => (
   <div className="flex flex-col items-center gap-4">
     <Skeleton className="h-24 w-24 rounded-full" />

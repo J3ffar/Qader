@@ -2,43 +2,84 @@
   "challenges": {
     "title": "Challenge Colleagues",
     "description": "Challenge your colleagues in quick competitions and earn points and badges.",
+    "myChallenges": "My Challenges",
     "newChallenge": "New Challenge",
     "pendingInvites": "Pending Invites",
     "ongoing": "Ongoing",
     "history": "Challenge History",
-    "noPendingInvites": "No pending invites at the moment.",
+    "noPendingInvites": "No pending invites. Challenge a colleague!",
     "noOngoingChallenges": "No ongoing challenges. Start a new one!",
-    "noHistory": "You haven't participated in any challenges yet.",
+    "noHistory": "You haven't completed any challenges yet.",
+
     "accept": "Accept",
     "decline": "Decline",
     "cancel": "Cancel",
     "view": "View",
     "rematch": "Rematch",
-    "youWon": "You Won!",
-    "youLost": "You Lost.",
-    "draw": "Draw",
-    "waitingForOpponent": "Waiting for opponent...",
+    "you": "You",
     "vs": "vs",
+
+    "youWon": "You Won",
+    "youLost": "You Lost",
+    "draw": "Draw",
+
+    "inviteSent": "Invite Sent",
+    "pendingForYou": "Pending for You",
+    "waitingForOpponent": "Waiting for Opponent",
+
     "createChallengeTitle": "Start a New Challenge",
     "opponentUsername": "Opponent Username",
     "opponentUsernamePlaceholder": "Leave empty for a random challenge",
     "challengeType": "Challenge Type",
     "startChallenge": "Start Challenge",
-    "challengeSentSuccess": "Challenge invitation sent successfully!",
-    "challengeAcceptedSuccess": "Challenge accepted! Get ready...",
-    "errorUserNotFound": "User not found.",
-    "errorGeneric": "Something went wrong. Please try again.",
-    "readyButton": "I'm Ready!",
+
+    "youAreReady": "You are Ready",
+    "gettingYouReady": "Preparing...",
+    "opponentIsReady": "Opponent is Ready",
+    "startingChallenge": "Both ready! Starting challenge...",
+    "challengeLobbyTitle": "Challenge Lobby",
+
+    "question": "Question",
     "score": "Score",
     "answered": "Answered",
     "waiting": "Waiting...",
-    "challengeStarted": "The challenge has begun! Good luck!",
+
+    "challengeOver": "Challenge Over!",
+    "backToHub": "Back to Hub",
+
     "correctAnswer": "Correct!",
     "incorrectAnswer": "Incorrect!",
-    "connectingToChallenge": "Connecting to challenge...",
-    "errorLoadingChallenge": "Error loading challenge",
-    "unknownChallengeStatus": "Unknown challenge status",
-    "opponentIsReady": "Opponent is ready",
-    "opponentAnswered": "Opponent has answered"
+    "opponentAnswered": "Opponent has answered",
+
+    "challengeSentSuccess": "Challenge invitation sent successfully!",
+    "challengeSentAndReady": "Challenge invitation sent successfully!",
+    "challengeAcceptedSuccess": "Challenge accepted! Get ready...",
+    "challengeDeclined": "Challenge declined.",
+    "challengeCancelled": "Challenge cancelled.",
+    "rematchSentAndReady": "Rematch sent! Get ready...",
+    "acceptingAndPreparing": "Accepting challenge and preparing the lobby...",
+    "challengeAcceptedAndReady": "Challenge accepted! You are ready.",
+    "creatingAndPreparing": "Creating challenge and preparing the lobby...",
+    "challengeStarted": "The challenge has begun! Good luck!",
+    "challengeEnded": "The challenge has finished.",
+    "errorUserNotFound": "User not found.",
+    "errorGeneric": "Something went wrong. Please try again.",
+
+    "connection": {
+      "connecting": "Connecting...",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "reconnecting": "Reconnecting...",
+      "error": "Connection Error"
+    },
+
+    "aria": {
+      "declineInvite": "Decline challenge invitation",
+      "cancelInvite": "Cancel challenge invitation",
+      "viewChallenge": "View ongoing challenge",
+      "startRematch": "Start a rematch"
+    },
+
+    "loading": "Loading..."
   }
 }

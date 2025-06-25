@@ -44,11 +44,13 @@ import {
 import {
   createChallenge,
   getChallengeTypes,
+  markAsReady,
 } from "@/services/challenges.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Loader2 } from "lucide-react";
 import { PATHS } from "@/constants/paths";
+import { useState } from "react";
 
 interface StartChallengeDialogProps {
   open: boolean;
@@ -70,8 +72,10 @@ export function StartChallengeDialog({
   onOpenChange,
 }: StartChallengeDialogProps) {
   const t = useTranslations("Study.challenges");
+  const tCommon = useTranslations("Common");
   const queryClient = useQueryClient();
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -88,13 +92,17 @@ export function StartChallengeDialog({
 
   const createChallengeMutation = useMutation({
     mutationFn: createChallenge,
-    onSuccess: (newChallenge) => {
-      toast.success(t("challengeSentSuccess"));
-      queryClient.invalidateQueries({ queryKey: queryKeys.challenges.lists() });
-      onOpenChange(false);
-      form.reset();
-      // Navigate the challenger directly to the lobby for the new challenge.
-      router.push(`${PATHS.STUDY.CHALLENGE_COLLEAGUES}/${newChallenge.id}`);
+    onSuccess: async (newChallenge) => {
+      toast.promise(markAsReady(newChallenge.id), {
+        loading: t("creatingAndPreparing"),
+        success: () => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.challenges.all });
+          router.push(`${PATHS.STUDY.CHALLENGE_COLLEAGUES}/${newChallenge.id}`);
+          setIsOpen(false);
+          return t("challengeSentAndReady");
+        },
+        error: (err) => getApiErrorMessage(err, t("Common.errorGeneric")),
+      });
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, t("errorGeneric")));
@@ -147,6 +155,7 @@ export function StartChallengeDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      dir="rtl"
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -162,7 +171,7 @@ export function StartChallengeDialog({
                                   {type.name}
                                 </SelectItem>
                               </TooltipTrigger>
-                              <TooltipContent side="right" className="max-w-xs">
+                              <TooltipContent side="left" className="max-w-xs">
                                 <p>{type.description}</p>
                               </TooltipContent>
                             </Tooltip>
@@ -181,7 +190,7 @@ export function StartChallengeDialog({
                 variant="ghost"
                 onClick={() => onOpenChange(false)}
               >
-                {t("common:cancel")}
+                {tCommon("cancel")}
               </Button>
               <Button
                 type="submit"

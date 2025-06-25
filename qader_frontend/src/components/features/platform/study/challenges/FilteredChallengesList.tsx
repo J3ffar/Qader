@@ -20,7 +20,7 @@ export function FilteredChallengesList({
   filter,
   emptyMessage,
 }: FilteredChallengesListProps) {
-  const t = useTranslations("common");
+  const t = useTranslations("Common");
 
   // Rationale: This component is self-contained. It fetches, caches, and displays
   // a specific slice of data based on the filter prop. This makes it highly reusable
