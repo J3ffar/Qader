@@ -87,7 +87,6 @@ export const PLATFORM_SIDEBAR_SECTIONS: PlatformSidebarNavSection[] = [
         labelKey: "PlatformSidebar.items.blog",
         icon: Bookmark,
         href: PATHS.STUDY.BLOG.HOME,
-        comingSoon: true,
       },
       {
         labelKey: "PlatformSidebar.items.rewards",

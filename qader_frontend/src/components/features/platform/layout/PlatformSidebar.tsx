@@ -115,33 +115,36 @@ const PlatformSidebar = ({ isOpen, setIsOpen }: PlatformSidebarProps) => {
     return (
       <Link
         key={item.labelKey}
-        href={item.href}
-        passHref
-        legacyBehavior={!item.disabled && !item.comingSoon}
+        href={item.disabled || item.comingSoon ? "#" : item.href}
+        aria-current={isActive ? "page" : undefined}
+        onClick={(e) =>
+          (item.disabled || item.comingSoon) && e.preventDefault()
+        }
+        tabIndex={item.disabled || item.comingSoon ? -1 : 0}
+        className={cn(
+          "block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          item.disabled || item.comingSoon ? "cursor-not-allowed" : ""
+        )}
       >
-        <motion.a
+        {/* FIX: Changed motion.a to motion.div. The parent <Link> now renders the <a> tag. */}
+        <motion.div
           className={cn(
-            "flex items-center rounded-md px-3 py-2.5 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            "flex items-center rounded-md px-3 py-2.5 text-sm transition-colors duration-150",
             isOpen ? "justify-start gap-x-3" : "justify-center",
             item.disabled || item.comingSoon
               ? "cursor-not-allowed text-muted-foreground/70 hover:bg-transparent"
               : isActive
-              ? "bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/25 dark:bg-primary-dark-foreground/20 dark:text-primary-dark-foreground dark:hover:bg-primary-dark-foreground/25"
+              ? "bg-primary-foreground/20 border-r-4 text-primary-foreground hover:bg-primary-foreground/25 dark:bg-primary-dark-foreground/20 dark:text-primary-dark-foreground dark:hover:bg-primary-dark-foreground/25"
               : "text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground dark:text-primary-dark-foreground/80 dark:hover:bg-primary-dark-foreground/10 dark:hover:text-primary-dark-foreground",
-            isTopLevel && !isOpen && "py-3" // Slightly more padding for top-level icon-only items
+            isTopLevel && !isOpen && "py-3"
           )}
           whileHover={
             !item.disabled && !item.comingSoon && !isActive
               ? { scale: 1.03 }
               : {}
           }
-          animate={isActive ? { scale: 1.0 } : {}} // Keep text sharp, maybe slight bg animation
+          animate={isActive ? { scale: 1.0 } : {}}
           transition={{ duration: 0.15 }}
-          aria-current={isActive ? "page" : undefined}
-          onClick={(e) =>
-            (item.disabled || item.comingSoon) && e.preventDefault()
-          }
-          tabIndex={item.disabled || item.comingSoon ? -1 : 0}
         >
           <IconComponent
             className={cn("h-5 w-5 flex-shrink-0", isOpen ? "me-0" : "mx-auto")}
@@ -172,7 +175,7 @@ const PlatformSidebar = ({ isOpen, setIsOpen }: PlatformSidebarProps) => {
               </motion.span>
             )}
           </AnimatePresence>
-        </motion.a>
+        </motion.div>
       </Link>
     );
   };
