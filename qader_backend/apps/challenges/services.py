@@ -40,38 +40,61 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 # --- Configuration ---
-# Using constants from settings is better if they need to be configurable
-# For simplicity here, keeping them defined, but consider moving to settings
+# This dictionary defines the rules for each type of challenge.
+# It's referenced by the service layer and exposed via the new /types/ endpoint.
 CHALLENGE_CONFIGS = {
     ChallengeType.QUICK_QUANT_10: {
         "num_questions": 10,
-        "time_limit_seconds": 300,
-        "allow_hints": False,
-        "sections": ["quantitative"],
-        "subsections": [],
-        "skills": [],
-        "name": _("Quick Quant Challenge"),
+        "time_limit_seconds": 300,  # 5 minutes
+        "allow_hints": True,
+        "sections": ["quantitative", "verbal"],
+        "description": _(
+            "A fast-paced challenge focusing on 10 quantitative questions."
+        ),
     },
     ChallengeType.MEDIUM_VERBAL_15: {
         "num_questions": 15,
-        "time_limit_seconds": 600,
+        "time_limit_seconds": 600,  # 10 minutes
         "allow_hints": False,
-        "sections": ["verbal"],
-        "subsections": [],
-        "skills": [],
-        "name": _("Medium Verbal Challenge"),
+        "sections": ["quantitative", "verbal"],
+        "description": _(
+            "Test your verbal skills with 15 questions and no hints allowed."
+        ),
     },
     ChallengeType.COMPREHENSIVE_20: {
         "num_questions": 20,
-        "time_limit_seconds": 900,
+        "time_limit_seconds": 900,  # 15 minutes
         "allow_hints": True,
         "sections": ["quantitative", "verbal"],
-        "subsections": [],
-        "skills": [],
-        "name": _("Comprehensive Challenge"),
+        "description": _(
+            "A balanced test of 20 questions from both quantitative and verbal sections."
+        ),
     },
-    # Add configs for SPEED_CHALLENGE_5MIN, ACCURACY_CHALLENGE, CUSTOM if needed
+    ChallengeType.SPEED_CHALLENGE_5MIN: {
+        "num_questions": 25,  # More questions than can likely be answered
+        "time_limit_seconds": 300,  # 5 minutes
+        "allow_hints": False,
+        "is_speed_challenge": True,  # Custom flag to indicate "solve as many as you can"
+        "sections": ["quantitative", "verbal"],
+        "description": _(
+            "Solve as many questions as you can in 5 minutes. Speed is key!"
+        ),
+    },
+    ChallengeType.ACCURACY_CHALLENGE: {
+        "num_questions": 15,
+        "time_limit_seconds": None,  # No time limit
+        "allow_hints": False,
+        "is_accuracy_challenge": True,  # Custom flag
+        "sections": ["quantitative", "verbal"],
+        "description": _(
+            "Focus on precision. Answer 15 questions with no time pressure. Highest accuracy wins."
+        ),
+    },
+    # The CUSTOM type might not have a default config, as it would be defined
+    # by the user at creation time. For now, we won't include it in this list
+    # unless you have a default "custom" template.
 }
+
 
 # --- Broadcasting Helper Functions ---
 

@@ -18,6 +18,7 @@ from .serializers import (
     ChallengeCreateSerializer,
     ChallengeAnswerSerializer,
     ChallengeResultSerializer,
+    ChallengeTypeSerializer,
 )
 from .permissions import (
     IsParticipant,
@@ -34,6 +35,9 @@ from ..services import (
     finalize_challenge,  # May not be called directly by user, but good practice to import
 )
 from ..filters import ChallengeFilter  # Create this filter class
+from rest_framework import generics
+from ..models import ChallengeType
+from ..services import CHALLENGE_CONFIGS
 
 
 @extend_schema_view(
@@ -113,17 +117,6 @@ class ChallengeViewSet(
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_authenticated:
-            return (
-                super()
-                .get_queryset()
-                .filter(Q(challenger=user) | Q(opponent=user))
-                .distinct()
-            )
-        return Challenge.objects.none()
 
     def create(self, request, *args, **kwargs):
         """
@@ -232,8 +225,46 @@ class ChallengeViewSet(
             raise e
 
 
-# --- Utility View (Optional) ---
-# class ChallengeTypeListView(generics.ListAPIView):
-#     serializer_class = ChallengeTypeSerializer # Define this serializer
-#     permission_classes = [IsAuthenticated, IsSubscribed]
-#     queryset = # Logic to get challenge types from settings/db
+@extend_schema_view(
+    get=extend_schema(
+        summary="List Available Challenge Types",
+        description="Retrieves a list of all predefined challenge types that users can select from. This endpoint allows the frontend to dynamically display challenge options without needing to hardcode them.",
+        tags=["Challenges"],
+    )
+)
+class ChallengeTypeListView(generics.ListAPIView):
+    """
+    Provides a read-only list of available challenge types and their configurations.
+    """
+
+    # This view does not require a queryset as it sources data from a settings dictionary.
+    queryset = []
+    serializer_class = ChallengeTypeSerializer
+    permission_classes = [
+        IsAuthenticated
+    ]  # Ensure only authenticated users can see the types
+    pagination_class = None  # We want to return all types, not paginate them.
+
+    def get_queryset(self):
+        """
+        Constructs a list of challenge type objects from the CHALLENGE_CONFIGS dictionary.
+        """
+        challenge_types = []
+        for choice in ChallengeType.choices:
+            key, name = choice
+            config = CHALLENGE_CONFIGS.get(key)
+
+            # Only include types that have a defined configuration
+            if config:
+                challenge_types.append(
+                    {
+                        "key": key,
+                        "name": name,
+                        "description": config.get("description", ""),
+                        "num_questions": config.get("num_questions"),
+                        "time_limit_seconds": config.get("time_limit_seconds"),
+                        "allow_hints": config.get("allow_hints", False),
+                    }
+                )
+
+        return challenge_types

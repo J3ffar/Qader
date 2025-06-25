@@ -284,3 +284,34 @@ class ChallengeResultSerializer(ChallengeDetailSerializer):
     """Serializer focused on showing final challenge results. Inherits all detail fields."""
 
     pass
+
+
+class ChallengeTypeSerializer(serializers.Serializer):
+    """
+    Serializer for representing an available challenge type and its configuration.
+    """
+
+    key = serializers.CharField(
+        read_only=True,
+        help_text="The unique key for the challenge type (e.g., 'quick_quant_10').",
+    )
+    name = serializers.CharField(
+        read_only=True,
+        help_text="The human-readable name of the challenge (e.g., 'Quick Quant (10 Q)').",
+    )
+    description = serializers.CharField(
+        read_only=True,
+        help_text="A brief description of the challenge rules and goals.",
+    )
+    num_questions = serializers.IntegerField(
+        read_only=True, help_text="The number of questions in this challenge."
+    )
+    time_limit_seconds = serializers.IntegerField(
+        read_only=True,
+        allow_null=True,
+        help_text="The total time limit in seconds. Null if no limit.",
+    )
+    allow_hints = serializers.BooleanField(
+        read_only=True,
+        help_text="Indicates if hints are permitted in this challenge type.",
+    )
