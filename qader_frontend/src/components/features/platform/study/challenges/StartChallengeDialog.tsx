@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -32,21 +33,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-import { createChallenge } from "@/services/challenges.service";
+import {
+  createChallenge,
+  getChallengeTypes,
+} from "@/services/challenges.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
-import { ChallengeType } from "@/types/api/challenges.types";
-
-// Runtime object for ChallengeType to be used with Zod's nativeEnum
-const ChallengeTypeEnum = {
-  quick_quant_10: "quick_quant_10",
-  medium_verbal_15: "medium_verbal_15",
-  comprehensive_20: "comprehensive_20",
-  speed_challenge_5min: "speed_challenge_5min",
-  accuracy_challenge: "accuracy_challenge",
-  custom: "custom",
-} as const; // 'as const' ensures it's a readonly object with literal types
+import { Loader2 } from "lucide-react";
+import { PATHS } from "@/constants/paths";
 
 interface StartChallengeDialogProps {
   open: boolean;
@@ -54,8 +56,11 @@ interface StartChallengeDialogProps {
 }
 
 const formSchema = z.object({
-  opponent_username: z.string().optional(),
-  challenge_type: z.nativeEnum(ChallengeTypeEnum, {
+  opponent_username: z
+    .string()
+    .min(3, "Username must be at least 3 characters.")
+    .max(50),
+  challenge_type: z.string({
     required_error: "Please select a challenge type.",
   }),
 });
@@ -66,41 +71,38 @@ export function StartChallengeDialog({
 }: StartChallengeDialogProps) {
   const t = useTranslations("Study.challenges");
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      opponent_username: "",
-      challenge_type: ChallengeTypeEnum.quick_quant_10, // Default value
-    },
+  });
+
+  // Rationale: Fetch challenge types dynamically from the API.
+  // This avoids hardcoding and makes the component adaptable to backend changes.
+  const { data: challengeTypes, isLoading: isLoadingTypes } = useQuery({
+    queryKey: queryKeys.challenges.types(),
+    queryFn: getChallengeTypes,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    enabled: open, // Only fetch when the dialog is open
   });
 
   const createChallengeMutation = useMutation({
     mutationFn: createChallenge,
-    onSuccess: () => {
+    onSuccess: (newChallenge) => {
       toast.success(t("challengeSentSuccess"));
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.challenges.lists() as unknown as string[],
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.challenges.lists() });
       onOpenChange(false);
       form.reset();
+      // Navigate the challenger directly to the lobby for the new challenge.
+      router.push(`${PATHS.STUDY.CHALLENGE_COLLEAGUES}/${newChallenge.id}`);
     },
     onError: (error) => {
-      const errorMessage = getApiErrorMessage(error, t("errorGeneric"));
-      if (errorMessage.includes("User not found")) {
-        // Basic check, improve with specific API error codes
-        toast.error(t("errorUserNotFound"));
-      } else {
-        toast.error(t("errorGeneric"));
-      }
+      toast.error(getApiErrorMessage(error, t("errorGeneric")));
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    createChallengeMutation.mutate({
-      opponent_username: (values.opponent_username as string) || null, // Explicitly cast to string | null
-      challenge_type: values.challenge_type,
-    });
+    createChallengeMutation.mutate(values);
   }
 
   return (
@@ -108,10 +110,15 @@ export function StartChallengeDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{t("createChallengeTitle")}</DialogTitle>
-          <DialogDescription>{t("description")}</DialogDescription>
+          <DialogDescription>
+            {t("createChallengeDescription")}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4 pt-4"
+          >
             <FormField
               control={form.control}
               name="opponent_username"
@@ -134,47 +141,56 @@ export function StartChallengeDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t("challengeType")}</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("challengeType")} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {/* TODO: Replace with dynamic challenge types from API if available */}
-                      <SelectItem value="quick_quant_10">
-                        Quick Quant (10 Qs)
-                      </SelectItem>
-                      <SelectItem value="medium_verbal_15">
-                        Medium Verbal (15 Qs)
-                      </SelectItem>
-                      <SelectItem value="comprehensive_20">
-                        Comprehensive (20 Qs)
-                      </SelectItem>
-                      <SelectItem value="speed_challenge_5min">
-                        Speed Challenge (5 min)
-                      </SelectItem>
-                      <SelectItem value="accuracy_challenge">
-                        Accuracy Challenge
-                      </SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {isLoadingTypes ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("selectChallengeType")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <TooltipProvider>
+                          {challengeTypes?.map((type) => (
+                            <Tooltip key={type.key} delayDuration={100}>
+                              <TooltipTrigger asChild>
+                                <SelectItem value={type.key}>
+                                  {type.name}
+                                </SelectItem>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="max-w-xs">
+                                <p>{type.description}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </TooltipProvider>
+                      </SelectContent>
+                    </Select>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
               <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
+              >
+                {t("common:cancel")}
+              </Button>
+              <Button
                 type="submit"
                 disabled={createChallengeMutation.isPending}
               >
-                {createChallengeMutation.isPending
-                  ? "Sending..."
-                  : t("startChallenge")}
+                {createChallengeMutation.isPending && (
+                  <Loader2 className="ltr:mr-2 rtl:ml-2 h-4 w-4 animate-spin" />
+                )}
+                {t("startChallenge")}
               </Button>
             </DialogFooter>
           </form>

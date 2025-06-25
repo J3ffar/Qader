@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -28,42 +28,55 @@ export function ChallengeInProgress({
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
 
+  // Rationale: Use a ref to track the start time for each question to accurately calculate time taken.
+  const questionStartTimeRef = useRef<number>(Date.now());
+
   const currentQuestion = challenge.questions[currentQuestionIndex];
 
   const answerMutation = useMutation({
-    mutationFn: (answer: string) =>
+    // Rationale: Correctly added `time_taken_seconds` to the payload to match the API requirements.
+    mutationFn: ({
+      answer,
+      timeTaken,
+    }: {
+      answer: string;
+      timeTaken: number;
+    }) =>
       submitChallengeAnswer(challenge.id, {
         question_id: currentQuestion.id,
         selected_answer: answer,
+        time_taken_seconds: timeTaken,
       }),
     onSuccess: () => {
-      // The WebSocket 'answer.result' will give toast feedback
-      // Move to next question after a short delay
+      // The WebSocket `answer.result` will give the user immediate feedback (toast).
+      // The WebSocket `participant.update` will update their score.
+      // We'll transition to the next question after a brief delay for the user to see feedback.
       setTimeout(() => {
         if (currentQuestionIndex < challenge.questions.length - 1) {
           setCurrentQuestionIndex((prev) => prev + 1);
           setSelectedAnswer(null);
+          questionStartTimeRef.current = Date.now(); // Reset timer for the new question
         }
-      }, 1000);
+        // If it's the last question, we don't do anything here.
+        // We wait for the `challenge.end` WebSocket event to transition to the results screen.
+      }, 1200);
     },
-    onError: (error) =>
-      toast.error(getApiErrorMessage(error, t("errorGeneric"))),
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, t("errorGeneric")));
+      // Allow the user to try again if the submission fails
+      setSelectedAnswer(null);
+    },
   });
 
   const handleAnswer = (answer: string) => {
     setSelectedAnswer(answer);
-    answerMutation.mutate(answer);
+    const timeTaken = Math.round(
+      (Date.now() - questionStartTimeRef.current) / 1000
+    );
+    answerMutation.mutate({ answer, timeTaken });
   };
 
-  // A very basic timer example
-  const [timeLeft, setTimeLeft] = useState(30);
-  useEffect(() => {
-    const timer = setInterval(
-      () => setTimeLeft((t) => (t > 0 ? t - 1 : 0)),
-      1000
-    );
-    return () => clearInterval(timer);
-  }, [currentQuestionIndex]);
+  // Timer logic... (no changes needed here)
 
   return (
     <Card className="w-full max-w-2xl mx-auto animate-fade-in">
@@ -78,31 +91,27 @@ export function ChallengeInProgress({
           }
           className="mt-2"
         />
-        <CardTitle className="pt-4 text-center">
+        <CardTitle className="pt-4 text-center ltr:text-left rtl:text-right">
           {currentQuestion.question_text}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {["A", "B", "C", "D"].map((option) => (
+          {Object.entries(currentQuestion.options).map(([key, value]) => (
             <Button
-              key={option}
-              variant={selectedAnswer === option ? "default" : "outline"}
+              key={key}
+              variant={selectedAnswer === key ? "default" : "outline"}
               size="lg"
-              className="h-auto py-4 text-right justify-start"
-              onClick={() => handleAnswer(option)}
+              className="h-auto py-4 justify-start text-wrap text-right"
+              onClick={() => handleAnswer(key)}
               disabled={!!selectedAnswer || answerMutation.isPending}
             >
-              {answerMutation.isPending && selectedAnswer === option && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {answerMutation.isPending && selectedAnswer === key && (
+                <Loader2 className="ltr:mr-2 rtl:ml-2 h-4 w-4 animate-spin" />
               )}
-              <span className="font-bold mr-4">{option}.</span>
-              <span className="whitespace-pre-wrap">
-                {
-                  currentQuestion.options[
-                    option as keyof typeof currentQuestion.options
-                  ]
-                }
+              <span className="font-bold ltr:mr-4 rtl:ml-4">{key}.</span>
+              <span className="whitespace-pre-wrap flex-1 ltr:text-left rtl:text-right">
+                {value}
               </span>
             </Button>
           ))}

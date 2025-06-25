@@ -5,16 +5,27 @@ import {
   ChallengeDetail,
   ChallengeList,
   CreateChallengePayload,
-  ChallengeAnswerPayload, // Assuming this type will be created
-  ChallengeAnswerResponse, // Assuming this type will be created
+  ChallengeAnswerPayload,
+  ChallengeAnswerResponse,
+  ChallengeTypeConfig,
 } from "@/types/api/challenges.types";
+
+/**
+ * Fetches a list of all available challenge types.
+ */
+export const getChallengeTypes = async (): Promise<ChallengeTypeConfig[]> => {
+  const response = await apiClient<ChallengeTypeConfig[]>(
+    API_ENDPOINTS.STUDY.CHALLENGES.TYPES
+  );
+  return response;
+};
 
 /**
  * Fetches a paginated list of challenges for the current user.
  * Supports filtering via query parameters.
  */
 export const getChallenges = async (
-  filters: Record<string, any> = {}
+  filters: { status?: string; is_pending_invite_for_user?: boolean } = {}
 ): Promise<PaginatedResponse<ChallengeList>> => {
   const response = await apiClient<PaginatedResponse<ChallengeList>>(
     API_ENDPOINTS.STUDY.CHALLENGES.LIST_AND_CREATE,
@@ -24,13 +35,12 @@ export const getChallenges = async (
 };
 
 /**
- * Creates a new challenge.
- * Can be against a specific opponent or random matchmaking.
+ * Creates a new challenge against another user.
  */
 export const createChallenge = async (
   payload: CreateChallengePayload
-): Promise<ChallengeList> => {
-  const response = await apiClient<ChallengeList>(
+): Promise<ChallengeDetail> => {
+  const response = await apiClient<ChallengeDetail>(
     API_ENDPOINTS.STUDY.CHALLENGES.LIST_AND_CREATE,
     {
       method: "POST",
@@ -45,8 +55,8 @@ export const createChallenge = async (
  */
 export const acceptChallenge = async (
   id: number | string
-): Promise<ChallengeList> => {
-  const response = await apiClient<ChallengeList>(
+): Promise<ChallengeDetail> => {
+  const response = await apiClient<ChallengeDetail>(
     API_ENDPOINTS.STUDY.CHALLENGES.ACCEPT(id),
     { method: "POST" }
   );
@@ -58,8 +68,8 @@ export const acceptChallenge = async (
  */
 export const declineChallenge = async (
   id: number | string
-): Promise<ChallengeList> => {
-  const response = await apiClient<ChallengeList>(
+): Promise<{ status: "declined"; detail: string }> => {
+  const response = await apiClient<{ status: "declined"; detail: string }>(
     API_ENDPOINTS.STUDY.CHALLENGES.DECLINE(id),
     { method: "POST" }
   );
@@ -67,12 +77,12 @@ export const declineChallenge = async (
 };
 
 /**
- * Cancels a challenge that the current user created and is still pending.
+ * Cancels a challenge that the current user created.
  */
 export const cancelChallenge = async (
   id: number | string
-): Promise<ChallengeList> => {
-  const response = await apiClient<ChallengeList>(
+): Promise<{ status: "cancelled"; detail: string }> => {
+  const response = await apiClient<{ status: "cancelled"; detail: string }>(
     API_ENDPOINTS.STUDY.CHALLENGES.CANCEL(id),
     { method: "POST" }
   );
@@ -93,12 +103,16 @@ export const getChallengeDetails = async (
 
 /**
  * Marks the current user as "ready" to start an accepted challenge.
- * The backend will typically start the challenge once all participants are ready.
  */
 export const markAsReady = async (
   id: number | string
-): Promise<ChallengeDetail> => {
-  const response = await apiClient<ChallengeDetail>(
+): Promise<{
+  user_status: string;
+  challenge_status: string;
+  challenge_started: boolean;
+  detail: string;
+}> => {
+  const response = await apiClient<any>(
     API_ENDPOINTS.STUDY.CHALLENGES.READY(id),
     { method: "POST" }
   );
@@ -123,8 +137,19 @@ export const submitChallengeAnswer = async (
 };
 
 /**
+ * Retrieves the final results of a completed challenge.
+ */
+export const getChallengeResults = async (
+  id: string | number
+): Promise<ChallengeDetail> => {
+  const response = await apiClient<ChallengeDetail>(
+    API_ENDPOINTS.STUDY.CHALLENGES.RESULTS(id)
+  );
+  return response;
+};
+
+/**
  * Initiates a rematch for a completed challenge.
- * This creates a new challenge with a pending invite for the other player.
  */
 export const createRematch = async (
   id: number | string

@@ -103,5 +103,6 @@ export const queryKeys = {
     details: () => [...queryKeys.challenges.all, "details"] as const,
     detail: (id: number | string) =>
       [...queryKeys.challenges.details(), id] as const,
+    types: () => [...queryKeys.challenges.all, "types"] as const,
   },
 };

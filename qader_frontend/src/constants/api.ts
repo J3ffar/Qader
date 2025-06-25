@@ -93,6 +93,7 @@ export const API_ENDPOINTS = {
       ANSWER: (id: number | string) => `/challenges/challenges/${id}/answer/`,
       RESULTS: (id: number | string) => `/challenges/challenges/${id}/results/`,
       REMATCH: (id: number | string) => `/challenges/challenges/${id}/rematch/`,
+      TYPES: "/challenges/types/",
     },
   },
   LEARNING: {

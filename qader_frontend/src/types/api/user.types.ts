@@ -3,7 +3,9 @@ import type { SubscriptionDetailResponse } from "./subscription.types";
 export interface SimpleUser {
   id: number;
   username: string;
-  profile_picture: string | null;
+  preferred_name: string | null;
+  full_name: string | null;
+  profile_picture_url: string | null;
 }
 
 // From API Docs (Shared Serializer)

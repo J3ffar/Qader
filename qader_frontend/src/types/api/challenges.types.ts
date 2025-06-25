@@ -1,49 +1,49 @@
 import { UnifiedQuestion } from "./study.types";
 import { SimpleUser } from "./user.types";
 
+// From GET /challenges/types/
+export interface ChallengeTypeConfig {
+  key: string;
+  name: string;
+  description: string;
+  num_questions: number;
+  time_limit_seconds: number | null;
+  allow_hints: boolean;
+}
+
 export type ChallengeStatus =
   | "pending_invite"
-  | "pending_matchmaking"
   | "accepted"
   | "ongoing"
   | "completed"
   | "declined"
-  | "cancelled"
-  | "expired";
+  | "cancelled";
 
-export type ChallengeType =
-  | "quick_quant_10"
-  | "medium_verbal_15"
-  | "comprehensive_20"
-  | "speed_challenge_5min"
-  | "accuracy_challenge"
-  | "custom";
-
-// For GET /challenges/challenges/
+// From GET /challenges/challenges/
 export interface ChallengeList {
   id: number;
   challenger: SimpleUser;
   opponent: SimpleUser;
-  challenge_type: ChallengeType;
+  challenge_type: string; // The 'key' from ChallengeTypeConfig
   challenge_type_display: string;
   status: ChallengeStatus;
   status_display: string;
   winner: SimpleUser | null;
   created_at: string; // ISO datetime string
   completed_at: string | null;
-  user_is_participant: boolean | null;
+  user_is_participant: boolean;
   user_is_winner: boolean | null;
   user_score: number | null;
   opponent_score: number | null;
 }
 
-// For POST /challenges/challenges/
+// From POST /challenges/challenges/
 export interface CreateChallengePayload {
-  opponent_username?: string | null;
-  challenge_type: ChallengeType;
+  opponent_username: string;
+  challenge_type: string; // The 'key' from ChallengeTypeConfig
 }
 
-interface ChallengeAttempt {
+export interface ChallengeAttempt {
   id: number;
   user: SimpleUser;
   score: number;
@@ -52,26 +52,30 @@ interface ChallengeAttempt {
   end_time: string | null;
 }
 
-// For GET /challenges/challenges/{id}/
-export interface ChallengeDetail extends ChallengeList {
+// From GET /challenges/challenges/{id}/
+export interface ChallengeDetail
+  extends Omit<
+    ChallengeList,
+    "user_is_participant" | "user_is_winner" | "user_score" | "opponent_score"
+  > {
   attempts: ChallengeAttempt[];
-  challenge_config: any; // Can be typed more strictly if config structure is known
-  questions: UnifiedQuestion[]; // Use a proper question type
+  challenge_config: Record<string, any>; // Can be typed more strictly
+  questions: UnifiedQuestion[]; // Populated when the challenge starts/completes
   accepted_at: string | null;
   started_at: string | null;
 }
 
+// From POST /challenges/challenges/{id}/answer/
 export interface ChallengeAnswerPayload {
   question_id: number;
   selected_answer: string; // "A", "B", "C", or "D"
+  time_taken_seconds: number;
 }
 
-// Type for the response after submitting an answer
-// Based on the WebSocket docs, this is what the backend might return.
 export interface ChallengeAnswerResponse {
-  user_id: number;
-  question_id: number;
+  status: "answer_received";
   is_correct: boolean;
-  selected_answer: string;
-  current_score: number;
+  challenge_ended: boolean;
+  detail: string;
+  final_results?: ChallengeDetail; // Only if challenge_ended is true
 }

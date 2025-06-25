@@ -113,7 +113,7 @@ export function ChallengeCard({ challenge }: ChallengeCardProps) {
       <CardContent className="p-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Avatar>
-            <AvatarImage src={opponent.profile_picture || undefined} />
+            <AvatarImage src={opponent.profile_picture_url || undefined} />
             <AvatarFallback>
               {opponent.username.charAt(0).toUpperCase()}
             </AvatarFallback>

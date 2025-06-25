@@ -1,3 +1,4 @@
+// qader_frontend/src/components/features/platform/study/challenges/room/ChallengeLobby.tsx
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +23,7 @@ import { markAsReady } from "@/services/challenges.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
+// PlayerCard component remains unchanged...
 interface PlayerCardProps {
   player: ChallengeDetail["challenger"] | ChallengeDetail["opponent"] | null;
   isReady: boolean;
@@ -45,21 +47,24 @@ const PlayerCard = ({ player, isReady, isCurrentUser }: PlayerCardProps) => {
   return (
     <div className="flex flex-col items-center gap-4 text-center">
       <Avatar className="h-24 w-24 border-4 border-primary">
-        <AvatarImage src={player.profile_picture as string} />
+        <AvatarImage src={player.profile_picture_url || undefined} />
         <AvatarFallback>
           {player.username.charAt(0).toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <p className="text-xl font-bold">
-        {player.username} {isCurrentUser && "(You)"}
+        {player.preferred_name || player.full_name} {isCurrentUser && "(You)"}
       </p>
       {isReady ? (
-        <Badge variant="default" className="gap-2">
+        <Badge
+          variant="default"
+          className="gap-2 bg-green-500 hover:bg-green-600"
+        >
           <CheckCircle className="h-4 w-4" /> Ready
         </Badge>
       ) : (
         <Badge variant="secondary" className="gap-2">
-          <Hourglass className="h-4 w-4" /> Not Ready
+          <Hourglass className="h-4 w-4 animate-pulse" /> Not Ready
         </Badge>
       )}
     </div>
@@ -78,19 +83,41 @@ export function ChallengeLobby({
   const t = useTranslations("Study.challenges");
   const { user } = useAuthCore();
   const queryClient = useQueryClient();
+  const challengeQueryKey = queryKeys.challenges.detail(challenge.id);
 
   const currentUserAttempt = challenge.attempts.find(
     (att) => att.user.id === user?.id
   );
-  const opponentAttempt = challenge.attempts.find(
-    (att) => att.user.id !== user?.id
-  );
 
   const readyMutation = useMutation({
     mutationFn: () => markAsReady(challenge.id),
+    /**
+     * Rationale for the change:
+     * Instead of invalidating the query and forcing a refetch (pull), we now perform
+     * an immediate local update on the cache. This provides instant UI feedback for the
+     * user who clicked the button.
+     * We then rely entirely on the `challenge.start` WebSocket event (which is handled in the
+     * parent `ChallengeRoom` component) to trigger the actual transition to the game screen.
+     * This creates a single, synchronized path for starting the game for both players.
+     */
     onSuccess: () => {
       toast.success(t("markedAsReady"));
-      // No need to invalidate, WebSocket will push the update
+      // Immediately update the local cache to reflect the user's "ready" state.
+      queryClient.setQueryData<ChallengeDetail>(
+        challengeQueryKey,
+        (oldData) => {
+          if (!oldData) return undefined;
+
+          return {
+            ...oldData,
+            attempts: oldData.attempts.map((att) =>
+              att.user.id === user?.id ? { ...att, is_ready: true } : att
+            ),
+          };
+        }
+      );
+      // We no longer check for `challenge_started` or invalidate the query here.
+      // The `challenge.start` WebSocket event is now the single source of truth for the transition.
     },
     onError: (error) =>
       toast.error(getApiErrorMessage(error, t("errorGeneric"))),
@@ -148,9 +175,9 @@ export function ChallengeLobby({
               onClick={() => readyMutation.mutate()}
               disabled={currentUserAttempt?.is_ready || readyMutation.isPending}
             >
-              {readyMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
+              {readyMutation.isPending && (
+                <Loader2 className="ltr:mr-2 rtl:ml-2 h-4 w-4 animate-spin" />
+              )}
               {currentUserAttempt?.is_ready
                 ? t("waitingForOpponent")
                 : t("readyButton")}

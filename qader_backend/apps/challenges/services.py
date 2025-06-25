@@ -154,38 +154,34 @@ def broadcast_participant_update(attempt: ChallengeAttempt):
 
 
 def broadcast_challenge_start(challenge: Challenge):
-    """Sends the start signal and potentially questions."""
+    """
+    Sends the start signal with the full challenge state, including questions.
+    This uses the same logic as broadcast_challenge_update to ensure payload consistency.
+    """
     channel_layer = get_channel_layer()
     if not channel_layer:
-        return
+        return  # Avoid errors if channels isn't configured
     group_name = f"challenge_{challenge.id}"
     try:
-        questions_qs = challenge.get_questions_queryset()
-        # Ensure UnifiedQuestionSerializer doesn't strictly require a request context
-        question_serializer = UnifiedQuestionSerializer(
-            questions_qs, many=True, context={"request": None}
-        )
+        # The ChallengeDetailSerializer should be configured to include questions
+        # when the challenge status is 'ongoing'.
+        serializer = ChallengeDetailSerializer(challenge, context={"request": None})
+        payload = serializer.data
 
-        payload = {
-            "id": challenge.id,
-            "status": challenge.status,
-            "started_at": (
-                challenge.started_at.isoformat() if challenge.started_at else None
-            ),
-            "challenge_config": challenge.challenge_config,
-            "questions": question_serializer.data,  # Send questions on start
-        }
         async_to_sync(channel_layer.group_send)(
             group_name,
             {
-                "type": "challenge.start",
+                "type": "challenge.start",  # Keep this event type for frontend logic
                 "payload": payload,
             },
         )
-        logger.info(f"Broadcasted challenge_start for Challenge {challenge.id}")
+        logger.info(
+            f"Broadcasted challenge_start for Challenge {challenge.id} to group {group_name}"
+        )
     except Exception as e:
         logger.error(
-            f"Error broadcasting challenge start for {challenge.id}: {e}", exc_info=True
+            f"Error broadcasting challenge start for {challenge.id}: {e}",
+            exc_info=True,
         )
 
 
@@ -566,6 +562,7 @@ def set_participant_ready(challenge: Challenge, user: User) -> Tuple[Challenge, 
         # --- Broadcast Participant Update ---
         broadcast_participant_update(attempt)
 
+    challenge.refresh_from_db()  # Get latest status before check
     challenge_started = False
     # Check if both participants are ready AND challenge is ACCEPTED
     # Use select_related for efficiency if accessing user attributes often
@@ -577,7 +574,6 @@ def set_participant_ready(challenge: Challenge, user: User) -> Tuple[Challenge, 
         a.is_ready for a in all_attempts
     ):
         # Ensure we only transition from ACCEPTED to ONGOING once
-        challenge.refresh_from_db()  # Get latest status before check
         if challenge.status == ChallengeStatus.ACCEPTED:
             challenge.status = ChallengeStatus.ONGOING
             challenge.started_at = timezone.now()  # Mark overall challenge start
@@ -591,8 +587,6 @@ def set_participant_ready(challenge: Challenge, user: User) -> Tuple[Challenge, 
             # Already started, maybe user reconnected and marked ready again
             challenge_started = True  # Indicate it's already running
 
-    # Refresh challenge state before returning
-    challenge.refresh_from_db()
     return challenge, challenge_started
 
 
@@ -602,7 +596,7 @@ def process_challenge_answer(
     user: User,
     question_id: int,
     selected_answer: str,
-    time_taken: Optional[int],
+    time_taken_seconds: Optional[int],
 ) -> Tuple[UserQuestionAttempt, bool]:
     """Processes a user's answer during a challenge."""
     if not challenge.is_participant(user):
@@ -641,7 +635,7 @@ def process_challenge_answer(
         question=question,
         selected_answer=selected_answer,
         is_correct=is_correct,
-        time_taken_seconds=time_taken,
+        time_taken_seconds=time_taken_seconds,
         mode=UserQuestionAttempt.Mode.CHALLENGE,
     )
     # Link it to the ChallengeAttempt via M2M
