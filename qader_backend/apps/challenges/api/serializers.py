@@ -206,46 +206,30 @@ class ChallengeDetailSerializer(ChallengeListSerializer):
 
     def get_questions(self, obj: Challenge) -> list | None:
         """
-        Securely returns the list of questions based on the user's role and
-        the challenge's status.
+        Returns the list of questions if the challenge is in a state
+        where questions should be visible to participants.
 
-        This method ensures that:
-        - Only participants can ever see the questions.
-        - The challenger can see the questions immediately upon creation.
-        - The opponent can only see the questions AFTER accepting the invite.
-        - Both participants can see the questions during and after the challenge.
+        This method works for both direct API requests and WebSocket broadcasts.
         """
-        user = self._get_current_user()
-
-        # Rule 1: Must be a participant.
-        if not user or not obj.is_participant(user):
-            return None
-
-        # Rule 2: Determine if the user has viewing rights based on status.
-        can_view_questions = False
-
-        # Case A: Challenge is accepted, active, or finished. All participants can view.
-        if obj.status in [
-            ChallengeStatus.ACCEPTED,
-            ChallengeStatus.ONGOING,
-            ChallengeStatus.COMPLETED,
-        ]:
-            can_view_questions = True
-
-        # Case B: Challenge is a pending invite. Only the challenger can view.
-        # This prevents the opponent from peeking at questions before accepting.
-        elif obj.status == ChallengeStatus.PENDING_INVITE and obj.challenger == user:
-            can_view_questions = True
-
-        if can_view_questions:
+        # The primary rule: If the challenge is ongoing or completed,
+        # questions are visible to all participants receiving this data.
+        if obj.status in [ChallengeStatus.ONGOING, ChallengeStatus.COMPLETED]:
             question_qs = obj.get_questions_queryset()
-
-            # Best Practice: Always pass the context down to nested serializers.
-            # This ensures things like the `request` object are available if needed.
-            serializer_context = self.context
-
             return UnifiedQuestionSerializer(
-                question_qs, many=True, context=serializer_context
+                question_qs, many=True, context=self.context
+            ).data
+
+        # For HTTP requests (where context['request'] exists), we can add
+        # a special case for a challenger viewing a pending invite.
+        user = self._get_current_user()
+        if (
+            user
+            and obj.status == ChallengeStatus.PENDING_INVITE
+            and obj.challenger == user
+        ):
+            question_qs = obj.get_questions_queryset()
+            return UnifiedQuestionSerializer(
+                question_qs, many=True, context=self.context
             ).data
 
         # If no condition is met, do not reveal the questions.
@@ -281,9 +265,52 @@ class ChallengeAnswerSerializer(serializers.Serializer):
 
 
 class ChallengeResultSerializer(ChallengeDetailSerializer):
-    """Serializer focused on showing final challenge results. Inherits all detail fields."""
+    """
+    Serializer focused on showing final challenge results.
+    It overrides context-dependent score fields with absolute scores
+    for challenger and opponent, suitable for WebSocket broadcasts.
+    """
 
-    pass
+    # Override the inherited fields with context-free implementations.
+    # For clarity, we will provide explicit challenger and opponent scores.
+    user_score = serializers.SerializerMethodField()
+    opponent_score = serializers.SerializerMethodField()
+
+    class Meta(ChallengeDetailSerializer.Meta):
+        # We replace the context-dependent fields with our new, absolute ones.
+        # We can explicitly list them to be clear.
+        fields = [
+            "id",
+            "challenger",
+            "opponent",
+            "challenge_type",
+            "challenge_type_display",
+            "status",
+            "status_display",
+            "winner",
+            "created_at",
+            "completed_at",
+            "attempts",
+            "challenge_config",
+            "questions",
+            "accepted_at",
+            "started_at",
+            "user_score",
+            "opponent_score",  # Add our new fields
+        ]
+
+    def get_user_score(self, obj: Challenge) -> int | None:
+        """Gets the final score for the challenger."""
+        # The attempts should be prefetched, making this efficient.
+        attempt = obj.attempts.filter(user=obj.challenger).first()
+        return attempt.score if attempt else 0
+
+    def get_opponent_score(self, obj: Challenge) -> int | None:
+        """Gets the final score for the opponent."""
+        if not obj.opponent:
+            return None
+        attempt = obj.attempts.filter(user=obj.opponent).first()
+        return attempt.score if attempt else 0
 
 
 class ChallengeTypeSerializer(serializers.Serializer):
