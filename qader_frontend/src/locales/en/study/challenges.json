@@ -28,9 +28,11 @@
     "waitingForOpponent": "Waiting for Opponent",
 
     "createChallengeTitle": "Start a New Challenge",
+    "createChallengeDescription": "Select your opponent and the type of challenge you'd like to start.",
     "opponentUsername": "Opponent Username",
     "opponentUsernamePlaceholder": "Leave empty for a random challenge",
     "challengeType": "Challenge Type",
+    "selectChallengeType": "Select challenge type",
     "startChallenge": "Start Challenge",
 
     "youAreReady": "You are Ready",

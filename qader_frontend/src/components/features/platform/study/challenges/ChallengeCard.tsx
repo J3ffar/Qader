@@ -9,15 +9,8 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import {
-  ArrowRight,
-  Check,
-  RefreshCw,
-  Swords,
-  X,
-  Ban,
-  Gamepad2,
-} from "lucide-react";
+// FIX: Import Loader2 for loading spinners
+import { ArrowRight, Check, RefreshCw, X, Ban, Loader2 } from "lucide-react";
 import { ChallengeList } from "@/types/api/challenges.types";
 import {
   acceptChallenge,
@@ -139,33 +132,51 @@ export function ChallengeCard({ challenge }: ChallengeCardProps) {
         // It's an invite for me
         return (
           <div className="flex gap-2">
+            {/* FIX: Replaced `loading` prop with `disabled` and a conditional Loader2 icon */}
             <Button
               size="sm"
               onClick={() => acceptMutation.mutate()}
-              loading={acceptMutation.isPending}
+              disabled={acceptMutation.isPending}
             >
-              <Check className="w-4 h-4 ltr:mr-2 rtl:ml-2" /> {t("accept")}
+              {acceptMutation.isPending ? (
+                <Loader2 className="w-4 h-4 ltr:mr-2 rtl:ml-2 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4 ltr:mr-2 rtl:ml-2" />
+              )}
+              {t("accept")}
             </Button>
+            {/* FIX: Replaced `loading` prop with `disabled` and a conditional Loader2 icon */}
             <Button
               size="sm"
               variant="outline"
               onClick={() => declineMutation.mutate()}
-              loading={declineMutation.isPending}
+              disabled={declineMutation.isPending}
             >
-              <X className="w-4 h-4 ltr:mr-2 rtl:ml-2" /> {t("decline")}
+              {declineMutation.isPending ? (
+                <Loader2 className="w-4 h-4 ltr:mr-2 rtl:ml-2 animate-spin" />
+              ) : (
+                <X className="w-4 h-4 ltr:mr-2 rtl:ml-2" />
+              )}
+              {t("decline")}
             </Button>
           </div>
         );
       }
       return (
         // I sent the invite
+        /* FIX: Replaced `loading` prop with `disabled` and a conditional Loader2 icon */
         <Button
           size="sm"
-          variant="destructive-outline"
+          variant="destructive"
           onClick={() => cancelMutation.mutate()}
-          loading={cancelMutation.isPending}
+          disabled={cancelMutation.isPending}
         >
-          <Ban className="w-4 h-4 ltr:mr-2 rtl:ml-2" /> {t("cancel")}
+          {cancelMutation.isPending ? (
+            <Loader2 className="w-4 h-4 ltr:mr-2 rtl:ml-2 animate-spin" />
+          ) : (
+            <Ban className="w-4 h-4 ltr:mr-2 rtl:ml-2" />
+          )}
+          {t("cancel")}
         </Button>
       );
     }
@@ -183,13 +194,19 @@ export function ChallengeCard({ challenge }: ChallengeCardProps) {
     }
     if (challenge.status === "completed") {
       return (
+        /* FIX: Replaced `loading` prop with `disabled` and a conditional Loader2 icon */
         <Button
           size="sm"
           variant="secondary"
           onClick={() => rematchMutation.mutate()}
-          loading={rematchMutation.isPending}
+          disabled={rematchMutation.isPending}
         >
-          <RefreshCw className="w-4 h-4 ltr:mr-2 rtl:ml-2" /> {t("rematch")}
+          {rematchMutation.isPending ? (
+            <Loader2 className="w-4 h-4 ltr:mr-2 rtl:ml-2 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4 ltr:mr-2 rtl:ml-2" />
+          )}
+          {t("rematch")}
         </Button>
       );
     }
