@@ -1,4 +1,3 @@
-// qader_frontend/src/app/[locale]/(auth)/confirm-email/[uidb64]/[token]/page.tsx
 "use client";
 
 import { useEffect, useMemo } from "react"; // Added useMemo
@@ -56,7 +55,7 @@ export default function ConfirmEmailPage() {
       if (!data.user.profile_complete) {
         router.replace(PATHS.COMPLETE_PROFILE);
       } else if (data.user.is_super || data.user.is_staff) {
-        router.replace(PATHS.ADMIN_DASHBOARD);
+        router.replace(PATHS.ADMIN.DASHBOARD);
       } else {
         router.replace(PATHS.STUDY.HOME);
       }
@@ -74,7 +73,7 @@ export default function ConfirmEmailPage() {
       toast.info(tAuth("confirmEmailAlreadyLoggedIn"));
       // Redirect based on existing user's state
       if (user?.is_super || user?.is_staff) {
-        router.replace(PATHS.ADMIN_DASHBOARD);
+        router.replace(PATHS.ADMIN.DASHBOARD);
       } else if (user?.profile_complete) {
         router.replace(PATHS.STUDY.HOME);
       } else {
@@ -154,7 +153,7 @@ export default function ConfirmEmailPage() {
               if (confirmedUser && !confirmedUser.profile_complete) {
                 router.replace(PATHS.COMPLETE_PROFILE);
               } else if (confirmedUser?.is_super || confirmedUser?.is_staff) {
-                router.replace(PATHS.ADMIN_DASHBOARD);
+                router.replace(PATHS.ADMIN.DASHBOARD);
               } else {
                 router.replace(PATHS.STUDY.HOME);
               }

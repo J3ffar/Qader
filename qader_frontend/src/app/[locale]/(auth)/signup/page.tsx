@@ -1,4 +1,3 @@
-// qader_frontend/src/app/[locale]/(auth)/signup/page.tsx
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -79,7 +78,7 @@ export default function SignupPage() {
         searchParams.get("redirect_to") ||
         (authUser.profile_complete
           ? authUser.is_super || authUser.is_staff
-            ? PATHS.ADMIN_DASHBOARD
+            ? PATHS.ADMIN.DASHBOARD
             : PATHS.STUDY.HOME
           : PATHS.COMPLETE_PROFILE);
       router.replace(redirectTo);

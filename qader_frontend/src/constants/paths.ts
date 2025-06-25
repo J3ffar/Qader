@@ -74,6 +74,13 @@ export const PATHS = {
     // Consider adding other common study sections here as they are developed
   },
 
-  ADMIN_DASHBOARD: "/admin/dashboard",
-  // ... other paths
+  ADMIN: {
+    DASHBOARD: "/admin/dashboard",
+    EMPLOYEES_MANAGEMENT: "/admin/employees",
+    STUDENTS_MANAGEMENT: "/admin/students",
+    PAGES_MANAGEMENT: "/admin/pages",
+    SUPPORT_TICKETS: "/admin/support",
+    ANALYTICS: "/admin/analytics",
+    SETTINGS: "/admin/settings",
+  },
 };

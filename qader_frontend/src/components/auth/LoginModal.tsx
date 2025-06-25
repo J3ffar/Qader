@@ -70,7 +70,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
       onClose();
       reset();
       if (data.user?.is_super || data.user?.is_staff) {
-        router.push(PATHS.ADMIN_DASHBOARD);
+        router.push(PATHS.ADMIN.DASHBOARD);
       } else if (!data.user.profile_complete) {
         router.push(PATHS.COMPLETE_PROFILE);
       } else {

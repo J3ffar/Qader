@@ -57,6 +57,14 @@ export default getRequestConfig(
         ...challengesMessages.default,
       };
 
+      const [dashboardPage] = await Promise.all([
+        import(`@/locales/${resolvedLocale}/admin/dashboard.json`),
+      ]);
+
+      const adminNamespace = {
+        ...dashboardPage.default,
+      };
+
       // Load other top-level namespaces
       const commonMessages = (
         await import(`@/locales/${resolvedLocale}/common.json`)
@@ -73,6 +81,7 @@ export default getRequestConfig(
         Auth: authMessages,
         Nav: navMessages,
         Study: studyNamespace,
+        Admin: adminNamespace,
       };
     } catch (error) {
       console.error(

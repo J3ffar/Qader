@@ -115,7 +115,7 @@ const Navbar = () => {
   };
 
   const userNavigationAction = () => {
-    if (user?.is_super || user?.is_staff) router.push(PATHS.ADMIN_DASHBOARD);
+    if (user?.is_super || user?.is_staff) router.push(PATHS.ADMIN.DASHBOARD);
     else router.push(PATHS.STUDY.HOME);
     closeMobileMenu();
   };

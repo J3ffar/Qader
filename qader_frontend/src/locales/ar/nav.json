@@ -133,5 +133,32 @@
       "adminSupport": "دعم الإدارة",
       "comingSoonSuffix": "قريباً"
     }
+  },
+
+  "AdminSidebar": {
+    "sidebarNavigationLabel": "التنقل في لوحة التحكم",
+    "logoAlt": "شعار قادر",
+    "sections": {
+      "management": "إدارة المنصة",
+      "monitoring": "تتبع المنصة",
+      "system": "التحكم بالنظام"
+    },
+    "items": {
+      "dashboard": "لوحة التحكم",
+      "employeesManagement": "الموظفين",
+      "studentsManagement": "الطلاب",
+      "pageManagement": "إدارة صفحات الموقع",
+      "contentTickets": "تواصل معنا",
+      "statistics": "الاحصائيات العامة",
+      "settings": "اعدادات النظام"
+    }
+  },
+  "AdminHeader": {
+    "greeting": "صباح الخير",
+    "searchPlaceholder": "ابحث هنا...",
+    "myAccount": "حسابي",
+    "profile": "الملف الشخصي",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج"
   }
 }

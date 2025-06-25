@@ -1,0 +1,30 @@
+{
+  "AdminDashboard": {
+    "title": "إدارة الموظفين",
+    "description": "عرض وإدارة موظفي المنصة.",
+    "export": "تصدير",
+    "addEmployee": "إضافة موظف",
+    "employeeList": "قائمة الموظفين",
+    "employeeListDescription": "قائمة بجميع الموظفين في مؤسستك.",
+    "searchPlaceholder": "البحث في القائمة...",
+    "filter": "فلتر",
+    "sort": "فرز",
+    "table": {
+      "id": "الرقم",
+      "name": "الاسم",
+      "email": "الايميل",
+      "status": "الحالة",
+      "joinDate": "تاريخ الانضمام",
+      "actions": "إجراءات"
+    },
+    "toggleMenu": "فتح القائمة",
+    "actions": "اتخاذ إجراء",
+    "viewDetails": "عرض التفاصيل",
+    "editUser": "تعديل المستخدم",
+    "deleteUser": "حذف المستخدم",
+    "statuses": {
+      "active": "نشط",
+      "blocked": "محظور"
+    }
+  }
+}
