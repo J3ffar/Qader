@@ -628,6 +628,11 @@ class UserProfile(models.Model):
         return False
 
     def save(self, *args, **kwargs):
+        # For new instances, `auto_now_add` in `created_at` should handle it,
+        # but if the save method is complex or called multiple times, it's safer to be explicit.
+        if self._state.adding and not self.created_at:
+            self.created_at = timezone.now()
+
         if not self.referral_code:
             if hasattr(self, "user") and self.user and self.user.username:
                 self.referral_code = generate_unique_referral_code(self.user.username)
