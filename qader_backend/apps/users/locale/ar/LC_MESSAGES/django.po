@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-25 12:52+0300\n"
+"POT-Creation-Date: 2025-06-26 21:11+0300\n"
 "PO-Revision-Date: 2023-10-27 10:00+0000\n"
 "Last-Translator: Your Name <your.email@example.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -115,7 +115,8 @@ msgstr "حقلي كلمة المرور غير متطابقين."
 msgid ""
 "Could not generate a suitable username. Please try a different full name or "
 "contact support."
-msgstr "تعذر إنشاء اسم مستخدم مناسب. يرجى تجربة اسم كامل مختلف أو الاتصال بالدعم."
+msgstr ""
+"تعذر إنشاء اسم مستخدم مناسب. يرجى تجربة اسم كامل مختلف أو الاتصال بالدعم."
 
 #: .\apps\users\api\serializers.py:385
 msgid ""
@@ -138,10 +139,16 @@ msgid "An unexpected error occurred during signup. Please try again later."
 msgstr "حدث خطأ غير متوقع أثناء التسجيل. يرجى المحاولة لاحقًا."
 
 #: .\apps\users\api\serializers.py:418
+#, fuzzy
+#| msgid ""
+#| "Set or update your username. Must be unique. Allowed characters: letters, "
+#| "digits and './+/-/_' only."
 msgid ""
 "Set or update your username. Must be unique. Allowed characters: letters, "
-"digits and './+/-/_' only."
-msgstr "قم بتعيين أو تحديث اسم المستخدم الخاص بك. يجب أن يكون فريدًا. الأحرف المسموح بها: أحرف وأرقام و './+/-/_' فقط."
+"digits and './+/-/_' (see below for file content) only."
+msgstr ""
+"قم بتعيين أو تحديث اسم المستخدم الخاص بك. يجب أن يكون فريدًا. الأحرف المسموح "
+"بها: أحرف وأرقام و './+/-/_' فقط."
 
 #: .\apps\users\api\serializers.py:453
 msgid "Optional: Enter a serial code to activate a paid subscription."
@@ -181,10 +188,16 @@ msgid "Image size cannot exceed {size}MB."
 msgstr "حجم الصورة لا يمكن أن يتجاوز {size} ميجابايت."
 
 #: .\apps\users\api\serializers.py:892
+#, fuzzy
+#| msgid ""
+#| "Update your username. Must be unique. Allowed characters: letters, digits "
+#| "and './+/-/_' only."
 msgid ""
 "Update your username. Must be unique. Allowed characters: letters, digits "
-"and './+/-/_' only."
-msgstr "قم بتحديث اسم المستخدم الخاص بك. يجب أن يكون فريدًا. الأحرف المسموح بها: أحرف وأرقام و './+/-/_' فقط."
+"and './+/-/_' (see below for file content) only."
+msgstr ""
+"قم بتحديث اسم المستخدم الخاص بك. يجب أن يكون فريدًا. الأحرف المسموح بها: أحرف "
+"وأرقام و './+/-/_' فقط."
 
 #: .\apps\users\api\serializers.py:1005
 msgid "Auto dark mode start time must be before end time."
@@ -405,7 +418,9 @@ msgstr "حدث خطأ غير متوقع. يرجى المحاولة مرة أخر
 msgid ""
 "OTP verified successfully. Please use the provided token to reset your "
 "password."
-msgstr "تم التحقق من رمز OTP بنجاح. يرجى استخدام الرمز المقدم لإعادة تعيين كلمة المرور الخاصة بك."
+msgstr ""
+"تم التحقق من رمز OTP بنجاح. يرجى استخدام الرمز المقدم لإعادة تعيين كلمة "
+"المرور الخاصة بك."
 
 #: .\apps\users\api\views.py:1355
 msgid "An unexpected error occurred during OTP verification."
@@ -872,7 +887,9 @@ msgstr "تم تفعيل اشتراكك بنجاح باستخدام الرمز: {
 
 #: .\apps\users\services.py:129
 msgid "You have reached your limit for asking AI questions today."
-msgstr "لقد وصلت إلى الحد الأقصى لعدد الأسئلة التي يمكنك طرحها على الذكاء الاصطناعي اليوم."
+msgstr ""
+"لقد وصلت إلى الحد الأقصى لعدد الأسئلة التي يمكنك طرحها على الذكاء الاصطناعي "
+"اليوم."
 
 #~ msgid "Number of unread notifications for the user."
 #~ msgstr "عدد الإشعارات غير المقروءة للمستخدم."

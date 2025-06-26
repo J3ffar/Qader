@@ -26,6 +26,7 @@ from apps.learning.models import (
 from apps.study.models import UserQuestionAttempt
 from apps.gamification.services import award_points, check_and_award_badge, PointReason
 from apps.users.models import UserProfile  # For level matching
+from apps.notifications.services import create_notification
 
 # Import serializers to format broadcast data
 from .api.serializers import (
@@ -448,6 +449,18 @@ def start_challenge(
         notify_user(
             opponent.id, "new_challenge_invite", invite_payload
         )  # Use snake_case type for consumer
+
+        # Create a notification and send an email
+        create_notification(
+            recipient=opponent,
+            actor=challenger,
+            verb=_("has challenged you to a new challenge!"),
+            target=challenge,
+            notification_type="info",
+            send_email=True,
+            email_subject=_("You have a new challenge!"),
+            email_body_template_name="emails/new_challenge",
+        )
     elif initial_status == ChallengeStatus.ACCEPTED:  # Random match found and accepted
         # Both participants are in, broadcast initial state to challenge group
         broadcast_challenge_update(challenge)

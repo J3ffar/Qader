@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-19 23:45+0300\n"
+"POT-Creation-Date: 2025-06-26 21:23+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -196,13 +196,13 @@ msgstr "بيانات إضافية"
 msgid "Notification"
 msgstr "إشعار"
 
-#: .\apps\notifications\services.py:113
+#: .\apps\notifications\services.py:114
 #, fuzzy
 #| msgid "System Update"
 msgid "System"
 msgstr "تحديث النظام"
 
-#: .\apps\notifications\services.py:126
+#: .\apps\notifications\services.py:127
 #, fuzzy
 #| msgid "Notification"
 msgid "New Notification: {}"

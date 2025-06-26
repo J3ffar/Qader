@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-25 12:52+0300\n"
+"POT-Creation-Date: 2025-06-26 21:23+0300\n"
 "PO-Revision-Date: 2025-05-18 13:09+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -28,7 +28,7 @@ msgstr "اسم مستخدم الخصم لتحدي مباشر. اتركه فار�
 msgid "The type of challenge to create."
 msgstr "نوع التحدي المراد إنشاؤه."
 
-#: .\apps\challenges\api\serializers.py:146 .\apps\challenges\services.py:360
+#: .\apps\challenges\api\serializers.py:146 .\apps\challenges\services.py:358
 msgid "You cannot challenge yourself."
 msgstr "لا يمكنك تحدي نفسك."
 
@@ -40,19 +40,19 @@ msgstr "لم يتم العثور على المستخدم المنافس أو أ�
 msgid "An unexpected error occurred while creating the challenge."
 msgstr "حدث خطأ غير متوقع أثناء إنشاء التحدي."
 
-#: .\apps\challenges\api\serializers.py:259
+#: .\apps\challenges\api\serializers.py:247
 msgid "The ID of the question being answered."
 msgstr "معرف السؤال الذي يتم الإجابة عليه."
 
-#: .\apps\challenges\api\serializers.py:263
+#: .\apps\challenges\api\serializers.py:251
 msgid "The selected answer choice (e.g., 'A', 'B')."
 msgstr "خيار الإجابة المحدد (مثال: 'أ', 'ب')."
 
-#: .\apps\challenges\api\serializers.py:271
+#: .\apps\challenges\api\serializers.py:259
 msgid "This question is not part of the current challenge."
 msgstr "هذا السؤال ليس جزءًا من التحدي الحالي."
 
-#: .\apps\challenges\api\serializers.py:279
+#: .\apps\challenges\api\serializers.py:267
 msgid "Invalid answer choice provided."
 msgstr "تم تقديم خيار إجابة غير صالح."
 
@@ -224,143 +224,150 @@ msgstr "محاولة التحدي"
 msgid "Challenge Attempts"
 msgstr "محاولات التحدي"
 
-#: .\apps\challenges\services.py:52
+#: .\apps\challenges\services.py:54
 msgid "A fast-paced challenge focusing on 10 quantitative questions."
 msgstr "تحدي سريع يركز على 10 أسئلة كمية."
 
-#: .\apps\challenges\services.py:61
+#: .\apps\challenges\services.py:63
 msgid "Test your verbal skills with 15 questions and no hints allowed."
 msgstr "اختبر مهاراتك اللفظية بـ 15 سؤالًا وبدون تلميحات مسموح بها."
 
-#: .\apps\challenges\services.py:70
+#: .\apps\challenges\services.py:72
 msgid ""
 "A balanced test of 20 questions from both quantitative and verbal sections."
 msgstr "اختبار متوازن من 20 سؤالًا من الأقسام الكمية واللفظية."
 
-#: .\apps\challenges\services.py:80
+#: .\apps\challenges\services.py:82
 msgid "Solve as many questions as you can in 5 minutes. Speed is key!"
 msgstr "حل أكبر عدد ممكن من الأسئلة في 5 دقائق. السرعة هي المفتاح!"
 
-#: .\apps\challenges\services.py:90
+#: .\apps\challenges\services.py:92
 msgid ""
 "Focus on precision. Answer 15 questions with no time pressure. Highest "
 "accuracy wins."
 msgstr "ركز على الدقة. أجب على 15 سؤالًا بدون ضغط وقت. أعلى دقة تفوز."
 
-#: .\apps\challenges\services.py:312
+#: .\apps\challenges\services.py:310
 msgid "No suitable questions found for this challenge configuration."
 msgstr "لم يتم العثور على أسئلة مناسبة لتكوين التحدي هذا."
 
-#: .\apps\challenges\services.py:356
+#: .\apps\challenges\services.py:354
 msgid "Invalid challenger user."
 msgstr "مستخدم المتحدي غير صالح."
 
-#: .\apps\challenges\services.py:358
+#: .\apps\challenges\services.py:356
 msgid "Invalid opponent user specified."
 msgstr "تم تحديد مستخدم منافس غير صالح."
 
-#: .\apps\challenges\services.py:370
+#: .\apps\challenges\services.py:372
 msgid "Invalid challenge type specified."
 msgstr "تم تحديد نوع تحدي غير صالح."
 
-#: .\apps\challenges\services.py:376
+#: .\apps\challenges\services.py:378
 msgid "Could not find suitable questions for this challenge type."
 msgstr "تعذر العثور على أسئلة مناسبة لنوع التحدي هذا."
 
-#: .\apps\challenges\services.py:391
+#: .\apps\challenges\services.py:409
 #, python-brace-format
 msgid "Random challenge started with {username}!"
 msgstr "بدأ تحدي عشوائي مع {username}!"
 
-#: .\apps\challenges\services.py:397
+#: .\apps\challenges\services.py:415
 msgid "Searching for a random opponent..."
 msgstr "البحث عن منافس عشوائي..."
 
-#: .\apps\challenges\services.py:401
+#: .\apps\challenges\services.py:419
 #, python-brace-format
 msgid "Challenge issued to {username}!"
 msgstr "تم إصدار تحدي لـ {username}!"
 
-#: .\apps\challenges\services.py:445 .\apps\challenges\services.py:471
+#: .\apps\challenges\services.py:457
+msgid "has challenged you to a new challenge!"
+msgstr "لقد تحداك في تحدي جديد!"
+
+#: .\apps\challenges\services.py:461
+msgid "You have a new challenge!"
+msgstr "لديك تحدي جديد!"
+
+#: .\apps\challenges\services.py:475 .\apps\challenges\services.py:501
 msgid "You are not the invited opponent."
 msgstr "أنت لست المنافس المدعو."
 
-#: .\apps\challenges\services.py:447 .\apps\challenges\services.py:473
+#: .\apps\challenges\services.py:477 .\apps\challenges\services.py:503
 msgid "Challenge is not pending invitation."
 msgstr "التحدي ليس بانتظار الدعوة."
 
-#: .\apps\challenges\services.py:496
+#: .\apps\challenges\services.py:526
 msgid "Only the challenger can cancel."
 msgstr "المتحدي فقط يمكنه الإلغاء."
 
-#: .\apps\challenges\services.py:501
+#: .\apps\challenges\services.py:531
 msgid "Challenge cannot be cancelled in its current state."
 msgstr "لا يمكن إلغاء التحدي في حالته الحالية."
 
-#: .\apps\challenges\services.py:525 .\apps\challenges\services.py:588
+#: .\apps\challenges\services.py:555 .\apps\challenges\services.py:616
 msgid "You are not a participant in this challenge."
 msgstr "أنت لست مشاركًا في هذا التحدي."
 
-#: .\apps\challenges\services.py:528
-msgid "Challenge is not in a state to mark ready."
-msgstr "التحدي ليس في حالة تسمح بتحديد الجاهزية."
-
-#: .\apps\challenges\services.py:530
+#: .\apps\challenges\services.py:560
 msgid "Cannot start challenge without an opponent."
 msgstr "لا يمكن بدء التحدي بدون منافس."
 
-#: .\apps\challenges\services.py:590
+#: .\apps\challenges\services.py:618
 msgid "Challenge is not ongoing."
 msgstr "التحدي ليس قيد التقدم."
 
-#: .\apps\challenges\services.py:592
+#: .\apps\challenges\services.py:620
 msgid "Invalid question for this challenge."
 msgstr "سؤال غير صالح لهذا التحدي."
 
-#: .\apps\challenges\services.py:597
+#: .\apps\challenges\services.py:625
 msgid "Question not found."
 msgstr "لم يتم العثور على السؤال."
 
-#: .\apps\challenges\services.py:607
+#: .\apps\challenges\services.py:635
 msgid "Challenge participation record not found."
 msgstr "لم يتم العثور على سجل مشاركة التحدي."
 
-#: .\apps\challenges\services.py:612
+#: .\apps\challenges\services.py:640
 msgid "You have already answered this question in this challenge."
 msgstr "لقد أجبت بالفعل على هذا السؤال في هذا التحدي."
 
-#: .\apps\challenges\services.py:801 .\apps\challenges\services.py:822
+#: .\apps\challenges\services.py:829 .\apps\challenges\services.py:850
 msgid "Tie/Completed"
 msgstr "تعادل/مكتمل"
 
-#: .\apps\challenges\services.py:804 .\apps\challenges\services.py:825
+#: .\apps\challenges\services.py:832 .\apps\challenges\services.py:853
 msgid "Win"
 msgstr "فوز"
 
-#: .\apps\challenges\services.py:806 .\apps\challenges\services.py:827
+#: .\apps\challenges\services.py:834 .\apps\challenges\services.py:855
 msgid "Loss"
 msgstr "خسارة"
 
-#: .\apps\challenges\services.py:812 .\apps\challenges\services.py:833
+#: .\apps\challenges\services.py:840 .\apps\challenges\services.py:861
 #, python-brace-format
 msgid "Challenge #{cid} vs {opp} - Result: {res}"
 msgstr "التحدي رقم {cid} ضد {opp} - النتيجة: {res}"
 
-#: .\apps\challenges\services.py:860
+#: .\apps\challenges\services.py:888
 msgid "Can only rematch completed challenges."
 msgstr "يمكن إعادة تحدي التحديات المكتملة فقط."
 
-#: .\apps\challenges\services.py:863
+#: .\apps\challenges\services.py:891
 msgid "You were not a participant in the original challenge."
 msgstr "لم تكن مشاركًا في التحدي الأصلي."
 
-#: .\apps\challenges\services.py:869
+#: .\apps\challenges\services.py:897
 msgid "Cannot rematch a challenge that didn't have two participants."
 msgstr "لا يمكن إعادة تحدي لم يكن فيه مشاركان."
 
-#: .\apps\challenges\services.py:881
+#: .\apps\challenges\services.py:909
 msgid "Cannot rematch this challenge (missing opponent)."
 msgstr "لا يمكن إعادة تحدي هذا التحدي (المنافس مفقود)."
+
+#~ msgid "Challenge is not in a state to mark ready."
+#~ msgstr "التحدي ليس في حالة تسمح بتحديد الجاهزية."
 
 #~ msgid "Failed to start challenge due to an internal error."
 #~ msgstr "فشل بدء التحدي بسبب خطأ داخلي."

@@ -1,0 +1,19 @@
+{% load i18n %}
+
+{% blocktrans with recipient_name=recipient_name|default:"User" %}Hi {{ recipient_name }},{% endblocktrans %}
+
+{% blocktrans with actor_name=actor_name|default:"Someone" %}{{ actor_name }} has invited you to a new challenge on Qader.{% endblocktrans %}
+
+{% if target %}
+{% blocktrans with challenge_type=target.get_challenge_type_display %}Challenge Type: {{ challenge_type }}{% endblocktrans %}
+{% endif %}
+
+{% trans "Accept the challenge to test your skills and earn points!" %}
+
+{% if url %}
+{% trans "View Challenge" %}: {% if url|slice:":4" == 'http' %}{{ url }}{% else %}{{ site_base_url }}{{ url }}{% endif %}
+{% endif %}
+
+---
+{% trans "Thanks," %}
+{% blocktrans with site_name=site_name|default:"Qader" %}The {{ site_name }} Team{% endblocktrans %}

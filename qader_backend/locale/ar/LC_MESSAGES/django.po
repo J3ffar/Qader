@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-25 12:51+0300\n"
+"POT-Creation-Date: 2025-06-26 21:23+0300\n"
 "PO-Revision-Date: 2023-10-27 10:00+0000\n"
 "Last-Translator: Your Name <your.email@example.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -62,6 +62,7 @@ msgstr "الإشعار"
 #: .\templates\emails\base_email.html:223
 #: .\templates\emails\confirmation_body.txt:17
 #: .\templates\emails\generic_notification_email.txt:38
+#: .\templates\emails\new_challenge.txt:18
 #: .\templates\emails\password_reset_body.txt:13
 #: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:14
 msgid "Thanks,"
@@ -70,6 +71,7 @@ msgstr "شكرًا،"
 #: .\templates\emails\base_email.html:224
 #: .\templates\emails\confirmation_body.txt:18
 #: .\templates\emails\generic_notification_email.txt:39
+#: .\templates\emails\new_challenge.txt:19
 #: .\templates\emails\password_reset_body.txt:14
 #: .\templates\emails\password_reset_otp\password_reset_otp_body.txt:15
 #, python-format
@@ -160,6 +162,8 @@ msgstr "إشعار جديد"
 
 #: .\templates\emails\generic_notification_email.html:11
 #: .\templates\emails\generic_notification_email.txt:7
+#: .\templates\emails\new_challenge.html:11
+#: .\templates\emails\new_challenge.txt:3
 #, python-format
 msgid "Hi %(recipient_name)s,"
 msgstr "مرحبًا %(recipient_name)s،"
@@ -189,6 +193,8 @@ msgid ""
 "\n"
 "%(actor_name)s %(verb)s.\n"
 msgstr ""
+"\n"
+"%(actor_name)s %(verb)s.\n"
 
 #: .\templates\emails\generic_notification_email.txt:15
 #, python-format
@@ -215,6 +221,46 @@ msgstr "يرجى إضافة عنوان موقعك إذا كان هذا رابط�
 #: .\templates\emails\generic_notification_email.txt:42
 msgid "This is an automated notification."
 msgstr "هذا إشعار آلي."
+
+#: .\templates\emails\new_challenge.html:4
+#: .\templates\emails\new_challenge.html:8
+msgid "New Challenge Invitation"
+msgstr "دعوة تحدي جديدة"
+
+#: .\templates\emails\new_challenge.html:6
+#, python-format
+msgid "%(actor_name)s has challenged you."
+msgstr "لقد تحداك %(actor_name)s."
+
+#: .\templates\emails\new_challenge.html:13
+#, python-format
+msgid ""
+"<strong>%(actor_name)s</strong> has invited you to a new challenge on Qader."
+msgstr "لقد دعاك <strong>%(actor_name)s</strong> إلى تحدي جديد على قادر."
+
+#: .\templates\emails\new_challenge.html:17
+#: .\templates\emails\new_challenge.txt:8
+#, python-format
+msgid "Challenge Type: %(challenge_type)s"
+msgstr "نوع التحدي: %(challenge_type)s"
+
+#: .\templates\emails\new_challenge.html:21
+#: .\templates\emails\new_challenge.txt:11
+msgid "Accept the challenge to test your skills and earn points!"
+msgstr "اقبل التحدي لاختبار مهاراتك وكسب النقاط!"
+
+#: .\templates\emails\new_challenge.html:29
+#: .\templates\emails\new_challenge.txt:14
+msgid "View Challenge"
+msgstr "عرض التحدي"
+
+#: .\templates\emails\new_challenge.txt:5
+#, fuzzy, python-format
+#| msgid ""
+#| "<strong>%(actor_name)s</strong> has invited you to a new challenge on "
+#| "Qader."
+msgid "%(actor_name)s has invited you to a new challenge on Qader."
+msgstr "لقد دعاك <strong>%(actor_name)s</strong> إلى تحدي جديد على قادر."
 
 #: .\templates\emails\password_reset_body.html:4
 msgid "Password Reset Request"
