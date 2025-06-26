@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminUsers } from "@/services/admin.service";
+import { queryKeys } from "@/constants/queryKeys";
+import { DataTablePagination } from "@/components/shared/DataTablePagination";
+
 import {
   Card,
   CardContent,
@@ -13,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -27,9 +30,8 @@ import { cn } from "@/lib/utils";
 import { AdminUserListItem } from "@/types/api/admin.types";
 import EmployeeTableActions from "./EmployeeTableActions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { queryKeys } from "@/constants/queryKeys";
 
-// A dedicated component for the status badge
+// UserStatusBadge component is unchanged...
 const UserStatusBadge = ({ isActive }: { isActive: boolean }) => {
   const t = useTranslations("Admin.EmployeeManagement.statuses");
   const text = isActive ? t("active") : t("inactive");
@@ -56,26 +58,36 @@ const UserStatusBadge = ({ isActive }: { isActive: boolean }) => {
   );
 };
 
+const ITEMS_PER_PAGE = 20;
+
 export default function EmployeeClient() {
   const t = useTranslations("Admin.EmployeeManagement");
   const tRoles = useTranslations("Admin.EmployeeManagement.roles");
 
-  // Using the new structured query key
-  // Define the roles we want to fetch for this "Employee" page
+  const [currentPage, setCurrentPage] = useState(1);
   const employeeRoles = ["admin", "sub_admin", "teacher", "trainer"];
 
-  const { data, isLoading, isError, error } = useQuery({
-    // 1. Update the queryKey to be specific to this filtered view.
-    // This is crucial for caching.
-    queryKey: queryKeys.admin.users.list({ roles: employeeRoles }),
-
-    // 2. Pass the filter to the API call function.
-    queryFn: () => getAdminUsers({ role: employeeRoles }),
-
-    placeholderData: (previousData) => previousData,
-  });
+  // --- Start of Changes ---
+  // 2. Destructure isFetching from useQuery for the pagination component
+  const { data, isLoading, isError, error, isPlaceholderData, isFetching } =
+    useQuery({
+      queryKey: queryKeys.admin.users.list({
+        roles: employeeRoles,
+        page: currentPage,
+      }),
+      queryFn: () =>
+        getAdminUsers({
+          role: employeeRoles,
+          page: currentPage,
+        }),
+      placeholderData: (previousData) => previousData,
+    });
 
   const users = useMemo(() => data?.results ?? [], [data]);
+
+  // 3. Calculate pageCount and other props needed by DataTablePagination
+  const pageCount = data?.count ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
+  // --- End of Changes ---
 
   if (isError) {
     return (
@@ -90,6 +102,7 @@ export default function EmployeeClient() {
 
   return (
     <Card>
+      {/* CardHeader is unchanged */}
       <CardHeader>
         <CardTitle>{t("employeeList")}</CardTitle>
         <CardDescription>{t("employeeListDescription")}</CardDescription>
@@ -106,6 +119,7 @@ export default function EmployeeClient() {
       <CardContent>
         <div className="rounded-md border">
           <Table>
+            {/* TableHeader is unchanged */}
             <TableHeader>
               <TableRow>
                 <TableHead>{t("table.id")}</TableHead>
@@ -127,8 +141,13 @@ export default function EmployeeClient() {
                   </TableCell>
                 </TableRow>
               ) : users.length > 0 ? (
-                users.map((emp: AdminUserListItem) => (
-                  <TableRow key={emp.user_id}>
+                users.map((emp) => (
+                  <TableRow
+                    key={emp.user_id}
+                    className={
+                      isPlaceholderData ? "opacity-50 transition-opacity" : ""
+                    }
+                  >
                     <TableCell className="font-medium">{emp.user_id}</TableCell>
                     <TableCell className="font-semibold">
                       {emp.full_name}
@@ -158,6 +177,15 @@ export default function EmployeeClient() {
             </TableBody>
           </Table>
         </div>
+
+        <DataTablePagination
+          page={currentPage}
+          pageCount={pageCount}
+          setPage={setCurrentPage}
+          canPreviousPage={currentPage > 1}
+          canNextPage={currentPage < pageCount}
+          isFetching={isFetching}
+        />
       </CardContent>
     </Card>
   );

@@ -1,6 +1,7 @@
 import { apiClient } from "./apiClient";
 import type { PaginatedResponse } from "@/types/api";
 import type {
+  CreateAdminUserPayload,
   AdminUserListItem,
   AdminUserProfile,
   UpdateAdminUserPayload,
@@ -42,6 +43,17 @@ export const updateAdminUser = (
 ) => {
   return apiClient<AdminUserProfile>(API_ENDPOINTS.ADMIN.USERS.DETAIL(userId), {
     method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+};
+
+/**
+ * Creates a new user/employee from the admin panel.
+ * @param payload - The data for the new user.
+ */
+export const createAdminUser = (payload: CreateAdminUserPayload) => {
+  return apiClient(API_ENDPOINTS.ADMIN.USERS.LIST, {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 };

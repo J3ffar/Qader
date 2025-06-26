@@ -46,3 +46,14 @@ export interface AdminUserProfile extends AdminUserListItem {
   profile_picture: string | null;
   // ... any other fields from the detailed endpoint
 }
+
+// Payload for creating a new user/employee via the admin panel
+export interface CreateAdminUserPayload {
+  username: string;
+  email: string;
+  password: string;
+  password_confirm: string;
+  full_name: string;
+  role: 'student' | 'teacher' | 'trainer' | 'admin' | 'sub_admin';
+  // Add other optional fields if needed, e.g., gender, grade
+}
