@@ -62,5 +62,15 @@
     "nextPage": "انتقال إلى الصفحة التالية",
     "lastPage": "انتقال إلى الصفحة الأخيرة",
     "pageInfo": "صفحة {currentPage} من {totalPages}"
+  },
+  "Challenges": {
+    "newChallengeInvite": "دعوة تحدي جديدة",
+    "newChallengeInviteDesc": "لقد تحداك {user}.",
+    "challengeAccepted": "تم قبول التحدي بنجاح.",
+    "errorAcceptingChallenge": "خطأ في قبول التحدي.",
+    "challengeDeclined": "تم رفض التحدي.",
+    "errorDecliningChallenge": "خطأ في رفض التحدي.",
+    "accept": "قبول",
+    "decline": "رفض"
   }
 }
