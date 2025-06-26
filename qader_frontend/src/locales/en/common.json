@@ -71,6 +71,9 @@
     "challengeDeclined": "Challenge declined.",
     "errorDecliningChallenge": "Error declining challenge.",
     "accept": "Accept",
-    "decline": "Decline"
+    "decline": "Decline",
+    "acceptingAndPreparing": "Accepting and preparing the challenge...",
+    "challengeAcceptedAndReady": "Challenge accepted and you are ready to start!",
+    "errorGeneric": "An error occurred. Please try again."
   }
 }

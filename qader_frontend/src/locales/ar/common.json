@@ -71,6 +71,9 @@
     "challengeDeclined": "تم رفض التحدي.",
     "errorDecliningChallenge": "خطأ في رفض التحدي.",
     "accept": "قبول",
-    "decline": "رفض"
+    "decline": "رفض",
+    "acceptingAndPreparing": "قبول التحدي وتجهيزه...",
+    "challengeAcceptedAndReady": "تم قبول التحدي وأنت جاهز للبدء!",
+    "errorGeneric": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
   }
 }

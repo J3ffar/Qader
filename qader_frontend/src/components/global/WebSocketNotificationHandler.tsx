@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -22,13 +23,17 @@ import { Button } from "@/components/ui/button";
 import {
   acceptChallenge,
   declineChallenge,
+  markAsReady,
 } from "@/services/challenges.service";
 import { ChallengeDetail } from "@/types/api/challenges.types";
+import { PATHS } from "@/constants/paths";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 export function WebSocketNotificationHandler() {
   const { isAuthenticated } = useAuthCore();
   const queryClient = useQueryClient();
   const t = useTranslations("Common");
+  const router = useRouter();
 
   const [isChallengeInviteOpen, setChallengeInviteOpen] = useState(false);
   const [challengeInvite, setChallengeInvite] =
@@ -84,9 +89,21 @@ export function WebSocketNotificationHandler() {
   const handleAccept = async () => {
     if (!challengeInvite) return;
     try {
-      await acceptChallenge(challengeInvite.id);
-      toast.success(t("Challenges.challengeAccepted"));
-      setChallengeInviteOpen(false);
+      const acceptedChallenge = await acceptChallenge(challengeInvite.id);
+      toast.promise(markAsReady(acceptedChallenge.id), {
+        loading: t("Challenges.acceptingAndPreparing"),
+        success: () => {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.challenges.lists(),
+          });
+          router.push(
+            `${PATHS.STUDY.CHALLENGE_COLLEAGUES}/${acceptedChallenge.id}`
+          );
+          setChallengeInviteOpen(false);
+          return t("Challenges.challengeAcceptedAndReady");
+        },
+        error: (err) => getApiErrorMessage(err, t("Challenges.errorGeneric")),
+      });
     } catch (error) {
       toast.error(t("Challenges.errorAcceptingChallenge"));
     }
