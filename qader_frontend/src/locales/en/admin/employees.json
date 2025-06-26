@@ -1,0 +1,46 @@
+{
+  "EmployeeManagement": {
+    "title": "User Management",
+    "description": "View and manage all users on the platform.",
+    "export": "Export",
+    "addUser": "Add User",
+    "userList": "User List",
+    "userListDescription": "A list of all registered users.",
+    "searchPlaceholder": "Search by name, email...",
+    "filter": "Filter",
+    "sort": "Sort",
+    "table": {
+      "id": "ID",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "joinDate": "Join Date",
+      "actions": "Actions"
+    },
+    "toggleMenu": "Open Menu",
+    "actions": "Actions",
+    "viewDetails": "View Details",
+    "editUser": "Edit User",
+    "deleteUser": "Delete User",
+    "confirmDeleteTitle": "Are you sure?",
+    "confirmDeleteDescription": "This user will be permanently deleted. This action cannot be undone.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "statuses": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "roles": {
+      "student": "Student",
+      "admin": "Admin",
+      "sub_admin": "Sub Admin",
+      "teacher": "Teacher",
+      "trainer": "Trainer"
+    },
+    "notifications": {
+      "deleteSuccess": "User deleted successfully.",
+      "deleteError": "Failed to delete user. Please try again."
+    }
+  }
+}

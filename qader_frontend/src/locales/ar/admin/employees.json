@@ -1,0 +1,46 @@
+{
+  "EmployeeManagement": {
+    "title": "إدارة المستخدمين",
+    "description": "عرض وإدارة جميع المستخدمين في المنصة.",
+    "export": "تصدير",
+    "addUser": "إضافة مستخدم",
+    "userList": "قائمة المستخدمين",
+    "userListDescription": "قائمة بجميع المستخدمين المسجلين.",
+    "searchPlaceholder": "البحث بالاسم, الايميل...",
+    "filter": "فلتر",
+    "sort": "فرز",
+    "table": {
+      "id": "الرقم التعريفي",
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "role": "الدور",
+      "status": "الحالة",
+      "joinDate": "تاريخ الانضمام",
+      "actions": "إجراءات"
+    },
+    "toggleMenu": "فتح القائمة",
+    "actions": "إجراءات",
+    "viewDetails": "عرض التفاصيل",
+    "editUser": "تعديل المستخدم",
+    "deleteUser": "حذف المستخدم",
+    "confirmDeleteTitle": "هل أنت متأكد؟",
+    "confirmDeleteDescription": "سيتم حذف هذا المستخدم نهائياً. لا يمكن التراجع عن هذا الإجراء.",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "statuses": {
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "roles": {
+      "student": "طالب",
+      "admin": "مدير",
+      "sub_admin": "مشرف",
+      "teacher": "معلم",
+      "trainer": "مدرب"
+    },
+    "notifications": {
+      "deleteSuccess": "تم حذف المستخدم بنجاح.",
+      "deleteError": "فشل حذف المستخدم. يرجى المحاولة مرة أخرى."
+    }
+  }
+}
