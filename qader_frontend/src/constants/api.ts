@@ -24,6 +24,13 @@ export const API_ENDPOINTS = {
     SUBSCRIPTION_PLANS: "/users/subscription-plans/",
     CANCEL_SUBSCRIPTION: "/users/me/subscription/cancel/",
   },
+  ADMIN: {
+    USERS: {
+      LIST: "/admin/users/",
+      DETAIL: (userId: number | string) => `/admin/users/${userId}/`,
+    },
+    PERMISSIONS: "/admin/permissions/",
+  },
   STUDY: {
     STATISTICS: "/study/statistics/",
     CONVERSATIONS: {

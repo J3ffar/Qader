@@ -25,3 +25,24 @@ export interface AdminUserListItem {
   current_level_quantitative: number | null;
   created_at: string; // ISO 8601 date string
 }
+
+// Type for the PATCH request body when updating a user
+export interface UpdateAdminUserPayload {
+  user?: {
+    is_active?: boolean;
+  };
+  full_name?: string;
+  role?: 'student' | 'teacher' | 'trainer' | 'admin' | 'sub_admin';
+  // Add other editable fields here as needed
+}
+
+// Type for the detailed user profile response from GET /admin/users/{id}/
+// This is a more comprehensive version of AdminUserListItem
+export interface AdminUserProfile extends AdminUserListItem {
+  // Add more detailed fields that are not in the list view
+  gender: string | null;
+  grade: string | null;
+  language: string;
+  profile_picture: string | null;
+  // ... any other fields from the detailed endpoint
+}

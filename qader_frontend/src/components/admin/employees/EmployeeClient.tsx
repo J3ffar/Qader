@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { AdminUserListItem } from "@/types/api/admin.types";
 import EmployeeTableActions from "./EmployeeTableActions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { queryKeys } from "@/constants/queryKeys";
 
 // A dedicated component for the status badge
 const UserStatusBadge = ({ isActive }: { isActive: boolean }) => {
@@ -59,10 +60,10 @@ export default function EmployeeClient() {
   const t = useTranslations("Admin.EmployeeManagement");
   const tRoles = useTranslations("Admin.EmployeeManagement.roles");
 
+  // Using the new structured query key
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["admin", "users"],
+    queryKey: queryKeys.admin.users.list({}), // Using the constant
     queryFn: () => getAdminUsers(),
-    // Keep previous data while refetching for a smoother UX
     placeholderData: (previousData) => previousData,
   });
 

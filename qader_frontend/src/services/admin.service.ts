@@ -1,8 +1,12 @@
 import { apiClient } from "./apiClient";
 import type { PaginatedResponse } from "@/types/api";
-import type { AdminUserListItem } from "@/types/api/admin.types";
+import type {
+  AdminUserListItem,
+  AdminUserProfile,
+  UpdateAdminUserPayload,
+} from "@/types/api/admin.types";
+import { API_ENDPOINTS } from "@/constants/api";
 
-// Define params type for better type-safety
 interface GetAdminUsersParams {
   page?: number;
   search?: string;
@@ -10,13 +14,35 @@ interface GetAdminUsersParams {
   user__is_active?: boolean;
 }
 
-/**
- * Fetches a paginated list of users for the admin panel.
- * @param params - Optional query parameters for filtering and pagination.
- */
 export const getAdminUsers = (params?: GetAdminUsersParams) => {
-  return apiClient<PaginatedResponse<AdminUserListItem>>("/admin/users/", {
-    params,
+  return apiClient<PaginatedResponse<AdminUserListItem>>(
+    API_ENDPOINTS.ADMIN.USERS.LIST,
+    {
+      params,
+    }
+  );
+};
+
+/**
+ * Fetches detailed profile information for a single user.
+ * @param userId - The ID of the user's profile.
+ */
+export const getAdminUserDetail = (userId: number) => {
+  return apiClient<AdminUserProfile>(API_ENDPOINTS.ADMIN.USERS.DETAIL(userId));
+};
+
+/**
+ * Updates a user's profile information.
+ * @param userId - The ID of the user's profile to update.
+ * @param payload - The data to update.
+ */
+export const updateAdminUser = (
+  userId: number,
+  payload: UpdateAdminUserPayload
+) => {
+  return apiClient<AdminUserProfile>(API_ENDPOINTS.ADMIN.USERS.DETAIL(userId), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
 };
 
@@ -25,7 +51,7 @@ export const getAdminUsers = (params?: GetAdminUsersParams) => {
  * @param userId - The ID of the user's profile to delete.
  */
 export const deleteAdminUser = (userId: number) => {
-  return apiClient(`/admin/users/${userId}/`, {
+  return apiClient(API_ENDPOINTS.ADMIN.USERS.DETAIL(userId), {
     method: "DELETE",
   });
 };

@@ -20,6 +20,22 @@ export const queryKeys = {
     subscription: () => [...queryKeys.user.all, "subscription"] as const, // For /users/me
   },
 
+  // ADDING ADMIN SECTION
+  admin: {
+    all: ["admin"] as const,
+    users: {
+      all: () => [...queryKeys.admin.all, "users"] as const,
+      lists: () => [...queryKeys.admin.users.all(), "list"] as const,
+      list: (filters: object) =>
+        [...queryKeys.admin.users.lists(), filters] as const,
+    },
+    userDetails: {
+      all: () => [...queryKeys.admin.all, "userDetails"] as const,
+      detail: (userId: number | string) =>
+        [...queryKeys.admin.userDetails.all(), userId] as const,
+    },
+  },
+
   // --- NOTIFICATIONS ---
   notifications: {
     all: ["notifications"] as const,
