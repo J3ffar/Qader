@@ -1,11 +1,11 @@
 {
   "EmployeeManagement": {
-    "title": "User Management",
-    "description": "View and manage all users on the platform.",
+    "title": "Employee Management",
+    "description": "View and manage all employees on the platform (Admins, Sub-Admins, Trainers, and Teachers).",
     "export": "Export",
-    "addUser": "Add User",
-    "userList": "User List",
-    "userListDescription": "A list of all registered users.",
+    "addUser": "Add Employee",
+    "employeeList": "Employee List",
+    "employeeListDescription": "A list of all employees in your organization.",
     "searchPlaceholder": "Search by name, email...",
     "filter": "Filter",
     "sort": "Sort",
@@ -21,10 +21,10 @@
     "toggleMenu": "Open Menu",
     "actions": "Actions",
     "viewDetails": "View Details",
-    "editUser": "Edit User",
-    "deleteUser": "Delete User",
+    "editUser": "Edit Employee",
+    "deleteUser": "Delete Employee",
     "confirmDeleteTitle": "Are you sure?",
-    "confirmDeleteDescription": "This user will be permanently deleted. This action cannot be undone.",
+    "confirmDeleteDescription": "This employee will be permanently deleted. This action cannot be undone.",
     "cancel": "Cancel",
     "delete": "Delete",
     "statuses": {
@@ -39,8 +39,8 @@
       "trainer": "Trainer"
     },
     "notifications": {
-      "deleteSuccess": "User deleted successfully.",
-      "deleteError": "Failed to delete user. Please try again."
+      "deleteSuccess": "Employee deleted successfully.",
+      "deleteError": "Failed to delete employee. Please try again."
     }
   }
 }

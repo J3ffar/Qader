@@ -61,13 +61,20 @@ export default function EmployeeClient() {
   const tRoles = useTranslations("Admin.EmployeeManagement.roles");
 
   // Using the new structured query key
+  // Define the roles we want to fetch for this "Employee" page
+  const employeeRoles = ["admin", "sub_admin", "teacher", "trainer"];
+
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: queryKeys.admin.users.list({}), // Using the constant
-    queryFn: () => getAdminUsers(),
+    // 1. Update the queryKey to be specific to this filtered view.
+    // This is crucial for caching.
+    queryKey: queryKeys.admin.users.list({ roles: employeeRoles }),
+
+    // 2. Pass the filter to the API call function.
+    queryFn: () => getAdminUsers({ role: employeeRoles }),
+
     placeholderData: (previousData) => previousData,
   });
 
-  // Memoize users to prevent re-renders
   const users = useMemo(() => data?.results ?? [], [data]);
 
   if (isError) {
@@ -75,7 +82,7 @@ export default function EmployeeClient() {
       <Alert variant="destructive">
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>
-          {error.message || "Failed to fetch users."}
+          {error.message || "Failed to fetch employees."}
         </AlertDescription>
       </Alert>
     );
@@ -84,8 +91,8 @@ export default function EmployeeClient() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("userList")}</CardTitle>
-        <CardDescription>{t("userListDescription")}</CardDescription>
+        <CardTitle>{t("employeeList")}</CardTitle>
+        <CardDescription>{t("employeeListDescription")}</CardDescription>
         <div className="mt-4 flex items-center gap-2">
           <Input placeholder={t("searchPlaceholder")} className="max-w-sm" />
           <Button variant="outline" className="gap-1">
@@ -114,10 +121,9 @@ export default function EmployeeClient() {
             </TableHeader>
             <TableBody>
               {isLoading && users.length === 0 ? (
-                // This will show if a refetch is happening from an empty state
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center">
-                    Loading users...
+                    Loading employees...
                   </TableCell>
                 </TableRow>
               ) : users.length > 0 ? (
@@ -145,7 +151,7 @@ export default function EmployeeClient() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center">
-                    No users found.
+                    No employees found.
                   </TableCell>
                 </TableRow>
               )}
