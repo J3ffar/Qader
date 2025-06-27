@@ -7,6 +7,7 @@ import {
   MessageSquareQuote,
   Settings,
   LucideProps,
+  UserCheck,
 } from "lucide-react";
 
 import { PATHS } from "@/constants/paths";
@@ -52,7 +53,7 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminSidebarNavSection[] = [
       },
       {
         labelKey: "AdminSidebar.items.studentsManagement",
-        icon: Users,
+        icon: UserCheck,
         href: PATHS.ADMIN.STUDENTS_MANAGEMENT,
       },
       {

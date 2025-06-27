@@ -4,15 +4,14 @@ import { useState, useMemo } from "react";
 import { useTranslations, useFormatter } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { useDebouncedCallback } from "use-debounce";
-import { Filter, AlertCircle } from "lucide-react";
+import { Filter, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 
 import { getAdminUsers } from "@/services/api/admin/users.service";
 import { queryKeys } from "@/constants/queryKeys";
-import { AdminUserListItem } from "@/types/api/admin/users.types";
 
 import { DataTablePagination } from "@/components/shared/DataTablePagination";
-import { EmployeeTableSkeleton } from "./components/EmployeeTableSkeleton";
-import EmployeeTableActions from "./components/EmployeeTableActions";
+import { StudentTableSkeleton } from "./components/StudentTableSkeleton";
+import StudentTableActions from "./components/StudentTableActions";
 import {
   Card,
   CardContent,
@@ -21,7 +20,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -42,7 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const UserStatusBadge = ({ isActive }: { isActive: boolean }) => {
-  const t = useTranslations("Admin.EmployeeManagement.statuses");
+  const t = useTranslations("Admin.StudentManagement.statuses");
   const text = isActive ? t("active") : t("inactive");
   return (
     <Badge
@@ -69,42 +67,40 @@ const UserStatusBadge = ({ isActive }: { isActive: boolean }) => {
 
 const ITEMS_PER_PAGE = 20;
 
-export default function EmployeeClient() {
-  const t = useTranslations("Admin.EmployeeManagement");
-  const tRoles = useTranslations("Admin.EmployeeManagement.roles");
+export default function StudentClient() {
+  const t = useTranslations("Admin.StudentManagement");
   const format = useFormatter();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(
     undefined
-  ); // undefined for all, true or false
-
-  const employeeRoles = ["admin", "sub_admin", "teacher", "trainer"];
+  );
 
   const debouncedSearch = useDebouncedCallback((value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1); // Reset to first page on new search
+    setCurrentPage(1);
   }, 300);
 
+  // KEY CHANGE: Fetching only users with the 'student' role.
   const { data, isLoading, isError, error, isPlaceholderData, isFetching } =
     useQuery({
       queryKey: queryKeys.admin.users.list({
-        roles: employeeRoles,
+        roles: ["student"], // Filter for students
         page: currentPage,
         search: searchTerm,
         is_active: statusFilter,
       }),
       queryFn: () =>
         getAdminUsers({
-          role: employeeRoles,
+          role: ["student"], // API call with student role
           page: currentPage,
           search: searchTerm,
           user__is_active: statusFilter,
-          // page_size: ITEMS_PER_PAGE // If your API supports it
+          page_size: ITEMS_PER_PAGE,
         }),
       placeholderData: (previousData) => previousData,
-      staleTime: 5 * 1000, // 5 seconds
+      staleTime: 5 * 1000,
     });
 
   const users = useMemo(() => data?.results ?? [], [data]);
@@ -125,8 +121,8 @@ export default function EmployeeClient() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("employeeList")}</CardTitle>
-        <CardDescription>{t("employeeListDescription")}</CardDescription>
+        <CardTitle>{t("studentList")}</CardTitle>
+        <CardDescription>{t("studentListDescription")}</CardDescription>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
           <Input
             placeholder={t("searchPlaceholder")}
@@ -165,7 +161,8 @@ export default function EmployeeClient() {
                 <TableHead className="hidden md:table-cell">
                   {t("table.email")}
                 </TableHead>
-                <TableHead>{t("table.role")}</TableHead>
+                <TableHead>{t("table.subscribed")}</TableHead>
+                <TableHead>{t("table.points")}</TableHead>
                 <TableHead>{t("table.status")}</TableHead>
                 <TableHead className="hidden lg:table-cell">
                   {t("table.joinDate")}
@@ -177,38 +174,49 @@ export default function EmployeeClient() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <EmployeeTableSkeleton rows={ITEMS_PER_PAGE} />
+                <StudentTableSkeleton rows={ITEMS_PER_PAGE} />
               ) : users.length > 0 ? (
-                users.map((emp) => (
+                users.map((student) => (
                   <TableRow
-                    key={emp.user_id}
+                    key={student.user_id}
                     className={isPlaceholderData ? "opacity-50" : ""}
                   >
-                    <TableCell className="font-medium">{emp.user_id}</TableCell>
+                    <TableCell className="font-medium">
+                      {student.user_id}
+                    </TableCell>
                     <TableCell className="font-semibold">
-                      {emp.full_name}
+                      {student.full_name}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {emp.user.email}
+                      {student.user.email}
                     </TableCell>
-                    <TableCell>{tRoles(emp.role)}</TableCell>
                     <TableCell>
-                      <UserStatusBadge isActive={emp.user.is_active} />
+                      {student.is_subscribed ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{student.points}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <UserStatusBadge isActive={student.user.is_active} />
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      {format.dateTime(new Date(emp.user.date_joined), {
+                      {format.dateTime(new Date(student.user.date_joined), {
                         dateStyle: "long",
                       })}
                     </TableCell>
                     <TableCell>
-                      <EmployeeTableActions userId={emp.user_id} />
+                      <StudentTableActions userId={student.user_id} />
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    No employees found.
+                  <TableCell colSpan={8} className="h-24 text-center">
+                    {t("noUsersFound")}
                   </TableCell>
                 </TableRow>
               )}

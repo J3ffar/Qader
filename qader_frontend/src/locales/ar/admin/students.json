@@ -1,0 +1,68 @@
+{
+  "StudentManagement": {
+    "title": "إدارة الطلاب",
+    "description": "عرض وإدارة جميع الطلاب على المنصة.",
+    "export": "تصدير",
+    "addUser": "إضافة طالب",
+    "studentList": "قائمة الطلاب",
+    "studentListDescription": "قائمة بجميع الطلاب في مؤسستك.",
+    "searchPlaceholder": "البحث بالاسم والبريد الإلكتروني...",
+    "filter": "التصفية حسب الحالة",
+    "allStatuses": "جميع الحالات",
+    "noUsersFound": "لم يتم العثور على طلاب.",
+    "table": {
+      "id": "المعرف",
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "subscribed": "مشترك",
+      "points": "النقاط",
+      "status": "الحالة",
+      "joinDate": "تاريخ الانضمام",
+      "actions": "الإجراءات"
+    },
+    "toggleMenu": "تبديل القائمة",
+    "actions": "الإجراءات",
+    "viewDetails": "عرض التفاصيل",
+    "editUser": "تعديل الطالب",
+    "deleteUser": "حذف الطالب",
+    "adjustPoints": "تعديل النقاط",
+    "viewPointLog": "عرض سجل النقاط",
+    "confirmDeleteTitle": "هل أنت متأكد؟",
+    "confirmDeleteDescription": "سيؤدي هذا إلى حذف هذا الطالب بشكل دائم. لا يمكن التراجع عن هذا الإجراء.",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "statuses": {
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "notifications": {
+      "fetchError": "فشل في جلب الطلاب.",
+      "createSuccess": "تم إنشاء الطالب بنجاح.",
+      "createError": "فشل في إنشاء الطالب.",
+      "updateSuccess": "تم تحديث الطالب بنجاح.",
+      "updateError": "فشل في تحديث الطالب.",
+      "deleteSuccess": "تم حذف الطالب بنجاح.",
+      "deleteError": "فشل في حذف الطالب. يرجى المحاولة مرة أخرى."
+    },
+    "form": {
+      "fullNameLabel": "الاسم الكامل",
+      "fullNamePlaceholder": "أدخل الاسم الكامل للطالب",
+      "usernameLabel": "اسم المستخدم",
+      "usernamePlaceholder": "أدخل اسم مستخدم فريدًا",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "student@example.com",
+      "passwordLabel": "كلمة المرور",
+      "passwordConfirmLabel": "تأكيد كلمة المرور",
+      "addDialogTitle": "إضافة طالب جديد",
+      "addDialogDescription": "املأ التفاصيل لإنشاء حساب طالب جديد.",
+      "editDialogTitle": "تعديل الطالب",
+      "editDialogDescription": "قم بتحديث تفاصيل الطالب أدناه.",
+      "fullNameRequired": "الاسم الكامل مطلوب.",
+      "usernameRequired": "اسم المستخدم مطلوب.",
+      "emailInvalid": "البريد الإلكتروني غير صالح.",
+      "passwordMinLength": "يجب أن لا تقل كلمة المرور عن 8 أحرف.",
+      "passwordConfirmMinLength": "يجب أن لا يقل تأكيد كلمة المرور عن 8 أحرف.",
+      "passwordsMismatch": "كلمات المرور غير متطابقة."
+    }
+  }
+}

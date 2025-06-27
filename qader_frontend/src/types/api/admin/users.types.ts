@@ -42,7 +42,7 @@ export interface CreateUserPayload {
   password: string;
   password_confirm: string;
   full_name: string;
-  role: "admin" | "sub_admin" | "teacher" | "trainer";
+  role: "admin" | "student" | "sub_admin" | "teacher" | "trainer";
 }
 
 // Payload for PATCH /admin/users/{id}/
