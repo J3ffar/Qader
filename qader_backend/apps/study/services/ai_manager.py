@@ -124,15 +124,15 @@ Context:
     {weak_skills_summary_str}
 - Available Time: {time_context}
 
-Task: Generate 2-3 concise, positive, and actionable tips tailored to this context.
+Task: Generate 4-7 concise, positive, and actionable tips tailored to this context.
 Focus on:
 - Stress management / staying calm.
 - Quick strategies relevant to identified weak areas (if any).
 - General test-taking advice for time pressure.
 
 Your response MUST be a valid JSON object containing EXACTLY ONE key:
-    `tips`: List[str] (A list containing 2 or 3 string tips).
-Example JSON Output:
+    `tips`: List[str] (A list containing 4 or 7 string tips).
+Example JSON Output, use it as referance and make 4-7 tips:
 {{
     "tips": [
     "Take a moment to breathe deeply before you begin. You've got this!",

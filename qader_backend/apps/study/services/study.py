@@ -1598,8 +1598,8 @@ def _generate_ai_emergency_tips(
         if (
             isinstance(generated_tips, list)
             and all(isinstance(tip, str) for tip in generated_tips)
-            and 1 < len(generated_tips) <= 3
-        ):  # Expect 2 or 3 tips
+            and 1 < len(generated_tips) <= 10
+        ):  # Expect 2 or 10 tips
             logger.info(
                 f"Successfully generated {len(generated_tips)} AI emergency tips for user {user.id}."
             )
