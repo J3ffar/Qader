@@ -9,6 +9,7 @@
     "searchPlaceholder": "Search by name, email...",
     "filter": "Filter",
     "sort": "Sort",
+    "allStatuses": "All Statuses",
     "table": {
       "id": "ID",
       "name": "Name",
@@ -18,7 +19,7 @@
       "joinDate": "Join Date",
       "actions": "Actions"
     },
-    "toggleMenu": "Open Menu",
+    "toggleMenu": "Toggle menu",
     "actions": "Actions",
     "viewDetails": "View Details",
     "editUser": "Edit Employee",
@@ -34,13 +35,46 @@
     "roles": {
       "student": "Student",
       "admin": "Admin",
-      "sub_admin": "Sub Admin",
+      "sub_admin": "Sub-Admin",
       "teacher": "Teacher",
       "trainer": "Trainer"
     },
     "notifications": {
+      "createSuccess": "Employee created successfully.",
+      "createError": "Failed to create employee.",
+      "updateSuccess": "Employee updated successfully.",
+      "updateError": "Failed to update employee.",
       "deleteSuccess": "Employee deleted successfully.",
       "deleteError": "Failed to delete employee. Please try again."
-    }
+    },
+    "form": {
+      "fullNameLabel": "Full Name",
+      "fullNamePlaceholder": "Enter the employee's full name",
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "Enter a unique username",
+      "emailLabel": "Email",
+      "emailPlaceholder": "employee@example.com",
+      "roleLabel": "Role",
+      "rolePlaceholder": "Select a role",
+      "passwordLabel": "Password",
+      "passwordConfirmLabel": "Confirm Password",
+      "addDialogTitle": "Add New Employee",
+      "addDialogDescription": "Fill in the details to create a new employee account.",
+      "editDialogTitle": "Edit Employee",
+      "editDialogDescription": "Update the employee's details below.",
+      "fullNameRequired": "Full name is required.",
+      "usernameRequired": "Username is required.",
+      "emailInvalid": "Invalid email address.",
+      "roleRequired": "Role is required.",
+      "passwordMinLength": "Password must be at least 8 characters.",
+      "passwordConfirmMinLength": "Confirm password must be at least 8 characters.",
+      "passwordsMismatch": "Passwords do not match."
+    },
+    "viewDetailsDescription": "Details for {fullName}.",
+    "loadingUserDetails": "Loading user details...",
+    "points": "Points",
+    "subscribed": "Subscribed",
+    "yes": "Yes",
+    "no": "No"
   }
 }

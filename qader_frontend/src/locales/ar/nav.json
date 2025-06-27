@@ -137,6 +137,7 @@
 
   "AdminSidebar": {
     "sidebarNavigationLabel": "التنقل في لوحة التحكم",
+    "toggleClose": "إغلاق القائمة",
     "logoAlt": "شعار قادر",
     "sections": {
       "management": "إدارة المنصة",

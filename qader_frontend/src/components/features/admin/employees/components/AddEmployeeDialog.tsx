@@ -1,24 +1,21 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { createAdminUser } from "@/services/admin.service";
-import { queryKeys } from "@/constants/queryKeys";
-import { CreateAdminUserPayload } from "@/types/api/admin.types";
-
-import { Button } from "@/components/ui/button";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
 import {
@@ -30,6 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -37,37 +35,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { queryKeys } from "@/constants/queryKeys";
+import { createAdminUser } from "@/services/api/admin/users.service";
+import { CreateUserPayload } from "@/types/api/admin/users.types";
 
 interface AddEmployeeDialogProps {
   isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
+  onOpenChange: (open: boolean) => void;
 }
 
-// Define the schema with password confirmation
-const formSchema = z
-  .object({
-    full_name: z.string().min(2, "Full name must be at least 2 characters."),
-    username: z.string().min(3, "Username must be at least 3 characters."),
-    email: z.string().email("Invalid email address."),
-    role: z.enum(["teacher", "trainer", "admin", "sub_admin"], {
-      required_error: "Please select a role.",
-    }),
-    password: z.string().min(8, "Password must be at least 8 characters."),
-    password_confirm: z.string(),
-  })
-  .refine((data) => data.password === data.password_confirm, {
-    message: "Passwords do not match",
-    path: ["password_confirm"], // Set the error on the confirmation field
-  });
+const addEmployeeFormSchema = (t: any) =>
+  z
+    .object({
+      full_name: z.string().min(1, { message: t("form.fullNameRequired") }),
+      username: z.string().min(1, { message: t("form.usernameRequired") }),
+      email: z.string().email({ message: t("form.emailInvalid") }),
+      role: z.enum(["admin", "sub_admin", "teacher", "trainer"], {
+        message: t("form.roleRequired"),
+      }),
+      password: z.string().min(8, { message: t("form.passwordMinLength") }),
+      password_confirm: z.string().min(8, {
+        message: t("form.passwordConfirmMinLength"),
+      }),
+    })
+    .refine((data) => data.password === data.password_confirm, {
+      message: t("form.passwordsMismatch"),
+      path: ["password_confirm"],
+    });
 
 export default function AddEmployeeDialog({
   isOpen,
   onOpenChange,
 }: AddEmployeeDialogProps) {
   const t = useTranslations("Admin.EmployeeManagement");
-  const tShared = useTranslations("Shared");
+  const tCommon = useTranslations("Common");
   const queryClient = useQueryClient();
+
+  const formSchema = addEmployeeFormSchema(t);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -75,51 +79,58 @@ export default function AddEmployeeDialog({
       full_name: "",
       username: "",
       email: "",
+      role: "teacher", // Default role
       password: "",
       password_confirm: "",
     },
   });
 
   const { mutate: createUser, isPending } = useMutation({
-    mutationFn: (data: CreateAdminUserPayload) => createAdminUser(data),
+    mutationFn: (data: CreateUserPayload) => createAdminUser(data),
     onSuccess: () => {
-      toast.success("Employee created successfully.");
+      toast.success(t("notifications.createSuccess"));
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.users.lists(),
+        queryKey: queryKeys.admin.users.lists() as any,
       });
       onOpenChange(false);
       form.reset();
     },
     onError: (error) => {
-      toast.error("Failed to create employee", {
-        description: getApiErrorMessage(error, "Failed to create employee"),
+      toast.error(t("notifications.createError"), {
+        description: getApiErrorMessage(error, t("notifications.createError")),
       });
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    createUser(values);
-  }
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    createUser(data);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("addUser")}</DialogTitle>
+          <DialogTitle>{t("form.addDialogTitle")}</DialogTitle>
           <DialogDescription>
-            Fill in the details to create a new employee account.
+            {t("form.addDialogDescription")}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="grid gap-4 py-4"
+          >
             <FormField
               control={form.control}
               name="full_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>{t("form.fullNameLabel")}</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input
+                      placeholder={t("form.fullNamePlaceholder")}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -130,9 +141,12 @@ export default function AddEmployeeDialog({
               name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Username</FormLabel>
+                  <FormLabel>{t("form.usernameLabel")}</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input
+                      placeholder={t("form.usernamePlaceholder")}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -143,9 +157,12 @@ export default function AddEmployeeDialog({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t("form.emailLabel")}</FormLabel>
                   <FormControl>
-                    <Input type="email" {...field} />
+                    <Input
+                      placeholder={t("form.emailPlaceholder")}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -156,24 +173,27 @@ export default function AddEmployeeDialog({
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t("table.role")}</FormLabel>
+                  <FormLabel>{t("form.roleLabel")}</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
+                        <SelectValue placeholder={t("form.rolePlaceholder")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {["teacher", "trainer", "admin", "sub_admin"].map(
-                        (role) => (
-                          <SelectItem key={role} value={role}>
-                            {t(`roles.${role}`)}
-                          </SelectItem>
-                        )
-                      )}
+                      <SelectItem value="admin">{t("roles.admin")}</SelectItem>
+                      <SelectItem value="sub_admin">
+                        {t("roles.sub_admin")}
+                      </SelectItem>
+                      <SelectItem value="teacher">
+                        {t("roles.teacher")}
+                      </SelectItem>
+                      <SelectItem value="trainer">
+                        {t("roles.trainer")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -185,7 +205,7 @@ export default function AddEmployeeDialog({
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>{t("form.passwordLabel")}</FormLabel>
                   <FormControl>
                     <Input type="password" {...field} />
                   </FormControl>
@@ -198,7 +218,7 @@ export default function AddEmployeeDialog({
               name="password_confirm"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
+                  <FormLabel>{t("form.passwordConfirmLabel")}</FormLabel>
                   <FormControl>
                     <Input type="password" {...field} />
                   </FormControl>
@@ -209,11 +229,11 @@ export default function AddEmployeeDialog({
             <DialogFooter className="pt-4">
               <DialogClose asChild>
                 <Button type="button" variant="secondary">
-                  {tShared("cancel")}
+                  {tCommon("cancel")}
                 </Button>
               </DialogClose>
               <Button type="submit" disabled={isPending}>
-                {isPending ? tShared("creating") : tShared("create")}
+                {isPending ? tCommon("creating") : tCommon("create")}
               </Button>
             </DialogFooter>
           </form>

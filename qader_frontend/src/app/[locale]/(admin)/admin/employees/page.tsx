@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import EmployeeClient from "@/components/admin/employees/EmployeeClient";
-import AddEmployeeDialog from "@/components/admin/employees/AddEmployeeDialog";
+import EmployeeClient from "@/components/features/admin/employees/EmployeeClient";
+import AddEmployeeDialog from "@/components/features/admin/employees/components/AddEmployeeDialog";
 
 export default function AdminEmployeesPage() {
   const t = useTranslations("Admin.EmployeeManagement");

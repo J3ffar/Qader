@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
-import { getAdminUserDetail } from "@/services/admin.service";
+import { useTranslations, useFormatter } from "next-intl";
+import { getAdminUserDetail } from "@/services/api/admin/users.service";
 import { queryKeys } from "@/constants/queryKeys";
 import {
   Dialog,
@@ -40,6 +40,7 @@ export default function ViewUserDialog({
   onOpenChange,
 }: ViewUserDialogProps) {
   const t = useTranslations("Admin.EmployeeManagement");
+  const format = useFormatter();
 
   const {
     data: user,
@@ -93,12 +94,14 @@ export default function ViewUserDialog({
           />
           <DetailRow
             label={t("table.joinDate")}
-            value={new Date(user.user.date_joined).toLocaleString()}
+            value={format.dateTime(new Date(user.user.date_joined), {
+              dateStyle: "long",
+            })}
           />
-          <DetailRow label="Points" value={user.points} />
+          <DetailRow label={t("points")} value={user.points} />
           <DetailRow
-            label="Subscribed"
-            value={user.is_subscribed ? "Yes" : "No"}
+            label={t("subscribed")}
+            value={user.is_subscribed ? t("yes") : t("no")}
           />
         </div>
       );
@@ -112,8 +115,8 @@ export default function ViewUserDialog({
           <DialogTitle>{t("viewDetails")}</DialogTitle>
           <DialogDescription>
             {user
-              ? `Details for ${user.full_name}.`
-              : "Loading user details..."}
+              ? t("viewDetailsDescription", { fullName: user.full_name })
+              : t("loadingUserDetails")}
           </DialogDescription>
         </DialogHeader>
         {renderContent()}

@@ -27,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { deleteAdminUser } from "@/services/admin.service";
+import { deleteAdminUser } from "@/services/api/admin/users.service";
 
 // Import the new dialogs
 import ViewUserDialog from "./ViewUserDialog";
@@ -47,7 +47,7 @@ export default function EmployeeTableActions({ userId }: { userId: number }) {
       toast.success(t("notifications.deleteSuccess"));
       // Use structured query key for invalidation
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.users.lists(),
+        queryKey: queryKeys.admin.users.lists() as any,
       });
     },
     onError: (error) => {
@@ -100,7 +100,7 @@ export default function EmployeeTableActions({ userId }: { userId: number }) {
               onClick={() => deleteUserMutation(userId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isPending ? "Deleting..." : t("delete")}
+              {isPending ? t("deleting") : t("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

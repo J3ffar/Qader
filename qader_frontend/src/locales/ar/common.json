@@ -20,6 +20,10 @@
   "attempt": "الاختبار",
   "overallScore": "بشكل عام",
 
+  "save": "حفظ",
+  "saveChanges": "تم الحفظ",
+  "create": "انشاء",
+
   "language": "اللغة",
   "selectLanguage": "اختر لغة",
   "arabic": "العربية",

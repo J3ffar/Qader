@@ -8,14 +8,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
-import { getAdminUserDetail, updateAdminUser } from "@/services/admin.service";
+import {
+  getAdminUserDetail,
+  updateAdminUser,
+} from "@/services/api/admin/users.service";
 import { queryKeys } from "@/constants/queryKeys";
-import { UpdateAdminUserPayload } from "@/types/api/admin.types";
+import { UpdateUserPayload } from "@/types/api/admin/users.types";
 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -46,11 +50,20 @@ interface EditUserDialogProps {
   onOpenChange: (isOpen: boolean) => void;
 }
 
-const formSchema = z.object({
-  full_name: z.string().min(2, "Full name is required."),
-  role: z.enum(["student", "teacher", "trainer", "admin", "sub_admin"]),
-  is_active: z.boolean(),
-});
+const formSchema = (t: any) =>
+  z.object({
+    full_name: z.string().min(1, { message: t("form.fullNameRequired") }),
+    username: z
+      .string()
+      .min(1, { message: t("form.usernameRequired") })
+      .optional(),
+    email: z
+      .string()
+      .email({ message: t("form.emailInvalid") })
+      .optional(),
+    role: z.enum(["student", "teacher", "trainer", "admin", "sub_admin"]),
+    is_active: z.boolean(),
+  });
 
 export default function EditUserDialog({
   userId,
@@ -58,6 +71,7 @@ export default function EditUserDialog({
   onOpenChange,
 }: EditUserDialogProps) {
   const t = useTranslations("Admin.EmployeeManagement");
+  const tCommon = useTranslations("Common");
   const queryClient = useQueryClient();
 
   const { data: user, isLoading: isUserLoading } = useQuery({
@@ -66,14 +80,18 @@ export default function EditUserDialog({
     enabled: !!userId && isOpen,
   });
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const formSchemaInstance = formSchema(t);
+
+  const form = useForm<z.infer<typeof formSchemaInstance>>({
+    resolver: zodResolver(formSchemaInstance),
   });
 
   useEffect(() => {
     if (user) {
       form.reset({
         full_name: user.full_name,
+        username: user.user.username,
+        email: user.user.email,
         role: user.role,
         is_active: user.user.is_active,
       });
@@ -81,28 +99,31 @@ export default function EditUserDialog({
   }, [user, form]);
 
   const { mutate: updateUser, isPending } = useMutation({
-    mutationFn: (data: UpdateAdminUserPayload) =>
-      updateAdminUser(userId!, data),
+    mutationFn: (data: UpdateUserPayload) => updateAdminUser(userId!, data),
     onSuccess: () => {
-      toast.success("User updated successfully.");
+      toast.success(t("notifications.updateSuccess"));
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.users.lists(),
+        queryKey: queryKeys.admin.users.lists() as any,
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.userDetails.detail(userId!),
+        queryKey: queryKeys.admin.userDetails.detail(userId!) as any,
       });
       onOpenChange(false);
     },
     onError: (error) => {
-      toast.error("Failed to update user.", { description: error.message });
+      toast.error(t("notifications.updateError"), {
+        description: error.message,
+      });
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const payload: UpdateAdminUserPayload = {
+  function onSubmit(values: z.infer<typeof formSchemaInstance>) {
+    const payload: UpdateUserPayload = {
       full_name: values.full_name,
       role: values.role,
       user: {
+        username: values.username,
+        email: values.email,
         is_active: values.is_active,
       },
     };
@@ -113,10 +134,15 @@ export default function EditUserDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{t("editUser")}</DialogTitle>
+          <DialogTitle>{t("form.editDialogTitle")}</DialogTitle>
+          <DialogDescription>
+            {t("form.editDialogDescription")}
+          </DialogDescription>
         </DialogHeader>
         {isUserLoading ? (
           <div className="space-y-4 py-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-6 w-24" />
@@ -132,9 +158,44 @@ export default function EditUserDialog({
                 name="full_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("table.name")}</FormLabel>
+                    <FormLabel>{t("form.fullNameLabel")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="User's full name" {...field} />
+                      <Input
+                        placeholder={t("form.fullNamePlaceholder")}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("form.usernameLabel")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t("form.usernamePlaceholder")}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("form.emailLabel")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t("form.emailPlaceholder")}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -145,14 +206,16 @@ export default function EditUserDialog({
                 name="role"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("table.role")}</FormLabel>
+                    <FormLabel>{t("form.roleLabel")}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a role" />
+                          <SelectValue
+                            placeholder={t("form.rolePlaceholder")}
+                          />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -193,11 +256,11 @@ export default function EditUserDialog({
               <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button" variant="secondary">
-                    {t("cancel")}
+                    {tCommon("cancel")}
                   </Button>
                 </DialogClose>
                 <Button type="submit" disabled={isPending}>
-                  {isPending ? "Saving..." : "Save changes"}
+                  {isPending ? tCommon("saving") : tCommon("saveChanges")}
                 </Button>
               </DialogFooter>
             </form>

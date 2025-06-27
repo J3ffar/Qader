@@ -1,12 +1,18 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useFormatter } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
-import { getAdminUsers } from "@/services/admin.service";
-import { queryKeys } from "@/constants/queryKeys";
-import { DataTablePagination } from "@/components/shared/DataTablePagination";
+import { useDebouncedCallback } from "use-debounce";
+import { Filter, AlertCircle } from "lucide-react";
 
+import { getAdminUsers } from "@/services/api/admin/users.service";
+import { queryKeys } from "@/constants/queryKeys";
+import { AdminUserListItem } from "@/types/api/admin/users.types";
+
+import { DataTablePagination } from "@/components/shared/DataTablePagination";
+import { EmployeeTableSkeleton } from "./components/EmployeeTableSkeleton";
+import EmployeeTableActions from "./components/EmployeeTableActions";
 import {
   Card,
   CardContent,
@@ -16,7 +22,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Filter } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -26,22 +31,26 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { AdminUserListItem } from "@/types/api/admin.types";
-import EmployeeTableActions from "./EmployeeTableActions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
-// UserStatusBadge component is unchanged...
 const UserStatusBadge = ({ isActive }: { isActive: boolean }) => {
   const t = useTranslations("Admin.EmployeeManagement.statuses");
   const text = isActive ? t("active") : t("inactive");
   return (
     <Badge
-      variant={isActive ? "default" : "secondary"}
-      className={cn("text-xs font-normal", {
-        "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300":
+      variant="outline"
+      className={cn("text-xs", {
+        "border-green-300 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300":
           isActive,
-        "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300":
+        "border-gray-300 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300":
           !isActive,
       })}
     >
@@ -51,50 +60,63 @@ const UserStatusBadge = ({ isActive }: { isActive: boolean }) => {
             "bg-green-500": isActive,
             "bg-gray-500": !isActive,
           })}
-        ></span>
+        />
         {text}
       </span>
     </Badge>
   );
 };
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 10;
 
 export default function EmployeeClient() {
   const t = useTranslations("Admin.EmployeeManagement");
   const tRoles = useTranslations("Admin.EmployeeManagement.roles");
+  const format = useFormatter();
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<boolean | undefined>(
+    undefined
+  ); // undefined for all, true or false
+
   const employeeRoles = ["admin", "sub_admin", "teacher", "trainer"];
 
-  // --- Start of Changes ---
-  // 2. Destructure isFetching from useQuery for the pagination component
+  const debouncedSearch = useDebouncedCallback((value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on new search
+  }, 300);
+
   const { data, isLoading, isError, error, isPlaceholderData, isFetching } =
     useQuery({
       queryKey: queryKeys.admin.users.list({
         roles: employeeRoles,
         page: currentPage,
+        search: searchTerm,
+        is_active: statusFilter,
       }),
       queryFn: () =>
         getAdminUsers({
           role: employeeRoles,
           page: currentPage,
+          search: searchTerm,
+          user__is_active: statusFilter,
+          // page_size: ITEMS_PER_PAGE // If your API supports it
         }),
       placeholderData: (previousData) => previousData,
+      staleTime: 5 * 1000, // 5 seconds
     });
 
   const users = useMemo(() => data?.results ?? [], [data]);
-
-  // 3. Calculate pageCount and other props needed by DataTablePagination
   const pageCount = data?.count ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
-  // --- End of Changes ---
 
   if (isError) {
     return (
       <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>
-          {error.message || "Failed to fetch employees."}
+          {error.message || t("notifications.fetchError")}
         </AlertDescription>
       </Alert>
     );
@@ -102,65 +124,81 @@ export default function EmployeeClient() {
 
   return (
     <Card>
-      {/* CardHeader is unchanged */}
       <CardHeader>
         <CardTitle>{t("employeeList")}</CardTitle>
         <CardDescription>{t("employeeListDescription")}</CardDescription>
-        <div className="mt-4 flex items-center gap-2">
-          <Input placeholder={t("searchPlaceholder")} className="max-w-sm" />
-          <Button variant="outline" className="gap-1">
-            <Filter className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              {t("filter")}
-            </span>
-          </Button>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Input
+            placeholder={t("searchPlaceholder")}
+            className="max-w-sm"
+            onChange={(e) => debouncedSearch(e.target.value)}
+          />
+          <div className="flex items-center gap-2">
+            <Select
+              value={
+                statusFilter === undefined ? "all" : statusFilter.toString()
+              }
+              onValueChange={(value) => {
+                setStatusFilter(value === "all" ? undefined : value === "true");
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder={t("filter")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("allStatuses")}</SelectItem>
+                <SelectItem value="true">{t("statuses.active")}</SelectItem>
+                <SelectItem value="false">{t("statuses.inactive")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="rounded-md border">
           <Table>
-            {/* TableHeader is unchanged */}
             <TableHeader>
               <TableRow>
                 <TableHead>{t("table.id")}</TableHead>
                 <TableHead>{t("table.name")}</TableHead>
-                <TableHead>{t("table.email")}</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  {t("table.email")}
+                </TableHead>
                 <TableHead>{t("table.role")}</TableHead>
                 <TableHead>{t("table.status")}</TableHead>
-                <TableHead>{t("table.joinDate")}</TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  {t("table.joinDate")}
+                </TableHead>
                 <TableHead>
                   <span className="sr-only">{t("table.actions")}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    Loading employees...
-                  </TableCell>
-                </TableRow>
+              {isLoading ? (
+                <EmployeeTableSkeleton rows={ITEMS_PER_PAGE} />
               ) : users.length > 0 ? (
                 users.map((emp) => (
                   <TableRow
                     key={emp.user_id}
-                    className={
-                      isPlaceholderData ? "opacity-50 transition-opacity" : ""
-                    }
+                    className={isPlaceholderData ? "opacity-50" : ""}
                   >
                     <TableCell className="font-medium">{emp.user_id}</TableCell>
                     <TableCell className="font-semibold">
                       {emp.full_name}
                     </TableCell>
-                    <TableCell>{emp.user.email}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {emp.user.email}
+                    </TableCell>
                     <TableCell>{tRoles(emp.role)}</TableCell>
                     <TableCell>
                       <UserStatusBadge isActive={emp.user.is_active} />
                     </TableCell>
-                    <TableCell>
-                      {new Date(emp.user.date_joined).toLocaleDateString(
-                        "en-CA"
-                      )}
+                    <TableCell className="hidden lg:table-cell">
+                      {format.dateTime(new Date(emp.user.date_joined), {
+                        dateStyle: "long",
+                      })}
                     </TableCell>
                     <TableCell>
                       <EmployeeTableActions userId={emp.user_id} />
@@ -177,7 +215,6 @@ export default function EmployeeClient() {
             </TableBody>
           </Table>
         </div>
-
         <DataTablePagination
           page={currentPage}
           pageCount={pageCount}
