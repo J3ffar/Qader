@@ -92,7 +92,7 @@ export default function AddEmployeeDialog({
     },
     onError: (error) => {
       toast.error("Failed to create employee", {
-        description: getApiErrorMessage(error),
+        description: getApiErrorMessage(error, "Failed to create employee"),
       });
     },
   });
