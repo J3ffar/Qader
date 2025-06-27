@@ -28,6 +28,13 @@ export const API_ENDPOINTS = {
     USERS: {
       LIST: "/admin/users/",
       DETAIL: (userId: number | string) => `/admin/users/${userId}/`,
+      ADJUST_POINTS: (userId: number) =>
+        `/admin/users/${userId}/adjust-points/`,
+      POINT_LOG: (userId: number) => `/admin/users/${userId}/point-log/`,
+      RESET_PASSWORD: (userId: number) =>
+        `/admin/users/${userId}/reset-password/`,
+      STATISTICS: (userId: number) => `/admin/users/${userId}/statistics/`,
+      TEST_HISTORY: (userId: number) => `/admin/users/${userId}/test-history/`,
     },
     PERMISSIONS: "/admin/permissions/",
   },

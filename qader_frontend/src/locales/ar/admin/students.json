@@ -10,6 +10,12 @@
     "filter": "التصفية حسب الحالة",
     "allStatuses": "جميع الحالات",
     "noUsersFound": "لم يتم العثور على طلاب.",
+    "noPointHistory": "لا يوجد سجل نقاط لهذا المستخدم.",
+    "subscriptionExpires": "انتهاء الاشتراك",
+    "grade": "الدرجة",
+    "levelVerbal": "المستوى اللفظي",
+    "levelQuantitative": "المستوى الكمي",
+    "lastLogin": "آخر تسجيل دخول",
     "table": {
       "id": "المعرف",
       "name": "الاسم",
@@ -18,19 +24,22 @@
       "points": "النقاط",
       "status": "الحالة",
       "joinDate": "تاريخ الانضمام",
-      "actions": "الإجراءات"
+      "actions": "الإجراءات",
+      "date": "التاريخ"
     },
-    "toggleMenu": "تبديل القائمة",
-    "actions": "الإجراءات",
     "viewDetails": "عرض التفاصيل",
     "editUser": "تعديل الطالب",
     "deleteUser": "حذف الطالب",
     "adjustPoints": "تعديل النقاط",
     "viewPointLog": "عرض سجل النقاط",
+    "resetPassword": "إعادة تعيين كلمة المرور",
+    "sendResetLink": "إرسال رابط إعادة التعيين",
+    "toggleMenu": "تبديل القائمة",
+    "actions": "الإجراءات",
     "confirmDeleteTitle": "هل أنت متأكد؟",
     "confirmDeleteDescription": "سيؤدي هذا إلى حذف هذا الطالب بشكل دائم. لا يمكن التراجع عن هذا الإجراء.",
-    "cancel": "إلغاء",
-    "delete": "حذف",
+    "confirmResetPasswordTitle": "إعادة تعيين كلمة مرور المستخدم؟",
+    "confirmResetPasswordDescription": "سيؤدي هذا إلى إرسال رابط إعادة تعيين كلمة المرور إلى عنوان البريد الإلكتروني للمستخدم. سيُطلب منهم إنشاء كلمة مرور جديدة.",
     "statuses": {
       "active": "نشط",
       "inactive": "غير نشط"
@@ -42,7 +51,11 @@
       "updateSuccess": "تم تحديث الطالب بنجاح.",
       "updateError": "فشل في تحديث الطالب.",
       "deleteSuccess": "تم حذف الطالب بنجاح.",
-      "deleteError": "فشل في حذف الطالب. يرجى المحاولة مرة أخرى."
+      "deleteError": "فشل في حذف الطالب. يرجى المحاولة مرة أخرى.",
+      "adjustPointsSuccess": "تم تعديل النقاط بنجاح.",
+      "adjustPointsError": "فشل في تعديل النقاط.",
+      "resetPasswordSuccess": "تم إرسال رابط إعادة تعيين كلمة المرور بنجاح.",
+      "resetPasswordError": "فشل في إرسال رابط إعادة تعيين كلمة المرور."
     },
     "form": {
       "fullNameLabel": "الاسم الكامل",
@@ -57,12 +70,21 @@
       "addDialogDescription": "املأ التفاصيل لإنشاء حساب طالب جديد.",
       "editDialogTitle": "تعديل الطالب",
       "editDialogDescription": "قم بتحديث تفاصيل الطالب أدناه.",
+      "adjustPointsTitle": "تعديل نقاط الطالب",
+      "adjustPointsDescription": "إضافة أو إزالة النقاط يدويًا من رصيد الطالب. استخدم رقمًا سالبًا لطرح النقاط.",
+      "pointsChangeLabel": "النقاط المراد إضافتها/طرحها",
+      "reasonLabel": "سبب التعديل",
+      "reasonPlaceholder": "على سبيل المثال، جائزة للمسابقة، تصحيح، إلخ.",
+      "pointLogTitle": "سجل النقاط",
+      "pointLogDescription": "سجل بجميع معاملات النقاط لهذا المستخدم.",
       "fullNameRequired": "الاسم الكامل مطلوب.",
       "usernameRequired": "اسم المستخدم مطلوب.",
       "emailInvalid": "البريد الإلكتروني غير صالح.",
       "passwordMinLength": "يجب أن لا تقل كلمة المرور عن 8 أحرف.",
       "passwordConfirmMinLength": "يجب أن لا يقل تأكيد كلمة المرور عن 8 أحرف.",
-      "passwordsMismatch": "كلمات المرور غير متطابقة."
+      "passwordsMismatch": "كلمات المرور غير متطابقة.",
+      "pointsChangeNonZero": "لا يمكن أن يكون تغيير النقاط صفرًا.",
+      "reasonMinLength": "يجب أن لا يقل السبب عن 5 أحرف."
     }
   }
 }

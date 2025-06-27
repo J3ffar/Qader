@@ -15,13 +15,14 @@ import { TimeAnalyticsCard } from "./TimeAnalyticsCard";
 import { AverageScoresByTypeCard } from "./AverageScoresByTypeCard";
 import { ActionableInsightsTabs } from "./ActionableInsightsTabs";
 import { queryKeys } from "@/constants/queryKeys";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 export function StatisticsDashboard() {
   const t = useTranslations("Common");
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.study.statistics({
-      TODO: "pass time of the statistics",
+      TODO: "pass the time period of the statistics",
     }),
     queryFn: () => getUserStatistics(),
     retry: 1,
@@ -38,7 +39,7 @@ export function StatisticsDashboard() {
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>{t("error.title")}</AlertTitle>
         <AlertDescription>
-          {t("error.generic")}
+          {getApiErrorMessage(error, t("error.generic"))}
           <br />
           <Button onClick={() => refetch()} variant="link" className="p-0">
             {t("error.retry")}

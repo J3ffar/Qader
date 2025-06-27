@@ -6,6 +6,7 @@ import type {
   AdminUserProfile,
   CreateUserPayload,
   UpdateUserPayload,
+  PointLog,
 } from "@/types/api/admin/users.types";
 
 interface GetAdminUsersParams {
@@ -48,5 +49,30 @@ export const createAdminUser = (payload: CreateUserPayload) => {
 export const deleteAdminUser = (userId: number) => {
   return apiClient(API_ENDPOINTS.ADMIN.USERS.DETAIL(userId), {
     method: "DELETE",
+  });
+};
+
+// Adjust points for a user
+export const adjustUserPoints = (
+  userId: number,
+  payload: { points_change: number; reason: string }
+) => {
+  return apiClient(API_ENDPOINTS.ADMIN.USERS.ADJUST_POINTS(userId), {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+};
+
+// Fetch the point log for a user
+export const getAdminUserPointLog = (userId: number) => {
+  return apiClient<PaginatedResponse<PointLog>>(
+    API_ENDPOINTS.ADMIN.USERS.POINT_LOG(userId)
+  );
+};
+
+// Trigger a password reset for a user
+export const resetUserPassword = (userId: number) => {
+  return apiClient(API_ENDPOINTS.ADMIN.USERS.RESET_PASSWORD(userId), {
+    method: "POST",
   });
 };

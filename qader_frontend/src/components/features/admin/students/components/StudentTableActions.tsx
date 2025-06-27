@@ -1,25 +1,22 @@
 import { useState } from "react";
-import { useTranslations } from "next-intl";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   MoreHorizontal,
-  Pencil,
-  Trash2,
-  Eye,
+  Pen,
+  Trash,
+  List,
   Coins,
   History,
+  KeyRound,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { queryKeys } from "@/constants/queryKeys";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  deleteAdminUser,
+  resetUserPassword,
+} from "@/services/api/admin/users.service";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,10 +27,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteAdminUser } from "@/services/api/admin/users.service";
-import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
-import { queryKeys } from "@/constants/queryKeys";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+import ViewStudentDialog from "./ViewStudentDialog";
 import EditStudentDialog from "./EditStudentDialog";
+import AdjustPointsDialog from "./AdjustPointsDialog";
+import PointLogDialog from "./PointLogDialog";
 
 interface StudentTableActionsProps {
   userId: number;
@@ -46,28 +53,82 @@ export default function StudentTableActions({
   const tCommon = useTranslations("Common");
   const queryClient = useQueryClient();
 
-  const [isEditDialogOpen, setEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isViewOpen, setViewOpen] = useState(false);
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [isAdjustPointsOpen, setAdjustPointsOpen] = useState(false);
+  const [isPointLogOpen, setPointLogOpen] = useState(false);
+  const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [isResetPasswordAlertOpen, setResetPasswordAlertOpen] = useState(false);
 
-  const { mutate: deleteUser, isPending: isDeleting } = useMutation({
-    mutationFn: () => deleteAdminUser(userId),
+  const { mutate: deleteUserMutation, isPending: isDeleting } = useMutation({
+    mutationFn: (userId: number) => deleteAdminUser(userId),
     onSuccess: () => {
       toast.success(t("notifications.deleteSuccess"));
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.users.lists() as any,
       });
+      setDeleteAlertOpen(false);
     },
-    onError: (error) => {
+    onError: (error) =>
       toast.error(t("notifications.deleteError"), {
-        description: getApiErrorMessage(error, t("notifications.deleteError")),
-      });
-    },
-    onSettled: () => setDeleteDialogOpen(false),
+        description: error.message,
+      }),
   });
+
+  const { mutate: resetPasswordMutation, isPending: isResettingPassword } =
+    useMutation({
+      mutationFn: (userId: number) => resetUserPassword(userId),
+      onSuccess: () => {
+        toast.success(t("notifications.resetPasswordSuccess"));
+        setResetPasswordAlertOpen(false);
+      },
+      onError: (error) =>
+        toast.error(t("notifications.resetPasswordError"), {
+          description: error.message,
+        }),
+    });
 
   return (
     <>
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">{t("toggleMenu")}</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+          <DropdownMenuItem onSelect={() => setViewOpen(true)}>
+            <List className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> {t("viewDetails")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+            <Pen className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> {t("editUser")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => setAdjustPointsOpen(true)}>
+            <Coins className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> {t("adjustPoints")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setPointLogOpen(true)}>
+            <History className="ltr:mr-2 rtl:ml-2 h-4 w-4" />{" "}
+            {t("viewPointLog")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setResetPasswordAlertOpen(true)}>
+            <KeyRound className="ltr:mr-2 rtl:ml-2 h-4 w-4" />{" "}
+            {t("resetPassword")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => setDeleteAlertOpen(true)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> {t("deleteUser")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("confirmDeleteTitle")}</AlertDialogTitle>
@@ -78,7 +139,7 @@ export default function StudentTableActions({
           <AlertDialogFooter>
             <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteUser()}
+              onClick={() => deleteUserMutation(userId)}
               disabled={isDeleting}
             >
               {isDeleting ? tCommon("deleting") : tCommon("delete")}
@@ -87,48 +148,57 @@ export default function StudentTableActions({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Reset Password Confirmation Dialog */}
+      <AlertDialog
+        open={isResetPasswordAlertOpen}
+        onOpenChange={setResetPasswordAlertOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("confirmResetPasswordTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("confirmResetPasswordDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => resetPasswordMutation(userId)}
+              disabled={isResettingPassword}
+            >
+              {isResettingPassword ? tCommon("sending") : t("sendResetLink")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Render the feature dialog components */}
+      <ViewStudentDialog
+        userId={userId}
+        isOpen={isViewOpen}
+        onOpenChange={setViewOpen}
+      />
       <EditStudentDialog
         userId={userId}
-        isOpen={isEditDialogOpen}
-        onOpenChange={setEditDialogOpen}
+        isOpen={isEditOpen}
+        onOpenChange={setEditOpen}
       />
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">{t("toggleMenu")}</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => {}} disabled>
-            <Eye className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-            {t("viewDetails")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
-            <Pencil className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-            {t("editUser")}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => {}} disabled>
-            <Coins className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-            {t("adjustPoints")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => {}} disabled>
-            <History className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-            {t("viewPointLog")}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-red-600 focus:text-red-600 dark:focus:text-red-500"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <Trash2 className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-            {t("deleteUser")}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {isAdjustPointsOpen && (
+        <AdjustPointsDialog
+          userId={userId}
+          isOpen={isAdjustPointsOpen}
+          onOpenChange={setAdjustPointsOpen}
+        />
+      )}
+      {isPointLogOpen && (
+        <PointLogDialog
+          userId={userId}
+          isOpen={isPointLogOpen}
+          onOpenChange={setPointLogOpen}
+        />
+      )}
     </>
   );
 }

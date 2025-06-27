@@ -97,7 +97,7 @@ export default function StudentClient() {
           page: currentPage,
           search: searchTerm,
           user__is_active: statusFilter,
-          page_size: ITEMS_PER_PAGE,
+          // page_size: ITEMS_PER_PAGE,
         }),
       placeholderData: (previousData) => previousData,
       staleTime: 5 * 1000,

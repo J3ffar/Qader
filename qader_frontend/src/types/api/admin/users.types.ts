@@ -55,3 +55,14 @@ export interface UpdateUserPayload {
   full_name?: string;
   role?: "admin" | "student" | "sub_admin" | "teacher" | "trainer";
 }
+
+// Represents a single entry in a user's point history
+export interface PointLog {
+  id: number;
+  points: number;
+  reason: string;
+  reason_code: string;
+  timestamp: string; // ISO 8601 date string
+  content_type: number | null;
+  object_id: number | null;
+}
