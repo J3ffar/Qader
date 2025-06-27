@@ -1,4 +1,4 @@
-// From API Docs: /gamification/points-summary/daily/
+// From API Docs: /gamification/points-summary/
 export interface DailyPointSummary {
   date: string; // YYYY-MM-DD
   total_points: number;

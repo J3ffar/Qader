@@ -396,9 +396,9 @@ class StudyDayLogListView(generics.ListAPIView):
 
 @extend_schema_view(
     get=extend_schema(
-        summary="Get Daily Points Summary",
+        summary="Get Points Summary",
         description=(
-            "Retrieve the total points earned/lost by the current user per day "
+            "Retrieve a summary of points earned/lost by the current user, aggregated by day, "
             "within a specified date range. Results are ordered by date ascending."
         ),
         parameters=[
@@ -429,7 +429,7 @@ class StudyDayLogListView(generics.ListAPIView):
 )
 class DailyPointSummaryView(generics.ListAPIView):
     """
-    Provides a daily summary of points earned/lost by the user within a given range.
+    Provides a summary of points earned/lost by the user, aggregated daily, within a given range.
     """
 
     permission_classes = [IsAuthenticated]
