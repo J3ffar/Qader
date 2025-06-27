@@ -28,7 +28,14 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 
 from apps.api.permissions import IsSubscribed  # Use this where appropriate
 from apps.users.models import UserProfile
-from ..models import PointLog, Badge, StudyDayLog, UserBadge, RewardStoreItem
+from ..models import (
+    PointLog,
+    Badge,
+    StudyDayLog,
+    UserBadge,
+    RewardStoreItem,
+    UserRewardPurchase,
+)  # Added import
 from .serializers import (
     DailyPointSummarySerializer,
     GamificationSummarySerializer,
@@ -38,6 +45,7 @@ from .serializers import (
     RewardPurchaseResponseSerializer,
     StudyDayLogSerializer,
     UserEarnedBadgeSerializer,
+    UserPurchasedItemSerializer,  # Added import
 )
 from ..services import purchase_reward, PurchaseError  # Import error classes
 
@@ -246,6 +254,38 @@ class RewardPurchaseView(views.APIView):
                 {"detail": _("An unexpected error occurred.")},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="List My Purchased Reward Items",
+        description="Retrieve a list of all reward items purchased by the current authenticated user.",
+        responses={200: UserPurchasedItemSerializer(many=True)},
+        tags=["Gamification"],
+    )
+)
+class UserPurchasedItemsListView(generics.ListAPIView):
+    """
+    Lists all reward store items that the authenticated user has purchased.
+    The response includes details of eacf purchase.
+    Results are ordered by the most recent purchase first.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserPurchasedItemSerializer
+
+    def get_queryset(self):
+        """
+        Returns a queryset of UserRewardPurchase instances for the current
+        authenticated user. It pre-fetches related RewardStoreItem data
+        to optimize database queries.
+        """
+        user = self.request.user
+        return (
+            UserRewardPurchase.objects.filter(user=user)
+            .select_related("item")
+            .order_by("-purchased_at")
+        )
 
 
 @extend_schema_view(

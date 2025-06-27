@@ -9,6 +9,7 @@ from ..models import (
     StudyDayLog,
     UserBadge,
     RewardStoreItem,
+    UserRewardPurchase,  # Added import
     PointLog,
     PointReason,
 )
@@ -161,6 +162,7 @@ class RewardStoreItemSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "description",
+            "code_name",
             "item_type",
             "item_type_display",  # Add human-readable type
             "cost_points",
@@ -168,6 +170,50 @@ class RewardStoreItemSerializer(serializers.ModelSerializer):
             "asset_file_url",
         )
         read_only_fields = fields  # Store items defined by admin
+
+
+class NestedRewardStoreItemSerializer(serializers.ModelSerializer):
+    """
+    A simplified serializer for RewardStoreItem details, intended for nesting within
+    the UserPurchasedItemSerializer.
+    """
+
+    image_url = serializers.ImageField(
+        source="image", read_only=True, use_url=True, allow_null=True
+    )
+    item_type_display = serializers.CharField(
+        source="get_item_type_display", read_only=True
+    )
+
+    class Meta:
+        model = RewardStoreItem
+        fields = (
+            "id",
+            "name",
+            "description",
+            "code_name",
+            "item_type",
+            "item_type_display",
+            "image_url",
+        )
+        read_only_fields = fields
+
+
+class UserPurchasedItemSerializer(serializers.ModelSerializer):
+    """
+    Serializer for listing items a user has purchased from the reward store.
+    """
+
+    item = NestedRewardStoreItemSerializer(read_only=True)
+
+    class Meta:
+        model = UserRewardPurchase
+        fields = (
+            "id",  # ID of the purchase record
+            "item",
+            "purchased_at",
+        )
+        read_only_fields = fields
 
 
 class RewardPurchaseResponseSerializer(serializers.Serializer):

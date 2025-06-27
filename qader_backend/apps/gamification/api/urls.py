@@ -18,6 +18,11 @@ urlpatterns = [
         name="user-earned-badge-list",
     ),
     path(
+        "my-items/",
+        views.UserPurchasedItemsListView.as_view(),
+        name="user-purchased-item-list",
+    ),
+    path(
         "reward-store/purchase/<int:item_id>/",
         views.RewardPurchaseView.as_view(),
         name="reward-purchase",
