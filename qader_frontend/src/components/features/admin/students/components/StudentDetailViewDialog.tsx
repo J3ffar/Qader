@@ -27,20 +27,34 @@ interface StudentDetailViewDialogProps {
   onOpenChange: (isOpen: boolean) => void;
 }
 
-const ProfileHeader = ({ name, email, avatarUrl }: { name: string; email: string; avatarUrl: string | null }) => (
-    <div className="flex items-center gap-4">
-      <Avatar className="h-16 w-16">
-        <AvatarImage src={avatarUrl ?? undefined} alt={name} />
-        <AvatarFallback><User className="h-8 w-8" /></AvatarFallback>
-      </Avatar>
-      <div>
-        <DialogTitle className="text-xl">{name}</DialogTitle>
-        <DialogDescription>{email}</DialogDescription>
-      </div>
+const ProfileHeader = ({
+  name,
+  email,
+  avatarUrl,
+}: {
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+}) => (
+  <div className="flex items-center gap-4">
+    <Avatar className="h-16 w-16">
+      <AvatarImage src={avatarUrl ?? undefined} alt={name} />
+      <AvatarFallback>
+        <User className="h-8 w-8" />
+      </AvatarFallback>
+    </Avatar>
+    <div>
+      <DialogTitle className="text-xl">{name}</DialogTitle>
+      <DialogDescription>{email}</DialogDescription>
     </div>
-  );
+  </div>
+);
 
-export default function StudentDetailViewDialog({ userId, isOpen, onOpenChange }: StudentDetailViewDialogProps) {
+export default function StudentDetailViewDialog({
+  userId,
+  isOpen,
+  onOpenChange,
+}: StudentDetailViewDialogProps) {
   const t = useTranslations("Admin.StudentManagement");
 
   const { data: user, isLoading: isLoadingUser } = useQuery({
@@ -48,26 +62,33 @@ export default function StudentDetailViewDialog({ userId, isOpen, onOpenChange }
     queryFn: () => getAdminUserDetail(userId!),
     enabled: !!userId && isOpen,
   });
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh]">
+      <DialogContent className="w-full h-[90vh]">
         <DialogHeader>
-           {isLoadingUser ? (
+          {isLoadingUser ? (
             <div className="flex items-center gap-4">
-               <Skeleton className="h-16 w-16 rounded-full" />
-               <div className="space-y-2">
-                 <Skeleton className="h-6 w-40" />
-                 <Skeleton className="h-4 w-52" />
-               </div>
+              <Skeleton className="h-16 w-16 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-4 w-52" />
+              </div>
             </div>
           ) : user ? (
-            <ProfileHeader name={user.full_name} email={user.user.email} avatarUrl={user.profile_picture} />
+            <ProfileHeader
+              name={user.full_name}
+              email={user.user.email}
+              avatarUrl={user.profile_picture}
+            />
           ) : (
             <DialogTitle>{t("viewDetails")}</DialogTitle>
           )}
         </DialogHeader>
-        <Tabs defaultValue="details" className="flex flex-col flex-grow overflow-hidden">
+        <Tabs
+          defaultValue="details"
+          className="flex flex-col flex-grow overflow-hidden"
+        >
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="details">{t("tabs.details")}</TabsTrigger>
             <TabsTrigger value="statistics">{t("tabs.statistics")}</TabsTrigger>
@@ -75,18 +96,20 @@ export default function StudentDetailViewDialog({ userId, isOpen, onOpenChange }
             <TabsTrigger value="points">{t("tabs.pointLog")}</TabsTrigger>
           </TabsList>
           <div className="flex-grow overflow-y-auto p-4">
-             <TabsContent value="details">
-                {userId && <ProfileDetailsTab user={user} isLoading={isLoadingUser} />}
-             </TabsContent>
-             <TabsContent value="statistics">
-                {userId && <StatisticsTab userId={userId} />}
-             </TabsContent>
-             <TabsContent value="history">
-                {userId && <TestHistoryTab userId={userId} />}
-             </TabsContent>
-             <TabsContent value="points">
-                {userId && <PointLogTab userId={userId} />}
-             </TabsContent>
+            <TabsContent value="details">
+              {userId && (
+                <ProfileDetailsTab user={user} isLoading={isLoadingUser} />
+              )}
+            </TabsContent>
+            <TabsContent value="statistics">
+              {userId && <StatisticsTab userId={userId} />}
+            </TabsContent>
+            <TabsContent value="history">
+              {userId && <TestHistoryTab userId={userId} />}
+            </TabsContent>
+            <TabsContent value="points">
+              {userId && <PointLogTab userId={userId} />}
+            </TabsContent>
           </div>
         </Tabs>
       </DialogContent>

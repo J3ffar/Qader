@@ -41,6 +41,12 @@
       "actions": "الإجراءات",
       "date": "التاريخ"
     },
+    "subscribed": "مشترك",
+    "points": "النقاط",
+    "levelDetermined": "تحديد المستوى",
+    "verbalLevel": "المستوى اللفظي",
+    "quantitativeLevel": "المستوى الكمي",
+    "language": "اللغة",
     "viewDetails": "عرض التفاصيل",
     "editUser": "تعديل الطالب",
     "deleteUser": "حذف الطالب",

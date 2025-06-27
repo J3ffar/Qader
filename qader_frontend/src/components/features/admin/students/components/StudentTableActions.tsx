@@ -96,7 +96,7 @@ export default function StudentTableActions({
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="start">
           <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
           <DropdownMenuItem onSelect={() => setViewOpen(true)}>
             <List className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> {t("viewDetails")}
