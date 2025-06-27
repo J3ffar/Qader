@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { List, MoreHorizontal, Pen, Trash } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -67,13 +67,13 @@ export default function EmployeeTableActions({ userId }: { userId: number }) {
               <span className="sr-only">{t("toggleMenu")}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="start">
             <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => setViewOpen(true)}>
-              {t("viewDetails")}
+              <List /> {t("viewDetails")}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setEditOpen(true)}>
-              {t("editUser")}
+              <Pen /> {t("editUser")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <AlertDialogTrigger asChild>
@@ -81,6 +81,7 @@ export default function EmployeeTableActions({ userId }: { userId: number }) {
                 className="text-destructive focus:text-destructive"
                 onSelect={(e) => e.preventDefault()}
               >
+                <Trash className="text-destructive focus:text-destructive" />{" "}
                 {t("deleteUser")}
               </DropdownMenuItem>
             </AlertDialogTrigger>

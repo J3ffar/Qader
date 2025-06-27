@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 class AdminNestedUserSerializer(serializers.ModelSerializer):
     """Basic User info for nesting in Profile serializers."""
 
+    username = serializers.CharField(required=False, validators=[])
+    email = serializers.EmailField(required=False, validators=[])
+
     class Meta:
         model = User
         fields = [
@@ -422,9 +425,45 @@ class AdminUserProfileSerializer(serializers.ModelSerializer):
         return referral_count * days_per_referral
 
     def validate(self, attrs: dict) -> dict:
-        # Dark mode time validation (existing)
-        # ... (keep existing dark mode validation) ...
-        instance = self.instance  # Get current instance for role checks
+        instance = self.instance  # The UserProfile instance being updated
+        user_data = attrs.get("user")
+
+        # --- START: Validation for unique User fields on update ---
+        if user_data and instance:
+            user_instance = instance.user  # The related User instance
+
+            # Validate username if it's provided in the request
+            new_username = user_data.get("username")
+            if new_username:
+                # Check if a *different* user already has this username
+                if (
+                    User.objects.filter(username__iexact=new_username)
+                    .exclude(pk=user_instance.pk)
+                    .exists()
+                ):
+                    raise DRFValidationError(
+                        {
+                            "user": {
+                                "username": _(
+                                    "A user with that username already exists."
+                                )
+                            }
+                        }
+                    )
+
+            # Validate email if it's provided in the request
+            new_email = user_data.get("email")
+            if new_email:
+                # Check if a *different* user already has this email
+                if (
+                    User.objects.filter(email__iexact=new_email)
+                    .exclude(pk=user_instance.pk)
+                    .exists()
+                ):
+                    raise DRFValidationError(
+                        {"user": {"email": _("A user with that email already exists.")}}
+                    )
+        # --- END: Validation for unique User fields on update ---
 
         role_to_be_set = attrs.get("role", instance.role if instance else None)
 

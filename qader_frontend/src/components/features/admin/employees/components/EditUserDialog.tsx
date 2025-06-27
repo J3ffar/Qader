@@ -14,6 +14,8 @@ import {
 } from "@/services/api/admin/users.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { UpdateUserPayload } from "@/types/api/admin/users.types";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { setFormErrorsFromApi } from "@/utils/setFormErrorsFromApi";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -96,24 +98,31 @@ export default function EditUserDialog({
         is_active: user.user.is_active,
       });
     }
-  }, [user, form]);
+  }, [user, form, isOpen]);
 
   const { mutate: updateUser, isPending } = useMutation({
     mutationFn: (data: UpdateUserPayload) => updateAdminUser(userId!, data),
     onSuccess: () => {
       toast.success(t("notifications.updateSuccess"));
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.users.lists() as any,
+        queryKey: queryKeys.admin.users.lists(),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.userDetails.detail(userId!) as any,
+        queryKey: queryKeys.admin.userDetails.detail(userId!),
       });
       onOpenChange(false);
     },
     onError: (error) => {
-      toast.error(t("notifications.updateError"), {
-        description: error.message,
-      });
+      // --- THIS IS THE KEY CHANGE ---
+      const handled = setFormErrorsFromApi(error, form.setError);
+      if (!handled) {
+        toast.error(t("notifications.updateError"), {
+          description: getApiErrorMessage(
+            error,
+            t("notifications.updateError")
+          ),
+        });
+      }
     },
   });
 
@@ -130,9 +139,17 @@ export default function EditUserDialog({
     updateUser(payload);
   }
 
+  // Close handler to reset form state
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      form.clearErrors(); // Clear errors when dialog is closed
+    }
+    onOpenChange(open);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("form.editDialogTitle")}</DialogTitle>
           <DialogDescription>
@@ -193,6 +210,7 @@ export default function EditUserDialog({
                     <FormLabel>{t("form.emailLabel")}</FormLabel>
                     <FormControl>
                       <Input
+                        type="email"
                         placeholder={t("form.emailPlaceholder")}
                         {...field}
                       />
