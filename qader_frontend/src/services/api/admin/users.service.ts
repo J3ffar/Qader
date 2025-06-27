@@ -7,7 +7,9 @@ import type {
   CreateUserPayload,
   UpdateUserPayload,
   PointLog,
+  PaginatedUserTestAttempts,
 } from "@/types/api/admin/users.types";
+import { UserStatistics } from "@/types/api/study.types";
 
 interface GetAdminUsersParams {
   page?: number;
@@ -75,4 +77,24 @@ export const resetUserPassword = (userId: number) => {
   return apiClient(API_ENDPOINTS.ADMIN.USERS.RESET_PASSWORD(userId), {
     method: "POST",
   });
+};
+
+// Get a user's test attempt history
+export const getAdminUserTestHistory = (
+  userId: number,
+  params?: { page?: number }
+) => {
+  return apiClient<PaginatedUserTestAttempts>(
+    API_ENDPOINTS.ADMIN.USERS.TEST_HISTORY(userId),
+    {
+      params,
+    }
+  );
+};
+
+// Get a user's statistics
+export const getAdminUserStatistics = (userId: number) => {
+  return apiClient<UserStatistics>(
+    API_ENDPOINTS.ADMIN.USERS.STATISTICS(userId)
+  );
 };

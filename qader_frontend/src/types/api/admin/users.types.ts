@@ -56,7 +56,7 @@ export interface UpdateUserPayload {
   role?: "admin" | "student" | "sub_admin" | "teacher" | "trainer";
 }
 
-// Represents a single entry in a user's point history
+// Represents a single entry in a user's point transaction history
 export interface PointLog {
   id: number;
   points: number;
@@ -65,4 +65,49 @@ export interface PointLog {
   timestamp: string; // ISO 8601 date string
   content_type: number | null;
   object_id: number | null;
+  description: string; // Added description field
+}
+
+// Represents a single test attempt by a user
+export interface UserTestAttempt {
+  attempt_id: number;
+  test_type: string; // e.g., "Determine Level", "Traditional Learning"
+  date: string; // ISO 8601 date string
+  status: "completed" | "in_progress" | "failed";
+  status_display: string; // Human-readable status
+  score_percentage: number | null; // Null if not completed
+}
+
+// Paginated response for user test attempts
+export interface PaginatedUserTestAttempts {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: UserTestAttempt[];
+}
+
+// Represents a user's overall statistics
+export interface UserStatistics {
+  total_points: number;
+  total_tests_taken: number;
+  average_score: number;
+  time_spent_learning_minutes: number;
+  // Detailed breakdowns
+  performance_trends: {
+    date: string; // YYYY-MM-DD
+    score: number;
+  }[];
+  section_performance: {
+    section_name: string;
+    average_score: number;
+  }[];
+  scores_by_test_type: {
+    test_type: string;
+    average_score: number;
+  }[];
+  time_analytics: {
+    daily_average_minutes: number;
+    weekly_total_minutes: number;
+    monthly_total_minutes: number;
+  };
 }

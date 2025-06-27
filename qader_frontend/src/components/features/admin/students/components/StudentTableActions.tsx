@@ -37,10 +37,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import ViewStudentDialog from "./ViewStudentDialog";
+import StudentDetailViewDialog from "./StudentDetailViewDialog";
 import EditStudentDialog from "./EditStudentDialog";
 import AdjustPointsDialog from "./AdjustPointsDialog";
-import PointLogDialog from "./PointLogDialog";
 
 interface StudentTableActionsProps {
   userId: number;
@@ -109,10 +108,6 @@ export default function StudentTableActions({
           <DropdownMenuItem onSelect={() => setAdjustPointsOpen(true)}>
             <Coins className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> {t("adjustPoints")}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setPointLogOpen(true)}>
-            <History className="ltr:mr-2 rtl:ml-2 h-4 w-4" />{" "}
-            {t("viewPointLog")}
-          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setResetPasswordAlertOpen(true)}>
             <KeyRound className="ltr:mr-2 rtl:ml-2 h-4 w-4" />{" "}
             {t("resetPassword")}
@@ -175,7 +170,7 @@ export default function StudentTableActions({
       </AlertDialog>
 
       {/* Render the feature dialog components */}
-      <ViewStudentDialog
+      <StudentDetailViewDialog
         userId={userId}
         isOpen={isViewOpen}
         onOpenChange={setViewOpen}
@@ -190,13 +185,6 @@ export default function StudentTableActions({
           userId={userId}
           isOpen={isAdjustPointsOpen}
           onOpenChange={setAdjustPointsOpen}
-        />
-      )}
-      {isPointLogOpen && (
-        <PointLogDialog
-          userId={userId}
-          isOpen={isPointLogOpen}
-          onOpenChange={setPointLogOpen}
         />
       )}
     </>

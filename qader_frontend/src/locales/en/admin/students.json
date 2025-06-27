@@ -11,6 +11,20 @@
     "allStatuses": "All Statuses",
     "noUsersFound": "No students found.",
     "noPointHistory": "No point history found for this user.",
+    "noTestHistory": "No test history found for this user.",
+    "descriptionPoint": "User-provided reason for the point adjustment.",
+    "tabs": {
+      "details": "Details",
+      "statistics": "Statistics",
+      "testHistory": "Test History",
+      "pointLog": "Point Log",
+      "testHistoryTable": {
+        "type": "Type",
+        "date": "Date",
+        "status": "Status",
+        "score": "Score"
+      }
+    },
     "subscriptionExpires": "Subscription Expires",
     "grade": "Grade",
     "levelVerbal": "Verbal Level",

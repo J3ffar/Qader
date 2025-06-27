@@ -11,6 +11,20 @@
     "allStatuses": "جميع الحالات",
     "noUsersFound": "لم يتم العثور على طلاب.",
     "noPointHistory": "لا يوجد سجل نقاط لهذا المستخدم.",
+    "noTestHistory": "لا يوجد سجل اختبارات لهذا المستخدم.",
+    "descriptionPoint": "السبب الذي قدمه المستخدم لتعديل النقاط.",
+    "tabs": {
+      "details": "التفاصيل",
+      "statistics": "الإحصائيات",
+      "testHistory": "سجل الاختبارات",
+      "pointLog": "سجل النقاط",
+      "testHistoryTable": {
+        "type": "النوع",
+        "date": "التاريخ",
+        "status": "الحالة",
+        "score": "النتيجة"
+      }
+    },
     "subscriptionExpires": "انتهاء الاشتراك",
     "grade": "الدرجة",
     "levelVerbal": "المستوى اللفظي",

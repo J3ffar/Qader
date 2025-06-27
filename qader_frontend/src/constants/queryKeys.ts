@@ -30,6 +30,10 @@ export const queryKeys = {
         [...queryKeys.admin.users.lists(), filters] as const,
       pointLog: (userId: number | string) =>
         [...queryKeys.admin.users.all(), userId] as const,
+      testHistory: (userId: number | string) =>
+        [...queryKeys.admin.users.all(), userId] as const,
+      statistics: (userId: number | string) =>
+        [...queryKeys.admin.users.all(), userId] as const,
     },
     userDetails: {
       all: () => [...queryKeys.admin.all, "userDetails"] as const,
