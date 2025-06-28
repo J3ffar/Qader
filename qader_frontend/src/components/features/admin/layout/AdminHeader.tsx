@@ -9,7 +9,14 @@ import {
   Settings,
   UserCircle,
 } from "lucide-react";
-import { useAuthCore } from "@/store/auth.store";
+import { useAuthCore, useAuthStore } from "@/store/auth.store";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/constants/queryKeys";
+import { getNotifications } from "@/services/notification.service";
+import NotificationsDropdown from "@/components/features/platform/layout/platform-header/NotificationsDropdown";
+import { useState, useRef } from "react";
+import { useOnClickOutside } from "@/hooks/useOnClickOutside";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -44,6 +51,39 @@ const AdminHeader = () => {
   const { user, isAuthenticated } = useAuthCore();
   const { logout } = useAuthActions();
   const router = useRouter();
+  const { updateUserProfile } = useAuthStore();
+
+  const [isNotificationsDropdownOpen, setIsNotificationsDropdownOpen] =
+    useState(false);
+  const notificationsTriggerRef = useRef<HTMLButtonElement>(null);
+  const notificationsDropdownRef = useRef<HTMLDivElement>(null);
+
+  useOnClickOutside(
+    notificationsDropdownRef,
+    notificationsTriggerRef,
+    () => setIsNotificationsDropdownOpen(false),
+    isNotificationsDropdownOpen
+  );
+
+  const { data: notificationsCountResponse } = useQuery({
+    queryKey: queryKeys.notifications.unreadCount(),
+    queryFn: () => getNotifications({ is_read: false, pageSize: 1 }),
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    select: (data) => data.count,
+  });
+
+  // Update Zustand store with the latest unread count
+  if (
+    isAuthenticated &&
+    user &&
+    notificationsCountResponse !== undefined &&
+    notificationsCountResponse !== user.unread_notifications_count
+  ) {
+    updateUserProfile({
+      unread_notifications_count: notificationsCountResponse,
+    });
+  }
 
   const handleLogout = async () => {
     try {
@@ -69,17 +109,44 @@ const AdminHeader = () => {
       </div>
       <div className="flex items-center gap-4">
         <div className="flex items-center">
-          <Button variant="ghost" size="icon" className="relative rounded-full">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "relative rounded-xl border w-10 h-10",
+              isNotificationsDropdownOpen
+                ? "bg-muted dark:bg-muted/50"
+                : "hover:bg-muted dark:hover:bg-muted/50"
+            )}
+            onClick={() =>
+              setIsNotificationsDropdownOpen(!isNotificationsDropdownOpen)
+            }
+            ref={notificationsTriggerRef}
+          >
             <Bell className="h-6 w-6" />
-            <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
-            <span className="sr-only">Notifications</span>
+            {isAuthenticated && user && user.unread_notifications_count > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                {user.unread_notifications_count > 9
+                  ? "9+"
+                  : user.unread_notifications_count}
+              </span>
+            )}
+            {isAuthenticated && !user && (
+              <Skeleton className="absolute -right-1 -top-1 h-5 w-5 rounded-full" />
+            )}
           </Button>
+          {isNotificationsDropdownOpen && (
+            <NotificationsDropdown
+              ref={notificationsDropdownRef}
+              isVisible={true}
+            />
+          )}
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="flex h-auto items-center gap-3 p-1"
+              className="flex h-auto items-center gap-3 p-1 border rounded-xl"
             >
               <div className="relative">
                 <Avatar className="h-12 w-12">
