@@ -22,7 +22,8 @@ from django.db.models import (
     Subquery,
     Value,
     DateTimeField,
-)  # Added Value, DateTimeField
+    Exists,  # <-- Import Exists
+)
 from django.db.models.functions import Coalesce  # To handle null from subquery
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
@@ -167,24 +168,47 @@ class UserEarnedBadgesListView(generics.ListAPIView):
 @extend_schema_view(
     list=extend_schema(
         summary="List Reward Store Items",
-        description="Retrieve active items available for purchase with points.",
+        description="Retrieve active items available for purchase with points. Each item indicates if it has already been purchased by the user.",
         responses={200: RewardStoreItemSerializer(many=True)},
         tags=["Gamification"],
     ),
     retrieve=extend_schema(
         summary="Get Reward Store Item Detail",
-        description="Retrieve details of a specific active reward item.",
+        description="Retrieve details of a specific active reward item, indicating if it has already been purchased by the user.",
         responses={200: RewardStoreItemSerializer},
         tags=["Gamification"],  # Explicitly tag retrieve action
     ),
 )
 class RewardStoreItemViewSet(viewsets.ReadOnlyModelViewSet):
-    """Provides listing and retrieval of active reward store items."""
+    """
+    Provides listing and retrieval of active reward store items.
+    Each item is annotated with an `is_purchased` field for the current user.
+    """
 
     permission_classes = [IsAuthenticated]  # Any authenticated user can view store
     serializer_class = RewardStoreItemSerializer
-    queryset = RewardStoreItem.objects.filter(is_active=True)
     pagination_class = None  # Optional: Add pagination if store grows large
+
+    def get_queryset(self):
+        """
+        Annotates each item with an `is_purchased` boolean field indicating if
+        the current user has already bought the item. This is done efficiently
+        using a single database query.
+        """
+        user = self.request.user
+
+        # Create a subquery that checks if a UserRewardPurchase record exists
+        # for the current user and the 'outer' RewardStoreItem.
+        user_purchases_subquery = UserRewardPurchase.objects.filter(
+            user=user, item=OuterRef("pk")
+        )
+
+        # Annotate the main queryset with the result of the `Exists` check.
+        # This adds an `is_purchased` attribute (True/False) to each item instance.
+        queryset = RewardStoreItem.objects.filter(is_active=True).annotate(
+            is_purchased=Exists(user_purchases_subquery)
+        )
+        return queryset
 
 
 @extend_schema(  # Apply schema directly to the APIView class

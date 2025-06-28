@@ -155,6 +155,12 @@ class RewardStoreItemSerializer(serializers.ModelSerializer):
     asset_file_url = serializers.FileField(
         source="asset_file", read_only=True, use_url=True, allow_null=True
     )
+    is_purchased = serializers.BooleanField(
+        read_only=True,
+        help_text=_(
+            "Indicates if the current user has already purchased this item."
+        ),
+    )
 
     class Meta:
         model = RewardStoreItem
@@ -168,6 +174,7 @@ class RewardStoreItemSerializer(serializers.ModelSerializer):
             "cost_points",
             "image_url",
             "asset_file_url",
+            "is_purchased",  # <-- Add the new field here
         )
         read_only_fields = fields  # Store items defined by admin
 
