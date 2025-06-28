@@ -108,7 +108,7 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "absolute top-5 z-50 flex h-7 w-7 items-center justify-center rounded-full border border-slate-600 bg-slate-700 text-slate-300 shadow-md transition-all hover:bg-slate-600",
+          "absolute top-15 z-50 flex h-8 w-8 items-center justify-center rounded-full border border-slate-600 bg-slate-700 text-slate-300 shadow-md transition-all hover:bg-slate-600",
           isOpen
             ? locale === "ar"
               ? "-left-3.5"
@@ -122,7 +122,7 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
         )}
         aria-expanded={isOpen}
       >
-        <ToggleIcon className="h-4 w-4" />
+        <ToggleIcon className="h-5 w-5" />
       </button>
 
       <div
