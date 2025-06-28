@@ -66,9 +66,15 @@ export const adjustUserPoints = (
 };
 
 // Fetch the point log for a user
-export const getAdminUserPointLog = (userId: number) => {
+export const getAdminUserPointLog = (
+  userId: number,
+  params?: { page?: number }
+) => {
   return apiClient<PaginatedResponse<PointLog>>(
-    API_ENDPOINTS.ADMIN.USERS.POINT_LOG(userId)
+    API_ENDPOINTS.ADMIN.USERS.POINT_LOG(userId),
+    {
+      params,
+    }
   );
 };
 

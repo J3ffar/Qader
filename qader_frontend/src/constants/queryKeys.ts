@@ -28,12 +28,12 @@ export const queryKeys = {
       lists: () => [...queryKeys.admin.users.all(), "list"] as const,
       list: (filters: object) =>
         [...queryKeys.admin.users.lists(), filters] as const,
-      pointLog: (userId: number | string) =>
-        [...queryKeys.admin.users.all(), userId] as const,
-      testHistory: (userId: number | string) =>
-        [...queryKeys.admin.users.all(), userId] as const,
+      pointLog: (userId: number | string, page: number | string) =>
+        [...queryKeys.admin.users.all(), "pointLog", userId, page] as const,
+      testHistory: (userId: number | string, page: number | string) =>
+        [...queryKeys.admin.users.all(), "testHistory", userId, page] as const,
       statistics: (userId: number | string) =>
-        [...queryKeys.admin.users.all(), userId] as const,
+        [...queryKeys.admin.users.all(), "statistics", userId] as const,
     },
     userDetails: {
       all: () => [...queryKeys.admin.all, "userDetails"] as const,
