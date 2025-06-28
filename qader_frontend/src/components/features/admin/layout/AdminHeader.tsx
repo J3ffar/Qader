@@ -10,6 +10,8 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useAuthCore } from "@/store/auth.store";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +25,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Input } from "@/components/ui/input";
+import { useAuthActions } from "@/store/auth.store";
+import { PATHS } from "@/constants/paths";
+import { toast } from "sonner";
 
 const getInitials = (name: string | undefined | null): string => {
   if (!name) return "A";
@@ -37,6 +42,19 @@ const getInitials = (name: string | undefined | null): string => {
 const AdminHeader = () => {
   const t = useTranslations("Nav.AdminHeader");
   const { user, isAuthenticated } = useAuthCore();
+  const { logout } = useAuthActions();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success(t("logoutSuccess"));
+      router.push(PATHS.HOME);
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error(t("logoutError"));
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b bg-background px-6">
@@ -89,16 +107,23 @@ const AdminHeader = () => {
           <DropdownMenuContent className="w-56" align="start" forceMount>
             <DropdownMenuLabel>{t("myAccount")}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <UserCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-              <span>{t("profile")}</span>
+            <DropdownMenuItem asChild>
+              <Link href={PATHS.ADMIN.PROFILE}>
+                <UserCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
+                <span>{t("profile")}</span>
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-              <span>{t("settings")}</span>
+            <DropdownMenuItem asChild>
+              <Link href={PATHS.ADMIN.SETTINGS}>
+                <Settings className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
+                <span>{t("settings")}</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+            <DropdownMenuItem
+              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+              onClick={handleLogout}
+            >
               <LogOut className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
               <span>{t("logout")}</span>
             </DropdownMenuItem>

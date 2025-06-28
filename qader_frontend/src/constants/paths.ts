@@ -82,5 +82,6 @@ export const PATHS = {
     SUPPORT_TICKETS: "/admin/support",
     ANALYTICS: "/admin/analytics",
     SETTINGS: "/admin/settings",
+    PROFILE: "/admin/profile",
   },
 };
