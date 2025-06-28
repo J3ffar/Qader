@@ -13,6 +13,9 @@ const nextConfig = {
   // experimental: {
   //   typedRoutes: true, // Example
   // },
+  images: {
+    domains: ["localhost", "qader.vip"],
+  },
 };
 
 export default withNextIntl(nextConfig);
