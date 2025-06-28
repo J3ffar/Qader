@@ -1,20 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { getAdminUserDetail } from "@/services/api/admin/users.service";
 import { queryKeys } from "@/constants/queryKeys";
+import { cn } from "@/lib/utils";
+
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
-import { User } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User } from "lucide-react";
 
 import { ProfileDetailsTab } from "./tabs/ProfileDetailsTab";
 import { StatisticsTab } from "./tabs/StatisticsTab";
@@ -56,6 +59,7 @@ export default function StudentDetailViewDialog({
   onOpenChange,
 }: StudentDetailViewDialogProps) {
   const t = useTranslations("Admin.StudentManagement");
+  const [activeTab, setActiveTab] = useState("details");
 
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: queryKeys.admin.userDetails.detail(userId!),
@@ -63,9 +67,23 @@ export default function StudentDetailViewDialog({
     enabled: !!userId && isOpen,
   });
 
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setActiveTab("details");
+    }
+    onOpenChange(open);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full h-[90vh]">
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className={cn(
+          "flex flex-col",
+          "h-full sm:h-[90vh]",
+          "transition-[max-width] duration-300 ease-in-out",
+          activeTab === "statistics" ? "sm:max-w-7xl" : "sm:max-w-4xl"
+        )}
+      >
         <DialogHeader>
           {isLoadingUser ? (
             <div className="flex items-center gap-4">
@@ -81,13 +99,13 @@ export default function StudentDetailViewDialog({
               email={user.user.email}
               avatarUrl={user.profile_picture}
             />
-          ) : (
-            <DialogTitle>{t("viewDetails")}</DialogTitle>
-          )}
+          ) : null}
         </DialogHeader>
+
         <Tabs
-          defaultValue="details"
-          className="flex flex-col flex-grow overflow-hidden"
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full flex-grow overflow-hidden flex flex-col"
         >
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="details">{t("tabs.details")}</TabsTrigger>
@@ -95,11 +113,10 @@ export default function StudentDetailViewDialog({
             <TabsTrigger value="history">{t("tabs.testHistory")}</TabsTrigger>
             <TabsTrigger value="points">{t("tabs.pointLog")}</TabsTrigger>
           </TabsList>
-          <div className="flex-grow overflow-y-auto p-4">
+
+          <div className="flex-grow overflow-y-auto mt-4 pr-3">
             <TabsContent value="details">
-              {userId && (
-                <ProfileDetailsTab user={user} isLoading={isLoadingUser} />
-              )}
+              <ProfileDetailsTab user={user} isLoading={isLoadingUser} />
             </TabsContent>
             <TabsContent value="statistics">
               {userId && <StatisticsTab userId={userId} />}

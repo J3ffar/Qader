@@ -16,7 +16,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,26 +28,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { deleteAdminUser } from "@/services/api/admin/users.service";
 
-// Import the new dialogs
-import ViewUserDialog from "./ViewUserDialog";
-import EditUserDialog from "./EditUserDialog";
+interface EmployeeTableActionsProps {
+  userId: number;
+  onView: () => void;
+  onEdit: () => void;
+}
 
-export default function EmployeeTableActions({ userId }: { userId: number }) {
+export default function EmployeeTableActions({
+  userId,
+  onView,
+  onEdit,
+}: EmployeeTableActionsProps) {
   const t = useTranslations("Admin.EmployeeManagement");
   const queryClient = useQueryClient();
 
-  // State for each dialog
-  const [isViewOpen, setViewOpen] = useState(false);
-  const [isEditOpen, setEditOpen] = useState(false);
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { mutate: deleteUserMutation, isPending } = useMutation({
     mutationFn: deleteAdminUser,
     onSuccess: () => {
       toast.success(t("notifications.deleteSuccess"));
-      // Use structured query key for invalidation
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.users.lists() as any,
+        queryKey: queryKeys.admin.users.lists(),
       });
+      setDeleteDialogOpen(false);
     },
     onError: (error) => {
       toast.error(t("notifications.deleteError"), {
@@ -59,34 +62,35 @@ export default function EmployeeTableActions({ userId }: { userId: number }) {
 
   return (
     <>
-      <AlertDialog>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button aria-haspopup="true" size="icon" variant="ghost">
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">{t("toggleMenu")}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => setViewOpen(true)}>
-              <List /> {t("viewDetails")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setEditOpen(true)}>
-              <Pen /> {t("editUser")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <AlertDialogTrigger asChild>
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onSelect={(e) => e.preventDefault()}
-              >
-                <Trash className="text-destructive focus:text-destructive" />{" "}
-                {t("deleteUser")}
-              </DropdownMenuItem>
-            </AlertDialogTrigger>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button aria-haspopup="true" size="icon" variant="ghost">
+            <MoreHorizontal className="h-4 w-4" />
+            <span className="sr-only">{t("toggleMenu")}</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+          <DropdownMenuItem onSelect={onView}>
+            <List className="h-4 w-4 rtl:ml-2 ltr:mr-2" />
+            {t("viewDetails")}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onEdit}>
+            <Pen className="h-4 w-4 rtl:ml-2 ltr:mr-2" />
+            {t("editUser")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onSelect={() => setDeleteDialogOpen(true)}
+          >
+            <Trash className="h-4 w-4 rtl:ml-2 ltr:mr-2" />
+            {t("deleteUser")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("confirmDeleteTitle")}</AlertDialogTitle>
@@ -106,18 +110,6 @@ export default function EmployeeTableActions({ userId }: { userId: number }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Render the dialog components */}
-      <ViewUserDialog
-        userId={userId}
-        isOpen={isViewOpen}
-        onOpenChange={setViewOpen}
-      />
-      <EditUserDialog
-        userId={userId}
-        isOpen={isEditOpen}
-        onOpenChange={setEditOpen}
-      />
     </>
   );
 }

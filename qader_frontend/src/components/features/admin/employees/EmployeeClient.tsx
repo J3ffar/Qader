@@ -4,15 +4,16 @@ import { useState, useMemo } from "react";
 import { useTranslations, useFormatter } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { useDebouncedCallback } from "use-debounce";
-import { Filter, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 import { getAdminUsers } from "@/services/api/admin/users.service";
 import { queryKeys } from "@/constants/queryKeys";
-import { AdminUserListItem } from "@/types/api/admin/users.types";
 
 import { DataTablePagination } from "@/components/shared/DataTablePagination";
 import { EmployeeTableSkeleton } from "./components/EmployeeTableSkeleton";
 import EmployeeTableActions from "./components/EmployeeTableActions";
+import ViewUserDialog from "./components/ViewUserDialog";
+import EditUserDialog from "./components/EditUserDialog";
 import {
   Card,
   CardContent,
@@ -21,7 +22,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -78,13 +78,18 @@ export default function EmployeeClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(
     undefined
-  ); // undefined for all, true or false
+  );
+
+  const [dialogState, setDialogState] = useState<{
+    type: "view" | "edit" | null;
+    userId: number | null;
+  }>({ type: null, userId: null });
 
   const employeeRoles = ["admin", "sub_admin", "teacher", "trainer"];
 
   const debouncedSearch = useDebouncedCallback((value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1); // Reset to first page on new search
+    setCurrentPage(1);
   }, 300);
 
   const { data, isLoading, isError, error, isPlaceholderData, isFetching } =
@@ -101,14 +106,21 @@ export default function EmployeeClient() {
           page: currentPage,
           search: searchTerm,
           user__is_active: statusFilter,
-          // page_size: ITEMS_PER_PAGE // If your API supports it
         }),
       placeholderData: (previousData) => previousData,
-      staleTime: 5 * 1000, // 5 seconds
+      staleTime: 5 * 1000,
     });
 
   const users = useMemo(() => data?.results ?? [], [data]);
   const pageCount = data?.count ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
+
+  const handleOpenDialog = (type: "view" | "edit", userId: number) => {
+    setDialogState({ type, userId });
+  };
+
+  const handleCloseDialog = () => {
+    setDialogState({ type: null, userId: null });
+  };
 
   if (isError) {
     return (
@@ -123,107 +135,130 @@ export default function EmployeeClient() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("employeeList")}</CardTitle>
-        <CardDescription>{t("employeeListDescription")}</CardDescription>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Input
-            placeholder={t("searchPlaceholder")}
-            className="max-w-sm"
-            onChange={(e) => debouncedSearch(e.target.value)}
-          />
-          <div className="flex items-center gap-2">
-            <Select
-              value={
-                statusFilter === undefined ? "all" : statusFilter.toString()
-              }
-              onValueChange={(value) => {
-                setStatusFilter(value === "all" ? undefined : value === "true");
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder={t("filter")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("allStatuses")}</SelectItem>
-                <SelectItem value="true">{t("statuses.active")}</SelectItem>
-                <SelectItem value="false">{t("statuses.inactive")}</SelectItem>
-              </SelectContent>
-            </Select>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("employeeList")}</CardTitle>
+          <CardDescription>{t("employeeListDescription")}</CardDescription>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Input
+              placeholder={t("searchPlaceholder")}
+              className="max-w-sm"
+              onChange={(e) => debouncedSearch(e.target.value)}
+            />
+            <div className="flex items-center gap-2">
+              <Select
+                value={
+                  statusFilter === undefined ? "all" : statusFilter.toString()
+                }
+                onValueChange={(value) => {
+                  setStatusFilter(
+                    value === "all" ? undefined : value === "true"
+                  );
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder={t("filter")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("allStatuses")}</SelectItem>
+                  <SelectItem value="true">{t("statuses.active")}</SelectItem>
+                  <SelectItem value="false">
+                    {t("statuses.inactive")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("table.id")}</TableHead>
-                <TableHead>{t("table.name")}</TableHead>
-                <TableHead className="hidden md:table-cell">
-                  {t("table.email")}
-                </TableHead>
-                <TableHead>{t("table.role")}</TableHead>
-                <TableHead>{t("table.status")}</TableHead>
-                <TableHead className="hidden lg:table-cell">
-                  {t("table.joinDate")}
-                </TableHead>
-                <TableHead>
-                  <span className="sr-only">{t("table.actions")}</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <EmployeeTableSkeleton rows={ITEMS_PER_PAGE} />
-              ) : users.length > 0 ? (
-                users.map((emp) => (
-                  <TableRow
-                    key={emp.user_id}
-                    className={isPlaceholderData ? "opacity-50" : ""}
-                  >
-                    <TableCell className="font-medium">{emp.user_id}</TableCell>
-                    <TableCell className="font-semibold">
-                      {emp.full_name}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {emp.user.email}
-                    </TableCell>
-                    <TableCell>{tRoles(emp.role)}</TableCell>
-                    <TableCell>
-                      <UserStatusBadge isActive={emp.user.is_active} />
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {format.dateTime(new Date(emp.user.date_joined), {
-                        dateStyle: "long",
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <EmployeeTableActions userId={emp.user_id} />
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("table.id")}</TableHead>
+                  <TableHead>{t("table.name")}</TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    {t("table.email")}
+                  </TableHead>
+                  <TableHead>{t("table.role")}</TableHead>
+                  <TableHead>{t("table.status")}</TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    {t("table.joinDate")}
+                  </TableHead>
+                  <TableHead>
+                    <span className="sr-only">{t("table.actions")}</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <EmployeeTableSkeleton rows={ITEMS_PER_PAGE} />
+                ) : users.length > 0 ? (
+                  users.map((emp) => (
+                    <TableRow
+                      key={emp.user_id}
+                      className={isPlaceholderData ? "opacity-50" : ""}
+                    >
+                      <TableCell className="font-medium">
+                        {emp.user_id}
+                      </TableCell>
+                      <TableCell className="font-semibold">
+                        {emp.full_name}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {emp.user.email}
+                      </TableCell>
+                      <TableCell>{tRoles(emp.role)}</TableCell>
+                      <TableCell>
+                        <UserStatusBadge isActive={emp.user.is_active} />
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {format.dateTime(new Date(emp.user.date_joined), {
+                          dateStyle: "long",
+                        })}
+                      </TableCell>
+                      <TableCell>
+                        <EmployeeTableActions
+                          userId={emp.user_id}
+                          onView={() => handleOpenDialog("view", emp.user_id)}
+                          onEdit={() => handleOpenDialog("edit", emp.user_id)}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      No employees found.
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    No employees found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <DataTablePagination
-          page={currentPage}
-          pageCount={pageCount}
-          setPage={setCurrentPage}
-          canPreviousPage={currentPage > 1}
-          canNextPage={currentPage < pageCount}
-          isFetching={isFetching}
-        />
-      </CardContent>
-    </Card>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <DataTablePagination
+            page={currentPage}
+            pageCount={pageCount}
+            setPage={setCurrentPage}
+            canPreviousPage={currentPage > 1}
+            canNextPage={currentPage < pageCount}
+            isFetching={isFetching}
+          />
+        </CardContent>
+      </Card>
+
+      <ViewUserDialog
+        userId={dialogState.userId}
+        isOpen={dialogState.type === "view"}
+        onOpenChange={(open) => !open && handleCloseDialog()}
+      />
+      <EditUserDialog
+        userId={dialogState.userId}
+        isOpen={dialogState.type === "edit"}
+        onOpenChange={(open) => !open && handleCloseDialog()}
+      />
+    </>
   );
 }

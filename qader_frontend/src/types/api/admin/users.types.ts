@@ -59,9 +59,9 @@ export interface UpdateUserPayload {
 // Represents a single entry in a user's point transaction history
 export interface PointLog {
   id: number;
-  points: number;
-  reason: string;
+  points_change: number;
   reason_code: string;
+  reason_code_display: string;
   timestamp: string; // ISO 8601 date string
   content_type: number | null;
   object_id: number | null;
