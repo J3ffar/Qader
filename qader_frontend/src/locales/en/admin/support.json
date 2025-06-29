@@ -1,0 +1,39 @@
+{
+  "title": "Support Management",
+  "description": "View, manage, and resolve all user support tickets.",
+  "table": {
+    "subject": "Subject",
+    "user": "User",
+    "status": "Status",
+    "priority": "Priority",
+    "assignedTo": "Assigned To",
+    "lastUpdate": "Last Update",
+    "actions": "Actions",
+    "noResults": "No tickets found."
+  },
+  "filters": {
+    "searchPlaceholder": "Search by subject or description...",
+    "status": "Status",
+    "priority": "Priority",
+    "clear": "Clear Filters"
+  },
+  "statusLabels": {
+    "open": "Open",
+    "pending_admin": "Pending Admin",
+    "pending_user": "Pending User",
+    "closed": "Closed"
+  },
+  "priorityLabels": {
+    "1": "High",
+    "2": "Medium",
+    "3": "Low"
+  },
+  "actions": {
+    "viewDetails": "View Details",
+    "delete": "Delete Ticket",
+    "deleteConfirmTitle": "Are you sure?",
+    "deleteConfirmDescription": "This action cannot be undone. This will permanently delete the support ticket and all its replies.",
+    "deleteSuccess": "Ticket deleted successfully.",
+    "deleteError": "Failed to delete ticket."
+  }
+}

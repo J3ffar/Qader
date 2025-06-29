@@ -1,0 +1,39 @@
+{
+  "title": "إدارة الدعم الفني",
+  "description": "عرض وإدارة وحل جميع تذاكر دعم المستخدمين.",
+  "table": {
+    "subject": "الموضوع",
+    "user": "المستخدم",
+    "status": "الحالة",
+    "priority": "الأولوية",
+    "assignedTo": "مُسند إلى",
+    "lastUpdate": "آخر تحديث",
+    "actions": "الإجراءات",
+    "noResults": "لم يتم العثور على تذاكر."
+  },
+  "filters": {
+    "searchPlaceholder": "البحث حسب الموضوع أو الوصف...",
+    "status": "الحالة",
+    "priority": "الأولوية",
+    "clear": "مسح الفلاتر"
+  },
+  "statusLabels": {
+    "open": "مفتوحة",
+    "pending_admin": "بانتظار المسؤول",
+    "pending_user": "بانتظار المستخدم",
+    "closed": "مغلقة"
+  },
+  "priorityLabels": {
+    "1": "عالية",
+    "2": "متوسطة",
+    "3": "منخفضة"
+  },
+  "actions": {
+    "viewDetails": "عرض التفاصيل",
+    "delete": "حذف التذكرة",
+    "deleteConfirmTitle": "هل أنت متأكد؟",
+    "deleteConfirmDescription": "لا يمكن التراجع عن هذا الإجراء. سيؤدي هذا إلى حذف تذكرة الدعم وجميع الردود عليها بشكل دائم.",
+    "deleteSuccess": "تم حذف التذكرة بنجاح.",
+    "deleteError": "فشل حذف التذكرة."
+  }
+}

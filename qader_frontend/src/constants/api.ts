@@ -41,6 +41,11 @@ export const API_ENDPOINTS = {
       EXPORT: "/admin/statistics/export/",
     },
     PERMISSIONS: "/admin/permissions/",
+    SUPPORT: { // NEW SECTION
+      TICKETS: "/admin/support/tickets/",
+      TICKET_DETAIL: (id: number | string) => `/admin/support/tickets/${id}/`,
+      TICKET_REPLIES: (id: number | string) => `/admin/support/tickets/${id}/replies/`,
+    },
   },
   STUDY: {
     STATISTICS: "/study/statistics/",
