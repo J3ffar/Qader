@@ -78,6 +78,7 @@ export const PATHS = {
     DASHBOARD: "/admin/dashboard",
     EMPLOYEES_MANAGEMENT: "/admin/employees",
     STUDENTS_MANAGEMENT: "/admin/students",
+    STATISTICS_OVERVIEW: "/admin/statistics/overview", // NEW PATH
     PAGES_MANAGEMENT: "/admin/pages",
     SUPPORT_TICKETS: "/admin/support",
     ANALYTICS: "/admin/analytics",

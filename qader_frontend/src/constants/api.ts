@@ -36,6 +36,10 @@ export const API_ENDPOINTS = {
       STATISTICS: (userId: number) => `/admin/users/${userId}/statistics/`,
       TEST_HISTORY: (userId: number) => `/admin/users/${userId}/test-history/`,
     },
+    STATISTICS: { // NEW SECTION
+      OVERVIEW: "/admin/statistics/overview/",
+      EXPORT: "/admin/statistics/export/",
+    },
     PERMISSIONS: "/admin/permissions/",
   },
   STUDY: {
