@@ -66,7 +66,7 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
             isOpen ? "justify-start gap-x-3" : "justify-center",
             isActive
               ? "bg-primary text-primary-foreground" // Active state stands out
-              : "text-slate-700 hover:bg-primary hover:text-white"
+              : "text-slate-700 dark:text-slate-300 hover:bg-primary hover:text-white"
           )}
           whileHover={!isActive ? { scale: 1.03 } : {}}
           transition={{ duration: 0.15 }}

@@ -108,6 +108,7 @@ const AdminHeader = () => {
         />
       </div>
       <div className="flex items-center gap-4">
+        <ThemeToggle />
         <div className="flex items-center">
           <Button
             variant="ghost"
