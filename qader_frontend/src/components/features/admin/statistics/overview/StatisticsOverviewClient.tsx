@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
   Users,
+  UserPlus,
   HelpCircle,
-  CheckCircle,
-  ClipboardList,
+  ClipboardCheck,
   Target,
   Percent,
   Calendar as CalendarIcon,
@@ -32,45 +32,54 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import StatisticsOverviewSkeleton from "./StatisticsOverviewSkeleton";
 import { StatCard } from "./StatCard";
 import { DailyActivityChart } from "./DailyActivityChart";
 import { PerformanceBySectionChart } from "./PerformanceBySectionChart";
-import { QuestionDataTable } from "./QuestionDataTable";
+import { QuestionStatsTable } from "./QuestionStatsTable";
 
 const StatCards = ({ data }: { data: any }) => {
   const t = useTranslations("Admin.AdminStatistics");
+  // TODO: The `description` field should be powered by comparison data from the backend
+  // e.g., a `change_from_previous_period` field in the API response.
   const cards = [
     {
       title: t("totalActiveStudents"),
       value: data.total_active_students,
       icon: Users,
+      description: t("totalStudentsOnPlatform"),
     },
     {
       title: t("newRegistrations"),
-      value: data.new_registrations_period,
-      icon: Users,
+      value: `+${data.new_registrations_period}`,
+      icon: UserPlus,
+      description: t("inSelectedPeriod"),
     },
     {
       title: t("questionsAnswered"),
-      value: data.total_questions_answered_period,
+      value: data.total_questions_answered_period.toLocaleString(),
       icon: HelpCircle,
+      description: t("inSelectedPeriod"),
     },
     {
       title: t("testsCompleted"),
-      value: data.total_tests_completed_period,
-      icon: CheckCircle,
+      value: data.total_tests_completed_period.toLocaleString(),
+      icon: ClipboardCheck,
+      description: t("inSelectedPeriod"),
     },
     {
       title: t("avgTestScore"),
       value: `${data.overall_average_test_score?.toFixed(1) ?? "N/A"}%`,
       icon: Target,
+      description: t("overallAverage"),
     },
     {
       title: t("avgAccuracy"),
       value: `${data.overall_average_accuracy?.toFixed(1) ?? "N/A"}%`,
       icon: Percent,
+      description: t("acrossAllQuestions"),
     },
   ];
   return (
@@ -85,7 +94,7 @@ const StatCards = ({ data }: { data: any }) => {
 // Main Client Component
 export function StatisticsOverviewClient() {
   const t = useTranslations("Admin.AdminStatistics");
-  const queryClient = useQueryClient();
+  const tCore = useTranslations("Core");
 
   const defaultDateRange = {
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
@@ -102,43 +111,51 @@ export function StatisticsOverviewClient() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: queryKeys.admin.statistics.overview(filters),
     queryFn: () => getStatisticsOverview(filters),
+    // Keep data from previous queries while new data is loading for a smoother UX
+    placeholderData: (previousData) => previousData,
   });
 
   const { mutate: handleExport, isPending: isExporting } = useMutation({
     mutationFn: () => exportStatistics({ ...filters, format: "xlsx" }),
     onSuccess: (data) => {
       toast.success(data.message || t("exportSuccess"));
+      // TODO: Implement polling or WebSocket to check for task completion and provide a download link.
     },
     onError: (err) => {
-      toast.error(getApiErrorMessage(err, "قد حدث خطأ ما"));
+      toast.error(getApiErrorMessage(err, tCore("error.general")));
     },
   });
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return <StatisticsOverviewSkeleton />;
   }
 
   if (isError) {
     return (
-      <div className="text-center py-10 text-destructive">
-        Error loading statistics: {getApiErrorMessage(error, "قد حدث خطأ ما")}
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center text-destructive">
+          <h3 className="text-lg font-semibold">{tCore("error.general")}</h3>
+          <p className="text-sm">
+            {getApiErrorMessage(error, t("errorLoading"))}
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
           <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant={"outline"}
-                className="w-[280px] justify-start text-left font-normal"
+                className="w-full sm:w-[280px] justify-start text-left font-normal"
               >
                 <CalendarIcon className="me-2 h-4 w-4" />
                 {date?.from ? (
@@ -166,22 +183,26 @@ export function StatisticsOverviewClient() {
               />
             </PopoverContent>
           </Popover>
-          <Button onClick={() => handleExport()} disabled={isExporting}>
+          <Button
+            onClick={() => handleExport()}
+            disabled={isExporting}
+            className="w-full sm:w-auto"
+          >
             <Download className="me-2 h-4 w-4" />
             {isExporting ? t("exporting") : t("exportData")}
           </Button>
         </div>
       </div>
 
-      <StatCards data={data} />
+      {data && <StatCards data={data} />}
 
-      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>{t("dailyActivity")}</CardTitle>
           </CardHeader>
           <CardContent className="pl-2 rtl:pl-0 rtl:pr-2">
-            <DailyActivityChart data={data.daily_activity} />
+            {data && <DailyActivityChart data={data.daily_activity} />}
           </CardContent>
         </Card>
         <Card>
@@ -189,21 +210,39 @@ export function StatisticsOverviewClient() {
             <CardTitle>{t("performanceBySection")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <PerformanceBySectionChart data={data.performance_by_section} />
+            {data && (
+              <PerformanceBySectionChart data={data.performance_by_section} />
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <QuestionDataTable
-          title={t("mostAttemptedQuestions")}
-          data={data.most_attempted_questions}
-        />
-        <QuestionDataTable
-          title={t("lowestAccuracyQuestions")}
-          data={data.lowest_accuracy_questions}
-        />
-      </div>
+      <Tabs defaultValue="most-attempted">
+        <TabsList className="grid w-full grid-cols-2 md:w-[400px]">
+          <TabsTrigger value="most-attempted">
+            {t("mostAttemptedQuestions")}
+          </TabsTrigger>
+          <TabsTrigger value="lowest-accuracy">
+            {t("lowestAccuracyQuestions")}
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="most-attempted">
+          {data && (
+            <QuestionStatsTable
+              title={t("mostAttemptedQuestions")}
+              data={data.most_attempted_questions}
+            />
+          )}
+        </TabsContent>
+        <TabsContent value="lowest-accuracy">
+          {data && (
+            <QuestionStatsTable
+              title={t("lowestAccuracyQuestions")}
+              data={data.lowest_accuracy_questions}
+            />
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

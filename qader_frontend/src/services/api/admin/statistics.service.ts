@@ -10,10 +10,13 @@ import {
 export const getStatisticsOverview = async (
   params: StatisticsOverviewParams
 ): Promise<AdminStatisticsOverview> => {
-  return apiClient<AdminStatisticsOverview>(API_ENDPOINTS.ADMIN.STATISTICS.OVERVIEW, {
-    method: "GET",
-    params,
-  });
+  return apiClient<AdminStatisticsOverview>(
+    API_ENDPOINTS.ADMIN.STATISTICS.OVERVIEW,
+    {
+      method: "GET",
+      params,
+    }
+  );
 };
 
 export const exportStatistics = async (

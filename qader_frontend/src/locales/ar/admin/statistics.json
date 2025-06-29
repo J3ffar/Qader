@@ -6,7 +6,7 @@
   "exportSuccess": "بدأت مهمة التصدير. سيتم إعلامك عند اكتمالها.",
   "dateRange": "النطاق الزمني",
   "pickDateRange": "اختر نطاقًا زمنيًا",
-  "totalActiveStudents": "إجمالي الطلاب النشطين",
+  "totalActiveStudents": "إجمالي الطلاب",
   "newRegistrations": "التسجيلات الجديدة",
   "questionsAnswered": "الأسئلة المجابة",
   "testsCompleted": "الاختبارات المكتملة",
@@ -22,5 +22,14 @@
   "lowestAccuracyQuestions": "الأسئلة الأقل دقة",
   "question": "السؤال",
   "attemptCount": "عدد المحاولات",
-  "accuracyRate": "معدل الدقة"
+  "accuracyRate": "معدل الدقة",
+
+  "errorLoading": "حدث خطأ أثناء تحميل الإحصائيات.",
+
+  "totalStudentsOnPlatform": "إجمالي الطلاب على المنصة",
+  "inSelectedPeriod": "في الفترة المحددة",
+  "overallAverage": "المتوسط العام",
+  "acrossAllQuestions": "عبر جميع الأسئلة",
+
+  "totalAttempts": "إجمالي المحاولات"
 }

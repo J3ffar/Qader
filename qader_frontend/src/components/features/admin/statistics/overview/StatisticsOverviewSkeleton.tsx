@@ -49,18 +49,14 @@ export default function StatisticsOverviewSkeleton() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+      <div>
+        <div className="flex space-x-4 rtl:space-x-reverse border-b">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-10 w-48" />
+        </div>
+        <Card className="mt-[-1px] rounded-t-none">
           <CardHeader>
             <Skeleton className="h-6 w-52" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-64 w-full" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-56" />
           </CardHeader>
           <CardContent>
             <Skeleton className="h-64 w-full" />
