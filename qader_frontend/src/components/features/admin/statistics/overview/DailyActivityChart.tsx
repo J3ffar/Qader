@@ -49,14 +49,14 @@ export function DailyActivityChart({ data }: DailyActivityChartProps) {
           type="monotone"
           dataKey="questions_answered"
           name={t("questions")}
-          stroke="var(--primary)"
+          stroke="var(--chart-3)"
           activeDot={{ r: 8 }}
         />
         <Line
           type="monotone"
           dataKey="tests_completed"
           name={t("tests")}
-          stroke="var(--foreground)"
+          stroke="var(--chart-4)"
         />
       </LineChart>
     </ResponsiveContainer>

@@ -50,12 +50,12 @@ export function PerformanceBySectionChart({
         <Bar
           dataKey="average_accuracy"
           name={t("accuracy")}
-          fill="var(--primary)"
+          fill="var(--chart-1)"
         />
         <Bar
           dataKey="total_attempts"
           name={t("attempts")}
-          fill="var(--foreground)"
+          fill="var(--chart-2)"
         />
       </BarChart>
     </ResponsiveContainer>
