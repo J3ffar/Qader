@@ -1,4 +1,3 @@
-# qader_backend/apps/admin_panel/api/serializers/statistics.py
 from rest_framework import serializers
 
 # --- Overview Serializers ---
