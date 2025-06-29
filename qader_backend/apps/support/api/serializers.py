@@ -9,6 +9,16 @@ from ..models import SupportTicket, SupportTicketReply
 User = get_user_model()
 
 
+class IssueTypeSerializer(serializers.Serializer):
+    """
+    Serializes a choice tuple from a TextChoices class into a
+    frontend-friendly value/label object.
+    """
+
+    value = serializers.CharField(read_only=True)
+    label = serializers.CharField(read_only=True)
+
+
 # Simple User Serializer (replace with actual one if available)
 class UserBasicInfoSerializer(serializers.ModelSerializer):
     class Meta:

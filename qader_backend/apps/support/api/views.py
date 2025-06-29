@@ -21,7 +21,8 @@ from .serializers import (
     SupportTicketReplySerializer,
     SupportTicketReplyCreateSerializer,
     SupportTicketAdminUpdateSerializer,
-    UserBasicInfoSerializer,  # Import the basic user info serializer
+    UserBasicInfoSerializer,
+    IssueTypeSerializer,  # <--- IMPORT THE NEW SERIALIZER
 )
 from .permissions import IsTicketOwner, IsTicketOwnerOrAdmin
 
@@ -38,6 +39,11 @@ from .permissions import IsTicketOwner, IsTicketOwnerOrAdmin
     ),
     retrieve=extend_schema(
         summary="Retrieve details of your support ticket", tags=["Support (User)"]
+    ),
+    issue_types=extend_schema(
+        summary="Get available support ticket issue types",
+        tags=["Support (User)"],
+        responses={200: IssueTypeSerializer(many=True)},
     ),
     replies=extend_schema(  # Tag the custom action specifically
         summary="List or add replies to your support ticket",
@@ -73,6 +79,8 @@ class UserSupportTicketViewSet(
 
     def get_serializer_class(self):
         """Return different serializers for different actions."""
+        if self.action == "issue_types":
+            return IssueTypeSerializer
         if self.action == "create":
             return SupportTicketCreateSerializer
         if self.action == "retrieve":
@@ -104,6 +112,21 @@ class UserSupportTicketViewSet(
                 if not reply.get("is_internal_note")
             ]
         return Response(data)
+
+    @action(detail=False, methods=["get"])
+    def issue_types(self, request, *args, **kwargs):
+        """
+        Returns a list of available issue types for creating a support ticket.
+        This provides a dynamic source for frontend dropdowns.
+        """
+        issue_type_choices = SupportTicket.IssueType.choices
+
+        # Format the data into a list of dictionaries that matches the serializer
+        data = [{"value": value, "label": label} for value, label in issue_type_choices]
+
+        # Use the serializer to ensure consistent output and validation
+        serializer = self.get_serializer(data, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     # --- Nested Replies ---
     # Note: @extend_schema is now applied via @extend_schema_view above
