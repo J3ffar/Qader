@@ -12,7 +12,7 @@ export default function AdminLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <div className="flex min-h-screen bg-muted/40">
+    <div className="flex min-h-screen">
       <AdminSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <main className="flex flex-1 flex-col">
         <AdminHeader />

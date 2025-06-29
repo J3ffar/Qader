@@ -34,7 +34,7 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
   }, []);
 
   const sidebarSections = useMemo(() => ADMIN_SIDEBAR_SECTIONS, []);
-  const homeItem = useMemo(() => ADMIN_SIDEBAR_HOME_ITEM, []);
+  // const homeItem = useMemo(() => ADMIN_SIDEBAR_HOME_ITEM, []);
 
   if (!isClient) {
     return <AdminSidebarSkeleton />;
@@ -62,11 +62,11 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
       >
         <motion.div
           className={cn(
-            "flex items-center rounded-md px-3 py-2.5 text-sm transition-colors duration-150",
+            "flex items-center mb-2 rounded-md px-3 py-2.5 text-sm transition-colors duration-150",
             isOpen ? "justify-start gap-x-3" : "justify-center",
             isActive
               ? "bg-primary text-primary-foreground" // Active state stands out
-              : "text-slate-300 hover:bg-slate-700 hover:text-white"
+              : "text-slate-700 dark:text-slate-300 hover:bg-primary hover:text-white"
           )}
           whileHover={!isActive ? { scale: 1.03 } : {}}
           transition={{ duration: 0.15 }}
@@ -100,7 +100,7 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
   return (
     <aside
       className={cn(
-        "sticky top-0 z-50 flex h-screen flex-col bg-primary text-white shadow-lg transition-all duration-300 ease-in-out dark:bg-slate-800",
+        "sticky top-0 z-50 flex h-screen flex-col bg-background text-white transition-all duration-300 ease-in-out border-l border-border",
         isOpen ? "w-60" : "w-[72px]"
       )}
       aria-label={t("AdminSidebar.sidebarNavigationLabel" as any)}
@@ -108,7 +108,7 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "absolute top-15 z-50 flex h-8 w-8 items-center justify-center rounded-full border border-slate-600 bg-slate-700 text-slate-300 shadow-md transition-all hover:bg-slate-600",
+          "absolute top-15 z-50 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground shadow-md transition-all hover:bg-muted/80",
           isOpen
             ? locale === "ar"
               ? "-left-3.5"
@@ -127,7 +127,7 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
 
       <div
         className={cn(
-          "flex h-[var(--header-height,80px)] items-center justify-center border-b border-slate-700",
+          "flex h-[var(--header-height,80px)] items-center justify-center border-b border-border",
           isOpen ? "px-6" : "px-3"
         )}
       >
@@ -142,7 +142,7 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
             >
               {isOpen ? (
                 <Image
-                  src="/images/logo/logo-full-light.png"
+                  src="/images/logo.svg"
                   width={130}
                   height={70}
                   alt={t("AdminSidebar.logoAlt" as any)}
@@ -163,8 +163,8 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        {renderMenuItem(homeItem)}
-        <hr className="my-3 border-slate-700" />
+        {/* {renderMenuItem(homeItem)}
+        <hr className="my-3 border-slate-700" /> */}
 
         {sidebarSections.map((section, sectionIndex) => (
           <div
@@ -181,7 +181,7 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
                     transition: { delay: 0.1 },
                   }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-slate-400"
+                  className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 >
                   {t(section.titleKey as any)}
                 </motion.h2>
@@ -201,8 +201,8 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
 };
 
 const AdminSidebarSkeleton = () => (
-  <aside className="sticky top-0 z-50 flex h-screen w-[72px] flex-col bg-slate-900 shadow-lg dark:bg-slate-800 md:w-60">
-    <div className="flex h-[80px] items-center justify-center border-b border-slate-700">
+  <aside className="sticky top-0 z-50 flex h-screen w-[72px] flex-col bg-background shadow-lg md:w-60">
+    <div className="flex h-[80px] items-center justify-center border-b border-border">
       <Skeleton className="h-[40px] w-[40px] rounded-md md:h-[50px] md:w-[120px]" />
     </div>
     <div className="flex-1 space-y-3 px-3 py-4">

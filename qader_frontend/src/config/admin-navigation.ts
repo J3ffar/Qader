@@ -69,7 +69,7 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminSidebarNavSection[] = [
       {
         labelKey: "AdminSidebar.items.statistics",
         icon: BarChart3,
-        href: PATHS.ADMIN.ANALYTICS,
+        href: PATHS.ADMIN.STATISTICS_OVERVIEW,
       },
       {
         labelKey: "AdminSidebar.items.contentTickets",

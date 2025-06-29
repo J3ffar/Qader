@@ -1,0 +1,35 @@
+{
+  "title": "إحصائيات المنصة",
+  "subtitle": "نظرة عامة على المقاييس الرئيسية ونشاط المستخدمين.",
+  "exportData": "تصدير البيانات",
+  "exporting": "جاري التصدير...",
+  "exportSuccess": "بدأت مهمة التصدير. سيتم إعلامك عند اكتمالها.",
+  "dateRange": "النطاق الزمني",
+  "pickDateRange": "اختر نطاقًا زمنيًا",
+  "totalActiveStudents": "إجمالي الطلاب",
+  "newRegistrations": "التسجيلات الجديدة",
+  "questionsAnswered": "الأسئلة المجابة",
+  "testsCompleted": "الاختبارات المكتملة",
+  "avgTestScore": "متوسط درجة الاختبار",
+  "avgAccuracy": "متوسط الدقة",
+  "dailyActivity": "النشاط اليومي",
+  "questions": "أسئلة",
+  "tests": "اختبارات",
+  "performanceBySection": "الأداء حسب القسم",
+  "accuracy": "الدقة",
+  "attempts": "المحاولات",
+  "mostAttemptedQuestions": "الأسئلة الأكثر محاولة",
+  "lowestAccuracyQuestions": "الأسئلة الأقل دقة",
+  "question": "السؤال",
+  "attemptCount": "عدد المحاولات",
+  "accuracyRate": "معدل الدقة",
+
+  "errorLoading": "حدث خطأ أثناء تحميل الإحصائيات.",
+
+  "totalStudentsOnPlatform": "إجمالي الطلاب على المنصة",
+  "inSelectedPeriod": "في الفترة المحددة",
+  "overallAverage": "المتوسط العام",
+  "acrossAllQuestions": "عبر جميع الأسئلة",
+
+  "totalAttempts": "إجمالي المحاولات"
+}

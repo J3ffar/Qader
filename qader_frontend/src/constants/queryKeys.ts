@@ -40,6 +40,11 @@ export const queryKeys = {
       detail: (userId: number | string) =>
         [...queryKeys.admin.userDetails.all(), userId] as const,
     },
+    statistics: { // NEW SECTION
+      all: () => [...queryKeys.admin.all, "statistics"] as const,
+      overviews: () => [...queryKeys.admin.statistics.all(), "overviews"] as const,
+      overview: (filters: object) => [...queryKeys.admin.statistics.overviews(), filters] as const,
+    },
   },
 
   // --- NOTIFICATIONS ---

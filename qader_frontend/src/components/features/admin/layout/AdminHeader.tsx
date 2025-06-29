@@ -97,7 +97,7 @@ const AdminHeader = () => {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b bg-background px-6">
+    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b border-border bg-background px-6">
       {/* Center - Search Bar */}
       <div className="relative w-full max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3 rtl:left-auto" />
@@ -108,15 +108,14 @@ const AdminHeader = () => {
         />
       </div>
       <div className="flex items-center gap-4">
+        <ThemeToggle />
         <div className="flex items-center">
           <Button
             variant="ghost"
             size="icon"
             className={cn(
-              "relative rounded-xl border w-10 h-10",
-              isNotificationsDropdownOpen
-                ? "bg-muted dark:bg-muted/50"
-                : "hover:bg-muted dark:hover:bg-muted/50"
+              "relative rounded-full w-10 h-10",
+              isNotificationsDropdownOpen ? "bg-muted" : "hover:bg-muted"
             )}
             onClick={() =>
               setIsNotificationsDropdownOpen(!isNotificationsDropdownOpen)
@@ -146,7 +145,7 @@ const AdminHeader = () => {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="flex h-auto items-center gap-3 p-1 border rounded-xl"
+              className="flex h-auto items-center gap-3 p-1 hover:bg-muted rounded-full"
             >
               <div className="relative">
                 <Avatar className="h-12 w-12">
