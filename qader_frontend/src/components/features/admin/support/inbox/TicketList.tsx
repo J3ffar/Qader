@@ -1,8 +1,10 @@
+"use client";
+
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Mail, Inbox } from "lucide-react";
+import { Inbox } from "lucide-react";
 
 import { queryKeys } from "@/constants/queryKeys";
 import { getSupportTickets } from "@/services/api/admin/support.service";
@@ -46,12 +48,14 @@ export function TicketList({
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.admin.support.list({
-      issue_type: activeTab === "all" ? undefined : activeTab,
+      // This logic is correct: when activeTab is "all", `issue_type` is undefined.
+      // TanStack Query automatically omits undefined keys from the request.
+      issue_type: activeTab === "all" ? "" : activeTab,
       ordering: "-updated_at",
     }),
     queryFn: () =>
       getSupportTickets({
-        issue_type: activeTab === "all" ? undefined : activeTab,
+        issue_type: activeTab === "all" ? "" : activeTab,
         ordering: "-updated_at",
       }),
   });
@@ -59,32 +63,37 @@ export function TicketList({
   const createTabLink = (tab: string) => {
     const params = new URLSearchParams(searchParams);
     params.set("tab", tab);
-    params.delete("ticket"); // Clear selected ticket when changing tabs
+    params.delete("ticket");
     return `${pathname}?${params.toString()}`;
   };
 
   return (
+    // This structure ensures the tabs are fixed and the list below scrolls
     <div className="flex flex-col h-full">
-      {/* Tabs */}
-      <div className="p-2 border-b">
-        <nav className="flex flex-col gap-1">
-          {issueTypes.map((tab) => (
-            <Link
-              key={tab}
-              href={createTabLink(tab)}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                activeTab === tab && "bg-muted text-primary"
-              )}
-            >
-              <Mail className="h-4 w-4" />
-              {tIssue(tab)}
-            </Link>
-          ))}
-        </nav>
+      {/* Horizontal Scrollable Tabs */}
+      <div className="flex-shrink-0 p-2 border-b">
+        <div className="overflow-x-auto pb-2">
+          <nav className="flex space-x-2 rtl:space-x-reverse">
+            {issueTypes.map((tab) => (
+              <Link
+                key={tab}
+                href={createTabLink(tab)}
+                className={cn(
+                  "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "flex-shrink-0", // Prevents tabs from shrinking
+                  activeTab === tab
+                    ? "bg-primary text-primary-foreground shadow"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                {tIssue(tab)}
+              </Link>
+            ))}
+          </nav>
+        </div>
       </div>
 
-      {/* Ticket List */}
+      {/* Scrollable Ticket List Area */}
       <div className="flex-1 overflow-y-auto">
         {isLoading && <TicketListSkeleton />}
         {isError && (
@@ -115,6 +124,7 @@ export function TicketList({
   );
 }
 
+// TicketListItem remains the same as in the previous improvement.
 function TicketListItem({
   ticket,
   isSelected,
@@ -125,6 +135,7 @@ function TicketListItem({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tPriority = useTranslations("Admin.support.priorityLabels");
+  const tIssue = useTranslations("Admin.support.issueTypeLabels");
 
   const createTicketLink = () => {
     const params = new URLSearchParams(searchParams);
@@ -136,17 +147,22 @@ function TicketListItem({
     <Link
       href={createTicketLink()}
       className={cn(
-        "flex flex-col items-start gap-2 rounded-lg border-b p-3 text-left text-sm transition-all hover:bg-accent m-2",
-        isSelected && "bg-muted"
+        "flex flex-col items-start gap-2 border-b p-3 text-left text-sm transition-all hover:bg-accent",
+        isSelected ? "bg-muted" : "bg-transparent"
       )}
     >
-      <div className="flex w-full items-center">
+      <div className="flex w-full items-center gap-2">
         <p className="font-semibold flex-1 truncate">
           {ticket.user.full_name || ticket.user.username}
         </p>
         <Badge variant={priorityVariantMap[ticket.priority]}>
           {tPriority(String(ticket.priority))}
         </Badge>
+        {ticket.issue_type && (
+          <Badge variant="secondary" className="flex-shrink-0">
+            {tIssue(ticket.issue_type)}
+          </Badge>
+        )}
       </div>
       <p className="font-semibold line-clamp-1 text-sm">{ticket.subject}</p>
       <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
