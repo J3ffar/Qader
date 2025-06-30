@@ -10,8 +10,9 @@ class SupportTicket(models.Model):
 
     class IssueType(models.TextChoices):
         TECHNICAL = "technical", _("Technical")
-        FINANCIAL = "financial", _("Financial")
         QUESTION_PROBLEM = "question_problem", _("Problem with a question")
+        SUGGESTION = "suggestion", _("Suggestion")
+        INQUIRY = "inquiry", _("General Inquiry")
         OTHER = "other", _("Other")
 
     class Status(models.TextChoices):
