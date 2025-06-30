@@ -63,7 +63,8 @@ export interface SupportTicketAdminUpdateRequest {
 }
 
 // Payload for POST /admin/support/tickets/{id}/replies/
+// MODIFIED: Added is_internal_note
 export interface AddReplyRequest {
   message: string;
-  // is_internal_note is handled by the backend logic based on the UI action
+  is_internal_note: boolean;
 }

@@ -1,5 +1,3 @@
-"use client";
-
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -103,13 +101,15 @@ export function TicketList({
           </div>
         )}
 
-        {data?.results.map((ticket) => (
-          <TicketListItem
-            key={ticket.id}
-            ticket={ticket}
-            isSelected={ticket.id === selectedTicketId}
-          />
-        ))}
+        <div className="flex flex-col">
+          {data?.results.map((ticket) => (
+            <TicketListItem
+              key={ticket.id}
+              ticket={ticket}
+              isSelected={ticket.id === selectedTicketId}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -124,6 +124,7 @@ function TicketListItem({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const tPriority = useTranslations("Admin.support.priorityLabels");
 
   const createTicketLink = () => {
     const params = new URLSearchParams(searchParams);
@@ -135,26 +136,21 @@ function TicketListItem({
     <Link
       href={createTicketLink()}
       className={cn(
-        "flex flex-col items-start gap-2 rounded-lg border p-3 text-left text-sm transition-all hover:bg-accent",
+        "flex flex-col items-start gap-2 rounded-lg border-b p-3 text-left text-sm transition-all hover:bg-accent m-2",
         isSelected && "bg-muted"
       )}
     >
-      <div className="flex w-full items-center justify-between">
-        <p className="font-semibold">{ticket.user.username}</p>
-        <div
-          className={cn(
-            "flex items-center justify-center font-medium",
-            priorityVariantMap[ticket.priority]
-          )}
-        >
-          <Badge variant={priorityVariantMap[ticket.priority]}>
-            P{ticket.priority}
-          </Badge>
-        </div>
+      <div className="flex w-full items-center">
+        <p className="font-semibold flex-1 truncate">
+          {ticket.user.full_name || ticket.user.username}
+        </p>
+        <Badge variant={priorityVariantMap[ticket.priority]}>
+          {tPriority(String(ticket.priority))}
+        </Badge>
       </div>
-      <p className="line-clamp-1 text-xs">{ticket.subject}</p>
+      <p className="font-semibold line-clamp-1 text-sm">{ticket.subject}</p>
       <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
-        <p>{ticket.last_reply_by}</p>
+        <p>الرد الأخير: {ticket.last_reply_by}</p>
         <p>{new Date(ticket.updated_at).toLocaleDateString()}</p>
       </div>
     </Link>

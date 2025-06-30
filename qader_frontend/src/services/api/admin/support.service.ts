@@ -56,6 +56,7 @@ export const getTicketReplies = async (ticketId: number) => {
 };
 
 // POST /en/api/v1/admin/support/tickets/{id}/replies/
+// MODIFIED: The payload type is now correctly enforced
 export const addTicketReply = async (
   ticketId: number,
   payload: AddReplyRequest

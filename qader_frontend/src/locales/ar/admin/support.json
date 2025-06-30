@@ -40,8 +40,12 @@
     "noTicketsTitle": "لا توجد تذاكر هنا",
     "noTicketsDescription": "هذا القسم فارغ حالياً. تحقق من قسم آخر أو استرح قليلاً!",
     "selectTicketTitle": "حدد تذكرة لعرضها",
-    "selectTicketDescription": "اختر محادثة من القائمة على اليمين لقراءة التفاصيل والرد عليها.",
-    "replyPlaceholder": "اكتب ردك هنا..."
+    "selectTicketDescription": "اختر محادثة من القائمة على اليسار لقراءة التفاصيل والرد عليها.",
+    "replyPlaceholder": "اكتب ردك العام هنا...",
+    "internalNotePlaceholder": "اكتب ملاحظة داخلية... مرئية للمسؤولين فقط.",
+    "publicReply": "رد عام",
+    "internalNote": "ملاحظة داخلية",
+    "viewAttachment": "عرض المرفق"
   },
   "actions": {
     "viewDetails": "عرض التفاصيل",
