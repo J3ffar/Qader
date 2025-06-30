@@ -36,11 +36,18 @@ export const API_ENDPOINTS = {
       STATISTICS: (userId: number) => `/admin/users/${userId}/statistics/`,
       TEST_HISTORY: (userId: number) => `/admin/users/${userId}/test-history/`,
     },
-    STATISTICS: { // NEW SECTION
+    STATISTICS: {
+      // NEW SECTION
       OVERVIEW: "/admin/statistics/overview/",
       EXPORT: "/admin/statistics/export/",
     },
     PERMISSIONS: "/admin/permissions/",
+    SUPPORT: {
+      // NEW SECTION
+      TICKETS: "/admin/support/tickets/",
+      TICKET_DETAIL: (id: number | string) => `/admin/support/tickets/${id}/`,
+      REPLIES: (id: number | string) => `/admin/support/tickets/${id}/replies/`,
+    },
   },
   STUDY: {
     STATISTICS: "/study/statistics/",
