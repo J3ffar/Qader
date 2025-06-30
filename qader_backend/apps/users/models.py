@@ -5,7 +5,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from datetime import timedelta
+from datetime import timedelta, date
 
 from apps.notifications.services import create_notification
 from apps.notifications.models import Notification, NotificationTypeChoices
@@ -477,6 +477,45 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Profile for {self.user.username}"
+
+    # --- New Method ---
+    def check_and_reset_streak(self) -> bool:
+        """
+        Checks if the user's study streak is broken due to inactivity and resets it to 0 if so.
+        This is a "state synchronization" method, ideal for calling when a user becomes active again
+        (e.g., on login or profile view) to ensure data consistency.
+
+        Returns:
+            bool: True if the streak was reset, False otherwise.
+        """
+        if self.current_streak_days == 0 or not self.last_study_activity_at:
+            # No active streak to reset.
+            return False
+
+        now_utc = timezone.now()
+        today_date = now_utc.date()
+        
+        # Make last_study_activity_at timezone-aware if it isn't (it should be)
+        last_activity_date = self.last_study_activity_at.date()
+
+        # A streak is broken if the user missed a full day.
+        # This means the day after their last activity day has completely passed.
+        # So, if today is more than 1 day after their last activity day, the streak is broken.
+        days_since_last_activity = (today_date - last_activity_date).days
+
+        if days_since_last_activity > 1:
+            logger.info(
+                f"Resetting streak for user '{self.user.username}' (ID: {self.user.id}). "
+                f"Last activity was on {last_activity_date.isoformat()} ({days_since_last_activity} days ago). "
+                f"Current streak was {self.current_streak_days} days."
+            )
+            self.current_streak_days = 0
+            # We only update the streak field. last_study_activity_at remains the same
+            # until a new study action occurs.
+            self.save(update_fields=['current_streak_days', 'updated_at'])
+            return True
+
+        return False
 
     @property
     def is_subscribed(self) -> bool:
