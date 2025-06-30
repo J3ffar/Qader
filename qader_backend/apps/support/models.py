@@ -1,6 +1,34 @@
+# qader_backend/apps/support/models.py
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+
+
+class IssueType(models.Model):
+    """
+    Model to store different types of support issues.
+    This allows admins to manage issue types dynamically.
+    """
+
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name=_("Name"),
+        help_text=_("A unique identifier for the issue type (e.g., 'technical')."),
+    )
+    display_name = models.CharField(
+        max_length=255,
+        verbose_name=_("Display Name"),
+        help_text=_("The user-facing name (e.g., 'Technical')."),
+    )
+
+    class Meta:
+        verbose_name = _("Issue Type")
+        verbose_name_plural = _("Issue Types")
+        ordering = ["display_name"]
+
+    def __str__(self):
+        return self.display_name
 
 
 class SupportTicket(models.Model):
@@ -16,14 +44,10 @@ class SupportTicket(models.Model):
         OTHER = "other", _("Other")
 
     class Status(models.TextChoices):
-        OPEN = "open", _("Open")  # Newly submitted or user replied
-        PENDING_ADMIN = "pending_admin", _(
-            "Pending Admin Response"
-        )  # Admin replied, waiting for user
-        PENDING_USER = "pending_user", _(
-            "Pending User Response"
-        )  # Admin replied, waiting for user (Alternative naming if clearer)
-        CLOSED = "closed", _("Closed")  # Resolved
+        OPEN = "open", _("Open")
+        PENDING_ADMIN = "pending_admin", _("Pending Admin Response")
+        PENDING_USER = "pending_user", _("Pending User Response")
+        CLOSED = "closed", _("Closed")
 
     class Priority(models.IntegerChoices):
         HIGH = 1, _("High")
@@ -36,10 +60,13 @@ class SupportTicket(models.Model):
         related_name="support_tickets",
         verbose_name=_("User"),
     )
+    # CHANGED: Replaced CharField with a ManyToManyField to allow multiple issue types.
     issue_type = models.CharField(
         max_length=20,
         choices=IssueType.choices,
         verbose_name=_("Issue Type"),
+        null=True,
+        blank=True,
         db_index=True,
     )
     subject = models.CharField(max_length=255, verbose_name=_("Subject"))
@@ -67,7 +94,7 @@ class SupportTicket(models.Model):
         blank=True,
         null=True,
         verbose_name=_("Assigned To"),
-        limit_choices_to={"is_staff": True},  # Only staff can be assigned
+        limit_choices_to={"is_staff": True},
         db_index=True,
     )
     created_at = models.DateTimeField(
@@ -90,12 +117,9 @@ class SupportTicket(models.Model):
     @property
     def last_reply_by_role(self):
         """Determines if the last reply was by an admin or a non-admin user."""
-        # Order replies by creation date, descending, to get the latest first
         last_reply = self.replies.order_by("-created_at", "-id").first()
         if last_reply:
-            # Check if the user who made the *last reply* is staff
             return "admin" if last_reply.user.is_staff else "user"
-        # If no replies, the 'last action' was the creation by the user
         return "user"
 
 
@@ -112,7 +136,7 @@ class SupportTicketReply(models.Model):
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,  # If user deleted, their replies go too
+        on_delete=models.CASCADE,
         related_name="support_replies",
         verbose_name=_("User"),
     )
@@ -123,9 +147,7 @@ class SupportTicketReply(models.Model):
     created_at = models.DateTimeField(
         auto_now_add=True, verbose_name=_("Created At"), db_index=True
     )
-    updated_at = models.DateTimeField(  # Less useful here, maybe remove
-        auto_now=True, verbose_name=_("Updated At")
-    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
 
     class Meta:
         verbose_name = _("Support Ticket Reply")
@@ -133,7 +155,5 @@ class SupportTicketReply(models.Model):
         ordering = ["created_at"]
 
     def __str__(self):
-        note = (
-            " (Internal)" if self.is_internal_note else ""
-        )  # Corrected: No space before (Internal), no trailing space if public
-        return f"Reply by {self.user.username} on Ticket #{self.ticket.pk}{note}"  # Note removed potential trailing space
+        note = " (Internal)" if self.is_internal_note else ""
+        return f"Reply by {self.user.username} on Ticket #{self.ticket.pk}{note}"
