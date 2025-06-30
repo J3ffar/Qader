@@ -1,48 +1,69 @@
 import { PaginatedResponse } from "@/types/api";
-import { SimpleUserProfile } from "../notification.types";
+
+// A standardized, reusable User object based on the API docs
+export interface SimpleUser {
+  id: number;
+  username: string;
+  email: string;
+  full_name: string;
+  preferred_name: string | null;
+  profile_picture_url: string | null;
+}
 
 export type TicketStatus = "open" | "pending_admin" | "pending_user" | "closed";
 export type TicketPriority = 1 | 2 | 3; // 1: High, 2: Medium, 3: Low
 export type TicketIssueType =
   | "technical"
-  | "financial"
   | "question_problem"
+  | "suggestion"
+  | "inquiry"
   | "other";
 
-export interface SupportTicket {
+// Corresponds to the `SupportTicketList` object in the API response
+export interface SupportTicketListItem {
   id: number;
   subject: string;
   issue_type: TicketIssueType;
   status: TicketStatus;
   priority: TicketPriority;
-  user: SimpleUserProfile;
-  assigned_to: SimpleUserProfile | null;
+  user: SimpleUser;
+  assigned_to: SimpleUser | null;
   created_at: string;
   updated_at: string;
   last_reply_by: string;
 }
 
+// Corresponds to the `SupportTicketReply` object
+export interface SupportTicketReply {
+  id: number;
+  user: SimpleUser;
+  message: string;
+  is_internal_note: boolean;
+  created_at: string;
+}
+
+// Corresponds to the `SupportTicketDetail` object
 export interface SupportTicketDetail
-  extends Omit<SupportTicket, "last_reply_by"> {
+  extends Omit<SupportTicketListItem, "last_reply_by"> {
   description: string;
   attachment: string | null;
   closed_at: string | null;
   replies: SupportTicketReply[];
 }
 
-export interface SupportTicketReply {
-  id: number;
-  user: SimpleUserProfile;
-  message: string;
-  is_internal_note: boolean;
-  created_at: string;
-}
-
+// Response for the list endpoint
 export interface SupportTicketListResponse
-  extends PaginatedResponse<SupportTicket> {}
+  extends PaginatedResponse<SupportTicketListItem> {}
 
+// Payload for PATCH /admin/support/tickets/{id}/
 export interface SupportTicketAdminUpdateRequest {
   status?: TicketStatus;
   priority?: TicketPriority;
   assigned_to_id?: number;
+}
+
+// Payload for POST /admin/support/tickets/{id}/replies/
+export interface AddReplyRequest {
+  message: string;
+  // is_internal_note is handled by the backend logic based on the UI action
 }

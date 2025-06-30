@@ -7,16 +7,18 @@ import { useTranslations } from "next-intl";
 import { getSupportTickets } from "@/services/api/admin/support.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { SupportTableSkeleton } from "./SupportTableSkeleton";
-import { SupportTable } from "./SupportTable"; // We'll create this next
+import { SupportTable } from "./SupportTable";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
+import { ITEMS_PER_PAGE } from "@/constants/config";
 
 export function SupportClient() {
-  const t = useTranslations("Admin.support");
+  const t = useTranslations("Errors");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // useMemo ensures this object is stable unless searchParams change
   const queryParams = useMemo(() => {
     const params = new URLSearchParams(searchParams);
     return {
@@ -28,23 +30,30 @@ export function SupportClient() {
     };
   }, [searchParams]);
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, isFetching } = useQuery({
     queryKey: queryKeys.admin.support.list(queryParams),
     queryFn: () => getSupportTickets(queryParams),
+    placeholderData: (previousData) => previousData, // Keeps old data visible while fetching new
+    retry: 1,
   });
 
   const handleFilterChange = (key: string, value: string | null) => {
-    const params = new URLSearchParams(searchParams);
-    if (value) {
-      params.set(key, value);
+    const current = new URLSearchParams(Array.from(searchParams.entries()));
+
+    if (value && value.trim() !== "") {
+      current.set(key, value);
     } else {
-      params.delete(key);
+      current.delete(key);
     }
-    // Reset to first page when filters change, except for pagination itself
+
+    // When a filter changes, we should go back to the first page
     if (key !== "page") {
-      params.delete("page");
+      current.delete("page");
     }
-    router.push(`${pathname}?${params.toString()}`);
+
+    const search = current.toString();
+    const query = search ? `?${search}` : "";
+    router.push(`${pathname}${query}`);
   };
 
   if (isLoading) {
@@ -55,20 +64,23 @@ export function SupportClient() {
     return (
       <Alert variant="destructive">
         <Terminal className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
+        <AlertTitle>{t("oops")}</AlertTitle>
         <AlertDescription>
-          {(error as Error)?.message || t("actions.deleteError")}
+          {(error as Error)?.message || t("generic")}
         </AlertDescription>
       </Alert>
     );
   }
 
+  const pageCount = data ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
+
   return (
     <SupportTable
       data={data?.results ?? []}
-      pageCount={data ? Math.ceil(data.count / 10) : 0} // Assuming 10 items per page
+      pageCount={pageCount}
       filters={queryParams}
       onFilterChange={handleFilterChange}
+      isFetching={isFetching}
     />
   );
 }
