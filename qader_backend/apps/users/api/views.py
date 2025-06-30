@@ -229,6 +229,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 "serial_code_used",
                 "assigned_mentor__user",  # Add assigned_mentor related fields if needed
             ).get(user=user)
+
+            # Check and reset the user's streak if it's broken upon login.
+            profile.check_and_reset_streak()
+
             context = {
                 "request": request
             }  # Ensure request context is passed for URL building
@@ -1003,6 +1007,13 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
             profile = UserProfile.objects.select_related(
                 "user", "serial_code_used"
             ).get(user=user)
+
+            # ---> The key change is here <---
+            # Before returning the profile for serialization (on GET) or update (on PATCH),
+            # check if the streak needs to be reset. This ensures data is consistent.
+            if self.request.method == "GET":
+                profile.check_and_reset_streak()
+
             return profile
         except UserProfile.DoesNotExist:
             # This indicates a potential data integrity issue if user is authenticated
