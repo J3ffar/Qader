@@ -45,6 +45,17 @@ export const queryKeys = {
       overviews: () => [...queryKeys.admin.statistics.all(), "overviews"] as const,
       overview: (filters: object) => [...queryKeys.admin.statistics.overviews(), filters] as const,
     },
+    support: {
+      all: () => [...queryKeys.admin.all, "support"] as const,
+      lists: () => [...queryKeys.admin.support.all(), "lists"] as const,
+      list: (filters: object) =>
+        [...queryKeys.admin.support.lists(), filters] as const,
+      details: () => [...queryKeys.admin.support.all(), "details"] as const,
+      detail: (id: number | string) =>
+        [...queryKeys.admin.support.details(), id] as const,
+      replies: (id: number | string) =>
+        [...queryKeys.admin.support.detail(id), "replies"] as const,
+    },
   },
 
   // --- NOTIFICATIONS ---
