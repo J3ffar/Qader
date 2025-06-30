@@ -1,10 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from ..models import SupportTicket, SupportTicketReply
 
-# Assuming a basic user serializer exists, e.g., in apps.users.api.serializers
-# If not, define a simple one here or import appropriately.
-# from apps.users.api.serializers import UserBasicInfoSerializer # Example import
+from apps.users.api.serializers import SimpleUserSerializer
+from ..models import SupportTicket, SupportTicketReply
 
 User = get_user_model()
 
@@ -19,24 +17,13 @@ class IssueTypeSerializer(serializers.Serializer):
     label = serializers.CharField(read_only=True)
 
 
-# Simple User Serializer (replace with actual one if available)
-class UserBasicInfoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = (
-            "id",
-            "username",
-            "email",
-        )  # Add 'preferred_name', 'profile_picture_url' if needed
-
-
 # --- Reply Serializers ---
 
 
 class SupportTicketReplySerializer(serializers.ModelSerializer):
     """Serializer for displaying ticket replies."""
 
-    user = UserBasicInfoSerializer(read_only=True)
+    user = SimpleUserSerializer(read_only=True)
 
     class Meta:
         model = SupportTicketReply
@@ -82,8 +69,8 @@ class SupportTicketReplyCreateSerializer(serializers.ModelSerializer):
 class SupportTicketListSerializer(serializers.ModelSerializer):
     """Serializer for listing support tickets (user and admin)."""
 
-    user = UserBasicInfoSerializer(read_only=True)
-    assigned_to = UserBasicInfoSerializer(read_only=True)
+    user = SimpleUserSerializer(read_only=True)
+    assigned_to = SimpleUserSerializer(read_only=True)
     last_reply_by = serializers.CharField(
         source="last_reply_by_role", read_only=True
     )  # Use property
@@ -108,8 +95,8 @@ class SupportTicketListSerializer(serializers.ModelSerializer):
 class SupportTicketDetailSerializer(serializers.ModelSerializer):
     """Serializer for viewing a single support ticket's details."""
 
-    user = UserBasicInfoSerializer(read_only=True)
-    assigned_to = UserBasicInfoSerializer(read_only=True)
+    user = SimpleUserSerializer(read_only=True)
+    assigned_to = SimpleUserSerializer(read_only=True)
     replies = SupportTicketReplySerializer(many=True, read_only=True)  # Nested replies
 
     class Meta:
@@ -162,7 +149,7 @@ class SupportTicketAdminUpdateSerializer(serializers.ModelSerializer):
         allow_null=True,
         write_only=True,
     )
-    assigned_to = UserBasicInfoSerializer(read_only=True)  # Display assigned user
+    assigned_to = SimpleUserSerializer(read_only=True)  # Display assigned user
 
     class Meta:
         model = SupportTicket

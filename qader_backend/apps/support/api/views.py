@@ -21,7 +21,6 @@ from .serializers import (
     SupportTicketReplySerializer,
     SupportTicketReplyCreateSerializer,
     SupportTicketAdminUpdateSerializer,
-    UserBasicInfoSerializer,
     IssueTypeSerializer,  # <--- IMPORT THE NEW SERIALIZER
 )
 from .permissions import IsTicketOwner, IsTicketOwnerOrAdmin
