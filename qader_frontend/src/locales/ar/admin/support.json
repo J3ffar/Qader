@@ -28,12 +28,34 @@
     "2": "متوسطة",
     "3": "منخفضة"
   },
+  "issueTypeLabels": {
+    "all": "جميع التذاكر",
+    "technical": "مشاكل تقنية",
+    "question_problem": "مشكلة في سؤال",
+    "suggestion": "اقتراحات",
+    "inquiry": "استفسارات",
+    "other": "أخرى"
+  },
+  "inbox": {
+    "noTicketsTitle": "لا توجد تذاكر هنا",
+    "noTicketsDescription": "هذا القسم فارغ حالياً. تحقق من قسم آخر أو استرح قليلاً!",
+    "selectTicketTitle": "حدد تذكرة لعرضها",
+    "selectTicketDescription": "اختر محادثة من القائمة على اليمين لقراءة التفاصيل والرد عليها.",
+    "replyPlaceholder": "اكتب ردك هنا..."
+  },
   "actions": {
     "viewDetails": "عرض التفاصيل",
     "delete": "حذف التذكرة",
     "deleteConfirmTitle": "هل أنت متأكد؟",
     "deleteConfirmDescription": "لا يمكن التراجع عن هذا الإجراء. سيؤدي هذا إلى حذف تذكرة الدعم وجميع الردود عليها بشكل دائم.",
     "deleteSuccess": "تم حذف التذكرة بنجاح.",
-    "deleteError": "فشل حذف التذكرة."
+    "deleteError": "فشل حذف التذكرة.",
+    "replySuccess": "تم إرسال الرد بنجاح.",
+    "replyError": "فشل إرسال الرد. الرجاء المحاولة مرة أخرى.",
+    "updateSuccess": "تم تحديث التذكرة بنجاح.",
+    "updateError": "فشل تحديث التذكرة."
+  },
+  "errors": {
+    "fetchError": "حدث خطأ أثناء جلب البيانات. الرجاء المحاولة مرة أخرى."
   }
 }

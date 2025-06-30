@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { SupportClient } from "@/components/features/admin/support/SupportClient";
+import { SupportInboxLayout } from "@/components/features/admin/support/inbox/SupportInboxLayout";
 import {
   Card,
   CardContent,
@@ -12,14 +12,13 @@ export default function AdminSupportPage() {
   const t = useTranslations("Admin.support");
 
   return (
-    <Card>
-      <CardHeader>
+    <div className="h-full flex flex-col">
+      <CardHeader className="flex-shrink-0">
         <CardTitle>{t("title")}</CardTitle>
         <CardDescription>{t("description")}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <SupportClient />
-      </CardContent>
-    </Card>
+      {/* The layout component will manage its own padding and borders */}
+      <SupportInboxLayout />
+    </div>
   );
 }
