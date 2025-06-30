@@ -36,7 +36,8 @@ export const API_ENDPOINTS = {
       STATISTICS: (userId: number) => `/admin/users/${userId}/statistics/`,
       TEST_HISTORY: (userId: number) => `/admin/users/${userId}/test-history/`,
     },
-    STATISTICS: { // NEW SECTION
+    STATISTICS: {
+      // NEW SECTION
       OVERVIEW: "/admin/statistics/overview/",
       EXPORT: "/admin/statistics/export/",
     },
@@ -128,12 +129,20 @@ export const API_ENDPOINTS = {
   },
   GAMIFICATION: {
     REWARD_STORE: "/gamification/reward-store/",
-    DAILY_POINTS_SUMMARY: "/gamification/points-summary/",
+    DAILY_POINTS_SUMMARY: "/gamification/points-summary/daily/",
     STUDY_DAYS: "/gamification/study-days/",
     // Adding placeholders for other gamification endpoints that might exist or be added soon
     BADGES_LIST: "/gamification/badges/",
     MY_BADGES: "/gamification/my-badges/",
     POINTS_LOG: "/gamification/point-log/",
     GAMIFICATION_SUMMARY: "/gamification/summary/",
+    POINT_LOG_DETAIL: (id: number | string) => `/gamification/point-log/${id}/`,
+    REWARD_STORE_DETAIL: (id: number | string) =>
+      `/gamification/reward-store/${id}/`,
+    PURCHASE_REWARD_ITEM: (itemId: number | string) =>
+      `/gamification/reward-store/purchase/${itemId}/`,
+
+    POINTS_SUMMARY: "/gamification/points-summary/",
+    MY_ITEMS: "/gamification/my-items/",
   },
 };
