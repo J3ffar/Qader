@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { UseMutationResult } from "@tanstack/react-query";
 import {
-  ListChecks,
-  ListX,
+  BookOpen,
+  XSquare,
   Loader2,
   MoreVertical,
   RotateCw,
@@ -119,45 +119,34 @@ const TestAttemptActions = ({
 
           case "completed":
             return (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="h-8 w-8 p-0"
-                    disabled={isThisAttemptRetaking}
+              <div className="flex flex-col justify-center gap-2 sm:flex-row">
+                <Button asChild size="sm" variant="outline">
+                  <Link
+                    href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id, true)}
                   >
-                    <span className="sr-only">{t("openMenu")}</span>
-                    {isThisAttemptRetaking ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <MoreVertical className="h-4 w-4" />
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem asChild>
-                    <Link href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id)}>
-                      <ListChecks className="me-2 h-4 w-4" />
-                      <span>{t("review")}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id, true)}
-                    >
-                      <ListX className="me-2 h-4 w-4" />
-                      <span>{t("reviewIncorrect")}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onSelect={() => onRetake(attempt.attempt_id)}
-                  >
-                    <RotateCw className="me-2 h-4 w-4" />
-                    <span>{t("retake")}</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <XSquare className="h-4 w-4" />
+                  </Link>
+                </Button>
+
+                <Button asChild size="sm" variant="outline">
+                  <Link href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id)}>
+                    <BookOpen className="h-4 w-4" />
+                  </Link>
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onRetake(attempt.attempt_id)}
+                  disabled={isThisAttemptRetaking}
+                >
+                  {isThisAttemptRetaking ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RotateCw className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             );
 
           case "abandoned":

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/accordion";
 import { UserTestAttemptList } from "@/types/api/study.types";
 import TestAttemptActions from "./TestAttemptActions";
+import { get } from "http";
 
 type TestAttemptsListProps = {
   attempts: UserTestAttemptList[];
@@ -51,23 +52,44 @@ const TestAttemptsList = ({
         return "outline";
     }
   };
-
+  const getGradeVariant = (score: number): string => {
+    if (score >= 90) {
+      return "bg-[#E3FFEF] text-[#27AE60]";
+    } else if (score >= 50) {
+      return "bg-[#FFF4D7] text-[#E6B11D]";
+    } else {
+      return "bg-[#FFDFDF] text-[#F34B4B]";
+    }
+  };
+  const getGrade = (score: number): string => {
+    if (score >= 90) {
+      return t("table.performance.excellent");
+    } else if (score >= 50) {
+      return t("table.performance.good");
+    } else {
+      return t("table.performance.poor");
+    }
+  };
   return (
     <>
       {/* Desktop Table View */}
-      <div className="hidden rounded-xl border md:block">
+      <div className="hidden rounded-t-xl border md:block">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[150px] text-right">
-                {t("table.testType")}
-              </TableHead>
-              <TableHead className="text-right">{t("table.date")}</TableHead>
+              <TableHead className="text-center">{t("table.date")}</TableHead>
               <TableHead className="text-center">
                 {t("table.numQuestions")}
               </TableHead>
-              <TableHead className="text-center">{t("table.score")}</TableHead>
-              <TableHead className="text-center">{t("table.status")}</TableHead>
+              <TableHead className="text-center">
+                {t("table.percentage")}
+              </TableHead>
+              <TableHead className="text-center">
+                {t("table.performance.quantitative")}
+              </TableHead>
+              <TableHead className="text-center">
+                {t("table.performance.verbal")}
+              </TableHead>
               <TableHead className="text-center">
                 {t("table.actions")}
               </TableHead>
@@ -76,27 +98,41 @@ const TestAttemptsList = ({
           <TableBody>
             {attempts.map((attempt) => (
               <TableRow key={attempt.attempt_id}>
-                <TableCell className="font-medium capitalize">
-                  {attempt.test_type}
+                <TableCell className="text-center border-x">
+                  {(() => {
+                    const date = new Date(attempt.date);
+                    return `${date.getDate()}/${date.getMonth() + 1}/${
+                      date.getFullYear() % 100
+                    }`;
+                  })()}
                 </TableCell>
-                <TableCell>
-                  {new Date(attempt.date).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center border-x">
                   {attempt.num_questions}
                 </TableCell>
-                <TableCell className="text-center font-semibold">
+                <TableCell className="text-center border-x">
                   {attempt.score_percentage !== null
                     ? `${attempt.score_percentage.toFixed(0)}%`
                     : "—"}
                 </TableCell>
-                <TableCell className="text-center">
-                  <Badge variant={getStatusBadgeVariant(attempt.status)}>
-                    {attempt.status_display}
+                <TableCell className="text-center border-x">
+                  <Badge
+                    className={getGradeVariant(
+                      attempt.performance?.overall || 0
+                    )}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-current me-1 inline-block" />
+                    {getGrade(attempt.performance?.overall || 0)}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="text-center border-x">
+                  <Badge
+                    className={getGradeVariant(
+                      attempt.performance?.verbal || 0
+                    )}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-current me-1 inline-block" />
+                    {getGrade(attempt.performance?.verbal || 0)}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-center">

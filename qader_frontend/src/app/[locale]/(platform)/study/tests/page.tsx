@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { PlusCircle, ListChecks, ListXIcon } from "lucide-react";
+import { PencilLine, ListChecks, ListXIcon, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -27,11 +26,19 @@ import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { toast } from "sonner";
 import TestAttemptsList from "@/components/features/platform/study/tests/TestAttemptsList";
 import { queryKeys } from "@/constants/queryKeys";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 
 const PAGE_SIZE = 20;
 
 const TestsPage = () => {
-  const t = useTranslations("Study.tests.list");
+  const t = useTranslations("Study.tests");
+  const tOptions = useTranslations("Study.tests.list.sortByOptions");
   const tActions = useTranslations("Study.tests.list.actions");
   const tCommon = useTranslations("Common");
   const queryClient = useQueryClient();
@@ -39,6 +46,9 @@ const TestsPage = () => {
   const [page, setPage] = useState(1);
   const [retakingId, setRetakingId] = useState<number | null>(null);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [selectedSort, setSelectedSort] = useState<
+    "dateDesc" | "dateAsc" | "scoreAsc" | "scoreDesc"
+  >("dateDesc");
 
   const { data, isLoading, isFetching, error } = useQuery<
     PaginatedUserTestAttempts,
@@ -139,17 +149,90 @@ const TestsPage = () => {
           <div>
             <CardTitle className="flex items-center text-2xl font-bold">
               <ListChecks className="me-3 h-7 w-7 text-primary" />
-              {t("title")}
+              {t("simulationTest.title")}
             </CardTitle>
-            <p className="mt-1 text-muted-foreground">{t("description")}</p>
+            <p className="mt-1 text-muted-foreground">
+              <span className="w-1 h-1 rounded-full bg-current me-2 inline-block" />
+              {t("simulationTest.retakeDescription")}
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              <span className="w-1 h-1 rounded-full bg-current me-2 inline-block" />
+              {t("simulationTest.reviewDescription")}
+            </p>
           </div>
           <Button asChild size="lg">
             <Link href={PATHS.STUDY.TESTS.START}>
-              <PlusCircle className="me-2 h-5 w-5" />
-              {t("startNewTest")}
+              <PencilLine className="me-2 h-5 w-5" />
+              {t("list.startNewTest")}
             </Link>
           </Button>
         </CardHeader>
+      </Card>
+
+      {/* Table Card */}
+      <Card>
+        <CardHeader className="flex items-center md:items-start justify-between gap-4 w-full flex-col md:flex-row">
+          <div className="w-fit">
+            <CardTitle className="text-xl font-bold">
+              {t("list.title")}
+            </CardTitle>
+          </div>
+
+          <div className="flex justify-end flex-wrap md:flex-nowrap gap-4 md:ml-6">
+            <div className="md:flex md:flex-row md:gap-4 md:space-y-0 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  {t("list.showLowPerformanceTests")}{" "}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Switch />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium min-w-16">
+                  {t("list.sortBy")}
+                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="min-w-[150px]">
+                      {tOptions(selectedSort)}
+                      <ChevronDown className="ms-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent className="text-center">
+                    <DropdownMenuItem
+                      className="justify-center"
+                      onSelect={() => setSelectedSort("dateAsc")}
+                    >
+                      {tOptions("dateAsc")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="justify-center"
+                      onSelect={() => setSelectedSort("dateDesc")}
+                    >
+                      {tOptions("dateDesc")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="justify-center"
+                      onSelect={() => setSelectedSort("scoreAsc")}
+                    >
+                      {tOptions("scoreAsc")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="justify-center"
+                      onSelect={() => setSelectedSort("scoreDesc")}
+                    >
+                      {tOptions("scoreDesc")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+
         <CardContent>
           {hasNoAttemptsAtAll ? (
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-6 text-center">
