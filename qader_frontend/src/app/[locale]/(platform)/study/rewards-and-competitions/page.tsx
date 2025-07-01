@@ -22,6 +22,7 @@ import {
   GamificationSummary,
   PaginatedDailyPointSummaryResponse,
   PaginatedStudyDayLogResponse,
+  PointsDataType,
   PointsSummary,
   PurchasedItemResponse,
   RewardItem,
@@ -32,13 +33,8 @@ import { useQuery } from "@tanstack/react-query";
 import { format, parseISO, subDays } from "date-fns";
 import dayjs from "dayjs";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-// Type definitions
-type PointsData = {
-  day: string;
-  percent: number;
-};
 
 const RewardsDashboard = () => {
   const todayIndex = new Date().getDay();
@@ -199,12 +195,20 @@ const RewardsDashboard = () => {
     dayPointsMap[dayName] = total_points;
   });
 
-  const fullWeek: PointsData[] = Object.values(daysMap).map((day) => ({
+  const fullWeek: PointsDataType[] = Object.values(daysMap).map((day) => ({
     day,
     percent: dayPointsMap[day] ?? 0,
   }));
   const [activeIndexes, setActiveIndexes] = useState<number[]>([]);
-
+  const mylastWeekStart = useMemo(
+    () => dayjs().subtract(1, "week").startOf("week"),
+    []
+  );
+  const mylastWeekEnd = useMemo(
+    () => dayjs().subtract(1, "week").endOf("week"),
+    []
+  );
+  const [myLastWeekData, setMyLastWeekData] = useState<PointsDataType[]>();
   useEffect(() => {
     if (fullWeek && fullWeek.length > 0) {
       const indexes = fullWeek
@@ -219,8 +223,34 @@ const RewardsDashboard = () => {
         setActiveIndexes(indexes);
       }
     }
-  }, [fullWeek, activeIndexes]);
-  console.log(activeIndexes);
+  }, [activeIndexes]);
+  //last week charts
+  useEffect(() => {
+    const lastWeekResults = results.filter(({ date }) => {
+      const day = dayjs(date);
+      return (
+        day.isAfter(mylastWeekStart.subtract(1, "day")) &&
+        day.isBefore(mylastWeekEnd.add(1, "day"))
+      );
+    });
+
+    const lastWeekDayPointsMap: Record<string, number> = {};
+
+    lastWeekResults.forEach(({ date, total_points }) => {
+      const dayIndex = new Date(date).getDay();
+      const dayName = daysMap[dayIndex];
+      lastWeekDayPointsMap[dayName] = total_points;
+    });
+
+    const aLastWeekData: PointsDataType[] = Object.values(daysMap).map(
+      (day) => ({
+        day,
+        percent: lastWeekDayPointsMap[day] ?? 0,
+      })
+    );
+
+    setMyLastWeekData(aLastWeekData);
+  }, [results, mylastWeekStart, mylastWeekEnd]);
 
   // end of  days summary
   const [testPoints] = useState(fullWeek);
@@ -277,6 +307,7 @@ const RewardsDashboard = () => {
     queryKey: ["pointsSummary"],
     queryFn: getPointsSummary,
   });
+
   const { data: PurchasedItems } = useQuery<PurchasedItemResponse>({
     queryKey: ["getMyPurchasedItems"],
     queryFn: getMyPurchasedItems,
@@ -328,6 +359,12 @@ const RewardsDashboard = () => {
       setIsPurchasing(false);
     }
   };
+  const testingChartData =
+    selectedRangeTestPoints === "الأسبوع الماضي"
+      ? myLastWeekData || fullWeek
+      : selectedRangeTestPoints === "نقاط اليوم"
+      ? fullWeek.filter((_, index) => index === todayIndex)
+      : fullWeek;
 
   return (
     <div className="py-5 sm:p-5 space-y-6 dark:bg-[#081028]">
@@ -543,7 +580,7 @@ const RewardsDashboard = () => {
           </div>
 
           <div className="flex justify-around items-end h-full flex-1 px-3 min-w-fit w-[400px] max-w-[430px]">
-            {fullWeek.map((item, index) => (
+            {testingChartData.map((item, index) => (
               <div
                 key={index}
                 className="text-center h-[95%] flex flex-col items-center"
@@ -556,7 +593,10 @@ const RewardsDashboard = () => {
                 </div>
                 <div
                   className={`text-xs mt-2 ${
-                    todayIndex === index ? "text-[#3D93F5]" : ""
+                    todayIndex === index &&
+                    selectedRangeTestPoints === "هذا الأسبوع"
+                      ? "text-[#3D93F5]"
+                      : ""
                   }`}
                 >
                   {item.day}

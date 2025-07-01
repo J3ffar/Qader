@@ -68,6 +68,7 @@ export type StoreItemGamificaiton = {
   desc: string;
   points: number;
 };
+export type PointsDataType = { day: string; percent: number };
 
 export type GamificationSummary = {
   current_streak: number;
