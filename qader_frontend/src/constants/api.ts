@@ -135,7 +135,7 @@ export const API_ENDPOINTS = {
   },
   GAMIFICATION: {
     REWARD_STORE: "/gamification/reward-store/",
-    DAILY_POINTS_SUMMARY: "/gamification/points-summary/daily/",
+    DAILY_POINTS_SUMMARY: "/gamification/points-summary/",
     STUDY_DAYS: "/gamification/study-days/",
     // Adding placeholders for other gamification endpoints that might exist or be added soon
     BADGES_LIST: "/gamification/badges/",
