@@ -113,21 +113,25 @@ const RewardsDashboard = () => {
       title: "تصاميم",
       desc: "استبدل 20 نقطة مقابل الحصول على تصاميم، شرح وافٍ لما ستحصل عليه.",
       points: 20,
+      image_url: "",
     },
     {
       title: "الدخول للمسابقة الكبرى",
       desc: "استبدل 30 نقطة مقابل الدخول للمسابقة الكبرى، التي سيتم الإعلان عنها لاحقاً.",
       points: 30,
+      image_url: "",
     },
     {
       title: "أشعار",
       desc: "استبدل 10 نقاط مقابل الحصول على أشعار، شرح وافٍ لما ستحصل عليه.",
       points: 10,
+      image_url: "",
     },
     {
       title: "مخطوطة",
       desc: "استبدل 5 نقاط مقابل الحصول على مخطوطة، شرح وافٍ لما ستحصل عليه.",
       points: 5,
+      image_url: "",
     },
   ];
 
@@ -632,7 +636,7 @@ const RewardsDashboard = () => {
             >
               <div className="flex items-center justify-between mt-4">
                 <Image
-                  src="/images/gift.png"
+                  src={item.image_url || "/images/gift.png"}
                   alt="كأس"
                   width={0}
                   height={0}
