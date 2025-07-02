@@ -2,6 +2,7 @@ import { API_ENDPOINTS } from "@/constants/api";
 import type {
   PaginatedDailyPointSummaryResponse,
   PaginatedStudyDayLogResponse,
+  PurchasedItemResponse,
   RewardStoreItem,
 } from "@/types/api/gamification.types";
 import { addDays, format, startOfWeek, subWeeks } from "date-fns";
@@ -86,7 +87,7 @@ export const getMyBadges = async (): Promise<any[]> => {
 };
 
 // Get reward items purchased by the current user
-export const getMyPurchasedItems = async (): Promise<any[]> => {
+export const getMyPurchasedItems = async (): Promise<PurchasedItemResponse> => {
   return apiClient(API_ENDPOINTS.GAMIFICATION.MY_ITEMS, {
     method: "GET",
   });

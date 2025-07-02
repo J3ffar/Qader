@@ -10,6 +10,28 @@ export interface PaginatedDailyPointSummaryResponse {
   previous: string | null;
   results: DailyPointSummary[];
 }
+export interface PurchasedItemResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: PurchasedItem[];
+}
+
+export interface PurchasedItem {
+  id: number;
+  item: StoreItem;
+  purchased_at: string;
+}
+
+export interface StoreItem {
+  id: number;
+  name: string;
+  description: string;
+  code_name: string;
+  item_type: "avatar" | "background" | "badge" | string;
+  item_type_display: string;
+  image_url: string;
+}
 
 // From API Docs: /gamification/study-days/
 export interface StudyDayLog {
@@ -40,3 +62,37 @@ export interface RewardStoreItem {
 // From API Docs: /users/me/ for referral code
 // This is already part of UserProfile in auth.types.ts
 // referral: { code: string | null; referrals_count: number; earned_free_days: number; }
+export type StoreItemGamificaiton = {
+  id?: number | string;
+  title: string;
+  desc: string;
+  points: number;
+  image_url: string;
+};
+export type PointsDataType = { day: string; percent: number };
+
+export type GamificationSummary = {
+  current_streak: number;
+};
+
+export type PointsSummary = {
+  points: number;
+};
+
+export type RewardItem = {
+  id: number | string;
+  name: string;
+  description: string;
+  cost_points: number;
+};
+
+export type Badge = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  icon_url: string;
+  criteria_description: string;
+  is_earned: boolean;
+  earned_at: string;
+};

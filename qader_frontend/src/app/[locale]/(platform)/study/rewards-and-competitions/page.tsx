@@ -11,59 +11,30 @@ import {
   fetchPointsTotal,
   getAllBadges,
   getGamificationSummary,
+  getMyPurchasedItems,
   getPointsSummary,
   getRewardStoreItems,
   getStudyDaysLog,
   purchaseRewardItem,
 } from "@/services/gamification.service";
 import {
+  Badge,
+  GamificationSummary,
   PaginatedDailyPointSummaryResponse,
   PaginatedStudyDayLogResponse,
+  PointsDataType,
+  PointsSummary,
+  PurchasedItemResponse,
+  RewardItem,
+  StoreItemGamificaiton,
 } from "@/types/api/gamification.types";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
+import { format, parseISO, subDays } from "date-fns";
 import dayjs from "dayjs";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-// Type definitions
-type PointsData = {
-  day: string;
-  percent: number;
-};
-
-type StoreItem = {
-  id?: number | string;
-  title: string;
-  desc: string;
-  points: number;
-};
-
-type GamificationSummary = {
-  current_streak: number;
-};
-
-type PointsSummary = {
-  points: number;
-};
-
-type RewardItem = {
-  id: number | string;
-  name: string;
-  description: string;
-  cost_points: number;
-};
-
-type Badge = {
-  id: number;
-  name: string;
-  slug: string;
-  description: string;
-  icon_url: string;
-  criteria_description: string;
-  is_earned: boolean;
-  earned_at: string;
-};
 
 const RewardsDashboard = () => {
   const todayIndex = new Date().getDay();
@@ -95,36 +66,25 @@ const RewardsDashboard = () => {
     const todayQuery = useQuery({
       queryKey: ["points-total", "today"],
       queryFn: () => fetchPointsTotal(today, today),
-      refetchInterval: 60000,
-      refetchIntervalInBackground: true,
     });
 
     const thisWeekQuery = useQuery({
       queryKey: ["points-total", "this-week"],
       queryFn: () => fetchPointsTotal(weekStart, weekEnd),
-      refetchInterval: 60000,
-      refetchIntervalInBackground: true,
     });
     const lastWeekQuery = useQuery({
       queryKey: ["points-total", "last-week"],
       queryFn: () => fetchPointsTotal(lastWeekStart, lastWeekEnd),
-      refetchInterval: 60000,
-      refetchIntervalInBackground: true,
     });
     const lastMonthQuery = useQuery({
       queryKey: ["points-total", "last-month"],
       queryFn: () => fetchPointsTotal(monthStart, monthEnd),
-      refetchInterval: 60000,
-      refetchIntervalInBackground: true,
     });
 
     const last90DaysQuery = useQuery({
       queryKey: ["points-total", "last-90-days"],
       queryFn: () => fetchPointsTotal(last90Days, today),
-      refetchInterval: 60000,
-      refetchIntervalInBackground: true,
     });
-
     return {
       todayTotal: todayQuery.data ?? 0,
       thisWeekTotal: thisWeekQuery.data ?? 0,
@@ -148,26 +108,30 @@ const RewardsDashboard = () => {
   } = usePointsTotals();
 
   // end the madaka
-  const defaultStoreItems: StoreItem[] = [
+  const defaultStoreItems: StoreItemGamificaiton[] = [
     {
       title: "تصاميم",
       desc: "استبدل 20 نقطة مقابل الحصول على تصاميم، شرح وافٍ لما ستحصل عليه.",
       points: 20,
+      image_url: "",
     },
     {
       title: "الدخول للمسابقة الكبرى",
       desc: "استبدل 30 نقطة مقابل الدخول للمسابقة الكبرى، التي سيتم الإعلان عنها لاحقاً.",
       points: 30,
+      image_url: "",
     },
     {
       title: "أشعار",
       desc: "استبدل 10 نقاط مقابل الحصول على أشعار، شرح وافٍ لما ستحصل عليه.",
       points: 10,
+      image_url: "",
     },
     {
       title: "مخطوطة",
       desc: "استبدل 5 نقاط مقابل الحصول على مخطوطة، شرح وافٍ لما ستحصل عليه.",
       points: 5,
+      image_url: "",
     },
   ];
 
@@ -207,15 +171,11 @@ const RewardsDashboard = () => {
   const { data: summaryData } = useQuery<GamificationSummary>({
     queryKey: ["gamificationSummary"],
     queryFn: getGamificationSummary,
-    refetchInterval: 60000,
-    refetchIntervalInBackground: true,
   });
   // start days summary
   const { data: PointsSummary } = useQuery<PaginatedDailyPointSummaryResponse>({
     queryKey: ["PointsSummary"],
     queryFn: getPointsSummary,
-    refetchInterval: 60000,
-    refetchIntervalInBackground: true,
   });
   type PointsData = { day: string; percent: number };
 
@@ -239,12 +199,20 @@ const RewardsDashboard = () => {
     dayPointsMap[dayName] = total_points;
   });
 
-  const fullWeek: PointsData[] = Object.values(daysMap).map((day) => ({
+  const fullWeek: PointsDataType[] = Object.values(daysMap).map((day) => ({
     day,
     percent: dayPointsMap[day] ?? 0,
   }));
   const [activeIndexes, setActiveIndexes] = useState<number[]>([]);
-
+  const mylastWeekStart = useMemo(
+    () => dayjs().subtract(1, "week").startOf("week"),
+    []
+  );
+  const mylastWeekEnd = useMemo(
+    () => dayjs().subtract(1, "week").endOf("week"),
+    []
+  );
+  const [myLastWeekData, setMyLastWeekData] = useState<PointsDataType[]>();
   useEffect(() => {
     if (fullWeek && fullWeek.length > 0) {
       const indexes = fullWeek
@@ -259,8 +227,34 @@ const RewardsDashboard = () => {
         setActiveIndexes(indexes);
       }
     }
-  }, [fullWeek, activeIndexes]);
-  console.log(activeIndexes);
+  }, [activeIndexes]);
+  //last week charts
+  useEffect(() => {
+    const lastWeekResults = results.filter(({ date }) => {
+      const day = dayjs(date);
+      return (
+        day.isAfter(mylastWeekStart.subtract(1, "day")) &&
+        day.isBefore(mylastWeekEnd.add(1, "day"))
+      );
+    });
+
+    const lastWeekDayPointsMap: Record<string, number> = {};
+
+    lastWeekResults.forEach(({ date, total_points }) => {
+      const dayIndex = new Date(date).getDay();
+      const dayName = daysMap[dayIndex];
+      lastWeekDayPointsMap[dayName] = total_points;
+    });
+
+    const aLastWeekData: PointsDataType[] = Object.values(daysMap).map(
+      (day) => ({
+        day,
+        percent: lastWeekDayPointsMap[day] ?? 0,
+      })
+    );
+
+    setMyLastWeekData(aLastWeekData);
+  }, [results, mylastWeekStart, mylastWeekEnd]);
 
   // end of  days summary
   const [testPoints] = useState(fullWeek);
@@ -268,44 +262,65 @@ const RewardsDashboard = () => {
   const { data: badgesData } = useQuery<Badge[]>({
     queryKey: ["myBadges"],
     queryFn: getAllBadges,
-    refetchInterval: 60000,
-    refetchIntervalInBackground: true,
   });
   const { data: studyDaysData } = useQuery<PaginatedStudyDayLogResponse>({
     queryKey: ["StudyDaysLog"],
     queryFn: () => getStudyDaysLog(),
-    refetchInterval: 60000,
-    refetchIntervalInBackground: true,
-  });
-  //try
-  const studiedDays = studyDaysData?.results.map((item) => {
-    const date = dayjs(item.study_date);
-    const dayIndex = date.day(); // Sunday = 0, Monday = 1, ...
-    const arabicDays = [
-      "الأحد",
-      "الإثنين",
-      "الثلاثاء",
-      "الأربعاء",
-      "الخميس",
-      "الجمعة",
-      "السبت",
-    ];
-    return dayIndex;
   });
 
+  const [myStreak, setMyStreak] = useState(0);
+
+  useEffect(() => {
+    if (
+      !studyDaysData ||
+      !studyDaysData.results ||
+      !Array.isArray(studyDaysData.results)
+    ) {
+      return;
+    }
+
+    const studyDates = studyDaysData.results.map((item) => item.study_date);
+
+    const dateSet = new Set(
+      studyDates.map((date) => format(parseISO(date), "yyyy-MM-dd"))
+    );
+
+    const mtoday = new Date();
+    const todayStr = format(mtoday, "yyyy-MM-dd");
+
+    let startIndex = 0;
+    if (!dateSet.has(todayStr)) {
+      startIndex = 1;
+    }
+
+    let count = 0;
+    for (let i = startIndex; i < 100; i++) {
+      const checkDate = format(subDays(mtoday, i), "yyyy-MM-dd");
+      if (dateSet.has(checkDate)) {
+        count++;
+      } else {
+        break;
+      }
+    }
+
+    setMyStreak(count);
+  }, [studyDaysData]);
   //end the try
+
   const { data: pointsData } = useQuery<PointsSummary>({
     queryKey: ["pointsSummary"],
     queryFn: getPointsSummary,
-    refetchInterval: 60000,
-    refetchIntervalInBackground: true,
   });
 
+  const { data: PurchasedItems } = useQuery<PurchasedItemResponse>({
+    queryKey: ["getMyPurchasedItems"],
+    queryFn: getMyPurchasedItems,
+  });
+  const PurchasedItemsIds =
+    PurchasedItems?.results.map((entry) => entry.item.id) ?? [];
   const { data: storeData } = useQuery<RewardItem[]>({
     queryKey: ["rewardStoreItems"],
     queryFn: getRewardStoreItems,
-    refetchInterval: 60000,
-    refetchIntervalInBackground: true,
   });
 
   // Derived state
@@ -348,6 +363,12 @@ const RewardsDashboard = () => {
       setIsPurchasing(false);
     }
   };
+  const testingChartData =
+    selectedRangeTestPoints === "الأسبوع الماضي"
+      ? myLastWeekData || fullWeek
+      : selectedRangeTestPoints === "نقاط اليوم"
+      ? fullWeek.filter((_, index) => index === todayIndex)
+      : fullWeek;
 
   return (
     <div className="py-5 sm:p-5 space-y-6 dark:bg-[#081028]">
@@ -460,7 +481,7 @@ const RewardsDashboard = () => {
               />
 
               <span className="text-sm text-black font-bold dark:text-[#FDFDFD]">
-                {studyDaysData?.count || 0} أيام متتالية
+                {myStreak || 0} أيام متتالية
               </span>
             </div>
 
@@ -470,15 +491,12 @@ const RewardsDashboard = () => {
                 <div
                   className="h-full bg-[#2f80ed]"
                   style={{
-                    width: `${Math.min(
-                      100,
-                      ((studyDaysData?.count ?? 0) / 7) * 100
-                    )}%`,
+                    width: `${Math.min(100, ((myStreak ?? 0) / 7) * 100)}%`,
                   }}
                 />
               </div>
               <span className="text-xs font-medium text-gray-600">
-                {studyDaysData ? studyDaysData.count:"0"}/7
+                {studyDaysData ? studyDaysData.count : "0"}/7
               </span>
             </div>
 
@@ -566,7 +584,7 @@ const RewardsDashboard = () => {
           </div>
 
           <div className="flex justify-around items-end h-full flex-1 px-3 min-w-fit w-[400px] max-w-[430px]">
-            {fullWeek.map((item, index) => (
+            {testingChartData.map((item, index) => (
               <div
                 key={index}
                 className="text-center h-[95%] flex flex-col items-center"
@@ -579,7 +597,10 @@ const RewardsDashboard = () => {
                 </div>
                 <div
                   className={`text-xs mt-2 ${
-                    todayIndex === index ? "text-[#3D93F5]" : ""
+                    todayIndex === index &&
+                    selectedRangeTestPoints === "هذا الأسبوع"
+                      ? "text-[#3D93F5]"
+                      : ""
                   }`}
                 >
                   {item.day}
@@ -615,7 +636,7 @@ const RewardsDashboard = () => {
             >
               <div className="flex items-center justify-between mt-4">
                 <Image
-                  src="/images/gift.png"
+                  src={item.image_url || "/images/gift.png"}
                   alt="كأس"
                   width={0}
                   height={0}
@@ -628,20 +649,26 @@ const RewardsDashboard = () => {
               <div className="flex flex-col gap-2.5 h-full justify-around">
                 <p className="font-bold mb-1 text-2xl">{item.title}</p>
                 <p className="text-[1.2rem] text-gray-600">{item.desc}</p>
-                <Button
-                  onClick={() => {
-                    setSelectedReward({
-                      id: item.id || index,
-                      title: item.title,
-                      points: item.points,
-                    });
-                    setShowConfirm(true);
-                    setIsConfirmed(false);
-                  }}
-                  className="bg-[#074182] text-[1.2rem] py-2.5 text-white h-14 rounded-lg hover:bg-[#053866]"
-                >
-                  استبدال
-                </Button>
+                {PurchasedItemsIds.includes(index) ? (
+                  <div className="text-green-600 font-semibold text-[1.2rem] h-14 flex items-center justify-center rounded-lg border border-green-500 bg-green-100">
+                    تم الاستبدال
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      setSelectedReward({
+                        id: item.id || index,
+                        title: item.title,
+                        points: item.points,
+                      });
+                      setShowConfirm(true);
+                      setIsConfirmed(false);
+                    }}
+                    className="bg-[#074182] text-[1.2rem] py-2.5 text-white h-14 rounded-lg hover:bg-[#053866]"
+                  >
+                    استبدال
+                  </Button>
+                )}
               </div>
             </div>
           ))}
