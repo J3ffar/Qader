@@ -4,8 +4,8 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { PencilLine, ListChecks, ListXIcon, ChevronDown } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { PencilLine, ListXIcon, ChevronDown } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,9 +46,12 @@ const TestsPage = () => {
   const [page, setPage] = useState(1);
   const [retakingId, setRetakingId] = useState<number | null>(null);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
-  const [selectedSort, setSelectedSort] = useState<
-    "dateDesc" | "dateAsc" | "scoreAsc" | "scoreDesc"
-  >("dateDesc");
+  const [poorTests, setPoorTests] = useState(false);
+  const [selectedSort, setSelectedSort] = useState<"dateDesc" | "dateAsc">(
+    "dateDesc"
+  );
+  const { locale } = useParams();
+  const dir = locale === "en" ? "ltr" : "rtl";
 
   const { data, isLoading, isFetching, error } = useQuery<
     PaginatedUserTestAttempts,
@@ -95,13 +98,34 @@ const TestsPage = () => {
   });
 
   const { attempts, pageCount, canPreviousPage, canNextPage } = useMemo(() => {
+    const results = data?.results ?? [];
+
+    // 🔍 Filter: only poor tests
+    const filtered = poorTests
+      ? results.filter(
+          (attempt) =>
+            attempt.score_percentage !== null && attempt.score_percentage < 50
+        )
+      : results;
+
+    // Sort by selected
+    const sorted = [...filtered].sort((a, b) => {
+      switch (selectedSort) {
+        case "dateAsc":
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        case "dateDesc":
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        default:
+          return 0;
+      }
+    });
     return {
-      attempts: data?.results ?? [],
+      attempts: sorted ?? [],
       pageCount: data?.count ? Math.ceil(data.count / PAGE_SIZE) : 1,
       canPreviousPage: !!data?.previous,
       canNextPage: !!data?.next,
     };
-  }, [data]);
+  }, [data?.results, page, poorTests, selectedSort]);
 
   const handleRetake = (attemptId: number) => {
     retakeMutation.mutate(attemptId);
@@ -143,12 +167,11 @@ const TestsPage = () => {
   const hasNoAttemptsAtAll = !data?.count;
 
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
-      <Card>
-        <CardHeader className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <CardTitle className="flex items-center text-2xl font-bold">
-              <ListChecks className="me-3 h-7 w-7 text-primary" />
+    <div className="container mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
+      <Card dir={dir}>
+        <CardHeader className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="w-full">
+            <CardTitle className="flex items-center text-center justify-center sm:justify-start text-2xl mb-2 font-bold">
               {t("simulationTest.title")}
             </CardTitle>
             <p className="mt-1 text-muted-foreground">
@@ -160,7 +183,7 @@ const TestsPage = () => {
               {t("simulationTest.reviewDescription")}
             </p>
           </div>
-          <Button asChild size="lg">
+          <Button asChild size="lg" className="self-center">
             <Link href={PATHS.STUDY.TESTS.START}>
               <PencilLine className="me-2 h-5 w-5" />
               {t("list.startNewTest")}
@@ -170,69 +193,52 @@ const TestsPage = () => {
       </Card>
 
       {/* Table Card */}
-      <Card>
-        <CardHeader className="flex items-center md:items-start justify-between gap-4 w-full flex-col md:flex-row">
-          <div className="w-fit">
-            <CardTitle className="text-xl font-bold">
-              {t("list.title")}
-            </CardTitle>
-          </div>
-
-          <div className="flex justify-end flex-wrap md:flex-nowrap gap-4 md:ml-6">
-            <div className="md:flex md:flex-row md:gap-4 md:space-y-0 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">
-                  {t("list.showLowPerformanceTests")}{" "}
-                </span>
+      <Card dir={dir}>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full">
+            <div className="flex flex-col sm:flex-row md:w-full">
+              <CardTitle className="text-xl font-bold text-center sm:text-right mb-2 min-w-36">
+                {t("list.title")}
+              </CardTitle>
+              <div className="flex items-center justify-between md:justify-end w-full gap-4">
                 <div className="flex items-center gap-2">
-                  <Switch />
+                  {t("list.showLowPerformanceTests")}
+                  <Switch
+                    onClick={() => {
+                      setPoorTests(!poorTests);
+                    }}
+                  />
                 </div>
-              </div>
+                <div className="flex items-center flex-col md:flex-row gap-2">
+                  <span className="text-sm">{t("list.sortBy")}</span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline">
+                        {tOptions(selectedSort)}
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium min-w-16">
-                  {t("list.sortBy")}
-                </span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="min-w-[150px]">
-                      {tOptions(selectedSort)}
-                      <ChevronDown className="ms-2 h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-
-                  <DropdownMenuContent className="text-center">
-                    <DropdownMenuItem
-                      className="justify-center"
-                      onSelect={() => setSelectedSort("dateAsc")}
-                    >
-                      {tOptions("dateAsc")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="justify-center"
-                      onSelect={() => setSelectedSort("dateDesc")}
-                    >
-                      {tOptions("dateDesc")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="justify-center"
-                      onSelect={() => setSelectedSort("scoreAsc")}
-                    >
-                      {tOptions("scoreAsc")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="justify-center"
-                      onSelect={() => setSelectedSort("scoreDesc")}
-                    >
-                      {tOptions("scoreDesc")}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    <DropdownMenuContent className="text-center">
+                      <DropdownMenuItem
+                        className="justify-center"
+                        onSelect={() => setSelectedSort("dateDesc")}
+                      >
+                        {tOptions("dateDesc")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="justify-center"
+                        onSelect={() => setSelectedSort("dateAsc")}
+                      >
+                        {tOptions("dateAsc")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
           </div>
         </CardHeader>
-
         <CardContent>
           {hasNoAttemptsAtAll ? (
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-6 text-center">

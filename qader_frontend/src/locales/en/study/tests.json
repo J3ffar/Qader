@@ -48,11 +48,15 @@
       "table": {
         "testType": "Test Type",
         "date": "Date",
+        "question": "Question",
+        "questions": "Questions",
         "numQuestions": "Questions",
         "score": "Score",
         "percentage": "Percentage",
         "status": "Status",
         "actions": "Actions",
+        "verbal": "Verbal",
+        "quantitative": "Quantitative",
         "performance": {
           "verbal": "Verbal Section Performance",
           "quantitative": "Quantitative Section Performance",

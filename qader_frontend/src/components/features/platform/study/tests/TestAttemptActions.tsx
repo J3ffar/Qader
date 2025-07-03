@@ -16,13 +16,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -33,7 +26,6 @@ import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 import { PATHS } from "@/constants/paths";
 import {
   UserTestAttemptList,
-  UserTestAttemptStartResponse,
 } from "@/types/api/study.types";
 
 type TestAttemptActionsProps = {
@@ -54,6 +46,7 @@ const TestAttemptActions = ({
   cancellingAttemptId,
 }: TestAttemptActionsProps) => {
   const t = useTranslations("Study.tests.list.actions");
+  const tList = useTranslations("Study.tests.list");
 
   const isThisAttemptRetaking =
     isRetaking && retakeAttemptId === attempt.attempt_id;
@@ -119,34 +112,78 @@ const TestAttemptActions = ({
 
           case "completed":
             return (
-              <div className="flex flex-col justify-center gap-2 sm:flex-row">
-                <Button asChild size="sm" variant="outline">
-                  <Link
-                    href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id, true)}
+              <>
+                {/* Desktop View */}
+                <div className="hidden sm:flex sm:flex-row justify-center gap-2 ">
+                  <Button asChild size="sm" variant="outline">
+                    <Link
+                      href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id, true)}
+                    >
+                      <XSquare className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id)}>
+                      <BookOpen className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onRetake(attempt.attempt_id)}
+                    disabled={isThisAttemptRetaking}
                   >
-                    <XSquare className="h-4 w-4" />
-                  </Link>
-                </Button>
+                    {isThisAttemptRetaking ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RotateCw className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
 
-                <Button asChild size="sm" variant="outline">
-                  <Link href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id)}>
-                    <BookOpen className="h-4 w-4" />
-                  </Link>
-                </Button>
+                {/* Mobile View */}
+                <div className="space-y-2 sm:hidden">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className="h-12 text-muted-foreground border-2"
+                      asChild
+                    >
+                      <Link href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id)}>
+                        <BookOpen className="h-4 w-4" />
+                        {t("review")}
+                      </Link>
+                    </Button>
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onRetake(attempt.attempt_id)}
-                  disabled={isThisAttemptRetaking}
-                >
-                  {isThisAttemptRetaking ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RotateCw className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
+                    <Button
+                      variant="outline"
+                      className="h-12 text-muted-foreground border-2"
+                      onClick={() => onRetake(attempt.attempt_id)}
+                      disabled={isThisAttemptRetaking}
+                    >
+                      <RotateCw
+                        className={`h-4 w-4 ${
+                          isThisAttemptRetaking ? "animate-spin" : ""
+                        }`}
+                      />
+                      {t("retake")}
+                    </Button>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    className="w-full h-12 text-muted-foreground border-2"
+                    asChild
+                  >
+                    <Link
+                      href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id, true)}
+                    >
+                      <XSquare className="h-4 w-4" />
+                      {t("reviewIncorrect")}{" "}
+                    </Link>
+                  </Button>
+                </div>
+              </>
             );
 
           case "abandoned":
