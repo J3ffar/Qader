@@ -50,12 +50,46 @@ class HomepageView(views.APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
-        required_slugs = ["homepage-intro", "homepage-praise", "why-partner"]
+        required_slugs = [
+            "homepage-intro",
+            "homepage-about-us",
+            "homepage-praise",
+            "why-partner",
+            "homepage-cta",
+        ]
         pages_qs = models.Page.objects.filter(
             slug__in=required_slugs, is_published=True
         ).prefetch_related("images")
 
         pages = {page.slug: page for page in pages_qs}
+
+        # 1. Collect all image slugs referenced in the structured content of all pages.
+        all_image_slugs = set()
+        for page in pages.values():
+            if not page.content_structured:
+                continue
+            for item in page.content_structured.values():
+                if isinstance(item, dict) and item.get("type") == "image":
+                    if item.get("value"):
+                        all_image_slugs.add(item.get("value"))
+
+        # 2. Perform a single database query to get all required images.
+        image_objects = models.ContentImage.objects.filter(
+            slug__in=list(all_image_slugs)
+        )
+
+        # 3. Create a map of {slug: "full/url/to/image.png"}
+        image_url_map = {
+            img.slug: request.build_absolute_uri(img.image.url)
+            for img in image_objects
+            if img.image
+        }
+
+        # 4. Prepare the context to be passed to the serializer
+        serializer_context = {
+            "request": request,
+            "image_url_map": image_url_map,  # Pass the map to the serializer
+        }
 
         feature_cards = models.HomepageFeatureCard.objects.filter(
             is_active=True
@@ -63,19 +97,19 @@ class HomepageView(views.APIView):
         statistics = models.HomepageStatistic.objects.filter(is_active=True).order_by(
             "order"
         )
-        video_url = getattr(settings, "HOMEPAGE_INTRO_VIDEO_URL", None)
 
         context_data = {
             "intro": pages.get("homepage-intro"),
             "praise": pages.get("homepage-praise"),
-            "intro_video_url": video_url,
+            "about_us": pages.get("homepage-about-us"),
             "features": feature_cards,
             "statistics": statistics,
             "why_partner_text": pages.get("why-partner"),
+            "call_to_action": pages.get("homepage-cta"),
         }
 
         serializer = serializers.HomepageSerializer(
-            instance=context_data, context={"request": request}
+            instance=context_data, context=serializer_context
         )
         return Response(serializer.data)
 

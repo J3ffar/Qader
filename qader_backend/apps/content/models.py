@@ -33,6 +33,7 @@ class Page(TimeStampedModel):
     content = models.TextField(
         _("Content (Simple/Legacy)"),
         blank=True,
+        null=True,
         help_text=_(
             "For simple HTML content. Use 'Structured Content' for modern, template-based pages."
         ),
@@ -96,6 +97,8 @@ class ContentImage(TimeStampedModel):
         _("Image File"),
         upload_to="content_images/%Y/%m/",
         help_text=_("Upload the image file."),
+        blank=True,
+        null=True,
     )
     alt_text = models.CharField(
         _("Alt Text"),

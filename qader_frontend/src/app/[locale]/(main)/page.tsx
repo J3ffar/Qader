@@ -1,40 +1,44 @@
-"use client";
+import HeroSection from "@/components/features/main/home/HeroSection";
+import AboutSection from "@/components/features/main/home/AboutSection";
+import ReviewSection from "@/components/features/main/home/ReviewSection";
+import AdvantageSection from "@/components/features/main/home/AdvantageSection";
+import StatisticsSection from "@/components/features/main/home/StatisticsSection";
+import CallToActionSection from "@/components/features/main/home/CallToActionSection";
+import { getHomepageContent } from "@/services/content.service";
 
-import { useEffect, useState } from "react";
-import HeroSection from "@/components/sections/home/HeroSection";
-import AboutSection from "@/components/sections/home/AboutSection";
-import ReviewSection from "@/components/sections/home/ReviewSection";
-import AdvantageSection from "@/components/sections/home/AdvantageSection";
-import StatisticsSection from "@/components/sections/home/StatisticsSection";
-import CallToActionSection from "@/components/sections/home/CallToActionSection";
+export default async function Home() {
+  const data = await getHomepageContent();
 
-export default function Home() {
-  const [myData, setMyData] = useState<any>();
-  // useEffect(() => {
-  //   const fetchHomepageContent = async () => {
-  //     try {
-  //       const res = await fetch(
-  //         "https://qader.vip/ar/api/v1/content/homepage/"
-  //       );
-  //       const data: any = await res.json();
-  //       setMyData(data);
-  //       console.log("📦 Homepage API Response:", data);
-  //     } catch (error) {
-  //       console.error("❌ Failed to fetch homepage data:", error);
-  //     }
-  //   };
-
-  //   fetchHomepageContent();
-  // }, []);
+  if (!data) {
+    return (
+      <p className="text-center py-20">لا يمكن تحميل محتوى الصفحة حالياً.</p>
+    );
+  }
 
   return (
     <div>
-      <HeroSection data={myData} />
-      <AboutSection data={myData} />
-      <ReviewSection />
-      <AdvantageSection data={myData} />
-      <StatisticsSection data={myData} />
-      <CallToActionSection />
+      {data.intro && <HeroSection data={data.intro} />}
+
+      {data.about_us && <AboutSection data={data.about_us} />}
+
+      {data.praise && <ReviewSection data={data.praise} />}
+
+      {data.why_partner_text && data.features && data.features.length > 0 && (
+        <AdvantageSection
+          data={{
+            features: data.features,
+            partnerText: data.why_partner_text,
+          }}
+        />
+      )}
+
+      {data.statistics && data.statistics.length > 0 && (
+        <StatisticsSection data={data.statistics} />
+      )}
+
+      {data.call_to_action && (
+        <CallToActionSection data={data.call_to_action} />
+      )}
     </div>
   );
 }

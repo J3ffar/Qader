@@ -43,51 +43,28 @@ class PageSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["updated_at", "images"]
 
-    def get_content_structured_resolved(self, page_instance):
+    def get_content_structured_resolved(self, obj):
         """
-        This method takes the raw `content_structured` JSON, finds all references
-        to image slugs, and replaces them with their corresponding full URLs from
-        the page's prefetched `images` list.
+        Resolves image slugs using the 'image_url_map' passed in the context.
         """
-        content = page_instance.content_structured
-        if not content or not isinstance(content, dict):
+        if not obj.content_structured:
             return None
 
-        # Create a lookup map of slug -> full_image_url for O(1) access.
-        # This relies on the view prefetching `images` for this to be efficient.
-        try:
-            image_map = {
-                image.slug: self.context["request"].build_absolute_uri(image.image.url)
-                for image in page_instance.images.all()
-                if image.slug and image.image
-            }
-        except (KeyError, AttributeError):
-            # Fallback if request context is not available (e.g., in management commands)
-            image_map = {
-                image.slug: image.image.url
-                for image in page_instance.images.all()
-                if image.slug and image.image
-            }
+        # Get the pre-built map from the context
+        image_map = self.context.get("image_url_map", {})
 
-        def resolve_content(data_node):
-            if isinstance(data_node, dict):
-                # Check if this dictionary represents one of our keyed image objects
-                if (
-                    data_node.get("type") == "image"
-                    and data_node.get("value") in image_map
-                ):
-                    # It's an image block, replace the slug with the full URL
-                    return {**data_node, "value": image_map[data_node.get("value")]}
-                # If not an image block, recurse through its values
-                return {key: resolve_content(value) for key, value in data_node.items()}
-            elif isinstance(data_node, list):
-                # If it's a list, recurse through its items
-                return [resolve_content(item) for item in data_node]
-            else:
-                # It's a primitive (string, number, etc.), return as is
-                return data_node
+        resolved_content = obj.content_structured.copy()
 
-        return resolve_content(content)
+        for key, item in resolved_content.items():
+            if isinstance(item, dict) and item.get("type") == "image":
+                image_slug = item.get("value")
+
+                # Look up the slug in the map and replace it with the URL.
+                # If the slug is not found (e.g., image not uploaded yet),
+                # the value will be None.
+                item["value"] = image_map.get(image_slug, None)
+
+        return resolved_content
 
 
 class FAQItemSerializer(serializers.ModelSerializer):
@@ -143,10 +120,11 @@ class HomepageSerializer(serializers.Serializer):
 
     intro = PageSerializer(read_only=True)
     praise = PageSerializer(read_only=True)
-    intro_video_url = serializers.URLField(read_only=True)
+    about_us = PageSerializer(allow_null=True, required=False)
     features = HomepageFeatureCardSerializer(many=True, read_only=True)
     statistics = HomepageStatisticSerializer(many=True, read_only=True)
     why_partner_text = PageSerializer(read_only=True)
+    call_to_action = PageSerializer(allow_null=True, required=False)
 
 
 class ContactMessageSerializer(serializers.ModelSerializer):
