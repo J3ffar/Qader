@@ -53,3 +53,4 @@ Markdown==3.8
 django-redis==5.4.0
 django-sslserver==0.22
 celery==5.5.2
+drf-nested-routers==0.94.2

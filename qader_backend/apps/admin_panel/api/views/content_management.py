@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, filters, mixins
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema_view, extend_schema
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from apps.content import models as content_models
 from apps.admin_panel.api.serializers import content_management as admin_serializers
@@ -320,4 +321,47 @@ class ContactMessageAdminViewSet(
             ]  # Or a more specific 'delete_contact_messages'
         else:
             self.required_permissions = []
+        return [permission() for permission in self.permission_classes]
+
+
+@extend_schema_view(
+    list=extend_schema(tags=ADMIN_CONTENT_TAG, summary="List General Media Images (Admin)"),
+    create=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Upload General Media Image (Admin)"),
+)
+class ContentImageAdminViewSet(viewsets.ModelViewSet):
+    """Admin ViewSet for managing the general media library (images NOT attached to a specific page)."""
+    queryset = content_models.ContentImage.objects.filter(page__isnull=True).select_related('uploaded_by')
+    serializer_class = admin_serializers.AdminContentImageSerializer
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
+    parser_classes = (MultiPartParser, FormParser)
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "alt_text", "slug"]
+    ordering_fields = ["name", "created_at", "slug"]
+
+    def get_permissions(self):
+        self.required_permissions = ["api_manage_content"]
+        return [permission() for permission in self.permission_classes]
+
+
+@extend_schema_view(
+    list=extend_schema(tags=ADMIN_CONTENT_TAG, summary="List Page-Specific Images (Admin)"),
+    create=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Upload Image for a Specific Page (Admin)"),
+)
+class PageContentImageAdminViewSet(viewsets.ModelViewSet):
+    """Admin ViewSet for managing images associated with a specific Page."""
+    queryset = content_models.ContentImage.objects.all()
+    serializer_class = admin_serializers.AdminContentImageSerializer
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def get_queryset(self):
+        return self.queryset.filter(page__slug=self.kwargs.get('page_slug'))
+
+    def perform_create(self, serializer):
+        page = get_object_or_404(content_models.Page, slug=self.kwargs.get('page_slug'))
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(page=page, uploaded_by=user)
+
+    def get_permissions(self):
+        self.required_permissions = ["api_manage_content"]
         return [permission() for permission in self.permission_classes]

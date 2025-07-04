@@ -3,11 +3,58 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.content import models as content_models
-from apps.users.api.serializers import SimpleUserSerializer  # For responder
+from apps.users.api.serializers import SimpleUserSerializer
+
+
+class AdminContentImageSerializer(serializers.ModelSerializer):
+    """Serializer for managing ContentImage uploads in the admin panel."""
+
+    image_url = serializers.ImageField(source="image", read_only=True)
+    uploaded_by_name = serializers.CharField(
+        source="uploaded_by.full_name", read_only=True, default=None
+    )
+
+    class Meta:
+        model = content_models.ContentImage
+        fields = [
+            "id",
+            "page",
+            "slug",
+            "name",
+            "image",
+            "image_url",
+            "alt_text",
+            "uploaded_by",
+            "uploaded_by_name",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "uploaded_by",
+            "uploaded_by_name",
+            "image_url",
+        ]
+        extra_kwargs = {
+            "page": {"write_only": True, "required": False, "allow_null": True},
+            "image": {
+                "write_only": True,
+                "required": True,
+            },  # Image file is required for creation
+            "slug": {"required": False, "allow_blank": True},  # Can be auto-generated
+        }
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request and hasattr(request, "user") and request.user.is_authenticated:
+            validated_data["uploaded_by"] = request.user
+        return super().create(validated_data)
 
 
 class AdminPageSerializer(serializers.ModelSerializer):
     """Admin Serializer for managing Page models."""
+
+    images = AdminContentImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = content_models.Page
@@ -16,12 +63,18 @@ class AdminPageSerializer(serializers.ModelSerializer):
             "slug",
             "title",
             "content",
+            "content_structured",
             "icon_class",
             "is_published",
+            "images",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at", "images"]
+        extra_kwargs = {
+            "content": {"required": False, "allow_blank": True, "allow_null": True},
+            "content_structured": {"required": False, "allow_null": True},
+        }
 
 
 class AdminFAQItemSerializer(serializers.ModelSerializer):
@@ -119,7 +172,6 @@ class AdminHomepageStatisticSerializer(serializers.ModelSerializer):
 class AdminContactMessageSerializer(serializers.ModelSerializer):
     """Admin Serializer for viewing and managing ContactMessage models."""
 
-    # Use a summary serializer for the responder to avoid exposing too much user data
     responder = SimpleUserSerializer(read_only=True)
 
     class Meta:
@@ -138,41 +190,34 @@ class AdminContactMessageSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        # Admins primarily update status and response
         read_only_fields = [
             "id",
             "full_name",
             "email",
             "subject",
             "message",
-            "attachment",  # Attachment cannot be changed after creation
+            "attachment",
             "created_at",
             "updated_at",
-            "responder",  # Automatically set on update
-            "responded_at",  # Automatically set on update
+            "responder",
+            "responded_at",
         ]
 
     def update(self, instance, validated_data):
-        # Set responder and responded_at automatically when response/status changes
         if "response" in validated_data or "status" in validated_data:
             if (
                 instance.status != content_models.ContactMessage.STATUS_REPLIED
                 and validated_data.get("status")
                 == content_models.ContactMessage.STATUS_REPLIED
             ):
-                # Only set responder/time if status changes to 'replied'
-                # or if response is added/changed while status is already 'replied'
                 if self.context["request"].user.is_authenticated:
                     instance.responder = self.context["request"].user
                     instance.responded_at = timezone.now()
 
-        # Ensure status is valid if provided
         status = validated_data.get("status", instance.status)
         if status not in dict(content_models.ContactMessage.STATUS_CHOICES):
             raise serializers.ValidationError({"status": _("Invalid status value.")})
         instance.status = status
-
         instance.response = validated_data.get("response", instance.response)
-
         instance.save()
         return instance
