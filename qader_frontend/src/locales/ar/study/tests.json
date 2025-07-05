@@ -22,28 +22,53 @@
         "startSuccess": "تم بدء الاختبار بنجاح! بالتوفيق."
       }
     },
+    "simulationTest": {
+      "title": "اختبار المحاكاة",
+      "retakeDescription": "بإمكانك إعادة الاختبار في أي وقت.",
+      "reviewDescription": "بإمكانك مراجعة الاختبار و إعادة اختبار مشابه سابق."
+    },
     "list": {
       "title": "سجل الاختبارات",
       "description": "راجع اختباراتك السابقة لتتبع تقدمك.",
       "startNewTest": "بدء اختبار جديد",
       "noAttemptsTitle": "لم يتم إجراء أي اختبارات بعد",
       "noAttemptsDescription": "ستظهر اختباراتك التدريبية والمحاكية هنا.",
+      "sortBy": "الفرز حسب",
+      "sortByOptions": {
+        "dateAsc": "التاريخ الأقدم",
+        "dateDesc": "التاريخ الأحدث",
+        "scoreAsc": "الدرجة الأقل أولا",
+        "scoreDesc": "الدرجة الأعلى أولا"
+      },
+      "showLowPerformanceTests": "عرض اختبارات الأداء الضعيف",
       "api": {
         "retakeSuccess": "تم إنشاء اختبار جديد! جاري التحويل..."
       },
       "table": {
         "testType": "نوع الاختبار",
         "date": "التاريخ",
-        "numQuestions": "الأسئلة",
+        "question": "سؤال",
+        "questions": "أسئلة",
+        "numQuestions": "عدد الأسئلة",
         "score": "النتيجة",
+        "percentage": "النسبة",
         "status": "الحالة",
-        "actions": "الإجراءات"
+        "actions": "الإجراءات",
+        "verbal": "اللفظي",
+        "quantitative": "الكمي",
+        "performance": {
+          "verbal": "الأداء في القسم اللفظي",
+          "quantitative": "الأداء في القسم كمي",
+          "excellent": "ممتاز",
+          "good": "جيد",
+          "poor": "ضعيف"
+        }
       },
       "actions": {
         "openMenu": "فتح القائمة",
-        "review": "مراجعة كاملة",
-        "reviewIncorrect": "مراجعة الإجابات الخاطئة فقط",
-        "retake": "إعادة الاختبار المشابه",
+        "review": "مراجعة",
+        "reviewIncorrect": "مراجعة الإجابات الخاطئة",
+        "retake": "إعادة",
         "inProgressTooltip": "لم يكتمل هذا الاختبار بعد.",
         "abandonedTooltip": "تم التخلي عن هذا الاختبار ولا يمكن متابعته أو مراجعته.",
         "continueTest": "متابعة الاختبار",

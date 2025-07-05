@@ -7,13 +7,6 @@ import {
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface DataTablePaginationProps {
