@@ -204,10 +204,10 @@ class FAQListView(generics.ListAPIView):
 @extend_schema(
     tags=["Public Content"],
     summary="List Success Partner Categories",
-    description="Retrieves partnership types and the 'Why Partner' explanatory text.",
+    description="Retrieves partnership types and related page content.",
 )
 class PartnerCategoryListView(views.APIView):
-    """API endpoint listing active partner categories and the 'Why Partner' text."""
+    """API endpoint listing active partner categories and related page content."""
 
     permission_classes = [AllowAny]
 
@@ -216,22 +216,41 @@ class PartnerCategoryListView(views.APIView):
             "order"
         )
 
-        why_partner_page = (
-            models.Page.objects.filter(slug="why-partner", is_published=True)
+        page_content = (
+            models.Page.objects.filter(slug="partners-page-content", is_published=True)
             .prefetch_related("images")
             .first()
         )
 
+        # --- START OF CHANGE ---
+        # The logic for resolving partner icons is no longer needed here.
+        # We only need to resolve the single image from the page_content.
+        image_url_map = {}
+        if page_content and page_content.content_structured:
+            image_slug = page_content.content_structured.get(
+                "why_partner_image", {}
+            ).get("value")
+            if image_slug:
+                image_obj = models.ContentImage.objects.filter(slug=image_slug).first()
+                if image_obj and image_obj.image:
+                    image_url_map[image_slug] = request.build_absolute_uri(
+                        image_obj.image.url
+                    )
+
+        page_serializer_context = {"request": request, "image_url_map": image_url_map}
+        # --- END OF CHANGE ---
+
+        # The PartnerCategorySerializer will now handle the icon_image URL automatically
         category_serializer = serializers.PartnerCategorySerializer(
-            categories, many=True
+            categories, many=True, context={"request": request}
         )
-        page_serializer = serializers.PageSerializer(
-            why_partner_page, context={"request": request}
+        page_content_serializer = serializers.PageSerializer(
+            page_content, context=page_serializer_context
         )
 
         response_data = {
             "partner_categories": category_serializer.data,
-            "why_partner_text": page_serializer.data if why_partner_page else None,
+            "page_content": page_content_serializer.data if page_content else None,
         }
 
         return Response(response_data)

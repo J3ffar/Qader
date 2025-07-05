@@ -183,8 +183,14 @@ class PartnerCategory(TimeStampedModel):
     description = models.TextField(
         _("Description"), help_text=_("Description displayed on the card.")
     )
-    icon_svg_or_class = models.CharField(
-        _("Icon SVG or Class"), max_length=255, blank=True, null=True
+    icon_image = models.ImageField(
+        _("Icon Image"),
+        upload_to="partner_icons/",
+        blank=True,
+        null=True,
+        help_text=_(
+            "Upload an icon image for the partner category (e.g., 70x70 pixels)."
+        ),
     )
     google_form_link = models.URLField(_("Google Form Link"), max_length=500)
     order = models.PositiveIntegerField(_("Display Order"), default=0)

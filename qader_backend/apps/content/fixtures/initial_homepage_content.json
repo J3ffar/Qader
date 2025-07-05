@@ -501,5 +501,124 @@
       "image": null,
       "alt_text": "عرض آخر لمنصة قادر على اللابتوب"
     }
+  },
+
+  {
+    "model": "content.page",
+    "pk": 7,
+    "fields": {
+      "slug": "partners-page-content",
+      "title": "محتوى صفحة شركاء النجاح",
+      "content": null,
+      "content_structured": {
+        "hero_title": {
+          "admin_title": "العنوان الرئيسي للصفحة",
+          "type": "text",
+          "value": "شركاء النجاح"
+        },
+        "hero_subtitle": {
+          "admin_title": "النص الفرعي للعنوان الرئيسي",
+          "type": "textarea",
+          "value": "نحن نؤمن بقوة التعاون لتحقيق أهداف أكبر. انضم إلينا في رحلتنا لتمكين الطلاب والمبدعين."
+        },
+        "why_partner_title": {
+          "admin_title": "عنوان قسم 'لماذا الشراكة معنا'",
+          "type": "text",
+          "value": "لماذا الشراكة معنا؟"
+        },
+        "why_partner_text": {
+          "admin_title": "نص قسم 'لماذا الشراكة معنا'",
+          "type": "textarea",
+          "value": "نقدم تصميماً جميلاً وتجربة فريدة لدعم طلابك وتحقيق أفضل النتائج. شراكتك معنا تعني الوصول إلى أدوات تحليلية متقدمة ومحتوى تعليمي مبتكر يضمن التفوق والنجاح."
+        },
+        "why_partner_image": {
+          "admin_title": "صورة قسم 'لماذا الشراكة معنا'",
+          "type": "image",
+          "value": "partners-page-logo"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.PartnerCategory",
+    "pk": 1,
+    "fields": {
+      "name": "شراكة المدارس",
+      "description": "نساعد المدارس في تقديم دعم مخصص لطلابهم وتتبع أدائهم بكفاءة.",
+      "icon_image": null,
+      "google_form_link": "https://forms.gle/your-school-form-link",
+      "order": 0,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.PartnerCategory",
+    "pk": 2,
+    "fields": {
+      "name": "شراكة المدربين",
+      "description": "قم بدمج منصة قادر في برامجك التدريبية وقدم قيمة مضافة لمتدربيك.",
+      "icon_image": null,
+      "google_form_link": "https://forms.gle/your-trainer-form-link",
+      "order": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.PartnerCategory",
+    "pk": 3,
+    "fields": {
+      "name": "شراكة سفراء الطلاب",
+      "description": "كن سفيراً لمنصة قادر في مجتمعك واحصل على مزايا حصرية.",
+      "icon_image": null,
+      "google_form_link": "https://forms.gle/your-student-form-link",
+      "order": 2,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 10,
+    "fields": {
+      "page": 7,
+      "slug": "partners-page-logo",
+      "name": "Partners Page Logo Image",
+      "image": null,
+      "alt_text": "شعار منصة قادر"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 11,
+    "fields": {
+      "page": null,
+      "slug": "partners-icon-school",
+      "name": "Partners Icon School",
+      "image": null,
+      "alt_text": "أيقونة شراكة المدارس"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 12,
+    "fields": {
+      "page": null,
+      "slug": "partners-icon-trainer",
+      "name": "Partners Icon Trainer",
+      "image": null,
+      "alt_text": "أيقونة شراكة المدربين"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 13,
+    "fields": {
+      "page": null,
+      "slug": "partners-icon-student",
+      "name": "Partners Icon Student",
+      "image": null,
+      "alt_text": "أيقونة شراكة الطلاب"
+    }
   }
 ]

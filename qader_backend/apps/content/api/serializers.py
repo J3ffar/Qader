@@ -88,15 +88,30 @@ class FAQCategorySerializer(serializers.ModelSerializer):
 class PartnerCategorySerializer(serializers.ModelSerializer):
     """Serializer for Success Partner categories."""
 
+    icon_image = serializers.SerializerMethodField()
+
     class Meta:
         model = models.PartnerCategory
         fields = [
             "id",
             "name",
             "description",
-            "icon_svg_or_class",
+            "icon_image",
             "google_form_link",
         ]
+
+    def get_icon_image(self, obj):
+        """
+        Builds a full absolute URL for the icon_image.
+        Returns None if the image doesn't exist.
+        """
+        request = self.context.get("request")
+        if obj.icon_image and request:
+            # `request.build_absolute_uri` is the key function here.
+            # It takes a relative path like '/media/...' and prepends the
+            # 'http://domain.com' part to it.
+            return request.build_absolute_uri(obj.icon_image.url)
+        return None
 
 
 class HomepageFeatureCardSerializer(serializers.ModelSerializer):

@@ -3,6 +3,7 @@ import type {
   AboutPageContent,
   HomepageData,
   Page,
+  PartnersPageData,
 } from "@/types/api/content.types";
 
 const defaultHomepageData: HomepageData = {
@@ -247,6 +248,23 @@ export const getAboutPageContent =
     } catch (error) {
       console.error("Failed to fetch About Us page content:", error);
       // Return null to indicate failure, the component will handle it
+      return null;
+    }
+  };
+
+/**
+ * Fetches content for the 'Partners' page.
+ * @returns {Promise<PartnersPageData | null>} A promise resolving to the page data or null on error.
+ */
+export const getPartnersPageContent =
+  async (): Promise<PartnersPageData | null> => {
+    try {
+      const pageData = await apiClient<PartnersPageData>("/content/partners/", {
+        isPublic: true,
+      });
+      return pageData;
+    } catch (error) {
+      console.error("Failed to fetch Partners page content:", error);
       return null;
     }
   };

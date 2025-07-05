@@ -129,3 +129,29 @@ export type AboutPageContent = {
   mission_text: StructuredContentItem<string>;
   mission_image: StructuredContentItem<string | null>;
 };
+
+/////// Part for the page Partners
+
+// Type for a single Partner Category from the API
+export interface PartnerCategory {
+  id: number;
+  name: string;
+  description: string;
+  icon_image: string | null;
+  google_form_link: string;
+}
+
+// Updated content structure for the main Partners page
+export type PartnersPageContent = {
+  hero_title: StructuredContentItem<string>;
+  hero_subtitle: StructuredContentItem<string>;
+  why_partner_title: StructuredContentItem<string>; // ADDED
+  why_partner_text: StructuredContentItem<string>; // ADDED
+  why_partner_image: StructuredContentItem<string | null>;
+};
+
+// Updated type for the /partners API response
+export interface PartnersPageData {
+  partner_categories: PartnerCategory[];
+  page_content: Page<PartnersPageContent> | null;
+}
