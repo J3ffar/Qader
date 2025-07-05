@@ -190,8 +190,9 @@ class FAQListView(generics.ListAPIView):
     filter_backends = [filters.SearchFilter]
     search_fields = ["name", "items__question", "items__answer"]
 
-    def get_queryset(self):
-        return models.FAQCategory.objects.prefetch_related(
+    def get(self, request, *args, **kwargs):
+        # Fetch FAQ data
+        faq_categories = models.FAQCategory.objects.prefetch_related(
             Prefetch(
                 "items",
                 queryset=models.FAQItem.objects.filter(is_active=True).order_by(
@@ -199,6 +200,23 @@ class FAQListView(generics.ListAPIView):
                 ),
             )
         ).order_by("order", "name")
+
+        # Fetch Page content
+        page_content = models.Page.objects.filter(
+            slug="faq-page-content", is_published=True
+        ).first()
+
+        faq_serializer = serializers.FAQCategorySerializer(faq_categories, many=True)
+        page_serializer = serializers.PageSerializer(
+            page_content, context={"request": request}
+        )
+
+        response_data = {
+            "faq_data": faq_serializer.data,
+            "page_content": page_serializer.data if page_content else None,
+        }
+
+        return Response(response_data)
 
 
 @extend_schema(

@@ -1,6 +1,7 @@
 import { apiClient } from "./apiClient";
 import type {
   AboutPageContent,
+  FaqPageData,
   HomepageData,
   Page,
   PartnersPageData,
@@ -268,3 +269,19 @@ export const getPartnersPageContent =
       return null;
     }
   };
+
+/**
+ * Fetches all content for the 'FAQ' page.
+ * @returns {Promise<FaqPageData | null>} A promise resolving to the page data or null on error.
+ */
+export const getFaqPageContent = async (): Promise<FaqPageData | null> => {
+  try {
+    const pageData = await apiClient<FaqPageData>("/content/faq-page/", {
+      isPublic: true,
+    });
+    return pageData;
+  } catch (error) {
+    console.error("Failed to fetch FAQ page content:", error);
+    return null;
+  }
+};

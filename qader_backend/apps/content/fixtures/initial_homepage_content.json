@@ -620,5 +620,120 @@
       "image": null,
       "alt_text": "أيقونة شراكة الطلاب"
     }
+  },
+
+  {
+    "model": "content.page",
+    "pk": 8,
+    "fields": {
+      "slug": "faq-page-content",
+      "title": "محتوى صفحة الأسئلة الشائعة",
+      "content": null,
+      "content_structured": {
+        "hero_title": {
+          "admin_title": "العنوان الرئيسي للصفحة",
+          "type": "text",
+          "value": "الأسئلة الشائعة"
+        },
+        "hero_subtitle": {
+          "admin_title": "النص الفرعي للعنوان الرئيسي",
+          "type": "textarea",
+          "value": "لديك سؤال؟ لدينا الإجابة. ابحث عن سؤالك هنا أو تصفح التصنيفات."
+        },
+        "cta_title": {
+          "admin_title": "عنوان قسم 'هل تحتاج مساعدة؟'",
+          "type": "text",
+          "value": "هل ما زلت تحتاج مساعدة؟"
+        },
+        "cta_button_text": {
+          "admin_title": "نص زر 'تواصل معنا'",
+          "type": "text",
+          "value": "تواصل معنا"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.faqcategory",
+    "pk": 1,
+    "fields": { "name": "الطلاب", "order": 0 }
+  },
+  {
+    "model": "content.faqcategory",
+    "pk": 2,
+    "fields": { "name": "الشراكة", "order": 1 }
+  },
+  {
+    "model": "content.faqcategory",
+    "pk": 3,
+    "fields": { "name": "التحديات", "order": 2 }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 1,
+    "fields": {
+      "category": 1,
+      "question": "ما هو اختبار القدرات؟",
+      "answer": "هو اختبار موحد لجميع خريجي المرحلة الثانوية ليكون معياراً عادلاً ودقيقاً للجميع، مما يساعد الجهات التعليمية فيما بعد الثانوية العامة على اختيار الطلاب الأكثر قدرة على متابعة وتلبية متطلبات الدراسة في تلك الجهات.",
+      "is_active": true,
+      "order": 0
+    }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 2,
+    "fields": {
+      "category": 1,
+      "question": "كيف أستعد للاختبار عبر منصة قادر؟",
+      "answer": "توفر منصة قادر بنك أسئلة ضخم، اختبارات تجريبية تحاكي الواقع، تحليلات أداء ذكية، وشروحات فيديو مفصلة لمساعدتك على الاستعداد الأمثل.",
+      "is_active": true,
+      "order": 1
+    }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 3,
+    "fields": {
+      "category": 1,
+      "question": "هل يمكنني تتبع تقدمي في الدراسة؟",
+      "answer": "نعم، توفر المنصة لوحة إحصائيات شخصية توضح أدائك في الأقسام المختلفة، متوسط درجاتك، والوقت المستغرق، مما يساعدك على تحديد نقاط القوة والضعف.",
+      "is_active": true,
+      "order": 2
+    }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 4,
+    "fields": {
+      "category": 2,
+      "question": "ما هي أنواع الشراكات المتاحة؟",
+      "answer": "نقدم شراكات متنوعة تشمل المدارس، المدربين المستقلين، وسفراء الطلاب. كل نوع من الشراكة له مزايا وبرامج دعم مصممة خصيصاً له.",
+      "is_active": true,
+      "order": 0
+    }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 5,
+    "fields": {
+      "category": 2,
+      "question": "كيف يمكنني تقديم طلب شراكة؟",
+      "answer": "يمكنك تقديم طلب شراكة بسهولة عبر زيارة صفحة 'شركاء النجاح' واختيار نوع الشراكة المناسب لك وملء النموذج المخصص.",
+      "is_active": true,
+      "order": 1
+    }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 6,
+    "fields": {
+      "category": 3,
+      "question": "ما هي ميزة 'تحدي الأقران'؟",
+      "answer": "'تحدي الأقران' هي ميزة تفاعلية تتيح لك التنافس مع طلاب آخرين في اختبارات قصيرة وممتعة، مما يضيف عنصراً من الحماس والمنافسة لرحلتك التعليمية.",
+      "is_active": true,
+      "order": 0
+    }
   }
 ]

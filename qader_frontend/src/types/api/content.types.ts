@@ -102,7 +102,7 @@ export interface HomepageData {
   call_to_action: Page<CTAContent> | null;
 }
 
-/////// Part for the page about us (story)
+/////// Part for the about us (story) page
 
 // Type for a single story card on the About Us page
 export interface StoryCard {
@@ -130,7 +130,7 @@ export type AboutPageContent = {
   mission_image: StructuredContentItem<string | null>;
 };
 
-/////// Part for the page Partners
+/////// Part for the Partners page
 
 // Type for a single Partner Category from the API
 export interface PartnerCategory {
@@ -154,4 +154,34 @@ export type PartnersPageContent = {
 export interface PartnersPageData {
   partner_categories: PartnerCategory[];
   page_content: Page<PartnersPageContent> | null;
+}
+
+/////// Part for the Questions page
+
+// Type for a single FAQ Item
+export interface FaqItem {
+  id: number;
+  question: string;
+  answer: string;
+}
+
+// Type for a single FAQ Category containing its items
+export interface FaqCategory {
+  id: number;
+  name: string;
+  items: FaqItem[];
+}
+
+// Content structure for the main FAQ page
+export type FaqPageContent = {
+  hero_title: StructuredContentItem<string>;
+  hero_subtitle: StructuredContentItem<string>;
+  cta_title: StructuredContentItem<string>;
+  cta_button_text: StructuredContentItem<string>;
+};
+
+// The complete type for the /faq-page API response
+export interface FaqPageData {
+  faq_data: FaqCategory[];
+  page_content: Page<FaqPageContent> | null;
 }
