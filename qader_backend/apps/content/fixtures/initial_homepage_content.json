@@ -735,5 +735,83 @@
       "is_active": true,
       "order": 0
     }
+  },
+  {
+    "model": "content.page",
+    "pk": 9,
+    "fields": {
+      "slug": "contact-page-content",
+      "title": "محتوى صفحة تواصل معنا",
+      "content": null,
+      "content_structured": {
+        "main_image": {
+          "admin_title": "الصورة الرئيسية",
+          "type": "image",
+          "value": "contact-page-main-image"
+        },
+        "title": {
+          "admin_title": "العنوان الرئيسي",
+          "type": "html",
+          "value": "لنبق على اتصال, <span class='text-[#074182]'>نحن هنا لمساعدتك!</span>"
+        },
+        "description": {
+          "admin_title": "الوصف التفصيلي",
+          "type": "textarea",
+          "value": "إذا كنت تود الاتصال من أجل مشكلة أو استفسار حول متجرك، يُنصح باستعمال منطقة الدعم داخل لوحة التحكم للحصول على دعم سريع وسري. أو يمكنك الاستفسار عن أمور عامة من خلال إرسال رسالة من هنا."
+        },
+        "socials_title": {
+          "admin_title": "عنوان 'أو تواصل معنا'",
+          "type": "text",
+          "value": "أو تواصل معنا"
+        },
+        "social_links": {
+          "admin_title": "روابط التواصل (مكرر)",
+          "type": "repeater",
+          "value": [
+            { "icon_name": "EnvelopeIcon", "url": "mailto:info@qader.vip" },
+            {
+              "icon_name": "PaperAirplaneIcon",
+              "url": "https://t.me/qader_support"
+            },
+            { "icon_name": "PhoneIcon", "url": "tel:+966000000000" }
+          ]
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 14,
+    "fields": {
+      "page": 9,
+      "slug": "contact-page-main-image",
+      "name": "Contact Page Main Image",
+      "image": null,
+      "alt_text": "فريق الدعم"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 15,
+    "fields": {
+      "page": null,
+      "slug": "contact-icon-gmail",
+      "name": "Contact Icon Gmail",
+      "image": null,
+      "alt_text": "ايقونة جيميل"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 16,
+    "fields": {
+      "page": null,
+      "slug": "contact-icon-telegram",
+      "name": "Contact Icon Telegram",
+      "image": null,
+      "alt_text": "ايقونة تيليجرام"
+    }
   }
 ]

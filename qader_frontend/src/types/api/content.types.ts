@@ -185,3 +185,20 @@ export interface FaqPageData {
   faq_data: FaqCategory[];
   page_content: Page<FaqPageContent> | null;
 }
+
+/////// Part for the Contact page
+
+// Type for a single Social Link
+export interface SocialLink {
+  icon_name: string | null;
+  url: string;
+}
+
+// Content structure for the main Contact Us page
+export type ContactPageContent = {
+  main_image: StructuredContentItem<string | null>;
+  title: StructuredContentItem<string>;
+  description: StructuredContentItem<string>;
+  socials_title: StructuredContentItem<string>;
+  social_links: RepeaterContentItem<SocialLink>;
+};

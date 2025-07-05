@@ -1,6 +1,7 @@
 import { apiClient } from "./apiClient";
 import type {
   AboutPageContent,
+  ContactPageContent,
   FaqPageData,
   HomepageData,
   Page,
@@ -285,3 +286,23 @@ export const getFaqPageContent = async (): Promise<FaqPageData | null> => {
     return null;
   }
 };
+
+/**
+ * Fetches content for the 'Contact Us' page.
+ * @returns {Promise<Page<ContactPageContent> | null>} A promise resolving to the page data or null on error.
+ */
+export const getContactPageContent =
+  async (): Promise<Page<ContactPageContent> | null> => {
+    try {
+      const pageData = await apiClient<Page<ContactPageContent>>(
+        "/content/pages/contact-page-content/",
+        {
+          isPublic: true,
+        }
+      );
+      return pageData;
+    } catch (error) {
+      console.error("Failed to fetch Contact Us page content:", error);
+      return null;
+    }
+  };
