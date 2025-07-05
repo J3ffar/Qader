@@ -52,7 +52,7 @@ export interface RewardStoreItem {
   item_type: string; // e.g., "avatar", "material", "competition_entry", "other"
   item_type_display: string;
   cost_points: number;
-  image_url: string | null;
+  image_url: string;
   asset_file_url: string | null; // For downloadable items
   // is_active: boolean; // Implied as only active items are listed
   // stock_available: number | null; // If applicable
@@ -84,6 +84,7 @@ export type RewardItem = {
   name: string;
   description: string;
   cost_points: number;
+  image_url: string;
 };
 
 export type Badge = {

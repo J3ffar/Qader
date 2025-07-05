@@ -81,8 +81,12 @@ class BlogPost(models.Model):
     tags = TaggableManager(
         verbose_name=_("Tags"), blank=True, help_text=_("Comma-separated tags.")
     )
-    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+    created_at = models.DateTimeField(
+        _("Created At"), null=True, blank=True, auto_now_add=True
+    )
+    updated_at = models.DateTimeField(
+        _("Updated At"), null=True, blank=True, auto_now=True
+    )
 
     class Meta:
         verbose_name = _("Blog Post")

@@ -636,7 +636,7 @@ const RewardsDashboard = () => {
             >
               <div className="flex items-center justify-between mt-4">
                 <Image
-                  src={item.image_url || "/images/gift.png"}
+                  src={"/images/gift.png"}
                   alt="كأس"
                   width={0}
                   height={0}
