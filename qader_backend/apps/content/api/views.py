@@ -34,6 +34,62 @@ class PageViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
     lookup_field = "slug"
 
+    def get_serializer_context(self):
+        """
+        Overrides the default context to add a map of resolved image URLs.
+        This is crucial for the PageSerializer to resolve slugs within structured content.
+        """
+        # Get the default context from the parent class
+        context = super().get_serializer_context()
+        request = context.get("request")
+
+        # This logic only applies to the 'retrieve' action (getting a single page)
+        if self.action == "retrieve" and request:
+            # `self.get_object()` gets the current Page instance being viewed
+            page = self.get_object()
+            image_url_map = {}
+
+            if page and page.content_structured:
+                # 1. Collect all image slugs from this page's structured content
+                image_slugs = {
+                    item.get("value")
+                    for item in page.content_structured.values()
+                    if isinstance(item, dict)
+                    and item.get("type") == "image"
+                    and item.get("value")
+                }
+
+                # Also collect slugs from repeater fields (like the story cards)
+                for item in page.content_structured.values():
+                    if (
+                        isinstance(item, dict)
+                        and item.get("type") == "repeater"
+                        and isinstance(item.get("value"), list)
+                    ):
+                        for sub_item in item.get("value"):
+                            if (
+                                isinstance(sub_item, dict)
+                                and sub_item.get("icon_type") == "image"
+                            ):
+                                if sub_item.get("icon_value"):
+                                    image_slugs.add(sub_item.get("icon_value"))
+
+                # 2. Query the database once for all required images
+                # We can use the prefetched `page.images` for efficiency
+                image_objects = page.images.filter(slug__in=list(image_slugs))
+
+                # 3. Create the slug -> URL map
+                image_url_map = {
+                    img.slug: request.build_absolute_uri(img.image.url)
+                    for img in image_objects
+                    if img.image
+                }
+
+            # 4. Add the map to the context
+            context["image_url_map"] = image_url_map
+
+        return context
+
 
 @extend_schema(
     tags=["Public Content"],

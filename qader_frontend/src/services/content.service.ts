@@ -1,5 +1,9 @@
 import { apiClient } from "./apiClient";
-import type { HomepageData } from "@/types/api/content.types";
+import type {
+  AboutPageContent,
+  HomepageData,
+  Page,
+} from "@/types/api/content.types";
 
 const defaultHomepageData: HomepageData = {
   intro: {
@@ -224,3 +228,25 @@ export const getHomepageContent = async (): Promise<HomepageData> => {
     return defaultHomepageData;
   }
 };
+
+/**
+ * Fetches content for the 'About Us' page.
+ * @returns {Promise<Page<AboutPageContent> | null>} A promise resolving to the page data or null on error.
+ */
+export const getAboutPageContent =
+  async (): Promise<Page<AboutPageContent> | null> => {
+    try {
+      // Use the generic Page API endpoint with the correct slug
+      const pageData = await apiClient<Page<AboutPageContent>>(
+        "/content/pages/our-story/",
+        {
+          isPublic: true,
+        }
+      );
+      return pageData;
+    } catch (error) {
+      console.error("Failed to fetch About Us page content:", error);
+      // Return null to indicate failure, the component will handle it
+      return null;
+    }
+  };

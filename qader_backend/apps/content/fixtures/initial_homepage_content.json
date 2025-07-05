@@ -361,5 +361,145 @@
       "order": 4,
       "is_active": true
     }
+  },
+
+  {
+    "model": "content.page",
+    "pk": 6,
+    "fields": {
+      "slug": "our-story",
+      "title": "محتوى صفحة من نحن (القصة)",
+      "content": null,
+      "content_structured": {
+        "hero_title": {
+          "admin_title": "العنوان الرئيسي",
+          "type": "html",
+          "value": "البداية من حلم...<span class='text-[#E78B48]'>والتحقيق معك</span>"
+        },
+        "hero_subtitle": {
+          "admin_title": "النص الفرعي للعنوان الرئيسي",
+          "type": "html",
+          "value": "فى عالم تتسارع فيه التحديات وتتشابه فيه المنصات, كنا نبحث عن شئ واحد فقط أن نكون <span class='text-[#E78B48]'>مختلفين بحق</span>"
+        },
+        "story_cards": {
+          "admin_title": "بطاقات القصة (3 بطاقات)",
+          "type": "repeater",
+          "value": [
+            {
+              "icon_type": "image",
+              "icon_value": "our-story-storytelling-icon",
+              "text": "بدأت<span class='text-[#E78B48]'>\"قادر\"</span>من إيمان بسيط و عميق فى نفس الوقت: أن كل طالب قادر على الإنجاز...إذا وجد البيئة الصحيحة والدعم المناسب"
+            },
+            {
+              "icon_type": "heroicon",
+              "icon_value": "UsersIcon",
+              "text": "لم نرد ان نقدم مجرد منصة تعليميةأخرى, بل أردنا أن نبنى مجتمعا<span class='text-[#E78B48]'>يتعلم, يشارك, ويكبر سويا.</span>"
+            },
+            {
+              "icon_type": "image",
+              "icon_value": "our-story-greeting-icon",
+              "text": "جمعنا بين البساطة و التقنية, بين المناهج الدقيقة و الاختبارات الذكية<span class='text-[#E78B48]'>من أجلك أنت.</span>"
+            }
+          ]
+        },
+        "main_promo_image": {
+          "admin_title": "صورة الهاتف الترويجية الكبيرة",
+          "type": "image",
+          "value": "our-story-phone-promo"
+        },
+        "why_different_title": {
+          "admin_title": "عنوان قسم 'لماذا نحن مختلفون'",
+          "type": "text",
+          "value": "لماذا نحن مختلفون؟"
+        },
+        "why_different_points": {
+          "admin_title": "نقاط قسم 'لماذا نحن مختلفون'",
+          "type": "repeater",
+          "value": [
+            { "point": "لأننا نراك قبل أن نرى درجاتك." },
+            { "point": "لأننا نفهم أن التعليم ليس بالحفظ, بل فهم وتجربة." },
+            { "point": "لأننا نطور المنصة كل يوم بناء على صوتك." },
+            { "point": "لأننا لا نبيع المحتوى...بل نبنى ثقة." }
+          ]
+        },
+        "why_different_image": {
+          "admin_title": "صورة قسم 'لماذا نحن مختلفون'",
+          "type": "image",
+          "value": "our-story-laptop-1"
+        },
+        "mission_title": {
+          "admin_title": "عنوان قسم 'رسالتنا'",
+          "type": "text",
+          "value": "رسالتنا"
+        },
+        "mission_text": {
+          "admin_title": "نص قسم 'رسالتنا'",
+          "type": "html",
+          "value": "أن نكون دليلك الذكى فى رحلة التعليم, وأن نمنحك الأدوات لتكون دائما...قادر على الفهم, على التقدم, وعلى التميز."
+        },
+        "mission_image": {
+          "admin_title": "صورة قسم 'رسالتنا'",
+          "type": "image",
+          "value": "our-story-laptop-2"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 5,
+    "fields": {
+      "page": 6,
+      "slug": "our-story-storytelling-icon",
+      "name": "About Us Storytelling Icon",
+      "image": null,
+      "alt_text": "أيقونة القصة"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 6,
+    "fields": {
+      "page": 6,
+      "slug": "our-story-greeting-icon",
+      "name": "About Us Greeting Icon",
+      "image": null,
+      "alt_text": "أيقونة الترحيب"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 7,
+    "fields": {
+      "page": 6,
+      "slug": "our-story-phone-promo",
+      "name": "About Us Phone Promo",
+      "image": null,
+      "alt_text": "عرض تطبيق قادر على الهاتف"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 8,
+    "fields": {
+      "page": 6,
+      "slug": "our-story-laptop-1",
+      "name": "About Us Laptop 1",
+      "image": null,
+      "alt_text": "عرض منصة قادر على اللابتوب"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 9,
+    "fields": {
+      "page": 6,
+      "slug": "our-story-laptop-2",
+      "name": "About Us Laptop 2",
+      "image": null,
+      "alt_text": "عرض آخر لمنصة قادر على اللابتوب"
+    }
   }
 ]

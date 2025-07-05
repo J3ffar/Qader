@@ -13,7 +13,7 @@ interface RepeaterContentItem<T> {
 }
 
 // Type for a single image from the ContentImage model
-interface ContentImage {
+export interface ContentImage {
   id: number;
   slug: string;
   name: string;
@@ -22,7 +22,7 @@ interface ContentImage {
 }
 
 // A generic Page object from your backend
-interface Page<TContent> {
+export interface Page<TContent> {
   slug: string;
   title: string;
   content: string | null;
@@ -31,6 +31,8 @@ interface Page<TContent> {
   icon_class: string | null;
   updated_at: string;
 }
+
+/////// Part home page
 
 export interface Feature {
   title: string;
@@ -99,3 +101,31 @@ export interface HomepageData {
   why_partner_text: Page<WhyPartnerContent> | null;
   call_to_action: Page<CTAContent> | null;
 }
+
+/////// Part for the page about us (story)
+
+// Type for a single story card on the About Us page
+export interface StoryCard {
+  icon_type: "image" | "heroicon";
+  icon_value: string | null;
+  text: string;
+}
+
+// Type for a single point in the 'Why Different' list
+export interface WhyDifferentPoint {
+  point: string;
+}
+
+// The complete content structure for the About Us page
+export type AboutPageContent = {
+  hero_title: StructuredContentItem<string>;
+  hero_subtitle: StructuredContentItem<string>;
+  story_cards: RepeaterContentItem<StoryCard>;
+  main_promo_image: StructuredContentItem<string | null>;
+  why_different_title: StructuredContentItem<string>;
+  why_different_points: RepeaterContentItem<WhyDifferentPoint>;
+  why_different_image: StructuredContentItem<string | null>;
+  mission_title: StructuredContentItem<string>;
+  mission_text: StructuredContentItem<string>;
+  mission_image: StructuredContentItem<string | null>;
+};
