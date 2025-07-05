@@ -65,6 +65,30 @@
               "title": "طالبة",
               "quote": "التنوع في الأسئلة والاختبارات التجريبية كان ممتازاً، وشعرت بالثقة يوم الاختبار.",
               "avatar_image_slug": null
+            },
+            {
+              "name": "خالد الغامدي",
+              "title": "طالب ثانوي",
+              "quote": "درجتي ارتفعت 15 درجة بفضل الله ثم بفضل منصة قادر. التحليلات بعد كل اختبار كانت كنز!",
+              "avatar_image_slug": null
+            },
+            {
+              "name": "سارة المطيري",
+              "title": "طالبة",
+              "quote": "أفضل شيء هو التصميم البسيط والواضح. ما تضيع وقتك وأنت تدور على اللي تبغاه، كل شيء مرتب.",
+              "avatar_image_slug": null
+            },
+            {
+              "name": "عبدالرحمن الشهري",
+              "title": "طالب",
+              "quote": "شروحات الفيديو للأسئلة الصعبة فرقت معاي كثير. صرت أفهم الفكرة مو بس أحفظ الإجابة.",
+              "avatar_image_slug": null
+            },
+            {
+              "name": "عبدالرحمن الشهري",
+              "title": "طالب",
+              "quote": "شروحات الفيديو للأسئلة الصعبة فرقت معاي كثير. صرت أفهم الفكرة مو بس أحفظ الإجابة.",
+              "avatar_image_slug": null
             }
           ]
         }
@@ -236,13 +260,105 @@
     }
   },
   {
+    "model": "content.homepagefeaturecard",
+    "pk": 3,
+    "fields": {
+      "title": "تحليلات أداء ذكية",
+      "text": "احصل على تقارير مفصلة بعد كل اختبار لتحديد نقاط القوة والضعف لديك.",
+      "svg_image": null,
+      "icon_class": "fas fa-chart-line",
+      "order": 2,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagefeaturecard",
+    "pk": 4,
+    "fields": {
+      "title": "شروحات وحلول مفصلة",
+      "text": "لا تكتفِ بالإجابة الصحيحة، بل افهم طريقة الحل مع شروحات واضحة لكل سؤال.",
+      "svg_image": null,
+      "icon_class": "fas fa-video",
+      "order": 3,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagefeaturecard",
+    "pk": 5,
+    "fields": {
+      "title": "تحدى أقرانك",
+      "text": "تنافس مع زملائك في تحديات مباشرة وحماسية لزيادة الدافعية والمراجعة.",
+      "svg_image": null,
+      "icon_class": "fas fa-users",
+      "order": 4,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagefeaturecard",
+    "pk": 6,
+    "fields": {
+      "title": "مدربك الذكي",
+      "text": "تعلم عبر المحادثة مع مدربنا الذكي الذي يساعدك في التركيز على نقاط ضعفك.",
+      "svg_image": null,
+      "icon_class": "fas fa-robot",
+      "order": 5,
+      "is_active": true
+    }
+  },
+  {
     "model": "content.homepagestatistic",
     "pk": 1,
     "fields": {
       "label": "سؤال تدريبي",
-      "value": "10,000+",
+      "value": "3,000+",
       "icon_class": "fas fa-question-circle",
       "order": 0,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagestatistic",
+    "pk": 2,
+    "fields": {
+      "label": "طالب مسجل",
+      "value": "5,000+",
+      "icon_class": "fas fa-user-graduate",
+      "order": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagestatistic",
+    "pk": 3,
+    "fields": {
+      "label": "اختبار تجريبي مكتمل",
+      "value": "10,000+",
+      "icon_class": "fas fa-check-double",
+      "order": 2,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagestatistic",
+    "pk": 4,
+    "fields": {
+      "label": "ساعة من شروحات",
+      "value": "300+",
+      "icon_class": "fas fa-play-circle",
+      "order": 3,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagestatistic",
+    "pk": 5,
+    "fields": {
+      "label": "نسبة رضا الطلاب",
+      "value": "97%",
+      "icon_class": "fas fa-smile-beam",
+      "order": 4,
       "is_active": true
     }
   }
