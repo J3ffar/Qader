@@ -29,15 +29,50 @@ import { ApiUpdateUserProfileData } from "@/types/api/user.types";
 // All functions below are solid. They correctly delegate to the apiClient.
 // No changes are needed for most of them.
 
+// THIS FUNCTION NOW CALLS OUR NEXT.JS BFF, NOT DJANGO DIRECTLY
 export const loginUser = (
   credentials: LoginCredentials
-): Promise<LoginResponse> => {
-  return apiClient<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, {
+): Promise<{ access: string; user: UserProfile }> => {
+  // This is a direct fetch call to our own backend. We don't use apiClient here.
+  return fetch("/api/auth/login", {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
-    isPublic: true,
-    credentials: "include",
+  }).then(async (res) => {
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new ApiError(
+        errorData.detail || "Login failed",
+        res.status,
+        errorData
+      );
+    }
+    return res.json();
   });
+};
+
+// NEW FUNCTION FOR SESSION HYDRATION
+export const getAuthSession = async (): Promise<{
+  access: string;
+  user: UserProfile;
+}> => {
+  const response = await fetch("/api/auth/me", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new ApiError(
+      errorData.error || "Session not found",
+      response.status,
+      errorData
+    );
+  }
+
+  return response.json();
 };
 
 export const signupUser = (data: ApiSignupData): Promise<SignupResponse> => {
@@ -125,38 +160,10 @@ export const completeUserProfile = (
   });
 };
 
-export const logoutUserApi = async (payload: LogoutPayload): Promise<void> => {
-  const locale = getLocaleFromPathname() || "ar";
-  const url = `${API_BASE_URL}/${locale}/api/${API_VERSION}${API_ENDPOINTS.AUTH.LOGOUT}`;
-
-  // Get the access token directly from the store for the Authorization header.
-  const accessToken = useAuthStore.getState().accessToken;
-
-  // If there's no access token, we can't even attempt the call, so we just return.
-  if (!accessToken) {
-    return;
-  }
-
-  try {
-    await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        // The backend's LogoutView requires this header to identify the user
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(payload),
-    });
-    // We don't care about the response. Whether it's 204 or 401,
-    // we are proceeding with client-side logout regardless.
-  } catch (error) {
-    // Also ignore network errors. The user needs to be logged out on the client.
-    console.warn(
-      "Network error during API logout call. Proceeding with client-side cleanup.",
-      error
-    );
-  }
+// THIS FUNCTION NOW CALLS OUR NEXT.JS BFF
+export const logoutUserApi = async (): Promise<void> => {
+  await fetch("/api/auth/logout");
+  // We don't care about the response, just that we fired the request.
 };
 
 /**
