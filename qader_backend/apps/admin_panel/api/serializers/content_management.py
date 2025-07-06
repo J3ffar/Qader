@@ -122,7 +122,7 @@ class AdminPartnerCategorySerializer(serializers.ModelSerializer):
             "id",
             "name",
             "description",
-            "icon_svg_or_class",
+            "icon_image",
             "google_form_link",
             "order",
             "is_active",

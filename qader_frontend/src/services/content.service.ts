@@ -306,3 +306,32 @@ export const getContactPageContent =
       return null;
     }
   };
+
+/**
+ * Fetches content for the 'Terms' and 'Privacy' pages.
+ * @returns {Promise<{terms: Page<any> | null, privacy: Page<any> | null}>} An object containing the page data.
+ */
+export const getLegalPagesContent = async (): Promise<{
+  terms: Page<any> | null;
+  privacy: Page<any> | null;
+}> => {
+  try {
+    // Fetch both pages concurrently for better performance
+    const [termsRes, privacyRes] = await Promise.allSettled([
+      apiClient<Page<any>>("/content/pages/terms-and-conditions/", {
+        isPublic: true,
+      }),
+      apiClient<Page<any>>("/content/pages/privacy-policy/", {
+        isPublic: true,
+      }),
+    ]);
+
+    const terms = termsRes.status === "fulfilled" ? termsRes.value : null;
+    const privacy = privacyRes.status === "fulfilled" ? privacyRes.value : null;
+
+    return { terms, privacy };
+  } catch (error) {
+    console.error("Failed to fetch legal pages content:", error);
+    return { terms: null, privacy: null };
+  }
+};
