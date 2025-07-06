@@ -1,13 +1,12 @@
 import { create, StateCreator } from "zustand";
-import { persist, createJSONStorage, PersistOptions } from "zustand/middleware";
 import { useMemo } from "react";
 import type { UserProfile } from "@/types/api/auth.types";
 import { logoutUserApi } from "@/services/auth.service";
+import Cookies from "js-cookie";
 
 // --- State and Actions Interfaces ---
 interface AuthStateCore {
   accessToken: string | null;
-  refreshToken: string | null;
   user: UserProfile | null;
   isAuthenticated: boolean;
   isProfileComplete: boolean;
@@ -15,12 +14,9 @@ interface AuthStateCore {
 }
 
 interface AuthActions {
-  login: (
-    tokens: { access: string; refresh: string },
-    userData: UserProfile
-  ) => void;
+  login: (tokens: { access: string }, userData: UserProfile) => void;
   logout: () => Promise<void>;
-  setTokens: (tokens: { access: string; refresh?: string }) => void;
+  setTokens: (tokens: { access: string }) => void;
   setUser: (userData: UserProfile | null) => void;
   updateUserProfile: (updatedUserData: Partial<UserProfile>) => void;
   setIsProfileComplete: (isComplete: boolean) => void;
@@ -33,7 +29,6 @@ export interface AuthState extends AuthStateCore, AuthActions {}
 const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
   // --- Initial State ---
   accessToken: null,
-  refreshToken: null,
   user: null,
   isAuthenticated: false,
   isProfileComplete: false,
@@ -43,7 +38,6 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
   login: (tokens, userData) => {
     set({
       accessToken: tokens.access,
-      refreshToken: tokens.refresh,
       user: userData,
       isAuthenticated: true,
       isProfileComplete: userData.profile_complete,
@@ -51,46 +45,38 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
     });
   },
 
-  /**
-   * --- LOGOUT ACTION ---
-   * This action handles complete session termination.
-   */
   logout: async () => {
-    const currentRefreshToken = get().refreshToken;
-    if (currentRefreshToken) {
-      try {
-        await logoutUserApi({ refresh: currentRefreshToken });
-      } catch (error) {
-        console.warn(
-          "Logout API call failed (this is expected if the refresh token was already invalid).",
-          error
-        );
-      }
+    // 1. Call the BFF endpoint to clear the secure cookie
+    try {
+      await logoutUserApi();
+    } catch (error) {
+      console.warn(
+        "Logout API call failed, but proceeding with client cleanup.",
+        error
+      );
     }
 
-    // 1. Reset the state in Zustand's memory.
+    Cookies.remove("qader-user-role", { path: "/" });
+
+    // 2. Reset the client-side state
     set({
       accessToken: null,
-      refreshToken: null,
       user: null,
       isAuthenticated: false,
       isProfileComplete: false,
       isRefreshingToken: false,
     });
 
-    // 2. **IMPROVEMENT**: Use the persist middleware's own API to clear storage.
-    // This is cleaner than `localStorage.removeItem` and prevents potential
-    // race conditions with the middleware's hydration/persistence logic.
-    useAuthStore.persist.clearStorage();
+    // IMPORTANT: Clear any other persisted client-side state if necessary
   },
 
   setTokens: (tokens) => {
-    set((state) => ({
+    // Only sets the access token
+    set({
       accessToken: tokens.access,
-      refreshToken: tokens.refresh ?? state.refreshToken,
       isAuthenticated: !!tokens.access,
       isRefreshingToken: false,
-    }));
+    });
   },
 
   setUser: (userData) => {
@@ -121,36 +107,10 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
   },
 });
 
-// --- Persistence Configuration ---
-type PersistedAuthState = Pick<
-  AuthStateCore,
-  "accessToken" | "refreshToken" | "user"
->;
+// REMOVE PERSISTENCE MIDDLEWARE ENTIRELY
+export const useAuthStore = create<AuthState>()(authStoreCreator);
 
-const persistOptions: PersistOptions<AuthState, PersistedAuthState> = {
-  name: "qader-auth-storage",
-  storage: createJSONStorage(() => localStorage),
-  partialize: (state): PersistedAuthState => ({
-    accessToken: state.accessToken,
-    refreshToken: state.refreshToken,
-    user: state.user,
-  }),
-  onRehydrateStorage: () => (state, error) => {
-    if (error) {
-      console.error("Failed to rehydrate auth state:", error);
-      return;
-    }
-    if (state) {
-      state.isAuthenticated = !!(state.accessToken && state.refreshToken);
-      state.isProfileComplete = state.user?.profile_complete ?? false;
-    }
-  },
-};
-
-export const useAuthStore = create<AuthState>()(
-  persist(authStoreCreator, persistOptions)
-);
-
+// The hooks `useAuthCore` and `useAuthActions` remain valid but will reflect the new state shape.
 /**
  * Custom hook to select core authentication state.
  * This is optimized to prevent re-renders if the selected state hasn't changed.
@@ -158,7 +118,6 @@ export const useAuthStore = create<AuthState>()(
  */
 export const useAuthCore = (): AuthStateCore => {
   const accessToken = useAuthStore((state) => state.accessToken);
-  const refreshToken = useAuthStore((state) => state.refreshToken);
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isProfileComplete = useAuthStore((state) => state.isProfileComplete);
@@ -167,20 +126,12 @@ export const useAuthCore = (): AuthStateCore => {
   return useMemo(
     () => ({
       accessToken,
-      refreshToken,
       user,
       isAuthenticated,
       isProfileComplete,
       isRefreshingToken,
     }),
-    [
-      accessToken,
-      refreshToken,
-      user,
-      isAuthenticated,
-      isProfileComplete,
-      isRefreshingToken,
-    ]
+    [accessToken, user, isAuthenticated, isProfileComplete, isRefreshingToken]
   );
 };
 

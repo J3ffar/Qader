@@ -53,6 +53,13 @@ export function AuthFormCard({
             className="font-medium text-primary hover:underline"
           >
             {footerLinkText}
+          </Link>{" "}
+          او عود الي{" "}
+          <Link
+            href={PATHS.HOME}
+            className="font-medium text-primary hover:underline"
+          >
+            الصفحة الرئيسة{" "}
           </Link>
         </div>
       </CardContent>

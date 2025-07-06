@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { locales as appLocales } from "@/config/i18n.config";
 import "@/app/globals.css";
 import { cn } from "@/lib/utils";
+import { SessionProvider } from "@/components/global/SessionProvider";
 
 // Fonts
 const ibm = IBM_Plex_Sans_Arabic({
@@ -100,11 +101,13 @@ export default async function LocaleLayout({
             enableSystem
             disableTransitionOnChange
           >
+            <SessionProvider>
+              {children}
+              <Toaster richColors position="top-center" closeButton />
+            </SessionProvider>
             <Suspense fallback={null}>
               <NProgressHandler />
             </Suspense>
-            {children}
-            <Toaster richColors position="top-center" closeButton />
           </Providers>
         </NextIntlClientProvider>
       </body>
