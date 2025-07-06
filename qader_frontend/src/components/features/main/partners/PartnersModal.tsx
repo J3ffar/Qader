@@ -60,7 +60,6 @@ const PartnersModal: React.FC<PartnersModalProps> = ({
             {partnerCategories.map((partner, index) => {
               // --- START OF FIX ---
               const defaultIcon = `/images/partner${index + 1}.png`;
-              console.log(partner.icon_image);
               const iconSrc = partner.icon_image ?? defaultIcon;
               // --- END OF FIX ---
 

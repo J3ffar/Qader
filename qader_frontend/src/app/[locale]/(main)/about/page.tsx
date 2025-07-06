@@ -38,7 +38,6 @@ const AboutPage = async () => {
   }
 
   const content = data.content_structured_resolved;
-  console.log(content);
   // --- START OF THE FIX ---
   // Define variables for image URLs with fallbacks to local defaults.
   // The nullish coalescing operator (??) is perfect for this.

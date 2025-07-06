@@ -27,7 +27,6 @@ const PartnersClient: React.FC<PartnersClientProps> = ({ data }) => {
   }
 
   const partnerCategories = data.partner_categories ?? [];
-  console.log(partnerCategories);
   const pageContent = data.page_content?.content_structured_resolved;
 
   // Extract all text and images from the single `page_content` object

@@ -43,7 +43,7 @@ export function PointLogTab({ userId }: PointLogTabProps) {
 
   const logs = data?.results ?? [];
   const pageCount = data?.count ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
-  console.log(logs);
+
   const renderContent = () => {
     if (isLoading) {
       return (
