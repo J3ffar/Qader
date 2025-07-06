@@ -838,5 +838,69 @@
       "icon_class": null,
       "is_published": true
     }
+  },
+
+  {
+    "model": "content.page",
+    "pk": 12,
+    "fields": {
+      "slug": "footer-content",
+      "title": "محتوى تذييل الصفحة (Footer)",
+      "content": null,
+      "content_structured": {
+        "about_title": {
+          "admin_title": "عنوان 'نبذة بسيطة'",
+          "type": "text",
+          "value": "نبذة بسيطة عن قادر وماذا تقدم"
+        },
+        "about_text": {
+          "admin_title": "نص 'نبذة بسيطة'",
+          "type": "textarea",
+          "value": "قادر هي منصة تعليمية رائدة تهدف إلى تمكين الطلاب من تحقيق أقصى إمكاناتهم في اختبارات القدرات من خلال أدوات مبتكرة ومحتوى عالي الجودة."
+        },
+        "follow_us_title": {
+          "admin_title": "عنوان 'تابع منصتنا'",
+          "type": "text",
+          "value": "تابع منصتنا"
+        },
+        "social_links": {
+          "admin_title": "روابط التواصل الاجتماعي (مكرر)",
+          "type": "repeater",
+          "value": [
+            {
+              "icon_slug": "footer-icon-telegram",
+              "url": "https://t.me/qader_example"
+            },
+            {
+              "icon_slug": "footer-icon-x",
+              "url": "https://x.com/qader_example"
+            },
+            {
+              "icon_slug": "footer-icon-youtube",
+              "url": "https://youtube.com/qader_example"
+            },
+            {
+              "icon_slug": "footer-icon-instagram",
+              "url": "https://instagram.com/qader_example"
+            },
+            {
+              "icon_slug": "footer-icon-facebook",
+              "url": "https://facebook.com/qader_example"
+            },
+            {
+              "icon_slug": "footer-icon-linkedin",
+              "url": "https://linkedin.com/qader_example"
+            }
+          ]
+        },
+        "copyright_text": {
+          "admin_title": "نص حقوق النشر",
+          "type": "text",
+          "value": " جميع الحقوق محفوظة ©{YEAR}"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
   }
 ]

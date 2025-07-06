@@ -202,3 +202,19 @@ export type ContactPageContent = {
   socials_title: StructuredContentItem<string>;
   social_links: RepeaterContentItem<SocialLink>;
 };
+
+/////// Part for the Footer
+
+export interface SocialLinkFooter {
+  icon_slug: string | null;
+  url: string;
+}
+
+// Type for the Footer's structured content
+export type FooterContent = {
+  about_title: StructuredContentItem<string>;
+  about_text: StructuredContentItem<string>;
+  follow_us_title: StructuredContentItem<string>;
+  social_links: RepeaterContentItem<SocialLinkFooter>; // We can reuse the SocialLink type
+  copyright_text: StructuredContentItem<string>;
+};

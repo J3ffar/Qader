@@ -3,6 +3,7 @@ import type {
   AboutPageContent,
   ContactPageContent,
   FaqPageData,
+  FooterContent,
   HomepageData,
   Page,
   PartnersPageData,
@@ -335,3 +336,23 @@ export const getLegalPagesContent = async (): Promise<{
     return { terms: null, privacy: null };
   }
 };
+
+/**
+ * Fetches content for the site Footer.
+ * @returns {Promise<Page<FooterContent> | null>} The page data for the footer.
+ */
+export const getFooterContent =
+  async (): Promise<Page<FooterContent> | null> => {
+    try {
+      const pageData = await apiClient<Page<FooterContent>>(
+        "/content/pages/footer-content/",
+        {
+          isPublic: true,
+        }
+      );
+      return pageData;
+    } catch (error) {
+      console.error("Failed to fetch footer content:", error);
+      return null;
+    }
+  };
