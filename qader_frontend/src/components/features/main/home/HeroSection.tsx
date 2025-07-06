@@ -28,8 +28,8 @@ const HeroSection = ({ data }: HeroProps) => {
     setShowLogin(false);
   };
 
-  const title =
-    data?.title ??
+  const heroTitle =
+    data?.content_structured_resolved.hero_title.value ??
     "عندك <span class='text-[#e78b48]'>اختبار قدرات؟</span> ومحتاج مساعدة!!";
   const subtitle =
     data?.content_structured_resolved?.hero_subtitle?.value ??
@@ -55,7 +55,7 @@ const HeroSection = ({ data }: HeroProps) => {
           />
           <h1
             className="lg:text-6xl md:text-5xl font-medium max-lg:text-4xl max-md:text-3xl"
-            dangerouslySetInnerHTML={{ __html: title }}
+            dangerouslySetInnerHTML={{ __html: heroTitle }}
           />
         </div>
 

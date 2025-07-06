@@ -4,13 +4,13 @@
     "pk": 1,
     "fields": {
       "slug": "homepage-intro",
-      "title": "عندك اختبار قدرات؟ ومحتاج مساعدة!!",
+      "title": "قسم الرئيسي في الصفحة الرئيسية",
       "content": "منصتنا مخصصة لك, انت فى الطريق الصحيح. اكتشف كيف يمكن لأدواتنا المبتكرة والمدعومة بالذكاء الاصطناعي أن تضعك على طريق النجاح.",
       "content_structured": {
         "hero_title": {
           "admin_title": "العنوان الرئيسي في قسم الهيرو",
           "type": "html",
-          "value": "عندك <span class='text-[#e78b48]'>اختبار قدرات؟</span> ومحتاج مساعدة!!"
+          "value": "عندك <span class='text-yellow-600'>اختبار قدرات؟</span> ومحتاج مساعدة!!"
         },
         "hero_subtitle": {
           "admin_title": "النص الفرعي في قسم الهيرو",
@@ -37,7 +37,7 @@
     "pk": 2,
     "fields": {
       "slug": "homepage-praise",
-      "title": "ماذا قالوا عنا؟",
+      "title": "قسم ماذا قالوا عنا؟ في الصفحة الرئيسية",
       "content": "آراء طلابنا هي شهادة نجاحنا. انظر كيف ساعدناهم في تحقيق أهدافهم.",
       "content_structured": {
         "section_title": {
@@ -102,7 +102,7 @@
     "pk": 3,
     "fields": {
       "slug": "why-partner",
-      "title": "لماذا يجب على العملاء أن يختارونا؟",
+      "title": "قسم لماذا يجب على العملاء أن يختارونا؟ في الصفحة الرئيسية",
       "content": "نحن لا نقدم مجرد منصة، بل شريك نجاح متكامل في رحلتك التعليمية.",
       "content_structured": {
         "section_title": {
@@ -130,7 +130,7 @@
     "pk": 4,
     "fields": {
       "slug": "homepage-cta",
-      "title": "دعوة إلى الاشتراك",
+      "title": "قسم دعوة إلى الاشتراك في الصفحة الرئيسية",
       "content": null,
       "content_structured": {
         "title": {
@@ -158,7 +158,7 @@
     "pk": 5,
     "fields": {
       "slug": "homepage-about-us",
-      "title": "الصفحة الرئيسية قسم من نحن",
+      "title": "قسم من نحن في الصفحة الرئيسية",
       "content": null,
       "content_structured": {
         "section_title": {
@@ -374,12 +374,12 @@
         "hero_title": {
           "admin_title": "العنوان الرئيسي",
           "type": "html",
-          "value": "البداية من حلم...<span class='text-[#E78B48]'>والتحقيق معك</span>"
+          "value": "البداية من حلم... <span class='text-yellow-600'>والتحقيق معك</span>"
         },
         "hero_subtitle": {
           "admin_title": "النص الفرعي للعنوان الرئيسي",
           "type": "html",
-          "value": "فى عالم تتسارع فيه التحديات وتتشابه فيه المنصات, كنا نبحث عن شئ واحد فقط أن نكون <span class='text-[#E78B48]'>مختلفين بحق</span>"
+          "value": "فى عالم تتسارع فيه التحديات وتتشابه فيه المنصات, كنا نبحث عن شئ واحد فقط أن نكون <span class='text-yellow-600'>مختلفين بحق</span> "
         },
         "story_cards": {
           "admin_title": "بطاقات القصة (3 بطاقات)",
@@ -388,17 +388,17 @@
             {
               "icon_type": "image",
               "icon_value": "our-story-storytelling-icon",
-              "text": "بدأت<span class='text-[#E78B48]'>\"قادر\"</span>من إيمان بسيط و عميق فى نفس الوقت: أن كل طالب قادر على الإنجاز...إذا وجد البيئة الصحيحة والدعم المناسب"
+              "text": "بدأت <span class='text-yellow-600'>\"قادر\"</span> من إيمان بسيط و عميق فى نفس الوقت: أن كل طالب قادر على الإنجاز...إذا وجد البيئة الصحيحة والدعم المناسب"
             },
             {
               "icon_type": "heroicon",
               "icon_value": "UsersIcon",
-              "text": "لم نرد ان نقدم مجرد منصة تعليميةأخرى, بل أردنا أن نبنى مجتمعا<span class='text-[#E78B48]'>يتعلم, يشارك, ويكبر سويا.</span>"
+              "text": "لم نرد ان نقدم مجرد منصة تعليميةأخرى, بل أردنا أن نبنى مجتمعا <span class='text-yellow-600'> يتعلم, يشارك, ويكبر سويا.</span>"
             },
             {
               "icon_type": "image",
               "icon_value": "our-story-greeting-icon",
-              "text": "جمعنا بين البساطة و التقنية, بين المناهج الدقيقة و الاختبارات الذكية<span class='text-[#E78B48]'>من أجلك أنت.</span>"
+              "text": "جمعنا بين البساطة و التقنية, بين المناهج الدقيقة و الاختبارات الذكية <span class='text-yellow-600'>من أجلك أنت.</span> "
             }
           ]
         },
