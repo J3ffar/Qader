@@ -10,7 +10,9 @@ type AdvantageProps = {
 };
 
 const AdvantageSection = ({ data }: AdvantageProps) => {
-  const title = data.partnerText?.title ?? "لماذا يجب على العملاء أن يختارونا؟";
+  const title =
+    data.partnerText?.content_structured_resolved.section_title.value ??
+    "لماذا يجب على العملاء أن يختارونا؟";
   const subtitle =
     data.partnerText?.content_structured_resolved?.section_subtitle?.value ??
     "ما الذي يجعلنا نتميز عن المنافسين.";
@@ -29,12 +31,15 @@ const AdvantageSection = ({ data }: AdvantageProps) => {
           </p>
           <div className="flex flex-col gap-3 mt-6">
             {data.features.map((feature, index) => (
-              <p
+              <div
                 key={index}
-                className={`py-2 px-4 rounded-[16px] transition delay-150 duration-300 ease-in-out font-heading dark:bg-[#0B1739] bg-[#E7F1FE] hover:dark:bg-[#053061] hover:bg-[#074182] hover:text-[#FDFDFD] hover:dark:font-[600] hover:dark:text-[#FDFDFD] text-[22px]`}
+                className={`py-2 px-4 rounded-[16px] transition delay-150 duration-300 ease-in-out dark:bg-[#0B1739] bg-[#E7F1FE] hover:dark:bg-[#053061] hover:bg-[#074182] hover:text-[#FDFDFD] hover:dark:font-[600] hover:dark:text-[#FDFDFD] `}
               >
-                {feature.title}
-              </p>
+                <h2 className="text-2xl font-heading">
+                  {index + 1 + "."} {feature.title}
+                </h2>
+                <p className="text-md">{feature.text}</p>
+              </div>
             ))}
           </div>
         </div>
@@ -43,8 +48,8 @@ const AdvantageSection = ({ data }: AdvantageProps) => {
           <Image
             src={mainImage}
             alt="صورة توضيحية للمميزات"
-            width={600}
-            height={600}
+            width={700}
+            height={700}
           />
         </div>
       </div>

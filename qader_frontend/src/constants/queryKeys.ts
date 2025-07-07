@@ -79,6 +79,11 @@ export const queryKeys = {
           [...queryKeys.admin.content.faqs.all(), "categories"] as const,
         items: () => [...queryKeys.admin.content.faqs.all(), "items"] as const,
       },
+      homepage: { // NEW SECTION
+        all: () => [...queryKeys.admin.content.all(), "homepage"] as const,
+        features: () => [...queryKeys.admin.content.homepage.all(), "features"] as const,
+        stats: () => [...queryKeys.admin.content.homepage.all(), "stats"] as const,
+      },
       // Other content types can be added here following the same pattern
     },
   },

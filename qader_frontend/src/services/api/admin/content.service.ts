@@ -6,6 +6,8 @@ import type {
   ContentImage,
   UploadImagePayload,
   PageListItem,
+  HomepageFeatureCard,
+  HomepageStatistic,
 } from "@/types/api/admin/content.types";
 import { PaginatedResponse } from "@/types/api";
 
@@ -58,3 +60,34 @@ export const uploadPageImage = async ({
 };
 
 // Other service functions (deleteImage, getFaqs, etc.) would go here
+
+// --- Homepage Feature Cards ---
+
+export const getHomepageFeatures = async (): Promise<PaginatedResponse<HomepageFeatureCard>> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_FEATURES);
+};
+
+export const createHomepageFeature = async (payload: Omit<HomepageFeatureCard, 'id'>): Promise<HomepageFeatureCard> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_FEATURES, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateHomepageFeature = async ({ id, payload }: { id: number; payload: Partial<Omit<HomepageFeatureCard, 'id'>> }): Promise<HomepageFeatureCard> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_FEATURE_DETAIL(id), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const deleteHomepageFeature = async (id: number): Promise<void> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_FEATURE_DETAIL(id), {
+    method: "DELETE",
+  });
+};
+
+// Placeholder for Homepage Statistics services - to be implemented next
+export const getHomepageStats = async (): Promise<PaginatedResponse<HomepageStatistic>> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_STATS);
+};

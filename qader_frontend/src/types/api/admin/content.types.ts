@@ -56,3 +56,22 @@ export interface UploadImagePayload {
 }
 
 // ... other types for FAQ, Homepage, etc. can be added here.
+
+export interface HomepageFeatureCard {
+  id: number;
+  title: string;
+  text: string;
+  svg_image: string | null;
+  icon_class: string | null;
+  order: number;
+  is_active: boolean;
+}
+
+export interface HomepageStatistic {
+  id: number;
+  label: string;
+  value: string;
+  icon_class: string | null;
+  order: number;
+  is_active: boolean;
+}
