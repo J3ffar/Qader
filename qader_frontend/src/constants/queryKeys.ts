@@ -41,7 +41,6 @@ export const queryKeys = {
         [...queryKeys.admin.userDetails.all(), userId] as const,
     },
     statistics: {
-      // NEW SECTION
       all: () => [...queryKeys.admin.all, "statistics"] as const,
       overviews: () =>
         [...queryKeys.admin.statistics.all(), "overviews"] as const,
@@ -79,10 +78,17 @@ export const queryKeys = {
           [...queryKeys.admin.content.faqs.all(), "categories"] as const,
         items: () => [...queryKeys.admin.content.faqs.all(), "items"] as const,
       },
-      homepage: { // NEW SECTION
+      homepage: {
         all: () => [...queryKeys.admin.content.all(), "homepage"] as const,
-        features: () => [...queryKeys.admin.content.homepage.all(), "features"] as const,
-        stats: () => [...queryKeys.admin.content.homepage.all(), "stats"] as const,
+        features: () =>
+          [...queryKeys.admin.content.homepage.all(), "features"] as const,
+        stats: () =>
+          [...queryKeys.admin.content.homepage.all(), "stats"] as const,
+      },
+      partners: {
+        all: () => [...queryKeys.admin.content.all(), "partners"] as const,
+        categories: () =>
+          [...queryKeys.admin.content.partners.all(), "categories"] as const,
       },
       // Other content types can be added here following the same pattern
     },

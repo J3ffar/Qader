@@ -75,3 +75,19 @@ export interface HomepageStatistic {
   order: number;
   is_active: boolean;
 }
+
+export interface PartnerCategory {
+  id: number;
+  name: string;
+  description: string;
+  icon_image: string | null; // URL to the image
+  google_form_link: string;
+  order: number;
+  is_active: boolean;
+}
+
+// Type for the form payload, including the optional file
+export interface PartnerCategoryPayload
+  extends Omit<PartnerCategory, "id" | "icon_image"> {
+  icon_image?: File | null;
+}

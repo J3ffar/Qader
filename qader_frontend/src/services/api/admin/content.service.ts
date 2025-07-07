@@ -8,6 +8,8 @@ import type {
   PageListItem,
   HomepageFeatureCard,
   HomepageStatistic,
+  PartnerCategory,
+  PartnerCategoryPayload,
 } from "@/types/api/admin/content.types";
 import { PaginatedResponse } from "@/types/api";
 
@@ -129,6 +131,62 @@ export const updateHomepageStat = async ({
 
 export const deleteHomepageStat = async (id: number): Promise<void> => {
   return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_STAT_DETAIL(id), {
+    method: "DELETE",
+  });
+};
+
+// --- Partner Categories ---
+
+const buildPartnerFormData = (
+  payload: Partial<PartnerCategoryPayload>
+): FormData => {
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (key === "icon_image" && value instanceof File) {
+      formData.append(key, value);
+    } else if (
+      value !== null &&
+      value !== undefined &&
+      typeof value !== "object"
+    ) {
+      formData.append(key, String(value));
+    }
+  });
+  return formData;
+};
+
+export const getPartnerCategories = async (): Promise<
+  PaginatedResponse<PartnerCategory>
+> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.PARTNER_CATEGORIES);
+};
+
+export const createPartnerCategory = async (
+  payload: PartnerCategoryPayload
+): Promise<PartnerCategory> => {
+  const formData = buildPartnerFormData(payload);
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.PARTNER_CATEGORIES, {
+    method: "POST",
+    body: formData,
+  });
+};
+
+export const updatePartnerCategory = async ({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: Partial<PartnerCategoryPayload>;
+}): Promise<PartnerCategory> => {
+  const formData = buildPartnerFormData(payload);
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.PARTNER_CATEGORY_DETAIL(id), {
+    method: "PATCH",
+    body: formData,
+  });
+};
+
+export const deletePartnerCategory = async (id: number): Promise<void> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.PARTNER_CATEGORY_DETAIL(id), {
     method: "DELETE",
   });
 };
