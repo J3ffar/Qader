@@ -10,8 +10,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -46,25 +47,22 @@ import {
   type Page,
   type StructuredContentValue,
 } from "@/types/api/admin/content.types";
-import { ImageUploader } from "./ImageUploader"; // Correctly imported now
+import { ImageUploader } from "./ImageUploader";
 import { RepeaterField } from "./RepeaterField";
 import { RichTextEditor } from "./RichTextEditor";
-import { useEffect } from "react";
 
 interface PageEditorProps {
   pageSlug: string;
   pageTitle: string;
 }
 
-// Dynamically build the Zod schema based on the page data
-const createPageSchema = (pageData?: Page) => {
+const createPageSchema = (t: (key: string) => string, pageData?: Page) => {
   let structuredSchemaFields: Record<
     string,
     z.ZodObject<{ value: z.ZodTypeAny }>
   > = {};
 
   if (pageData?.content_structured) {
-    // FIX 1: TIGHTEN THE SCHEMA. Replace z.any() with specific types.
     structuredSchemaFields = Object.entries(pageData.content_structured).reduce(
       (acc, [key, data]) => {
         let fieldSchema;
@@ -79,7 +77,7 @@ const createPageSchema = (pageData?: Page) => {
             fieldSchema = z.string().nullable().optional();
             break;
           case "repeater":
-            fieldSchema = z.array(z.any()).nullable().optional(); // Repeater can stay as z.any() for now
+            fieldSchema = z.array(z.any()).nullable().optional();
             break;
           default:
             fieldSchema = z.string().nullable().optional();
@@ -94,7 +92,7 @@ const createPageSchema = (pageData?: Page) => {
   const structuredSchema = z.object(structuredSchemaFields);
 
   return z.object({
-    title: z.string().min(3, "Title must be at least 3 characters."),
+    title: z.string().min(3, t("titleMinLengthError")),
     is_published: z.boolean(),
     content: z.string().optional().nullable(),
     content_structured: structuredSchema.nullable(),
@@ -103,6 +101,7 @@ const createPageSchema = (pageData?: Page) => {
 
 export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
   const queryClient = useQueryClient();
+  const t = useTranslations("Admin.Content");
 
   const {
     data: page,
@@ -114,7 +113,7 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
     enabled: !!pageSlug,
   });
 
-  const PageSchema = createPageSchema(page);
+  const PageSchema = createPageSchema(t, page);
   type PageFormValues = z.infer<typeof PageSchema>;
 
   const form = useForm<PageFormValues>({
@@ -129,7 +128,6 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
 
   useEffect(() => {
     if (page) {
-      // Create the object to reset the form with
       const resetValues = {
         title: page.title ?? "",
         is_published: page.is_published ?? false,
@@ -144,18 +142,15 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
             )
           : null,
       };
-
-      // The reset method updates all field values and re-renders the form
       form.reset(resetValues);
     }
   }, [page, form.reset]);
 
-  // ... (updateMutation logic is the same)
   const updateMutation = useMutation({
     mutationFn: (payload: any) => updatePage({ slug: pageSlug, payload }),
     onSuccess: (data) => {
       const params = { ordering: "id" };
-      toast.success("Page updated successfully!");
+      toast.success(t("pageUpdateSuccess"));
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.content.pages.detail(pageSlug),
       });
@@ -165,7 +160,7 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
       form.reset(form.getValues());
     },
     onError: (error) => {
-      toast.error("Failed to update page.", { description: error.message });
+      toast.error(t("pageUpdateError"), { description: error.message });
     },
   });
 
@@ -177,7 +172,6 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
         originalStructuredContent
       ).reduce((acc, key) => {
         const originalField = originalStructuredContent[key];
-        // The type of data.content_structured is now properly inferred thanks to the schema fix
         const updatedValue = (data.content_structured as any)[key]?.value;
 
         acc[key] = {
@@ -185,7 +179,6 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
           type: originalField.type,
           value: updatedValue,
         };
-        // FIX 2 (continued): EXPLICITLY TYPE THE ACCUMULATOR
         return acc;
       }, {} as Record<string, { admin_title: string; type: string; value: any }>);
     }
@@ -202,7 +195,6 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
   }
 
   const renderFormField = (key: string, fieldData: StructuredContentValue) => {
-    // FIX 3: USE TYPE ASSERTION FOR THE DYNAMIC `name` PROP
     const fieldName = `content_structured.${key}.value` as any;
 
     switch (fieldData.type) {
@@ -217,7 +209,9 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
                 <FormLabel>{fieldData.admin_title}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder={`Enter ${fieldData.admin_title.toLowerCase()}`}
+                    placeholder={t("enterPlaceholder", {
+                      field: fieldData.admin_title.toLowerCase(),
+                    })}
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -239,7 +233,9 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
                 <FormControl>
                   <Textarea
                     rows={5}
-                    placeholder={`Enter ${fieldData.admin_title.toLowerCase()}`}
+                    placeholder={t("enterPlaceholder", {
+                      field: fieldData.admin_title.toLowerCase(),
+                    })}
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -272,7 +268,6 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
         );
       case "repeater":
         return (
-          // Use our new dedicated component for repeaters
           <RepeaterField
             form={form}
             name={fieldName}
@@ -283,7 +278,7 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
       default:
         return (
           <div className="text-sm text-destructive">
-            Unsupported field type: {fieldData.type}
+            {t("unsupportedField", { type: fieldData.type })}
           </div>
         );
     }
@@ -296,7 +291,7 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
   if (isError) {
     return (
       <div className="text-center py-10 text-destructive">
-        Error loading page data. Please try again.
+        {t("loadingError")}
       </div>
     );
   }
@@ -307,13 +302,13 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink href={PATHS.ADMIN.DASHBOARD}>
-              Dashboard
+              {t("breadcrumbDashboard")}
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink href={PATHS.ADMIN.CONTENT_PAGES_LIST}>
-              Content
+              {t("breadcrumbContent")}
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -328,7 +323,7 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
             <div className="lg:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Page Details</CardTitle>
+                  <CardTitle>{t("pageDetails")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -336,7 +331,7 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Page Title</FormLabel>
+                        <FormLabel>{t("pageTitleLabel")}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -350,7 +345,7 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
               {page?.content_structured && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Structured Content</CardTitle>
+                    <CardTitle>{t("structuredContent")}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {Object.entries(page.content_structured).map(
@@ -365,7 +360,7 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
               {page?.content !== null && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Simple Content (Legacy)</CardTitle>
+                    <CardTitle>{t("legacyContent")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <FormField
@@ -373,10 +368,8 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
                       name="content"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>HTML Content</FormLabel>
+                          <FormLabel>{t("htmlContentLabel")}</FormLabel>
                           <FormControl>
-                            {/* *** THE FIX IS HERE *** */}
-                            {/* Replace Textarea with our new RichTextEditor */}
                             <RichTextEditor
                               value={field.value ?? ""}
                               onChange={field.onChange}
@@ -394,7 +387,7 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
             <div className="lg:col-span-1 space-y-6 sticky top-24">
               <Card>
                 <CardHeader>
-                  <CardTitle>Publishing</CardTitle>
+                  <CardTitle>{t("publishing")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <FormField
@@ -403,7 +396,7 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel>Publish Page</FormLabel>
+                          <FormLabel>{t("publishPageLabel")}</FormLabel>
                         </div>
                         <FormControl>
                           <Switch
@@ -423,9 +416,9 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
                     }
                   >
                     {updateMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="ltr:mr-2 rtl:ml-2 h-4 w-4 animate-spin" />
                     )}
-                    {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                    {updateMutation.isPending ? t("saving") : t("saveChanges")}
                   </Button>
                 </CardFooter>
               </Card>

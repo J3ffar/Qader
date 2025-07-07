@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { MoreHorizontal, PlusCircle, Image as ImageIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { queryKeys } from "@/constants/queryKeys";
 import {
@@ -69,22 +69,27 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const MAX_DESCRIPTION_LENGTH = 70;
 
-const categorySchema = z.object({
-  name: z.string().min(3, "Name is required."),
-  description: z.string().min(10, "Description is required."),
-  google_form_link: z.string().url("Must be a valid URL."),
-  order: z.coerce.number().int().min(0),
-  is_active: z.boolean(),
-  // Note: The file itself isn't in the schema, we handle it separately.
-});
-type CategoryFormValues = z.infer<typeof categorySchema>;
+// Zod schema is now a function to accept the translation function 't'
+const getCategorySchema = (t: (key: string) => string) =>
+  z.object({
+    name: z.string().min(3, t("form.nameRequired")),
+    description: z.string().min(10, t("form.descriptionRequired")),
+    google_form_link: z.string().url(t("form.linkInvalid")),
+    order: z.coerce.number().int().min(0),
+    is_active: z.boolean(),
+  });
+
+type CategoryFormValues = z.infer<ReturnType<typeof getCategorySchema>>;
 
 export function PartnerCategoriesClient() {
+  const t = useTranslations("Admin.Content.partners");
   const queryClient = useQueryClient();
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] =
     useState<PartnerCategory | null>(null);
   const iconFileRef = useRef<HTMLInputElement>(null);
+
+  const categorySchema = getCategorySchema(t);
 
   const { data: response, isLoading } = useQuery({
     queryKey: queryKeys.admin.content.partners.categories(),
@@ -106,32 +111,32 @@ export function PartnerCategoriesClient() {
   const createMutation = useMutation({
     mutationFn: createPartnerCategory,
     onSuccess: () => {
-      toast.success("Partner category created!");
+      toast.success(t("toast.createSuccess"));
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.content.partners.categories(),
       });
       setDialogOpen(false);
     },
     onError: (err) =>
-      toast.error("Failed to create category.", { description: err.message }),
+      toast.error(t("toast.createError"), { description: err.message }),
   });
 
   const updateMutation = useMutation({
     mutationFn: updatePartnerCategory,
     onSuccess: () => {
-      toast.success("Partner category updated!");
+      toast.success(t("toast.updateSuccess"));
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.content.partners.categories(),
       });
       setDialogOpen(false);
     },
     onError: (err) =>
-      toast.error("Failed to update category.", { description: err.message }),
+      toast.error(t("toast.updateError"), { description: err.message }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: deletePartnerCategory,
-    onSuccess: () => toast.success("Partner category deleted."),
+    onSuccess: () => toast.success(t("toast.deleteSuccess")),
     onMutate: async (idToDelete) => {
       await queryClient.cancelQueries({
         queryKey: queryKeys.admin.content.partners.categories(),
@@ -155,7 +160,7 @@ export function PartnerCategoriesClient() {
         queryKeys.admin.content.partners.categories(),
         context?.previousData
       );
-      toast.error("Failed to delete category.", { description: err.message });
+      toast.error(t("toast.deleteError"), { description: err.message });
     },
     onSettled: () => {
       queryClient.invalidateQueries({
@@ -200,14 +205,12 @@ export function PartnerCategoriesClient() {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>Partner Categories</CardTitle>
-              <CardDescription>
-                Manage partnership categories and application links.
-              </CardDescription>
+              <CardTitle>{t("cardTitle")}</CardTitle>
+              <CardDescription>{t("cardDescription")}</CardDescription>
             </div>
             <Button onClick={() => handleOpenDialog()}>
-              <PlusCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> Add New
-              Category
+              <PlusCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" />{" "}
+              {t("addNewCategory")}
             </Button>
           </div>
         </CardHeader>
@@ -216,14 +219,14 @@ export function PartnerCategoriesClient() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Icon</TableHead>
-                  <TableHead>Name</TableHead>
+                  <TableHead>{t("table.icon")}</TableHead>
+                  <TableHead>{t("table.name")}</TableHead>
                   <TableHead className="hidden md:table-cell">
-                    Description
+                    {t("table.description")}
                   </TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("table.status")}</TableHead>
                   <TableHead>
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t("table.actions")}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -276,7 +279,9 @@ export function PartnerCategoriesClient() {
                       <Badge
                         variant={category.is_active ? "default" : "secondary"}
                       >
-                        {category.is_active ? "Active" : "Inactive"}
+                        {category.is_active
+                          ? t("statusLabels.active")
+                          : t("statusLabels.inactive")}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -287,11 +292,13 @@ export function PartnerCategoriesClient() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuLabel>
+                            {t("actionsMenu.label")}
+                          </DropdownMenuLabel>
                           <DropdownMenuItem
                             onClick={() => handleOpenDialog(category)}
                           >
-                            Edit
+                            {t("actionsMenu.edit")}
                           </DropdownMenuItem>
                           <ConfirmationDialog
                             triggerButton={
@@ -299,11 +306,13 @@ export function PartnerCategoriesClient() {
                                 className="text-destructive"
                                 onSelect={(e) => e.preventDefault()}
                               >
-                                Delete
+                                {t("actionsMenu.delete")}
                               </DropdownMenuItem>
                             }
-                            title="Delete Partner Category"
-                            description={`Are you sure you want to delete the category "${category.name}"?`}
+                            title={t("deleteDialog.title")}
+                            description={t("deleteDialog.description", {
+                              name: category.name,
+                            })}
                             onConfirm={() => deleteMutation.mutate(category.id)}
                             isConfirming={
                               deleteMutation.isPending &&
@@ -325,7 +334,9 @@ export function PartnerCategoriesClient() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {selectedCategory ? "Edit Category" : "New Category"}
+              {selectedCategory
+                ? t("formDialog.editTitle")
+                : t("formDialog.newTitle")}
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
@@ -338,7 +349,7 @@ export function PartnerCategoriesClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>{t("form.nameLabel")}</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -351,7 +362,7 @@ export function PartnerCategoriesClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>{t("form.descriptionLabel")}</FormLabel>
                     <FormControl>
                       <Textarea {...field} />
                     </FormControl>
@@ -360,7 +371,7 @@ export function PartnerCategoriesClient() {
                 )}
               />
               <FormItem>
-                <FormLabel>Icon Image (Optional)</FormLabel>
+                <FormLabel>{t("form.iconLabel")}</FormLabel>
                 <FormControl>
                   <Input
                     type="file"
@@ -375,7 +386,7 @@ export function PartnerCategoriesClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Google Form Link</FormLabel>
+                    <FormLabel>{t("form.linkLabel")}</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -388,7 +399,7 @@ export function PartnerCategoriesClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Display Order</FormLabel>
+                    <FormLabel>{t("form.orderLabel")}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -401,7 +412,7 @@ export function PartnerCategoriesClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                    <FormLabel>Active</FormLabel>
+                    <FormLabel>{t("form.activeLabel")}</FormLabel>
                     <FormControl>
                       <Switch
                         checked={field.value}
@@ -418,7 +429,7 @@ export function PartnerCategoriesClient() {
                     createMutation.isPending || updateMutation.isPending
                   }
                 >
-                  Save
+                  {t("form.saveButton")}
                 </Button>
               </DialogFooter>
             </form>

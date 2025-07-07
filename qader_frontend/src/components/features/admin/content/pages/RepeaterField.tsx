@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useFieldArray, UseFormReturn } from "react-hook-form"; // Import UseFormReturn
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,7 @@ export function RepeaterField({
   label,
   initialData,
 }: RepeaterFieldProps) {
+  const t = useTranslations("Admin.Content.repeater");
   const { control, getValues } = form; // Destructure control and getValues from the form object
 
   const { fields, append, remove } = useFieldArray({
@@ -72,7 +74,7 @@ export function RepeaterField({
           onClick={handleAddItem}
         >
           <PlusCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-          Add Item
+          {t("addItem")}
         </Button>
       </CardHeader>
       <CardContent>
@@ -124,7 +126,7 @@ export function RepeaterField({
           ))}
           {fields.length === 0 && (
             <p className="text-center text-sm text-muted-foreground py-4">
-              No items yet. Click "Add Item" to begin.
+              {t("noItems")}
             </p>
           )}
         </div>

@@ -1,11 +1,9 @@
-"use client"; // This page needs to manage state, so it must be a client component.
+"use client";
 
 import { useState } from "react";
-import {
-  HydrationBoundary,
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -27,6 +25,9 @@ export default function AdminFaqsPage() {
     null
   );
 
+  const t = useTranslations("Admin.Content");
+  const tFaqs = useTranslations("Admin.Content.faqs");
+
   const handleManageItems = (category: FaqCategory) => {
     setSelectedCategory(category);
     setActiveTab("items");
@@ -39,60 +40,51 @@ export default function AdminFaqsPage() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <HydrationBoundary>
-        <div className="space-y-4">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href={PATHS.ADMIN.DASHBOARD}>
-                  Dashboard
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink href={PATHS.ADMIN.CONTENT_PAGES_LIST}>
-                  Content
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>FAQ Management</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <h1 className="text-2xl font-bold">Manage FAQs</h1>
-          <p className="text-muted-foreground">
-            Organize questions and answers into categories for the public FAQ
-            page.
-          </p>
+      <div className="space-y-4">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href={PATHS.ADMIN.DASHBOARD}>
+                {t("breadcrumbDashboard")}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink href={PATHS.ADMIN.CONTENT_PAGES_LIST}>
+                {t("breadcrumbContent")}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{tFaqs("breadcrumb")}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <h1 className="text-2xl font-bold">{tFaqs("pageTitle")}</h1>
+        <p className="text-muted-foreground">{tFaqs("pageDescription")}</p>
 
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList>
-              <TabsTrigger value="categories" onClick={handleBackToCategories}>
-                Categories
-              </TabsTrigger>
-              <TabsTrigger value="items" disabled={!selectedCategory}>
-                Items in "{selectedCategory?.name ?? "..."}"
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="categories">
-              <FaqCategoriesClient onManageItems={handleManageItems} />
-            </TabsContent>
-            <TabsContent value="items">
-              {selectedCategory && (
-                <FaqItemsClient
-                  category={selectedCategory}
-                  onBack={handleBackToCategories}
-                />
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
-      </HydrationBoundary>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList>
+            <TabsTrigger value="categories" onClick={handleBackToCategories}>
+              {tFaqs("tabs.categories")}
+            </TabsTrigger>
+            <TabsTrigger value="items" disabled={!selectedCategory}>
+              {tFaqs("tabs.items", { name: selectedCategory?.name ?? "..." })}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="categories">
+            <FaqCategoriesClient onManageItems={handleManageItems} />
+          </TabsContent>
+          <TabsContent value="items">
+            {selectedCategory && (
+              <FaqItemsClient
+                category={selectedCategory}
+                onBack={handleBackToCategories}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </QueryClientProvider>
   );
 }

@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { MoreHorizontal, PlusCircle, ListChecks } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { queryKeys } from "@/constants/queryKeys";
 import {
@@ -16,13 +17,7 @@ import {
   updateFaqCategory,
 } from "@/services/api/admin/content.service";
 import type { FaqCategory } from "@/types/api/admin/content.types";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -57,11 +52,12 @@ import {
 import { Input } from "@/components/ui/input";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 
-const categorySchema = z.object({
-  name: z.string().min(3, "Name is required."),
-  order: z.coerce.number().int().min(0),
-});
-type CategoryFormValues = z.infer<typeof categorySchema>;
+const getCategorySchema = (t: (key: string) => string) =>
+  z.object({
+    name: z.string().min(3, t("form.nameRequired")),
+    order: z.coerce.number().int().min(0),
+  });
+type CategoryFormValues = z.infer<ReturnType<typeof getCategorySchema>>;
 
 interface FaqCategoriesClientProps {
   onManageItems: (category: FaqCategory) => void;
@@ -70,11 +66,15 @@ interface FaqCategoriesClientProps {
 export function FaqCategoriesClient({
   onManageItems,
 }: FaqCategoriesClientProps) {
+  const t = useTranslations("Admin.Content.faqs.categories");
+  const tShared = useTranslations("Admin.Content.faqs.shared");
   const queryClient = useQueryClient();
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<FaqCategory | null>(
     null
   );
+
+  const categorySchema = getCategorySchema(t);
 
   const { data: response, isLoading } = useQuery({
     queryKey: queryKeys.admin.content.faqs.categoryList(),
@@ -90,32 +90,30 @@ export function FaqCategoriesClient({
   const createMutation = useMutation({
     mutationFn: createFaqCategory,
     onSuccess: () => {
-      toast.success("Category created successfully!");
+      toast.success(t("toast.createSuccess"));
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.content.faqs.categoryList(),
       });
       setDialogOpen(false);
     },
-    onError: (err) =>
-      toast.error("Failed to create category.", { description: err.message }),
+    onError: () => toast.error(t("toast.createError")),
   });
 
   const updateMutation = useMutation({
     mutationFn: updateFaqCategory,
     onSuccess: () => {
-      toast.success("Category updated successfully!");
+      toast.success(t("toast.updateSuccess"));
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.content.faqs.categoryList(),
       });
       setDialogOpen(false);
     },
-    onError: (err) =>
-      toast.error("Failed to update category.", { description: err.message }),
+    onError: () => toast.error(t("toast.updateError")),
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteFaqCategory,
-    onSuccess: () => toast.success("Category deleted."),
+    onSuccess: () => toast.success(t("toast.deleteSuccess")),
     onMutate: async (idToDelete) => {
       await queryClient.cancelQueries({
         queryKey: queryKeys.admin.content.faqs.categoryList(),
@@ -132,12 +130,12 @@ export function FaqCategoriesClient({
       );
       return { previousData };
     },
-    onError: (err, _vars, context) => {
+    onError: (_err, _vars, context) => {
       queryClient.setQueryData(
         queryKeys.admin.content.faqs.categoryList(),
         context?.previousData
       );
-      toast.error("Failed to delete category.", { description: err.message });
+      toast.error(t("toast.deleteError"));
     },
     onSettled: () =>
       queryClient.invalidateQueries({
@@ -164,10 +162,9 @@ export function FaqCategoriesClient({
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
-            <CardTitle>FAQ Categories</CardTitle>
+            <CardTitle>{t("cardTitle")}</CardTitle>
             <Button onClick={() => handleOpenDialog()}>
-              <PlusCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> Add New
-              Category
+              <PlusCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> {t("addNew")}
             </Button>
           </div>
         </CardHeader>
@@ -176,9 +173,11 @@ export function FaqCategoriesClient({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("table.order")}</TableHead>
+                  <TableHead>{t("table.name")}</TableHead>
+                  <TableHead className="text-right">
+                    {t("table.actions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -207,10 +206,10 @@ export function FaqCategoriesClient({
                         variant="outline"
                         size="sm"
                         onClick={() => onManageItems(category)}
-                        className="mr-2"
+                        className="ltr:mr-2 rtl:ml-2"
                       >
                         <ListChecks className="h-4 w-4 ltr:mr-2 rtl:ml-2" />{" "}
-                        Manage Items
+                        {t("manageItemsButton")}
                       </Button>
                       <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
@@ -222,7 +221,7 @@ export function FaqCategoriesClient({
                           <DropdownMenuItem
                             onClick={() => handleOpenDialog(category)}
                           >
-                            Edit
+                            {tShared("actionsMenu.edit")}
                           </DropdownMenuItem>
                           <ConfirmationDialog
                             triggerButton={
@@ -230,11 +229,13 @@ export function FaqCategoriesClient({
                                 className="text-destructive"
                                 onSelect={(e) => e.preventDefault()}
                               >
-                                Delete
+                                {tShared("actionsMenu.delete")}
                               </DropdownMenuItem>
                             }
-                            title="Delete FAQ Category"
-                            description={`Are you sure you want to delete the category "${category.name}"? This will also delete all questions inside it.`}
+                            title={t("deleteDialog.title")}
+                            description={t("deleteDialog.description", {
+                              name: category.name,
+                            })}
                             onConfirm={() => deleteMutation.mutate(category.id)}
                             isConfirming={
                               deleteMutation.isPending &&
@@ -255,7 +256,9 @@ export function FaqCategoriesClient({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {selectedCategory ? "Edit Category" : "New Category"}
+              {selectedCategory
+                ? t("formDialog.editTitle")
+                : t("formDialog.newTitle")}
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
@@ -268,7 +271,7 @@ export function FaqCategoriesClient({
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>{t("form.nameLabel")}</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -281,7 +284,7 @@ export function FaqCategoriesClient({
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Display Order</FormLabel>
+                    <FormLabel>{tShared("form.orderLabel")}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -296,7 +299,7 @@ export function FaqCategoriesClient({
                     createMutation.isPending || updateMutation.isPending
                   }
                 >
-                  Save
+                  {tShared("form.saveButton")}
                 </Button>
               </DialogFooter>
             </form>

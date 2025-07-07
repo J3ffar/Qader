@@ -52,7 +52,7 @@ export function PagesClient() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t("table.title")}</TableHead>
-                <TableHead>Images</TableHead> {/* NEW COLUMN */}
+                <TableHead>{t("table.images")}</TableHead> {/* NEW COLUMN */}
                 <TableHead>{t("table.slug")}</TableHead>
                 <TableHead>{t("table.status")}</TableHead>
                 <TableHead className="text-right">
@@ -125,7 +125,7 @@ export function PagesClient() {
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">
-                          No images
+                          {t("noImages")}
                         </span>
                       )}
                     </TableCell>

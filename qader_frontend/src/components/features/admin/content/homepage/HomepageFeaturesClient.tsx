@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { queryKeys } from "@/constants/queryKeys";
 import {
@@ -16,7 +17,6 @@ import {
   updateHomepageFeature,
 } from "@/services/api/admin/content.service";
 import type { HomepageFeatureCard } from "@/types/api/admin/content.types";
-
 import {
   Card,
   CardContent,
@@ -48,7 +48,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -63,23 +62,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 
-// Zod Schema for validation
-const featureSchema = z.object({
-  title: z.string().min(3, "Title is required."),
-  text: z.string().min(10, "Text description is required."),
-  icon_class: z.string().optional().nullable(),
-  order: z.coerce.number().int().min(0),
-  is_active: z.boolean(),
-});
-type FeatureFormValues = z.infer<typeof featureSchema>;
+const getFeatureSchema = (t: (key: string) => string) =>
+  z.object({
+    title: z.string().min(3, t("form.titleRequired")),
+    text: z.string().min(10, t("form.textRequired")),
+    icon_class: z.string().optional().nullable(),
+    order: z.coerce.number().int().min(0),
+    is_active: z.boolean(),
+  });
+type FeatureFormValues = z.infer<ReturnType<typeof getFeatureSchema>>;
 
 export function HomepageFeaturesClient() {
+  const t = useTranslations("Admin.Content.homepage.features");
   const queryClient = useQueryClient();
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] =
     useState<HomepageFeatureCard | null>(null);
 
-  const { data: response, isLoading } = useQuery({
+  const featureSchema = getFeatureSchema(t);
+
+  const {
+    data: response,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: queryKeys.admin.content.homepage.features(),
     queryFn: getHomepageFeatures,
   });
@@ -96,39 +102,42 @@ export function HomepageFeaturesClient() {
     },
   });
 
-  // --- MUTATIONS ---
   const createMutation = useMutation({
     mutationFn: createHomepageFeature,
     onSuccess: () => {
-      toast.success("Feature card created successfully!");
+      toast.success(t("toast.createSuccess"));
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.content.homepage.features(),
       });
       setDialogOpen(false);
     },
-    onError: (err) =>
-      toast.error("Failed to create feature.", { description: err.message }),
+    onError: (err) => {
+      toast.error(t("toast.createError"), { description: err.message });
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: updateHomepageFeature,
     onSuccess: () => {
-      toast.success("Feature card updated successfully!");
+      toast.success(t("toast.updateSuccess"));
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.content.homepage.features(),
       });
       setDialogOpen(false);
     },
-    onError: (err) =>
-      toast.error("Failed to update feature.", { description: err.message }),
+    onError: (err) => {
+      toast.error(t("toast.updateError", { description: err.message }));
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteHomepageFeature,
     onSuccess: () => {
-      toast.success("Feature card deleted.");
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.content.homepage.features(),
+      });
+      toast.success(t("toast.deleteSuccess"));
     },
-    // Optimistic Update
     onMutate: async (idToDelete) => {
       await queryClient.cancelQueries({
         queryKey: queryKeys.admin.content.homepage.features(),
@@ -161,11 +170,16 @@ export function HomepageFeaturesClient() {
     },
   });
 
-  // --- HANDLERS ---
   const handleOpenDialog = (feature: HomepageFeatureCard | null = null) => {
     setSelectedFeature(feature);
     if (feature) {
-      form.reset(feature);
+      form.reset({
+        title: feature.title,
+        text: feature.text,
+        icon_class: feature.icon_class,
+        order: feature.order,
+        is_active: feature.is_active,
+      });
     } else {
       form.reset({
         title: "",
@@ -192,13 +206,11 @@ export function HomepageFeaturesClient() {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>Homepage Feature Cards</CardTitle>
-              <CardDescription>
-                Items appearing in the 'Why Choose Us' section.
-              </CardDescription>
+              <CardTitle>{t("cardTitle")}</CardTitle>
+              <CardDescription>{t("cardDescription")}</CardDescription>
             </div>
             <Button onClick={() => handleOpenDialog()}>
-              <PlusCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> Add New Card
+              <PlusCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> {t("addNew")}
             </Button>
           </div>
         </CardHeader>
@@ -207,27 +219,29 @@ export function HomepageFeaturesClient() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead className="hidden md:table-cell">Text</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("table.order")}</TableHead>
+                  <TableHead>{t("table.title")}</TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    {t("table.text")}
+                  </TableHead>
+                  <TableHead>{t("table.status")}</TableHead>
                   <TableHead>
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t("table.actions")}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading &&
+                {isLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <TableRow key={i}>
+                    <TableRow key={`skeleton-${i}`}>
                       <TableCell>
-                        <Skeleton className="h-5 w-8" />
+                        <Skeleton className="h-4 w-10" />
                       </TableCell>
                       <TableCell>
-                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-32" />
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        <Skeleton className="h-5 w-full" />
+                        <Skeleton className="h-4 w-full" />
                       </TableCell>
                       <TableCell>
                         <Skeleton className="h-6 w-16" />
@@ -236,73 +250,93 @@ export function HomepageFeaturesClient() {
                         <Skeleton className="h-8 w-8" />
                       </TableCell>
                     </TableRow>
-                  ))}
-                {features.map((feature) => (
-                  <TableRow key={feature.id}>
-                    <TableCell>{feature.order}</TableCell>
-                    <TableCell className="font-medium">
-                      {feature.title}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                      {feature.text.substring(0, 70)}...
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={feature.is_active ? "default" : "secondary"}
-                      >
-                        {feature.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            onClick={() => handleOpenDialog(feature)}
-                          >
-                            Edit
-                          </DropdownMenuItem>
-                          <ConfirmationDialog
-                            triggerButton={
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onSelect={(e) => e.preventDefault()} // Prevents DropdownMenu from closing
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            }
-                            title="Delete Feature Card"
-                            description={`Are you sure you want to delete the card "${feature.title}"? This action cannot be undone.`}
-                            onConfirm={() => deleteMutation.mutate(feature.id)}
-                            isConfirming={
-                              deleteMutation.isPending &&
-                              selectedFeature?.id === feature.id
-                            }
-                          />
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                  ))
+                ) : isError ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center text-destructive"
+                    >
+                      Failed to load features.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  features.map((feature) => (
+                    <TableRow key={feature.id}>
+                      <TableCell>{feature.order}</TableCell>
+                      <TableCell className="font-medium">
+                        {feature.title}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                        {feature.text.substring(0, 70)}...
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={feature.is_active ? "default" : "secondary"}
+                        >
+                          {feature.is_active
+                            ? t("statusLabels.active")
+                            : t("statusLabels.inactive")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">
+                                {t("actionsMenu.label")}
+                              </span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>
+                              {t("actionsMenu.label")}
+                            </DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={() => handleOpenDialog(feature)}
+                            >
+                              {t("actionsMenu.edit")}
+                            </DropdownMenuItem>
+                            <ConfirmationDialog
+                              triggerButton={
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onSelect={(e) => e.preventDefault()}
+                                >
+                                  {t("actionsMenu.delete")}
+                                </DropdownMenuItem>
+                              }
+                              title={t("deleteDialog.title")}
+                              description={t("deleteDialog.description", {
+                                title: feature.title,
+                              })}
+                              onConfirm={() =>
+                                deleteMutation.mutate(feature.id)
+                              }
+                              isConfirming={
+                                deleteMutation.isPending &&
+                                selectedFeature?.id === feature.id
+                              }
+                            />
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
-
-      {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
               {selectedFeature
-                ? "Edit Feature Card"
-                : "Create New Feature Card"}
+                ? t("formDialog.editTitle")
+                : t("formDialog.newTitle")}
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
@@ -315,7 +349,7 @@ export function HomepageFeaturesClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
+                    <FormLabel>{t("form.titleLabel")}</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -328,7 +362,7 @@ export function HomepageFeaturesClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Text</FormLabel>
+                    <FormLabel>{t("form.textLabel")}</FormLabel>
                     <FormControl>
                       <Textarea {...field} />
                     </FormControl>
@@ -341,7 +375,7 @@ export function HomepageFeaturesClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Icon Class (e.g., fas fa-book)</FormLabel>
+                    <FormLabel>{t("form.iconLabel")}</FormLabel>
                     <FormControl>
                       <Input {...field} value={field.value ?? ""} />
                     </FormControl>
@@ -354,7 +388,7 @@ export function HomepageFeaturesClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Display Order</FormLabel>
+                    <FormLabel>{t("form.orderLabel")}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -367,7 +401,7 @@ export function HomepageFeaturesClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <FormLabel>Active</FormLabel>
+                    <FormLabel>{t("form.activeLabel")}</FormLabel>
                     <FormControl>
                       <Switch
                         checked={field.value}
@@ -384,7 +418,7 @@ export function HomepageFeaturesClient() {
                     createMutation.isPending || updateMutation.isPending
                   }
                 >
-                  Save
+                  {t("form.saveButton")}
                 </Button>
               </DialogFooter>
             </form>

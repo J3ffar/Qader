@@ -9,67 +9,87 @@ import {
   ListOrdered,
   Heading3,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Toggle } from "@/components/ui/toggle";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Props = {
   editor: Editor | null;
 };
 
 export function EditorToolbar({ editor }: Props) {
+  const t = useTranslations("Admin.Content.toolbar");
+
   if (!editor) {
     return null;
   }
 
-  return (
-    <div className="border border-input bg-transparent rounded-t-md p-1 flex items-center gap-1 flex-wrap">
-      {/* Simplified to only include H3 */}
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("heading", { level: 3 })}
-        onPressedChange={() =>
-          editor.chain().focus().toggleHeading({ level: 3 }).run()
-        }
-      >
-        <Heading3 className="h-4 w-4" />
-      </Toggle>
+  const toolbarItems = [
+    {
+      name: "heading3",
+      icon: Heading3,
+      isActive: () => editor.isActive("heading", { level: 3 }),
+      action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
+    },
+    {
+      name: "bold",
+      icon: Bold,
+      isActive: () => editor.isActive("bold"),
+      action: () => editor.chain().focus().toggleBold().run(),
+    },
+    {
+      name: "italic",
+      icon: Italic,
+      isActive: () => editor.isActive("italic"),
+      action: () => editor.chain().focus().toggleItalic().run(),
+    },
+    {
+      name: "strike",
+      icon: Strikethrough,
+      isActive: () => editor.isActive("strike"),
+      action: () => editor.chain().focus().toggleStrike().run(),
+    },
+    {
+      name: "bulletList",
+      icon: List,
+      isActive: () => editor.isActive("bulletList"),
+      action: () => editor.chain().focus().toggleBulletList().run(),
+    },
+    {
+      name: "orderedList",
+      icon: ListOrdered,
+      isActive: () => editor.isActive("orderedList"),
+      action: () => editor.chain().focus().toggleOrderedList().run(),
+    },
+  ];
 
-      {/* Other controls remain */}
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("bold")}
-        onPressedChange={() => editor.chain().focus().toggleBold().run()}
-      >
-        <Bold className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("italic")}
-        onPressedChange={() => editor.chain().focus().toggleItalic().run()}
-      >
-        <Italic className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("strike")}
-        onPressedChange={() => editor.chain().focus().toggleStrike().run()}
-      >
-        <Strikethrough className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("bulletList")}
-        onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
-      >
-        <List className="h-4 w-4" />
-      </Toggle>
-      <Toggle
-        size="sm"
-        pressed={editor.isActive("orderedList")}
-        onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
-      >
-        <ListOrdered className="h-4 w-4" />
-      </Toggle>
-    </div>
+  return (
+    <TooltipProvider delayDuration={100}>
+      <div className="border border-input bg-transparent rounded-t-md p-1 flex items-center gap-1 flex-wrap">
+        {toolbarItems.map((item) => (
+          <Tooltip key={item.name}>
+            <TooltipTrigger asChild>
+              <Toggle
+                size="sm"
+                pressed={item.isActive()}
+                onPressedChange={item.action}
+                aria-label={t(item.name as any)}
+              >
+                <item.icon className="h-4 w-4" />
+              </Toggle>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t(item.name as any)}</p>
+            </TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 }

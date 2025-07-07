@@ -4,6 +4,7 @@ import { queryKeys } from "@/constants/queryKeys";
 import getQueryClient from "@/lib/getQueryClient";
 import { PageEditor } from "@/components/features/admin/content/pages/PageEditor";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 interface PageProps {
   params: Promise<{ local: string; slug: string }>;
@@ -12,6 +13,7 @@ interface PageProps {
 export default async function AdminEditPage({ params }: PageProps) {
   const { slug } = await params;
   const queryClient = getQueryClient();
+  const t = await getTranslations("Admin.Content");
 
   try {
     await queryClient.prefetchQuery({
@@ -19,7 +21,6 @@ export default async function AdminEditPage({ params }: PageProps) {
       queryFn: () => getPageBySlug(slug),
     });
   } catch (error) {
-    // If prefetching fails (e.g., 404), redirect to not-found page.
     notFound();
   }
 
@@ -29,7 +30,10 @@ export default async function AdminEditPage({ params }: PageProps) {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <PageEditor pageSlug={slug} pageTitle={page?.title ?? "Edit Page"} />
+      <PageEditor
+        pageSlug={slug}
+        pageTitle={page?.title ?? t("editPageTitle")}
+      />
     </HydrationBoundary>
   );
 }

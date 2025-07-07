@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { MoreHorizontal, PlusCircle, ArrowLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { queryKeys } from "@/constants/queryKeys";
 import {
@@ -60,13 +61,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 
-const itemSchema = z.object({
-  question: z.string().min(5, "Question is required."),
-  answer: z.string().min(10, "Answer is required."),
-  order: z.coerce.number().int().min(0),
-  is_active: z.boolean(),
-});
-type ItemFormValues = z.infer<typeof itemSchema>;
+const getItemSchema = (t: (key: string) => string) =>
+  z.object({
+    question: z.string().min(5, t("form.questionRequired")),
+    answer: z.string().min(10, t("form.answerRequired")),
+    order: z.coerce.number().int().min(0),
+    is_active: z.boolean(),
+  });
+type ItemFormValues = z.infer<ReturnType<typeof getItemSchema>>;
 
 interface FaqItemsClientProps {
   category: FaqCategory;
@@ -74,10 +76,13 @@ interface FaqItemsClientProps {
 }
 
 export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
+  const t = useTranslations("Admin.Content.faqs.items");
+  const tShared = useTranslations("Admin.Content.faqs.shared");
   const queryClient = useQueryClient();
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FaqItem | null>(null);
 
+  const itemSchema = getItemSchema(t);
   const queryKey = queryKeys.admin.content.faqs.itemList(category.id);
 
   const { data: response, isLoading } = useQuery({
@@ -95,28 +100,26 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
   const createMutation = useMutation({
     mutationFn: createFaqItem,
     onSuccess: () => {
-      toast.success("FAQ Item created!");
+      toast.success(t("toast.createSuccess"));
       queryClient.invalidateQueries({ queryKey });
       setDialogOpen(false);
     },
-    onError: (err) =>
-      toast.error("Failed to create item.", { description: err.message }),
+    onError: () => toast.error(t("toast.createError")),
   });
 
   const updateMutation = useMutation({
     mutationFn: updateFaqItem,
     onSuccess: () => {
-      toast.success("FAQ Item updated!");
+      toast.success(t("toast.updateSuccess"));
       queryClient.invalidateQueries({ queryKey });
       setDialogOpen(false);
     },
-    onError: (err) =>
-      toast.error("Failed to update item.", { description: err.message }),
+    onError: () => toast.error(t("toast.updateError")),
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteFaqItem,
-    onSuccess: () => toast.success("FAQ Item deleted."),
+    onSuccess: () => toast.success(t("toast.deleteSuccess")),
     onMutate: async (idToDelete) => {
       await queryClient.cancelQueries({ queryKey });
       const previousData = queryClient.getQueryData<any>(queryKey);
@@ -126,9 +129,9 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
       }));
       return { previousData };
     },
-    onError: (err, _vars, context) => {
+    onError: (_err, _vars, context) => {
       queryClient.setQueryData(queryKey, context?.previousData);
-      toast.error("Failed to delete item.", { description: err.message });
+      toast.error(t("toast.deleteError"));
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
@@ -162,16 +165,14 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
                 onClick={onBack}
                 className="mb-2 -ml-2"
               >
-                <ArrowLeft className="h-4 w-4 ltr:mr-2 rtl:ml-2" /> Back to
-                Categories
+                <ArrowLeft className="h-4 w-4 ltr:mr-2 rtl:ml-2" />{" "}
+                {t("backButton")}
               </Button>
-              <CardTitle>Items in "{category.name}"</CardTitle>
-              <CardDescription>
-                Manage the questions and answers for this category.
-              </CardDescription>
+              <CardTitle>{t("cardTitle", { name: category.name })}</CardTitle>
+              <CardDescription>{t("cardDescription")}</CardDescription>
             </div>
             <Button onClick={() => handleOpenDialog()}>
-              <PlusCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> Add New Item
+              <PlusCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> {t("addNew")}
             </Button>
           </div>
         </CardHeader>
@@ -180,10 +181,12 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Question</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("table.order")}</TableHead>
+                  <TableHead>{t("table.question")}</TableHead>
+                  <TableHead>{t("table.status")}</TableHead>
+                  <TableHead className="text-right">
+                    {t("table.actions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -212,7 +215,9 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
                     </TableCell>
                     <TableCell>
                       <Badge variant={item.is_active ? "default" : "secondary"}>
-                        {item.is_active ? "Active" : "Inactive"}
+                        {item.is_active
+                          ? tShared("statusLabels.active")
+                          : tShared("statusLabels.inactive")}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -226,7 +231,7 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
                           <DropdownMenuItem
                             onClick={() => handleOpenDialog(item)}
                           >
-                            Edit
+                            {tShared("actionsMenu.edit")}
                           </DropdownMenuItem>
                           <ConfirmationDialog
                             triggerButton={
@@ -234,11 +239,13 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
                                 className="text-destructive"
                                 onSelect={(e) => e.preventDefault()}
                               >
-                                Delete
+                                {tShared("actionsMenu.delete")}
                               </DropdownMenuItem>
                             }
-                            title="Delete FAQ Item"
-                            description={`Are you sure you want to delete the question "${item.question}"?`}
+                            title={t("deleteDialog.title")}
+                            description={t("deleteDialog.description", {
+                              question: item.question,
+                            })}
                             onConfirm={() => deleteMutation.mutate(item.id)}
                             isConfirming={
                               deleteMutation.isPending &&
@@ -260,7 +267,9 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {selectedItem ? "Edit FAQ Item" : "New FAQ Item"}
+              {selectedItem
+                ? t("formDialog.editTitle")
+                : t("formDialog.newTitle")}
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
@@ -273,7 +282,7 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Question</FormLabel>
+                    <FormLabel>{t("form.questionLabel")}</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -286,7 +295,7 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Answer</FormLabel>
+                    <FormLabel>{t("form.answerLabel")}</FormLabel>
                     <FormControl>
                       <Textarea rows={5} {...field} />
                     </FormControl>
@@ -299,7 +308,7 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Display Order</FormLabel>
+                    <FormLabel>{tShared("form.orderLabel")}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -312,7 +321,7 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                    <FormLabel>Active</FormLabel>
+                    <FormLabel>{t("form.activeLabel")}</FormLabel>
                     <FormControl>
                       <Switch
                         checked={field.value}
@@ -329,7 +338,7 @@ export function FaqItemsClient({ category, onBack }: FaqItemsClientProps) {
                     createMutation.isPending || updateMutation.isPending
                   }
                 >
-                  Save
+                  {tShared("form.saveButton")}
                 </Button>
               </DialogFooter>
             </form>

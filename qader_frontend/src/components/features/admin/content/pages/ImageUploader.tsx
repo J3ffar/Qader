@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ImagePlus, Library, Loader2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { uploadPageImage } from "@/services/api/admin/content.service";
 import { queryKeys } from "@/constants/queryKeys";
@@ -28,8 +29,8 @@ import { Page } from "@/types/api/content.types";
 interface ImageUploaderProps {
   pageSlug: string;
   allPageImages: ContentImage[];
-  value: string | null; // The current image_slug from the form
-  onChange: (value: string | null) => void; // RHF's onChange
+  value: string | null;
+  onChange: (value: string | null) => void;
 }
 
 export function ImageUploader({
@@ -41,6 +42,7 @@ export function ImageUploader({
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLibraryOpen, setLibraryOpen] = useState(false);
+  const t = useTranslations("Admin.Content.imageUploader");
 
   const currentImage = allPageImages.find((img) => img.slug === value);
 
@@ -48,12 +50,8 @@ export function ImageUploader({
     mutationFn: (payload: UploadImagePayload) =>
       uploadPageImage({ pageSlug, payload }),
     onSuccess: (newImage) => {
-      toast.success(`Image "${newImage.name}" uploaded successfully!`);
-      // Update the form with the new image slug
+      toast.success(t("uploadSuccess", { name: newImage.name }));
       onChange(newImage.slug);
-
-      // Manually update the query cache to include the new image in the library
-      // without needing to refetch the whole page.
       queryClient.setQueryData<any>(
         queryKeys.admin.content.pages.detail(pageSlug),
         (oldData: Page<any>) => {
@@ -66,7 +64,7 @@ export function ImageUploader({
       );
     },
     onError: (error) => {
-      toast.error("Upload failed.", { description: error.message });
+      toast.error(t("uploadFailed"), { description: error.message });
     },
   });
 
@@ -76,7 +74,7 @@ export function ImageUploader({
       uploadMutation.mutate({
         image: file,
         name: file.name.replace(/\.[^/.]+$/, ""), // Use filename without extension as name
-        alt_text: "Describe this image", // Admin should be able to edit this later
+        alt_text: t("altTextPlaceholder"), // Admin should be able to edit this later
       });
     }
   };
@@ -113,7 +111,7 @@ export function ImageUploader({
                   onClick={handleRemoveImage}
                 >
                   <X className="h-4 w-4" />
-                  <span className="sr-only">Remove image</span>
+                  <span className="sr-only">{t("removeImage")}</span>
                 </Button>
               </>
             ) : (
@@ -134,19 +132,20 @@ export function ImageUploader({
               disabled={uploadMutation.isPending}
             >
               <ImagePlus className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-              Upload New
+              {t("uploadNew")}
             </Button>
-
             <Dialog open={isLibraryOpen} onOpenChange={setLibraryOpen}>
               <DialogTrigger asChild>
                 <Button type="button" variant="outline">
                   <Library className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-                  Choose from Library
+                  {t("chooseFromLibrary")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-4xl">
                 <DialogHeader>
-                  <DialogTitle>Image Library for '{pageSlug}'</DialogTitle>
+                  <DialogTitle>
+                    {t("libraryTitle", { slug: pageSlug })}
+                  </DialogTitle>
                 </DialogHeader>
                 <ScrollArea className="h-[60vh]">
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4">

@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { queryKeys } from "@/constants/queryKeys";
 import {
@@ -16,7 +17,6 @@ import {
   updateHomepageStat,
 } from "@/services/api/admin/content.service";
 import type { HomepageStatistic } from "@/types/api/admin/content.types";
-
 import {
   Card,
   CardContent,
@@ -61,24 +61,32 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 
-// Zod Schema for validation
-const statSchema = z.object({
-  label: z.string().min(3, "Label is required."),
-  value: z.string().min(1, "Value is required."),
-  icon_class: z.string().optional().nullable(),
-  order: z.coerce.number().int().min(0),
-  is_active: z.boolean(),
-});
-type StatFormValues = z.infer<typeof statSchema>;
+const getStatSchema = (t: (key: string) => string) =>
+  z.object({
+    label: z.string().min(3, t("form.labelRequired")),
+    value: z.string().min(1, t("form.valueRequired")),
+    icon_class: z.string().optional().nullable(),
+    order: z.coerce.number().int().min(0),
+    is_active: z.boolean(),
+  });
+type StatFormValues = z.infer<ReturnType<typeof getStatSchema>>;
 
 export function HomepageStatsClient() {
+  const t = useTranslations("Admin.Content.homepage.stats");
+  const tFeatures = useTranslations("Admin.Content.homepage.features"); // For shared keys like statusLabels
   const queryClient = useQueryClient();
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [selectedStat, setSelectedStat] = useState<HomepageStatistic | null>(
     null
   );
 
-  const { data: response, isLoading } = useQuery({
+  const statSchema = getStatSchema(t);
+
+  const {
+    data: response,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: queryKeys.admin.content.homepage.stats(),
     queryFn: getHomepageStats,
   });
@@ -95,36 +103,42 @@ export function HomepageStatsClient() {
     },
   });
 
-  // --- MUTATIONS ---
   const createMutation = useMutation({
     mutationFn: createHomepageStat,
     onSuccess: () => {
-      toast.success("Statistic created successfully!");
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.content.homepage.stats(),
       });
+      toast.success(t("toast.createSuccess"));
       setDialogOpen(false);
     },
-    onError: (err) =>
-      toast.error("Failed to create statistic.", { description: err.message }),
+    onError: () => {
+      toast.error(t("toast.createError"));
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: updateHomepageStat,
     onSuccess: () => {
-      toast.success("Statistic updated successfully!");
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.content.homepage.stats(),
       });
+      toast.success(t("toast.updateSuccess"));
       setDialogOpen(false);
     },
-    onError: (err) =>
-      toast.error("Failed to update statistic.", { description: err.message }),
+    onError: () => {
+      toast.error(t("toast.updateError"));
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteHomepageStat,
-    onSuccess: () => toast.success("Statistic deleted."),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.content.homepage.stats(),
+      });
+      toast.success(t("toast.deleteSuccess"));
+    },
     onMutate: async (idToDelete) => {
       await queryClient.cancelQueries({
         queryKey: queryKeys.admin.content.homepage.stats(),
@@ -157,11 +171,16 @@ export function HomepageStatsClient() {
     },
   });
 
-  // --- HANDLERS ---
   const handleOpenDialog = (stat: HomepageStatistic | null = null) => {
     setSelectedStat(stat);
     if (stat) {
-      form.reset(stat);
+      form.reset({
+        label: stat.label,
+        value: stat.value,
+        icon_class: stat.icon_class,
+        order: stat.order,
+        is_active: stat.is_active,
+      });
     } else {
       form.reset({
         label: "",
@@ -188,13 +207,11 @@ export function HomepageStatsClient() {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>Homepage Statistics</CardTitle>
-              <CardDescription>
-                Items appearing in the animated stats bar.
-              </CardDescription>
+              <CardTitle>{t("cardTitle")}</CardTitle>
+              <CardDescription>{t("cardDescription")}</CardDescription>
             </div>
             <Button onClick={() => handleOpenDialog()}>
-              <PlusCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> Add New Stat
+              <PlusCircle className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> {t("addNew")}
             </Button>
           </div>
         </CardHeader>
@@ -203,27 +220,27 @@ export function HomepageStatsClient() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Label</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("table.order")}</TableHead>
+                  <TableHead>{t("table.label")}</TableHead>
+                  <TableHead>{t("table.value")}</TableHead>
+                  <TableHead>{t("table.status")}</TableHead>
                   <TableHead>
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t("table.actions")}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading &&
+                {isLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <TableRow key={i}>
+                    <TableRow key={`skeleton-${i}`}>
                       <TableCell>
-                        <Skeleton className="h-5 w-8" />
+                        <Skeleton className="h-4 w-10" />
                       </TableCell>
                       <TableCell>
-                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-32" />
                       </TableCell>
                       <TableCell>
-                        <Skeleton className="h-5 w-24" />
+                        <Skeleton className="h-4 w-24" />
                       </TableCell>
                       <TableCell>
                         <Skeleton className="h-6 w-16" />
@@ -232,55 +249,79 @@ export function HomepageStatsClient() {
                         <Skeleton className="h-8 w-8" />
                       </TableCell>
                     </TableRow>
-                  ))}
-                {stats.map((stat) => (
-                  <TableRow key={stat.id}>
-                    <TableCell>{stat.order}</TableCell>
-                    <TableCell className="font-medium">{stat.label}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {stat.value}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={stat.is_active ? "default" : "secondary"}>
-                        {stat.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            onClick={() => handleOpenDialog(stat)}
-                          >
-                            Edit
-                          </DropdownMenuItem>
-                          <ConfirmationDialog
-                            triggerButton={
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onSelect={(e) => e.preventDefault()}
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            }
-                            title="Delete Statistic"
-                            description={`Are you sure you want to delete the statistic "${stat.label}"?`}
-                            onConfirm={() => deleteMutation.mutate(stat.id)}
-                            isConfirming={
-                              deleteMutation.isPending &&
-                              selectedStat?.id === stat.id
-                            }
-                          />
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                  ))
+                ) : isError ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center text-destructive"
+                    >
+                      Failed to load stats.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  stats.map((stat) => (
+                    <TableRow key={stat.id}>
+                      <TableCell>{stat.order}</TableCell>
+                      <TableCell className="font-medium">
+                        {stat.label}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {stat.value}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={stat.is_active ? "default" : "secondary"}
+                        >
+                          {stat.is_active
+                            ? tFeatures("statusLabels.active")
+                            : tFeatures("statusLabels.inactive")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">
+                                {tFeatures("actionsMenu.label")}
+                              </span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>
+                              {tFeatures("actionsMenu.label")}
+                            </DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={() => handleOpenDialog(stat)}
+                            >
+                              {tFeatures("actionsMenu.edit")}
+                            </DropdownMenuItem>
+                            <ConfirmationDialog
+                              triggerButton={
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onSelect={(e) => e.preventDefault()}
+                                >
+                                  {tFeatures("actionsMenu.delete")}
+                                </DropdownMenuItem>
+                              }
+                              title={t("deleteDialog.title")}
+                              description={t("deleteDialog.description", {
+                                label: stat.label,
+                              })}
+                              onConfirm={() => deleteMutation.mutate(stat.id)}
+                              isConfirming={
+                                deleteMutation.isPending &&
+                                selectedStat?.id === stat.id
+                              }
+                            />
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -290,7 +331,9 @@ export function HomepageStatsClient() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {selectedStat ? "Edit Statistic" : "Create New Statistic"}
+              {selectedStat
+                ? t("formDialog.editTitle")
+                : t("formDialog.newTitle")}
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
@@ -303,7 +346,7 @@ export function HomepageStatsClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Label</FormLabel>
+                    <FormLabel>{t("form.labelLabel")}</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -316,7 +359,7 @@ export function HomepageStatsClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Value</FormLabel>
+                    <FormLabel>{t("form.valueLabel")}</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -329,7 +372,7 @@ export function HomepageStatsClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Icon Class</FormLabel>
+                    <FormLabel>{t("form.iconLabel")}</FormLabel>
                     <FormControl>
                       <Input {...field} value={field.value ?? ""} />
                     </FormControl>
@@ -342,7 +385,7 @@ export function HomepageStatsClient() {
                 control={form.control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Display Order</FormLabel>
+                    <FormLabel>{t("form.orderLabel")}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -354,8 +397,8 @@ export function HomepageStatsClient() {
                 name="is_active"
                 control={form.control}
                 render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                    <FormLabel>Active</FormLabel>
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                    <FormLabel>{t("form.activeLabel")}</FormLabel>
                     <FormControl>
                       <Switch
                         checked={field.value}
@@ -372,7 +415,7 @@ export function HomepageStatsClient() {
                     createMutation.isPending || updateMutation.isPending
                   }
                 >
-                  Save
+                  {t("form.saveButton")}
                 </Button>
               </DialogFooter>
             </form>

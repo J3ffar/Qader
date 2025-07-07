@@ -13,9 +13,14 @@ import {
 import { PATHS } from "@/constants/paths";
 import { ContactMessagesClient } from "@/components/features/admin/content/contact/ContactMessagesClient";
 import { ITEMS_PER_PAGE } from "@/constants/config";
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 export default async function AdminContactMessagesPage() {
   const queryClient = getQueryClient();
+  const t = await getTranslations("Admin.Content");
+  const tContact = await getTranslations("Admin.Content.contact");
+
   const initialParams = {
     page: 1,
     page_size: ITEMS_PER_PAGE,
@@ -34,25 +39,23 @@ export default async function AdminContactMessagesPage() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink href={PATHS.ADMIN.DASHBOARD}>
-                Dashboard
+                {t("breadcrumbDashboard")}
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink href={PATHS.ADMIN.CONTENT_PAGES_LIST}>
-                Content
+                {t("breadcrumbContent")}
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Contact Messages</BreadcrumbPage>
+              <BreadcrumbPage>{tContact("breadcrumb")}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <h1 className="text-2xl font-bold">Contact Message Inbox</h1>
-        <p className="text-muted-foreground">
-          View and manage messages submitted through the public contact form.
-        </p>
+        <h1 className="text-2xl font-bold">{tContact("pageTitle")}</h1>
+        <p className="text-muted-foreground">{tContact("pageDescription")}</p>
         <ContactMessagesClient />
       </div>
     </HydrationBoundary>

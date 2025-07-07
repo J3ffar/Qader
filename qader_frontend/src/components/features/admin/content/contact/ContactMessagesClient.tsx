@@ -7,7 +7,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Eye, Mail, Search } from "lucide-react";
+import { arSA } from "date-fns/locale"; // Import Arabic locale for date-fns
+import { Eye, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { queryKeys } from "@/constants/queryKeys";
 import {
@@ -55,8 +57,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import { DataTablePagination } from "@/components/shared/DataTablePagination";
+import { cn } from "@/lib/utils";
 
 const updateSchema = z.object({
   status: z.enum(["new", "read", "replied", "archived"]),
@@ -64,13 +66,24 @@ const updateSchema = z.object({
 });
 type UpdateFormValues = z.infer<typeof updateSchema>;
 
-const statusOptions = ["new", "read", "replied", "archived"];
-
 export function ContactMessagesClient() {
+  const t = useTranslations("Admin.Content.contact");
   const queryClient = useQueryClient();
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(
     null
+  );
+
+  // Dynamically create status options from translations
+  const statusOptions = useMemo(
+    () =>
+      [
+        { value: "new", label: t("statusLabels.new") },
+        { value: "read", label: t("statusLabels.read") },
+        { value: "replied", label: t("statusLabels.replied") },
+        { value: "archived", label: t("statusLabels.archived") },
+      ] as const,
+    [t]
   );
 
   const [filters, setFilters] = useState<
@@ -118,7 +131,7 @@ export function ContactMessagesClient() {
   const updateMutation = useMutation({
     mutationFn: updateContactMessage,
     onSuccess: (updatedMessage) => {
-      toast.success("Message status updated!");
+      toast.success(t("toast.updateSuccess"));
       queryClient.setQueryData(
         queryKeys.admin.content.contact.list(queryParams),
         (oldData: any) => {
@@ -134,12 +147,13 @@ export function ContactMessagesClient() {
       setDialogOpen(false);
     },
     onError: (err) =>
-      toast.error("Failed to update message.", { description: err.message }),
+      toast.error(t("toast.updateError"), { description: err.message }),
   });
 
   const handleOpenDialog = (message: ContactMessage) => {
     setSelectedMessage(message);
     form.reset({ status: message.status, response: message.response ?? "" });
+    // If status is 'new', optimistically update it to 'read'
     if (message.status === "new") {
       updateMutation.mutate({ id: message.id, payload: { status: "read" } });
     }
@@ -153,9 +167,6 @@ export function ContactMessagesClient() {
   };
 
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
-    // *** THE FIX IS HERE (PART 3) ***
-    // If the value from the select is our special 'all' value,
-    // set the actual filter state to an empty string.
     const finalValue = value === "all" ? "" : value;
     setFilters((prev) => ({ ...prev, [key]: finalValue }));
     setPage(1); // Reset to first page on filter change
@@ -165,13 +176,13 @@ export function ContactMessagesClient() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Message Inbox</CardTitle>
+          <CardTitle>{t("cardTitle")}</CardTitle>
           <div className="mt-4 flex items-center gap-2">
             <div className="relative w-full">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute rtl:right-2.5 ltr:left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, email, subject..."
-                className="pl-8"
+                placeholder={t("searchPlaceholder")}
+                className="rtl:pr-8 ltr:pl-8"
                 value={filters.search}
                 onChange={(e) => handleFilterChange("search", e.target.value)}
               />
@@ -181,13 +192,13 @@ export function ContactMessagesClient() {
               onValueChange={(value) => handleFilterChange("status", value)}
             >
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by Status" />
+                <SelectValue placeholder={t("filterPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="all">{t("allStatuses")}</SelectItem>
                 {statusOptions.map((s) => (
-                  <SelectItem key={s} value={s} className="capitalize">
-                    {s}
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -199,12 +210,14 @@ export function ContactMessagesClient() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>From</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead className="hidden md:table-cell">Date</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("table.from")}</TableHead>
+                  <TableHead>{t("table.subject")}</TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    {t("table.date")}
+                  </TableHead>
+                  <TableHead>{t("table.status")}</TableHead>
                   <TableHead>
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t("table.actions")}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -232,16 +245,17 @@ export function ContactMessagesClient() {
                     </TableCell>
                     <TableCell>{message.subject}</TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {format(new Date(message.created_at), "PPp")}
+                      {format(new Date(message.created_at), "PPp", {
+                        locale: arSA,
+                      })}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={
                           message.status === "new" ? "default" : "secondary"
                         }
-                        className="capitalize"
                       >
-                        {message.status}
+                        {t(`statusLabels.${message.status}`)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -251,7 +265,7 @@ export function ContactMessagesClient() {
                         onClick={() => handleOpenDialog(message)}
                       >
                         <Eye className="h-4 w-4" />
-                        <span className="sr-only">View Message</span>
+                        <span className="sr-only">{t("viewMessage")}</span>
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -275,12 +289,14 @@ export function ContactMessagesClient() {
           <DialogHeader>
             <DialogTitle>{selectedMessage?.subject}</DialogTitle>
             <DialogDescription>
-              From: {selectedMessage?.full_name} &lt;{selectedMessage?.email}
-              &gt;
+              {t("dialog.fromLabel")}: {selectedMessage?.full_name} &lt;
+              {selectedMessage?.email}&gt;
               <br />
-              Received:{" "}
+              {t("dialog.receivedLabel")}:{" "}
               {selectedMessage &&
-                format(new Date(selectedMessage.created_at), "PPp")}
+                format(new Date(selectedMessage.created_at), "PPp", {
+                  locale: arSA,
+                })}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto px-1">
@@ -294,7 +310,7 @@ export function ContactMessagesClient() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  View Attachment
+                  {t("dialog.viewAttachment")}
                 </a>
               </Button>
             )}
@@ -309,24 +325,22 @@ export function ContactMessagesClient() {
                   control={form.control}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Update Status</FormLabel>
+                      <FormLabel>{t("dialog.updateStatusLabel")}</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Set status..." />
+                            <SelectValue
+                              placeholder={t("dialog.selectStatusPlaceholder")}
+                            />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {statusOptions.map((s) => (
-                            <SelectItem
-                              key={s}
-                              value={s}
-                              className="capitalize"
-                            >
-                              {s}
+                            <SelectItem key={s.value} value={s.value}>
+                              {s.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -344,7 +358,7 @@ export function ContactMessagesClient() {
               form="update-message-form"
               disabled={updateMutation.isPending}
             >
-              Save Status
+              {t("dialog.saveButton")}
             </Button>
           </DialogFooter>
         </DialogContent>

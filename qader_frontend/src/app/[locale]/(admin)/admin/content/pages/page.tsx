@@ -12,15 +12,15 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { PATHS } from "@/constants/paths";
+import { getTranslations } from "next-intl/server";
 
 export default async function AdminPagesManagementPage() {
   const queryClient = getQueryClient();
   const params = { ordering: "id" };
+  const t = await getTranslations("Admin.Content");
 
   await queryClient.prefetchQuery({
-    // Use the new parameterized query key
     queryKey: queryKeys.admin.content.pages.list(params),
-    // Pass the ordering parameter to the fetch function
     queryFn: () => getPages(params),
   });
 
@@ -31,19 +31,17 @@ export default async function AdminPagesManagementPage() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink href={PATHS.ADMIN.DASHBOARD}>
-                Dashboard
+                {t("breadcrumbDashboard")}
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Content Management</BreadcrumbPage>
+              <BreadcrumbPage>{t("breadcrumbContent")}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <h1 className="text-2xl font-bold">Manage Pages</h1>
-        <p className="text-muted-foreground">
-          Edit content for static and structured pages across the platform.
-        </p>
+        <h1 className="text-2xl font-bold">{t("pagesListTitle")}</h1>
+        <p className="text-muted-foreground">{t("pagesListDescription")}</p>
         <PagesClient />
       </div>
     </HydrationBoundary>
