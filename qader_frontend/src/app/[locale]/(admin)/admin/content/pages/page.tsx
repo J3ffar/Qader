@@ -15,10 +15,13 @@ import { PATHS } from "@/constants/paths";
 
 export default async function AdminPagesManagementPage() {
   const queryClient = getQueryClient();
+  const params = { ordering: "id" };
 
   await queryClient.prefetchQuery({
-    queryKey: queryKeys.admin.content.pages.list(),
-    queryFn: getPages,
+    // Use the new parameterized query key
+    queryKey: queryKeys.admin.content.pages.list(params),
+    // Pass the ordering parameter to the fetch function
+    queryFn: () => getPages(params),
   });
 
   return (

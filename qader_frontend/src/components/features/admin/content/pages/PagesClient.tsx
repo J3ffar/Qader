@@ -1,8 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
+import { Edit, Image as ImageIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
+
 import { getPages } from "@/services/api/admin/content.service";
 import { queryKeys } from "@/constants/queryKeys";
+import { PATHS } from "@/constants/paths";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -13,23 +18,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
-import { PATHS } from "@/constants/paths";
 import { Badge } from "@/components/ui/badge";
-import { useTranslations } from "next-intl";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+const MAX_IMAGES_TO_DISPLAY = 3;
 
 export function PagesClient() {
-  const t = useTranslations("Admin.Content"); // Assuming you have i18n setup
+  const t = useTranslations("Admin.Content");
+  const params = { ordering: "id" };
 
-  // The API returns a paginated object, so let's name the data appropriately.
   const { data: paginatedResponse, isLoading } = useQuery({
-    queryKey: queryKeys.admin.content.pages.list(),
-    queryFn: getPages,
+    queryKey: queryKeys.admin.content.pages.list(params),
+    queryFn: () => getPages(params),
   });
 
-  // Now, we get the array of pages from the 'results' key.
   const pages = paginatedResponse?.results;
 
   return (
@@ -43,6 +52,7 @@ export function PagesClient() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t("table.title")}</TableHead>
+                <TableHead>Images</TableHead> {/* NEW COLUMN */}
                 <TableHead>{t("table.slug")}</TableHead>
                 <TableHead>{t("table.status")}</TableHead>
                 <TableHead className="text-right">
@@ -58,6 +68,12 @@ export function PagesClient() {
                       <Skeleton className="h-5 w-48" />
                     </TableCell>
                     <TableCell>
+                      <div className="flex items-center -space-x-2 rtl:space-x-reverse">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <Skeleton className="h-5 w-32" />
                     </TableCell>
                     <TableCell>
@@ -69,11 +85,50 @@ export function PagesClient() {
                   </TableRow>
                 ))}
 
-              {/* THIS IS THE FIX: We are now mapping over `pages` which is the .results array */}
               {!isLoading &&
                 pages?.map((page) => (
                   <TableRow key={page.id}>
                     <TableCell className="font-medium">{page.title}</TableCell>
+                    <TableCell>
+                      {/* NEW IMAGE DISPLAY LOGIC */}
+                      {page.images && page.images.length > 0 ? (
+                        <div className="flex items-center -space-x-2 rtl:space-x-reverse">
+                          <TooltipProvider delayDuration={100}>
+                            {page.images
+                              .slice(0, MAX_IMAGES_TO_DISPLAY)
+                              .map((image) => (
+                                <Tooltip key={image.id}>
+                                  <TooltipTrigger asChild>
+                                    <Avatar className="border-2 border-background">
+                                      <AvatarImage
+                                        src={image.image_url}
+                                        alt={image.alt_text}
+                                      />
+                                      <AvatarFallback>
+                                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{image.name}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ))}
+                            {page.images.length > MAX_IMAGES_TO_DISPLAY && (
+                              <Avatar className="border-2 border-background">
+                                <AvatarFallback>
+                                  +{page.images.length - MAX_IMAGES_TO_DISPLAY}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
+                          </TooltipProvider>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          No images
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {page.slug}
                     </TableCell>
@@ -99,7 +154,7 @@ export function PagesClient() {
 
               {!isLoading && pages?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     {t("noPagesFound")}
                   </TableCell>
                 </TableRow>
@@ -107,7 +162,6 @@ export function PagesClient() {
             </TableBody>
           </Table>
         </div>
-        {/* We can add pagination controls here later if needed */}
       </CardContent>
     </Card>
   );

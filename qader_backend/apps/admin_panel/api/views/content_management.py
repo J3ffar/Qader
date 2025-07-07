@@ -38,7 +38,14 @@ class PageAdminViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUserOrSubAdminWithPermission]  # Or your custom IsAdmin
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["slug", "title", "content"]
-    ordering_fields = ["title", "slug", "is_published", "created_at", "updated_at"]
+    ordering_fields = [
+        "id",
+        "title",
+        "slug",
+        "is_published",
+        "created_at",
+        "updated_at",
+    ]
     lookup_field = "slug"  # Maintain consistency with public view
 
     def get_permissions(self):

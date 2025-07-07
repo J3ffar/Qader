@@ -65,7 +65,8 @@ export const queryKeys = {
       pages: {
         all: () => [...queryKeys.admin.content.all(), "pages"] as const,
         lists: () => [...queryKeys.admin.content.pages.all(), "list"] as const,
-        list: () => [...queryKeys.admin.content.pages.lists()] as const,
+        list: (params: object) =>
+          [...queryKeys.admin.content.pages.lists(), params] as const,
         details: () =>
           [...queryKeys.admin.content.pages.all(), "details"] as const,
         detail: (slug: string) =>

@@ -135,12 +135,13 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
   const updateMutation = useMutation({
     mutationFn: (payload: any) => updatePage({ slug: pageSlug, payload }),
     onSuccess: (data) => {
+      const params = { ordering: "id" };
       toast.success("Page updated successfully!");
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.content.pages.detail(pageSlug),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.content.pages.list(),
+        queryKey: queryKeys.admin.content.pages.list(params),
       });
       form.reset(form.getValues());
     },

@@ -11,8 +11,10 @@ import { PaginatedResponse } from "@/types/api";
 
 // --- Pages ---
 
-export const getPages = async (): Promise<PaginatedResponse<PageListItem>> => {
-  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.PAGES);
+export const getPages = async (
+  params: { ordering?: string } = {}
+): Promise<PaginatedResponse<Page>> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.PAGES, { params });
 };
 
 export const getPageBySlug = async (slug: string): Promise<Page> => {
