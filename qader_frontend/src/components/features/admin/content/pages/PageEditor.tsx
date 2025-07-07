@@ -48,6 +48,8 @@ import {
 } from "@/types/api/admin/content.types";
 import { ImageUploader } from "./ImageUploader"; // Correctly imported now
 import { RepeaterField } from "./RepeaterField";
+import { RichTextEditor } from "./RichTextEditor";
+import { useEffect } from "react";
 
 interface PageEditorProps {
   pageSlug: string;
@@ -117,19 +119,36 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
 
   const form = useForm<PageFormValues>({
     resolver: zodResolver(PageSchema),
-    values: {
-      title: page?.title ?? "",
-      is_published: page?.is_published ?? false,
-      content: page?.content ?? "",
-      content_structured: page?.content_structured
-        ? Object.entries(page.content_structured).reduce((acc, [key, val]) => {
-            // FIX 2: EXPLICITLY TYPE THE ACCUMULATOR
-            acc[key] = { value: val.value };
-            return acc;
-          }, {} as Record<string, { value: any }>)
-        : null,
+    defaultValues: {
+      title: "",
+      is_published: false,
+      content: "",
+      content_structured: null,
     },
   });
+
+  useEffect(() => {
+    if (page) {
+      // Create the object to reset the form with
+      const resetValues = {
+        title: page.title ?? "",
+        is_published: page.is_published ?? false,
+        content: page.content ?? "",
+        content_structured: page.content_structured
+          ? Object.entries(page.content_structured).reduce(
+              (acc, [key, val]) => {
+                acc[key] = { value: val.value };
+                return acc;
+              },
+              {} as Record<string, { value: any }>
+            )
+          : null,
+      };
+
+      // The reset method updates all field values and re-renders the form
+      form.reset(resetValues);
+    }
+  }, [page, form.reset]);
 
   // ... (updateMutation logic is the same)
   const updateMutation = useMutation({
@@ -356,10 +375,11 @@ export function PageEditor({ pageSlug, pageTitle }: PageEditorProps) {
                         <FormItem>
                           <FormLabel>HTML Content</FormLabel>
                           <FormControl>
-                            <Textarea
-                              rows={15}
-                              {...field}
+                            {/* *** THE FIX IS HERE *** */}
+                            {/* Replace Textarea with our new RichTextEditor */}
+                            <RichTextEditor
                               value={field.value ?? ""}
+                              onChange={field.onChange}
                             />
                           </FormControl>
                           <FormMessage />

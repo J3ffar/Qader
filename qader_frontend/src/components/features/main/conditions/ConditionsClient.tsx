@@ -13,9 +13,24 @@ interface ConditionsClientProps {
 
 // Helper function to generate a table of contents from the HTML content
 const generateToc = (htmlContent: string) => {
-  if (!htmlContent) return [];
-  const matches = htmlContent.matchAll(/<h3 id='([^']+)'>([^<]+)<\/h3>/g);
-  return Array.from(matches, (match) => ({ id: match[1], title: match[2] }));
+  // Gracefully handle cases where there is no content or we are not in a browser environment.
+  if (typeof window === "undefined" || !htmlContent) {
+    return [];
+  }
+
+  // 1. Use the browser's built-in, reliable DOM parser.
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlContent, "text/html");
+
+  // 2. Use a CSS selector to find all h3 elements that HAVE an id attribute.
+  // This is not brittle and works regardless of quote style, attribute order, or inner HTML.
+  const headings = doc.querySelectorAll("h3[id]");
+
+  // 3. Extract the id and text content from each heading.
+  return Array.from(headings).map((heading) => ({
+    id: heading.id,
+    title: heading.textContent || "", // Fallback to empty string if no text
+  }));
 };
 
 const ConditionsClient: React.FC<ConditionsClientProps> = ({ initialData }) => {
