@@ -22,22 +22,48 @@
         "startSuccess": "Test started successfully! Good luck."
       }
     },
+    "simulationTest": {
+      "title": "Simulation Test",
+      "retakeDescription": "You can retake the test at any time.",
+      "reviewDescription": "You can review the test and retake a similar one."
+    },
     "list": {
       "title": "Test History",
       "description": "Review your past tests to track your progress.",
       "startNewTest": "Start New Test",
       "noAttemptsTitle": "No Tests Taken Yet",
       "noAttemptsDescription": "Your practice and simulation tests will appear here.",
+      "sortBy": "Sort by",
+      "sortByOptions": {
+        "dateAsc": "Oldest",
+        "dateDesc": "Newest",
+        "scoreAsc": "Lowest Score",
+        "scoreDesc": "Highest Score"
+      },
+      "showLowPerformanceTests": "Show Low Performance Tests",
+
       "api": {
         "retakeSuccess": "New test created! Redirecting..."
       },
       "table": {
         "testType": "Test Type",
         "date": "Date",
+        "question": "Question",
+        "questions": "Questions",
         "numQuestions": "Questions",
         "score": "Score",
+        "percentage": "Percentage",
         "status": "Status",
-        "actions": "Actions"
+        "actions": "Actions",
+        "verbal": "Verbal",
+        "quantitative": "Quantitative",
+        "performance": {
+          "verbal": "Verbal Section Performance",
+          "quantitative": "Quantitative Section Performance",
+          "excellent": "Excellent",
+          "good": "Good",
+          "poor": "Poor"
+        }
       },
       "actions": {
         "openMenu": "Open menu",

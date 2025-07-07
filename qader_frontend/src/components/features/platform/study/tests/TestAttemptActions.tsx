@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { UseMutationResult } from "@tanstack/react-query";
 import {
-  ListChecks,
-  ListX,
+  BookOpen,
+  XSquare,
   Loader2,
   MoreVertical,
   RotateCw,
@@ -15,13 +15,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -33,7 +26,6 @@ import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 import { PATHS } from "@/constants/paths";
 import {
   UserTestAttemptList,
-  UserTestAttemptStartResponse,
 } from "@/types/api/study.types";
 
 type TestAttemptActionsProps = {
@@ -54,6 +46,7 @@ const TestAttemptActions = ({
   cancellingAttemptId,
 }: TestAttemptActionsProps) => {
   const t = useTranslations("Study.tests.list.actions");
+  const tList = useTranslations("Study.tests.list");
 
   const isThisAttemptRetaking =
     isRetaking && retakeAttemptId === attempt.attempt_id;
@@ -119,45 +112,78 @@ const TestAttemptActions = ({
 
           case "completed":
             return (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="h-8 w-8 p-0"
-                    disabled={isThisAttemptRetaking}
-                  >
-                    <span className="sr-only">{t("openMenu")}</span>
-                    {isThisAttemptRetaking ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <MoreVertical className="h-4 w-4" />
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem asChild>
-                    <Link href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id)}>
-                      <ListChecks className="me-2 h-4 w-4" />
-                      <span>{t("review")}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
+              <>
+                {/* Desktop View */}
+                <div className="hidden sm:flex sm:flex-row justify-center gap-2 ">
+                  <Button asChild size="sm" variant="outline">
                     <Link
                       href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id, true)}
                     >
-                      <ListX className="me-2 h-4 w-4" />
-                      <span>{t("reviewIncorrect")}</span>
+                      <XSquare className="h-4 w-4" />
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onSelect={() => onRetake(attempt.attempt_id)}
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id)}>
+                      <BookOpen className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onRetake(attempt.attempt_id)}
+                    disabled={isThisAttemptRetaking}
                   >
-                    <RotateCw className="me-2 h-4 w-4" />
-                    <span>{t("retake")}</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    {isThisAttemptRetaking ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RotateCw className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+
+                {/* Mobile View */}
+                <div className="space-y-2 sm:hidden">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className="h-12 text-muted-foreground border-2"
+                      asChild
+                    >
+                      <Link href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id)}>
+                        <BookOpen className="h-4 w-4" />
+                        {t("review")}
+                      </Link>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="h-12 text-muted-foreground border-2"
+                      onClick={() => onRetake(attempt.attempt_id)}
+                      disabled={isThisAttemptRetaking}
+                    >
+                      <RotateCw
+                        className={`h-4 w-4 ${
+                          isThisAttemptRetaking ? "animate-spin" : ""
+                        }`}
+                      />
+                      {t("retake")}
+                    </Button>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    className="w-full h-12 text-muted-foreground border-2"
+                    asChild
+                  >
+                    <Link
+                      href={PATHS.STUDY.TESTS.REVIEW(attempt.attempt_id, true)}
+                    >
+                      <XSquare className="h-4 w-4" />
+                      {t("reviewIncorrect")}{" "}
+                    </Link>
+                  </Button>
+                </div>
+              </>
             );
 
           case "abandoned":
