@@ -63,18 +63,28 @@ export const uploadPageImage = async ({
 
 // --- Homepage Feature Cards ---
 
-export const getHomepageFeatures = async (): Promise<PaginatedResponse<HomepageFeatureCard>> => {
+export const getHomepageFeatures = async (): Promise<
+  PaginatedResponse<HomepageFeatureCard>
+> => {
   return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_FEATURES);
 };
 
-export const createHomepageFeature = async (payload: Omit<HomepageFeatureCard, 'id'>): Promise<HomepageFeatureCard> => {
+export const createHomepageFeature = async (
+  payload: Omit<HomepageFeatureCard, "id">
+): Promise<HomepageFeatureCard> => {
   return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_FEATURES, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 };
 
-export const updateHomepageFeature = async ({ id, payload }: { id: number; payload: Partial<Omit<HomepageFeatureCard, 'id'>> }): Promise<HomepageFeatureCard> => {
+export const updateHomepageFeature = async ({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: Partial<Omit<HomepageFeatureCard, "id">>;
+}): Promise<HomepageFeatureCard> => {
   return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_FEATURE_DETAIL(id), {
     method: "PATCH",
     body: JSON.stringify(payload),
@@ -87,7 +97,38 @@ export const deleteHomepageFeature = async (id: number): Promise<void> => {
   });
 };
 
-// Placeholder for Homepage Statistics services - to be implemented next
-export const getHomepageStats = async (): Promise<PaginatedResponse<HomepageStatistic>> => {
+// --- Homepage Statistic ---
+
+export const getHomepageStats = async (): Promise<
+  PaginatedResponse<HomepageStatistic>
+> => {
   return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_STATS);
+};
+
+export const createHomepageStat = async (
+  payload: Omit<HomepageStatistic, "id">
+): Promise<HomepageStatistic> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_STATS, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateHomepageStat = async ({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: Partial<Omit<HomepageStatistic, "id">>;
+}): Promise<HomepageStatistic> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_STAT_DETAIL(id), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const deleteHomepageStat = async (id: number): Promise<void> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.HOMEPAGE_STAT_DETAIL(id), {
+    method: "DELETE",
+  });
 };
