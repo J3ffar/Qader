@@ -78,8 +78,16 @@ export const PATHS = {
     DASHBOARD: "/admin/dashboard",
     EMPLOYEES_MANAGEMENT: "/admin/employees",
     STUDENTS_MANAGEMENT: "/admin/students",
-    STATISTICS_OVERVIEW: "/admin/statistics/overview", // NEW PATH
-    PAGES_MANAGEMENT: "/admin/pages",
+    STATISTICS_OVERVIEW: "/admin/statistics/overview",
+
+    CONTENT_MANAGEMENT: "/admin/content", // Main entry point
+    CONTENT_PAGES_LIST: "/admin/content/pages",
+    CONTENT_PAGE_EDIT: (slug: string) => `/admin/content/pages/${slug}`,
+    CONTENT_FAQS: "/admin/content/faqs",
+    CONTENT_HOMEPAGE: "/admin/content/homepage",
+    CONTENT_PARTNERS: "/admin/content/partners",
+    CONTENT_CONTACT_MESSAGES: "/admin/content/contact-messages",
+
     SUPPORT_TICKETS: "/admin/support",
     ANALYTICS: "/admin/analytics",
     SETTINGS: "/admin/settings",

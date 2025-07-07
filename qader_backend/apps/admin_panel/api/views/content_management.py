@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, filters, mixins
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema_view, extend_schema
@@ -325,12 +326,19 @@ class ContactMessageAdminViewSet(
 
 
 @extend_schema_view(
-    list=extend_schema(tags=ADMIN_CONTENT_TAG, summary="List General Media Images (Admin)"),
-    create=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Upload General Media Image (Admin)"),
+    list=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="List General Media Images (Admin)"
+    ),
+    create=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Upload General Media Image (Admin)"
+    ),
 )
 class ContentImageAdminViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing the general media library (images NOT attached to a specific page)."""
-    queryset = content_models.ContentImage.objects.filter(page__isnull=True).select_related('uploaded_by')
+
+    queryset = content_models.ContentImage.objects.filter(
+        page__isnull=True
+    ).select_related("uploaded_by")
     serializer_class = admin_serializers.AdminContentImageSerializer
     permission_classes = [IsAdminUserOrSubAdminWithPermission]
     parser_classes = (MultiPartParser, FormParser)
@@ -344,21 +352,26 @@ class ContentImageAdminViewSet(viewsets.ModelViewSet):
 
 
 @extend_schema_view(
-    list=extend_schema(tags=ADMIN_CONTENT_TAG, summary="List Page-Specific Images (Admin)"),
-    create=extend_schema(tags=ADMIN_CONTENT_TAG, summary="Upload Image for a Specific Page (Admin)"),
+    list=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="List Page-Specific Images (Admin)"
+    ),
+    create=extend_schema(
+        tags=ADMIN_CONTENT_TAG, summary="Upload Image for a Specific Page (Admin)"
+    ),
 )
 class PageContentImageAdminViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing images associated with a specific Page."""
+
     queryset = content_models.ContentImage.objects.all()
     serializer_class = admin_serializers.AdminContentImageSerializer
     permission_classes = [IsAdminUserOrSubAdminWithPermission]
     parser_classes = (MultiPartParser, FormParser)
 
     def get_queryset(self):
-        return self.queryset.filter(page__slug=self.kwargs.get('page_slug'))
+        return self.queryset.filter(page__slug=self.kwargs.get("page_slug"))
 
     def perform_create(self, serializer):
-        page = get_object_or_404(content_models.Page, slug=self.kwargs.get('page_slug'))
+        page = get_object_or_404(content_models.Page, slug=self.kwargs.get("page_slug"))
         user = self.request.user if self.request.user.is_authenticated else None
         serializer.save(page=page, uploaded_by=user)
 

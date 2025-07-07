@@ -40,10 +40,13 @@ export const queryKeys = {
       detail: (userId: number | string) =>
         [...queryKeys.admin.userDetails.all(), userId] as const,
     },
-    statistics: { // NEW SECTION
+    statistics: {
+      // NEW SECTION
       all: () => [...queryKeys.admin.all, "statistics"] as const,
-      overviews: () => [...queryKeys.admin.statistics.all(), "overviews"] as const,
-      overview: (filters: object) => [...queryKeys.admin.statistics.overviews(), filters] as const,
+      overviews: () =>
+        [...queryKeys.admin.statistics.all(), "overviews"] as const,
+      overview: (filters: object) =>
+        [...queryKeys.admin.statistics.overviews(), filters] as const,
     },
     support: {
       all: () => [...queryKeys.admin.all, "support"] as const,
@@ -55,6 +58,27 @@ export const queryKeys = {
         [...queryKeys.admin.support.details(), id] as const,
       replies: (id: number | string) =>
         [...queryKeys.admin.support.detail(id), "replies"] as const,
+    },
+    content: {
+      all: () => [...queryKeys.admin.all, "content"] as const,
+      // Pages
+      pages: {
+        all: () => [...queryKeys.admin.content.all(), "pages"] as const,
+        lists: () => [...queryKeys.admin.content.pages.all(), "list"] as const,
+        list: () => [...queryKeys.admin.content.pages.lists()] as const,
+        details: () =>
+          [...queryKeys.admin.content.pages.all(), "details"] as const,
+        detail: (slug: string) =>
+          [...queryKeys.admin.content.pages.details(), slug] as const,
+      },
+      // FAQs
+      faqs: {
+        all: () => [...queryKeys.admin.content.all(), "faqs"] as const,
+        categories: () =>
+          [...queryKeys.admin.content.faqs.all(), "categories"] as const,
+        items: () => [...queryKeys.admin.content.faqs.all(), "items"] as const,
+      },
+      // Other content types can be added here following the same pattern
     },
   },
 

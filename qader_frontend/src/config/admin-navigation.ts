@@ -59,7 +59,7 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminSidebarNavSection[] = [
       {
         labelKey: "AdminSidebar.items.pageManagement",
         icon: FolderKanban,
-        href: PATHS.ADMIN.PAGES_MANAGEMENT,
+        href: PATHS.ADMIN.CONTENT_PAGES_LIST,
       },
     ],
   },
