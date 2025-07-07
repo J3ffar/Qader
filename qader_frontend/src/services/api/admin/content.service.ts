@@ -10,6 +10,8 @@ import type {
   HomepageStatistic,
   PartnerCategory,
   PartnerCategoryPayload,
+  FaqCategory,
+  FaqItem,
 } from "@/types/api/admin/content.types";
 import { PaginatedResponse } from "@/types/api";
 
@@ -187,6 +189,81 @@ export const updatePartnerCategory = async ({
 
 export const deletePartnerCategory = async (id: number): Promise<void> => {
   return apiClient(API_ENDPOINTS.ADMIN.CONTENT.PARTNER_CATEGORY_DETAIL(id), {
+    method: "DELETE",
+  });
+};
+
+// --- FAQ Categories ---
+
+export const getFaqCategories = async (): Promise<
+  PaginatedResponse<FaqCategory>
+> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.FAQ_CATEGORIES);
+};
+
+export const createFaqCategory = async (
+  payload: Omit<FaqCategory, "id">
+): Promise<FaqCategory> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.FAQ_CATEGORIES, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateFaqCategory = async ({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: Partial<Omit<FaqCategory, "id">>;
+}): Promise<FaqCategory> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.FAQ_CATEGORY_DETAIL(id), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const deleteFaqCategory = async (id: number): Promise<void> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.FAQ_CATEGORY_DETAIL(id), {
+    method: "DELETE",
+  });
+};
+
+// --- FAQ Items ---
+
+export const getFaqItems = async (
+  categoryId: number
+): Promise<PaginatedResponse<FaqItem>> => {
+  // Assuming the API supports filtering items by category ID
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.FAQ_ITEMS, {
+    params: { category: categoryId },
+  });
+};
+
+export const createFaqItem = async (
+  payload: Omit<FaqItem, "id">
+): Promise<FaqItem> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.FAQ_ITEMS, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateFaqItem = async ({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: Partial<Omit<FaqItem, "id">>;
+}): Promise<FaqItem> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.FAQ_ITEM_DETAIL(id), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const deleteFaqItem = async (id: number): Promise<void> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.FAQ_ITEM_DETAIL(id), {
     method: "DELETE",
   });
 };

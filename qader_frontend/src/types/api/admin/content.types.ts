@@ -91,3 +91,18 @@ export interface PartnerCategoryPayload
   extends Omit<PartnerCategory, "id" | "icon_image"> {
   icon_image?: File | null;
 }
+
+export interface FaqCategory {
+  id: number;
+  name: string;
+  order: number;
+}
+
+export interface FaqItem {
+  id: number;
+  category: number; // The ID of the parent category
+  question: string;
+  answer: string;
+  order: number;
+  is_active: boolean;
+}

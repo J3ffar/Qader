@@ -77,6 +77,19 @@ export const queryKeys = {
         categories: () =>
           [...queryKeys.admin.content.faqs.all(), "categories"] as const,
         items: () => [...queryKeys.admin.content.faqs.all(), "items"] as const,
+        categoryList: () =>
+          [
+            ...queryKeys.admin.content.faqs.all(),
+            "categories",
+            "list",
+          ] as const,
+        itemList: (categoryId: number) =>
+          [
+            ...queryKeys.admin.content.faqs.all(),
+            "items",
+            "list",
+            categoryId,
+          ] as const,
       },
       homepage: {
         all: () => [...queryKeys.admin.content.all(), "homepage"] as const,
