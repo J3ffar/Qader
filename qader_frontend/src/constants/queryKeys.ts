@@ -103,6 +103,11 @@ export const queryKeys = {
         categories: () =>
           [...queryKeys.admin.content.partners.all(), "categories"] as const,
       },
+      contact: { // NEW SECTION
+        all: () => [...queryKeys.admin.content.all(), "contact"] as const,
+        lists: () => [...queryKeys.admin.content.contact.all(), "list"] as const,
+        list: (filters: object) => [...queryKeys.admin.content.contact.lists(), filters] as const,
+      },
       // Other content types can be added here following the same pattern
     },
   },

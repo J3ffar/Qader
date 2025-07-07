@@ -106,3 +106,24 @@ export interface FaqItem {
   order: number;
   is_active: boolean;
 }
+
+type Responder = {
+  id: number;
+  full_name: string;
+  email: string;
+};
+
+export interface ContactMessage {
+  id: number;
+  full_name: string;
+  email: string;
+  subject: string;
+  message: string;
+  attachment: string | null;
+  status: "new" | "read" | "replied" | "archived";
+  responder: Responder | null;
+  response: string | null;
+  responded_at: string | null;
+  created_at: string;
+  updated_at: string;
+}

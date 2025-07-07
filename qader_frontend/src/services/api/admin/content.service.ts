@@ -12,6 +12,7 @@ import type {
   PartnerCategoryPayload,
   FaqCategory,
   FaqItem,
+  ContactMessage,
 } from "@/types/api/admin/content.types";
 import { PaginatedResponse } from "@/types/api";
 
@@ -265,5 +266,34 @@ export const updateFaqItem = async ({
 export const deleteFaqItem = async (id: number): Promise<void> => {
   return apiClient(API_ENDPOINTS.ADMIN.CONTENT.FAQ_ITEM_DETAIL(id), {
     method: "DELETE",
+  });
+};
+
+// --- Contact Messages ---
+
+export type GetContactMessagesParams = {
+  page?: number;
+  status?: string;
+  email?: string;
+  search?: string;
+  ordering?: string;
+};
+
+export const getContactMessages = async (
+  params: GetContactMessagesParams
+): Promise<PaginatedResponse<ContactMessage>> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.CONTACT_MESSAGES, { params });
+};
+
+export const updateContactMessage = async ({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: { status?: string; response?: string };
+}): Promise<ContactMessage> => {
+  return apiClient(API_ENDPOINTS.ADMIN.CONTENT.CONTACT_MESSAGE_DETAIL(id), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
 };
