@@ -1,0 +1,328 @@
+{
+  "Content": {
+    "pagesListTitle": "إدارة الصفحات",
+    "pagesListDescription": "تحرير محتوى الصفحات الثابتة والمنظمة عبر المنصة.",
+    "allPagesTitle": "كل الصفحات",
+    "editPageTitle": "تحرير الصفحة",
+    "breadcrumbDashboard": "لوحة التحكم",
+    "breadcrumbContent": "إدارة المحتوى",
+    "homepage": {
+      "breadcrumb": "إدارة الصفحة الرئيسية",
+      "pageTitle": "إدارة محتوى الصفحة الرئيسية",
+      "pageDescription": "تحكم في البطاقات الديناميكية والإحصائيات المعروضة على الصفحة الرئيسية.",
+      "tabs": {
+        "features": "بطاقات الميزات",
+        "stats": "الإحصائيات"
+      },
+      "features": {
+        "cardTitle": "بطاقات ميزات الصفحة الرئيسية",
+        "cardDescription": "العناصر التي تظهر في قسم 'لماذا تختارنا'.",
+        "addNew": "إضافة بطاقة جديدة",
+        "table": {
+          "order": "الترتيب",
+          "title": "العنوان",
+          "text": "النص",
+          "status": "الحالة",
+          "actions": "الإجراءات"
+        },
+        "statusLabels": {
+          "active": "نشط",
+          "inactive": "غير نشط"
+        },
+        "actionsMenu": {
+          "label": "الإجراءات",
+          "edit": "تعديل",
+          "delete": "حذف"
+        },
+        "deleteDialog": {
+          "title": "حذف بطاقة الميزة",
+          "description": "هل أنت متأكد أنك تريد حذف البطاقة \"{title}\"؟ لا يمكن التراجع عن هذا الإجراء."
+        },
+        "formDialog": {
+          "editTitle": "تعديل بطاقة الميزة",
+          "newTitle": "إنشاء بطاقة ميزة جديدة"
+        },
+        "form": {
+          "titleLabel": "العنوان",
+          "titleRequired": "العنوان مطلوب.",
+          "textLabel": "النص",
+          "textRequired": "الوصف النصي مطلوب.",
+          "iconLabel": "فئة الأيقونة (مثال: fas fa-book)",
+          "orderLabel": "ترتيب العرض",
+          "activeLabel": "نشط",
+          "saveButton": "حفظ"
+        },
+        "toast": {
+          "createSuccess": "تم إنشاء بطاقة الميزة بنجاح!",
+          "createError": "فشل إنشاء الميزة.",
+          "updateSuccess": "تم تحديث بطاقة الميزة بنجاح!",
+          "updateError": "فشل تحديث الميزة.",
+          "deleteSuccess": "تم حذف بطاقة الميزة.",
+          "deleteError": "فشل حذف الميزة."
+        }
+      },
+      "stats": {
+        "cardTitle": "إحصائيات الصفحة الرئيسية",
+        "cardDescription": "العناصر التي تظهر في شريط الإحصائيات المتحرك.",
+        "addNew": "إضافة إحصائية جديدة",
+        "table": {
+          "order": "الترتيب",
+          "label": "العنوان",
+          "value": "القيمة",
+          "status": "الحالة",
+          "actions": "الإجراءات"
+        },
+        "deleteDialog": {
+          "title": "حذف الإحصائية",
+          "description": "هل أنت متأكد أنك تريد حذف الإحصائية \"{label}\"؟"
+        },
+        "formDialog": {
+          "editTitle": "تعديل الإحصائية",
+          "newTitle": "إنشاء إحصائية جديدة"
+        },
+        "form": {
+          "labelLabel": "العنوان (Label)",
+          "labelRequired": "العنوان مطلوب.",
+          "valueLabel": "القيمة",
+          "valueRequired": "القيمة مطلوبة.",
+          "iconLabel": "فئة الأيقونة",
+          "orderLabel": "ترتيب العرض",
+          "activeLabel": "نشط",
+          "saveButton": "حفظ"
+        },
+        "toast": {
+          "createSuccess": "تم إنشاء الإحصائية بنجاح!",
+          "createError": "فشل في إنشاء الإحصائية.",
+          "updateSuccess": "تم تحديث الإحصائية بنجاح!",
+          "updateError": "فشل في تحديث الإحصائية.",
+          "deleteSuccess": "تم حذف الإحصائية.",
+          "deleteError": "فشل في حذف الإحصائية."
+        }
+      }
+    },
+    "table": {
+      "title": "العنوان",
+      "images": "الصور",
+      "slug": "الرابط التعريفي",
+      "status": "الحالة",
+      "actions": "الإجراءات"
+    },
+    "status": {
+      "published": "منشور",
+      "draft": "مسودة"
+    },
+    "noImages": "لا توجد صور",
+    "editPage": "تعديل الصفحة",
+    "noPagesFound": "لم يتم العثور على صفحات.",
+    "pageDetails": "تفاصيل الصفحة",
+    "pageTitleLabel": "عنوان الصفحة",
+    "titleMinLengthError": "يجب أن يتكون العنوان من 3 أحرف على الأقل.",
+    "structuredContent": "المحتوى المنظم",
+    "enterPlaceholder": "أدخل {field}",
+    "unsupportedField": "نوع الحقل غير مدعوم: {type}",
+    "legacyContent": "المحتوى",
+    "htmlContentLabel": "محتوى HTML",
+    "publishing": "النشر",
+    "publishPageLabel": "نشر الصفحة",
+    "pageUpdateSuccess": "تم تحديث الصفحة بنجاح",
+    "saving": "جاري الحفظ...",
+    "saveChanges": "حفظ التغييرات",
+    "loadingError": "خطأ في تحميل بيانات الصفحة. يرجى المحاولة مرة أخرى.",
+    "imageUploader": {
+      "uploadSuccess": "تم رفع الصورة \"{name}\" بنجاح!",
+      "uploadFailed": "فشل الرفع.",
+      "removeImage": "إزالة الصورة",
+      "uploadNew": "رفع جديد",
+      "chooseFromLibrary": "اختر من المكتبة",
+      "libraryTitle": "مكتبة الصور لصفحة '{slug}'",
+      "altTextPlaceholder": "صف هذه الصورة"
+    },
+    "repeater": {
+      "addItem": "إضافة عنصر",
+      "noItems": "لا توجد عناصر بعد. انقر على 'إضافة عنصر' للبدء."
+    },
+    "toolbar": {
+      "heading3": "عنوان 3",
+      "bold": "عريض",
+      "italic": "مائل",
+      "strike": "يتوسطه خط",
+      "bulletList": "قائمة نقطية",
+      "orderedList": "قائمة مرقمة"
+    },
+    "partners": {
+      "breadcrumb": "فئات الشركاء",
+      "pageTitle": "إدارة فئات الشركاء",
+      "pageDescription": "تحكم في فئات الشركاء المعروضة في صفحة 'الشركاء'.",
+      "cardTitle": "فئات الشركاء",
+      "cardDescription": "إدارة فئات الشراكة وروابط التقديم.",
+      "addNewCategory": "إضافة فئة جديدة",
+      "table": {
+        "icon": "الأيقونة",
+        "name": "الاسم",
+        "description": "الوصف",
+        "status": "الحالة"
+      },
+      "statusLabels": {
+        "active": "نشط",
+        "inactive": "غير نشط"
+      },
+      "actionsMenu": {
+        "label": "الإجراءات",
+        "edit": "تعديل",
+        "delete": "حذف"
+      },
+      "deleteDialog": {
+        "title": "حذف فئة الشريك",
+        "description": "هل أنت متأكد من رغبتك في حذف الفئة \"{name}\"؟"
+      },
+      "formDialog": {
+        "editTitle": "تعديل الفئة",
+        "newTitle": "فئة جديدة"
+      },
+      "form": {
+        "nameLabel": "الاسم",
+        "nameRequired": "الاسم مطلوب.",
+        "descriptionLabel": "الوصف",
+        "descriptionRequired": "الوصف مطلوب.",
+        "iconLabel": "صورة الأيقونة (اختياري)",
+        "linkLabel": "رابط نموذج جوجل",
+        "linkInvalid": "يجب أن يكون رابطًا صالحًا.",
+        "orderLabel": "ترتيب العرض",
+        "activeLabel": "نشط",
+        "saveButton": "حفظ"
+      },
+      "toast": {
+        "createSuccess": "تم إنشاء فئة الشريك بنجاح!",
+        "createError": "فشل في إنشاء الفئة.",
+        "updateSuccess": "تم تحديث فئة الشريك بنجاح!",
+        "updateError": "فشل في تحديث الفئة.",
+        "deleteSuccess": "تم حذف فئة الشريك.",
+        "deleteError": "فشل في حذف الفئة."
+      }
+    },
+    "faqs": {
+      "breadcrumb": "إدارة الأسئلة الشائعة",
+      "pageTitle": "إدارة الأسئلة الشائعة",
+      "pageDescription": "تنظيم الأسئلة والأجوبة في فئات لصفحة الأسئلة الشائعة العامة.",
+      "tabs": {
+        "categories": "الفئات",
+        "items": "العناصر في \"{name}\""
+      },
+      "shared": {
+        "actionsMenu": {
+          "label": "الإجراءات",
+          "edit": "تعديل",
+          "delete": "حذف"
+        },
+        "statusLabels": {
+          "active": "نشط",
+          "inactive": "غير نشط"
+        },
+        "form": {
+          "orderLabel": "ترتيب العرض",
+          "saveButton": "حفظ"
+        }
+      },
+      "categories": {
+        "cardTitle": "فئات الأسئلة الشائعة",
+        "addNew": "إضافة فئة جديدة",
+        "manageItemsButton": "إدارة العناصر",
+        "table": {
+          "order": "الترتيب",
+          "name": "الاسم",
+          "actions": "الإجراءات"
+        },
+        "deleteDialog": {
+          "title": "حذف فئة الأسئلة الشائعة",
+          "description": "هل أنت متأكد أنك تريد حذف الفئة \"{name}\"؟ سيؤدي هذا أيضًا إلى حذف جميع الأسئلة بداخلها."
+        },
+        "formDialog": {
+          "editTitle": "تعديل الفئة",
+          "newTitle": "فئة جديدة"
+        },
+        "form": {
+          "nameLabel": "الاسم",
+          "nameRequired": "الاسم مطلوب."
+        },
+        "toast": {
+          "createSuccess": "تم إنشاء الفئة بنجاح!",
+          "createError": "فشل إنشاء الفئة.",
+          "updateSuccess": "تم تحديث الفئة بنجاح!",
+          "updateError": "فشل تحديث الفئة.",
+          "deleteSuccess": "تم حذف الفئة.",
+          "deleteError": "فشل حذف الفئة."
+        }
+      },
+      "items": {
+        "backButton": "الرجوع إلى الفئات",
+        "cardTitle": "العناصر في \"{name}\"",
+        "cardDescription": "إدارة الأسئلة والأجوبة لهذه الفئة.",
+        "addNew": "إضافة عنصر جديد",
+        "table": {
+          "order": "الترتيب",
+          "question": "السؤال",
+          "status": "الحالة",
+          "actions": "الإجراءات"
+        },
+        "deleteDialog": {
+          "title": "حذف عنصر الأسئلة الشائعة",
+          "description": "هل أنت متأكد أنك تريد حذف السؤال \"{question}\"؟"
+        },
+        "formDialog": {
+          "editTitle": "تعديل عنصر",
+          "newTitle": "عنصر جديد"
+        },
+        "form": {
+          "questionLabel": "السؤال",
+          "questionRequired": "السؤال مطلوب.",
+          "answerLabel": "الإجابة",
+          "answerRequired": "الإجابة مطلوبة.",
+          "activeLabel": "نشط"
+        },
+        "toast": {
+          "createSuccess": "تم إنشاء عنصر الأسئلة الشائعة بنجاح!",
+          "createError": "فشل إنشاء العنصر.",
+          "updateSuccess": "تم تحديث عنصر الأسئلة الشائعة بنجاح! ب",
+          "updateError": "فشل تحديث العنصر.",
+          "deleteSuccess": "تم حذف عنصر الأسئلة الشائعة.",
+          "deleteError": "فشل حذف العنصر."
+        }
+      }
+    },
+    "contact": {
+      "breadcrumb": "رسائل التواصل",
+      "pageTitle": "صندوق رسائل التواصل",
+      "pageDescription": "عرض وإدارة الرسائل المرسلة عبر نموذج التواصل العام.",
+      "cardTitle": "صندوق الرسائل",
+      "searchPlaceholder": "البحث بالاسم, البريد الإلكتروني, الموضوع...",
+      "filterPlaceholder": "تصفية حسب الحالة",
+      "allStatuses": "كل الحالات",
+      "table": {
+        "from": "من",
+        "subject": "الموضوع",
+        "date": "التاريخ",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+      "viewMessage": "عرض الرسالة",
+      "statusLabels": {
+        "new": "جديد",
+        "read": "مقروء",
+        "replied": "تم الرد",
+        "archived": "مؤرشف"
+      },
+      "dialog": {
+        "fromLabel": "من",
+        "receivedLabel": "تاريخ الاستلام",
+        "viewAttachment": "عرض المرفق",
+        "updateStatusLabel": "تحديث الحالة",
+        "selectStatusPlaceholder": "اختر الحالة...",
+        "saveButton": "حفظ الحالة"
+      },
+      "toast": {
+        "updateSuccess": "تم تحديث حالة الرسالة بنجاح!",
+        "updateError": "فشل تحديث الرسالة."
+      }
+    }
+  }
+}

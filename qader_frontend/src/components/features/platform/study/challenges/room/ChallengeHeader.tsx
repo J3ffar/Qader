@@ -122,7 +122,6 @@ export function ChallengeHeader({ challenge }: ChallengeHeaderProps) {
 
   const answeredByMap = challenge.answeredBy || {};
   const totalQuestions = challenge.questions.length;
-  console.log(totalQuestions);
 
   const getAnsweredCount = (userId?: number) => {
     if (!userId) return 0;

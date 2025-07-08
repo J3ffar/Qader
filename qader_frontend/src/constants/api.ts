@@ -48,6 +48,39 @@ export const API_ENDPOINTS = {
       TICKET_DETAIL: (id: number | string) => `/admin/support/tickets/${id}/`,
       REPLIES: (id: number | string) => `/admin/support/tickets/${id}/replies/`,
     },
+    CONTENT: {
+      // NEW SECTION
+      // Pages
+      PAGES: "/admin/content/pages/",
+      PAGE_DETAIL: (slug: string) => `/admin/content/pages/${slug}/`,
+      // Page-specific Images
+      PAGE_IMAGES: (pageSlug: string) =>
+        `/admin/content/pages/${pageSlug}/images/`,
+      PAGE_IMAGE_DETAIL: (pageSlug: string, imageId: number | string) =>
+        `/admin/content/pages/${pageSlug}/images/${imageId}/`,
+      // FAQs
+      FAQ_CATEGORIES: "/admin/content/faq-categories/",
+      FAQ_CATEGORY_DETAIL: (id: number | string) =>
+        `/admin/content/faq-categories/${id}/`,
+      FAQ_ITEMS: "/admin/content/faq-items/",
+      FAQ_ITEM_DETAIL: (id: number | string) =>
+        `/admin/content/faq-items/${id}/`,
+      // Contact Messages
+      CONTACT_MESSAGES: "/admin/content/contact-messages/",
+      CONTACT_MESSAGE_DETAIL: (id: number | string) =>
+        `/admin/content/contact-messages/${id}/`,
+      // Homepage
+      HOMEPAGE_FEATURES: "/admin/content/homepage-features/",
+      HOMEPAGE_FEATURE_DETAIL: (id: number | string) =>
+        `/admin/content/homepage-features/${id}/`,
+      HOMEPAGE_STATS: "/admin/content/homepage-stats/",
+      HOMEPAGE_STAT_DETAIL: (id: number | string) =>
+        `/admin/content/homepage-stats/${id}/`,
+      // Partners
+      PARTNER_CATEGORIES: "/admin/content/partner-categories/",
+      PARTNER_CATEGORY_DETAIL: (id: number | string) =>
+        `/admin/content/partner-categories/${id}/`,
+    },
   },
   STUDY: {
     STATISTICS: "/study/statistics/",

@@ -1,12 +1,34 @@
 from rest_framework import serializers
-from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 from apps.content import models
 
 
+class PublicContentImageSerializer(serializers.ModelSerializer):
+    """
+    Public-facing serializer for ContentImage.
+    Exposes fields needed for rendering, including the stable slug.
+    """
+
+    class Meta:
+        model = models.ContentImage
+        fields = [
+            "id",
+            "slug",
+            "name",
+            "image",  # This will be the full URL path
+            "alt_text",
+        ]
+
+
 class PageSerializer(serializers.ModelSerializer):
-    """Serializer for the Page model (Terms, Story, etc.)."""
+    """
+    Serializer for the Page model, which now dynamically resolves image slugs
+    in structured content to full URLs for public consumption.
+    """
+
+    images = PublicContentImageSerializer(many=True, read_only=True)
+    content_structured_resolved = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Page
@@ -14,10 +36,35 @@ class PageSerializer(serializers.ModelSerializer):
             "slug",
             "title",
             "content",
+            "content_structured_resolved",  # This resolved field is sent to the client
+            "images",
             "icon_class",
             "updated_at",
         ]
-        read_only_fields = ["updated_at"]  # Ensure updated_at is read-only
+        read_only_fields = ["updated_at", "images"]
+
+    def get_content_structured_resolved(self, obj):
+        """
+        Resolves image slugs using the 'image_url_map' passed in the context.
+        """
+        if not obj.content_structured:
+            return None
+
+        # Get the pre-built map from the context
+        image_map = self.context.get("image_url_map", {})
+
+        resolved_content = obj.content_structured.copy()
+
+        for key, item in resolved_content.items():
+            if isinstance(item, dict) and item.get("type") == "image":
+                image_slug = item.get("value")
+
+                # Look up the slug in the map and replace it with the URL.
+                # If the slug is not found (e.g., image not uploaded yet),
+                # the value will be None.
+                item["value"] = image_map.get(image_slug, None)
+
+        return resolved_content
 
 
 class FAQItemSerializer(serializers.ModelSerializer):
@@ -41,15 +88,30 @@ class FAQCategorySerializer(serializers.ModelSerializer):
 class PartnerCategorySerializer(serializers.ModelSerializer):
     """Serializer for Success Partner categories."""
 
+    icon_image = serializers.SerializerMethodField()
+
     class Meta:
         model = models.PartnerCategory
         fields = [
             "id",
             "name",
             "description",
-            "icon_svg_or_class",
+            "icon_image",
             "google_form_link",
         ]
+
+    def get_icon_image(self, obj):
+        """
+        Builds a full absolute URL for the icon_image.
+        Returns None if the image doesn't exist.
+        """
+        request = self.context.get("request")
+        if obj.icon_image and request:
+            # `request.build_absolute_uri` is the key function here.
+            # It takes a relative path like '/media/...' and prepends the
+            # 'http://domain.com' part to it.
+            return request.build_absolute_uri(obj.icon_image.url)
+        return None
 
 
 class HomepageFeatureCardSerializer(serializers.ModelSerializer):
@@ -57,12 +119,7 @@ class HomepageFeatureCardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.HomepageFeatureCard
-        fields = [
-            "title",
-            "text",
-            "svg_image",
-            "icon_class",
-        ]  # Removed order/is_active as not needed for API consumer
+        fields = ["title", "text", "svg_image", "icon_class"]
 
 
 class HomepageStatisticSerializer(serializers.ModelSerializer):
@@ -70,7 +127,7 @@ class HomepageStatisticSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.HomepageStatistic
-        fields = ["label", "value", "icon_class"]  # Removed order/is_active
+        fields = ["label", "value", "icon_class"]
 
 
 class HomepageSerializer(serializers.Serializer):
@@ -78,18 +135,11 @@ class HomepageSerializer(serializers.Serializer):
 
     intro = PageSerializer(read_only=True)
     praise = PageSerializer(read_only=True)
-    intro_video_url = serializers.URLField(
-        read_only=True
-    )  # Assuming this comes from settings or another model
+    about_us = PageSerializer(allow_null=True, required=False)
     features = HomepageFeatureCardSerializer(many=True, read_only=True)
     statistics = HomepageStatisticSerializer(many=True, read_only=True)
-    why_partner_text = PageSerializer(read_only=True)  # Added based on partners API doc
-
-    # If intro_video_url needs to be sourced differently, adjust accordingly
-    # Example: source from Django settings
-    # intro_video_url = serializers.SerializerMethodField()
-    # def get_intro_video_url(self, obj):
-    #     return getattr(settings, 'HOMEPAGE_INTRO_VIDEO_URL', None)
+    why_partner_text = PageSerializer(read_only=True)
+    call_to_action = PageSerializer(allow_null=True, required=False)
 
 
 class ContactMessageSerializer(serializers.ModelSerializer):
@@ -98,24 +148,21 @@ class ContactMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ContactMessage
         fields = [
-            "id",  # ReadOnly on create, useful in response
+            "id",
             "full_name",
             "email",
             "subject",
             "message",
             "attachment",
-            "status",  # ReadOnly on create
-            "created_at",  # ReadOnly on create
-            "updated_at",  # ReadOnly on create
+            "status",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = ["id", "status", "created_at", "updated_at"]
 
     def validate_subject(self, value):
-        # Example validation
         if len(value) < 5:
             raise serializers.ValidationError(
                 _("Subject must be at least 5 characters long.")
             )
         return value
-
-    # Add more validation as needed (e.g., attachment size/type if required)

@@ -45,9 +45,11 @@ export default function middleware(req: NextRequest) {
     (platformRoutes.some((path) => pathnameWithoutLocale.startsWith(path)) ||
       adminRoutes.some((path) => pathnameWithoutLocale.startsWith(path)))
   ) {
-    const loginUrl = new URL(`/${locale}${PATHS.LOGIN}`, req.url);
-    loginUrl.searchParams.set("redirect_to", pathname); // Redirect back after login
-    return NextResponse.redirect(loginUrl);
+    if (pathname != "/study-preview") {
+      const loginUrl = new URL(`/${locale}${PATHS.LOGIN}`, req.url);
+      loginUrl.searchParams.set("redirect_to", pathname); // Redirect back after login
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   // 2. Redirect authenticated users from auth pages
@@ -55,7 +57,9 @@ export default function middleware(req: NextRequest) {
     isAuthenticated &&
     authRoutes.some((path) => pathnameWithoutLocale.startsWith(path))
   ) {
-    const redirectPath = isStaff ? PATHS.ADMIN.DASHBOARD : PATHS.STUDY.HOME;
+    const redirectPath = isStaff
+      ? PATHS.ADMIN.EMPLOYEES_MANAGEMENT
+      : PATHS.STUDY.HOME;
     return NextResponse.redirect(new URL(`/${locale}${redirectPath}`, req.url));
   }
 

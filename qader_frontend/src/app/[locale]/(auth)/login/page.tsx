@@ -58,7 +58,7 @@ export default function LoginPage() {
         searchParams.get("redirect_to") ||
         (authUser.profile_complete
           ? authUser.is_super || authUser.is_staff
-            ? PATHS.ADMIN.DASHBOARD
+            ? PATHS.ADMIN.EMPLOYEES_MANAGEMENT
             : PATHS.STUDY.HOME
           : PATHS.COMPLETE_PROFILE);
       router.replace(redirectTo);
@@ -84,7 +84,7 @@ export default function LoginPage() {
       if (redirectTo) {
         router.replace(redirectTo); // Handle redirect from middleware
       } else if (data.user?.is_super || data.user?.is_staff) {
-        router.replace(PATHS.ADMIN.DASHBOARD);
+        router.replace(PATHS.ADMIN.EMPLOYEES_MANAGEMENT);
       } else if (!data.user.profile_complete) {
         router.replace(PATHS.COMPLETE_PROFILE);
       } else {
