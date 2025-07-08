@@ -110,7 +110,7 @@ class HomepageView(views.APIView):
             "homepage-intro",
             "homepage-about-us",
             "homepage-praise",
-            "why-partner",
+            "homepage-why-partner",
             "homepage-cta",
         ]
         pages_qs = models.Page.objects.filter(
@@ -160,7 +160,7 @@ class HomepageView(views.APIView):
             "about_us": pages.get("homepage-about-us"),
             "features": feature_cards,
             "statistics": statistics,
-            "why_partner_text": pages.get("why-partner"),
+            "why_partner_text": pages.get("homepage-why-partner"),
             "call_to_action": pages.get("homepage-cta"),
         }
 
@@ -203,7 +203,7 @@ class FAQListView(generics.ListAPIView):
 
         # Fetch Page content
         page_content = models.Page.objects.filter(
-            slug="faq-page-content", is_published=True
+            slug="faq-page", is_published=True
         ).first()
 
         faq_serializer = serializers.FAQCategorySerializer(faq_categories, many=True)
@@ -235,7 +235,7 @@ class PartnerCategoryListView(views.APIView):
         )
 
         page_content = (
-            models.Page.objects.filter(slug="partners-page-content", is_published=True)
+            models.Page.objects.filter(slug="partners-page", is_published=True)
             .prefetch_related("images")
             .first()
         )

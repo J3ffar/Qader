@@ -77,7 +77,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
         Cookies.set("qader-user-role", "student", { path: "/" });
       }
       if (data.user?.is_super || data.user?.is_staff) {
-        router.push(PATHS.ADMIN.DASHBOARD);
+        router.push(PATHS.ADMIN.EMPLOYEES_MANAGEMENT);
       } else if (!data.user.profile_complete) {
         router.push(PATHS.COMPLETE_PROFILE);
       } else {

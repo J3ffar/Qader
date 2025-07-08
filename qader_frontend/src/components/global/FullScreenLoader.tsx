@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 // import { QaderLogo } from ".//QaderLogo"; // Assuming you have a logo component
 
 export function FullScreenLoader() {
@@ -39,7 +40,13 @@ export function FullScreenLoader() {
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
       <div className="flex flex-col items-center justify-center space-y-6">
         {/* You can add your logo here for better branding */}
-        {/* <QaderLogo className="h-12 w-auto text-primary" /> */}
+        <Image
+          src={"/images/logo/logo-icon.png"}
+          alt="Logo"
+          width={72}
+          height={72}
+          className="h-16 w-auto text-primary"
+        />
 
         {/* The animated loader */}
         <motion.div
@@ -68,7 +75,7 @@ export function FullScreenLoader() {
 
         {/* The text in Arabic */}
         <p className="text-lg font-medium text-foreground/80 tracking-wide">
-          {t("loading")}...
+          {t("loading")}
         </p>
       </div>
     </div>

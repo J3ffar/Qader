@@ -242,7 +242,7 @@ export const getAboutPageContent =
     try {
       // Use the generic Page API endpoint with the correct slug
       const pageData = await apiClient<Page<AboutPageContent>>(
-        "/content/pages/our-story/",
+        "/content/pages/our-story-page/",
         {
           isPublic: true,
         }
@@ -296,7 +296,7 @@ export const getContactPageContent =
   async (): Promise<Page<ContactPageContent> | null> => {
     try {
       const pageData = await apiClient<Page<ContactPageContent>>(
-        "/content/pages/contact-page-content/",
+        "/content/pages/contact-page/",
         {
           isPublic: true,
         }
