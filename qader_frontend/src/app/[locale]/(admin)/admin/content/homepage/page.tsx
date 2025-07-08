@@ -39,30 +39,11 @@ export default async function AdminHomepageContentPage() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <div className="space-y-4">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href={PATHS.ADMIN.DASHBOARD}>
-                {t("breadcrumbDashboard")}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href={PATHS.ADMIN.CONTENT_PAGES_LIST}>
-                {t("breadcrumbContent")}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{tHomepage("breadcrumb")}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      <div className="space-y-2">
         <h1 className="text-2xl font-bold">{tHomepage("pageTitle")}</h1>
         <p className="text-muted-foreground">{tHomepage("pageDescription")}</p>
 
-        <Tabs defaultValue="features" className="w-full">
+        <Tabs defaultValue="features" className="w-full" dir="rtl">
           <TabsList>
             <TabsTrigger value="features">
               {tHomepage("tabs.features")}

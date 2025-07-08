@@ -5,7 +5,7 @@
     "fields": {
       "slug": "homepage-intro",
       "title": "قسم الرئيسي في الصفحة الرئيسية",
-      "content": "منصتنا مخصصة لك, انت فى الطريق الصحيح. اكتشف كيف يمكن لأدواتنا المبتكرة والمدعومة بالذكاء الاصطناعي أن تضعك على طريق النجاح.",
+      "content": null,
       "content_structured": {
         "hero_title": {
           "admin_title": "العنوان الرئيسي في قسم الهيرو",
@@ -36,9 +36,47 @@
     "model": "content.page",
     "pk": 2,
     "fields": {
+      "slug": "homepage-about-us",
+      "title": "قسم من نحن في الصفحة الرئيسية",
+      "content": null,
+      "content_structured": {
+        "section_title": {
+          "admin_title": "عنوان قسم 'من نحن'",
+          "type": "text",
+          "value": "من نحن؟"
+        },
+        "section_text": {
+          "admin_title": "نص قسم 'من نحن'",
+          "type": "textarea",
+          "value": "هنا يمكنك تقديم نفسك ومن أنت وما القصة التي تريد أن ترويها عن علامتك التجارية أو عملك. هذا النص قابل للتعديل بالكامل من لوحة التحكم."
+        },
+        "video_url": {
+          "admin_title": "رابط فيديو قسم 'من نحن' (يجب الحصول على رابط من Share وبعدها Embed من اجل مقاطع Youtbue)",
+          "type": "url",
+          "value": null
+        },
+        "button_text": {
+          "admin_title": "نص زر 'تعرف علينا'",
+          "type": "text",
+          "value": "تعرف علينا اكثر"
+        },
+        "video_placeholder_image": {
+          "admin_title": "الصورة البديلة للفيديو",
+          "type": "image",
+          "value": "homepage-about-us-placeholder"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.page",
+    "pk": 3,
+    "fields": {
       "slug": "homepage-praise",
       "title": "قسم ماذا قالوا عنا؟ في الصفحة الرئيسية",
-      "content": "آراء طلابنا هي شهادة نجاحنا. انظر كيف ساعدناهم في تحقيق أهدافهم.",
+      "content": null,
       "content_structured": {
         "section_title": {
           "admin_title": "عنوان قسم آراء الطلاب",
@@ -99,11 +137,11 @@
   },
   {
     "model": "content.page",
-    "pk": 3,
+    "pk": 4,
     "fields": {
-      "slug": "why-partner",
+      "slug": "homepage-why-partner",
       "title": "قسم لماذا يجب على العملاء أن يختارونا؟ في الصفحة الرئيسية",
-      "content": "نحن لا نقدم مجرد منصة، بل شريك نجاح متكامل في رحلتك التعليمية.",
+      "content": null,
       "content_structured": {
         "section_title": {
           "admin_title": "عنوان قسم 'لماذا نحن'",
@@ -127,7 +165,7 @@
   },
   {
     "model": "content.page",
-    "pk": 4,
+    "pk": 5,
     "fields": {
       "slug": "homepage-cta",
       "title": "قسم دعوة إلى الاشتراك في الصفحة الرئيسية",
@@ -154,50 +192,12 @@
     }
   },
   {
-    "model": "content.page",
-    "pk": 5,
-    "fields": {
-      "slug": "homepage-about-us",
-      "title": "قسم من نحن في الصفحة الرئيسية",
-      "content": null,
-      "content_structured": {
-        "section_title": {
-          "admin_title": "عنوان قسم 'من نحن'",
-          "type": "text",
-          "value": "من نحن؟"
-        },
-        "section_text": {
-          "admin_title": "نص قسم 'من نحن'",
-          "type": "textarea",
-          "value": "هنا يمكنك تقديم نفسك ومن أنت وما القصة التي تريد أن ترويها عن علامتك التجارية أو عملك. هذا النص قابل للتعديل بالكامل من لوحة التحكم."
-        },
-        "video_url": {
-          "admin_title": "رابط فيديو قسم 'من نحن'",
-          "type": "url",
-          "value": null
-        },
-        "button_text": {
-          "admin_title": "نص زر 'تعرف علينا'",
-          "type": "text",
-          "value": "تعرف علينا اكثر"
-        },
-        "video_placeholder_image": {
-          "admin_title": "الصورة البديلة للفيديو",
-          "type": "image",
-          "value": "homepage-about-us-placeholder"
-        }
-      },
-      "icon_class": null,
-      "is_published": true
-    }
-  },
-  {
     "model": "content.contentimage",
     "pk": 1,
     "fields": {
       "page": 1,
       "slug": "homepage-hero-main",
-      "name": "Homepage Hero Main Image",
+      "name": "الصورة الرئيسية للصفحة الرئيسية",
       "image": null,
       "alt_text": "طالب يدرس باجتهاد باستخدام منصة قادر لاختبار القدرات"
     }
@@ -208,7 +208,7 @@
     "fields": {
       "page": 1,
       "slug": "homepage-promo-icon",
-      "name": "Homepage Promo Icon",
+      "name": "أيقونة الترويج للصفحة الرئيسية",
       "image": null,
       "alt_text": "أيقونة منصة قادر"
     }
@@ -219,7 +219,7 @@
     "fields": {
       "page": 3,
       "slug": "homepage-advantage-section-image",
-      "name": "Homepage Advantage Section Image",
+      "name": "صورة قسم ميزة الصفحة الرئيسية",
       "image": null,
       "alt_text": "صورة توضيحية لمميزات منصة قادر"
     }
@@ -228,9 +228,9 @@
     "model": "content.contentimage",
     "pk": 4,
     "fields": {
-      "page": 5,
+      "page": 2,
       "slug": "homepage-about-us-placeholder",
-      "name": "Homepage About Us Video Placeholder",
+      "name": "الصفحة الرئيسية عنا الفيديو النائب للفيديو",
       "image": null,
       "alt_text": "عرض تقديمي عن منصة قادر"
     }
@@ -367,8 +367,8 @@
     "model": "content.page",
     "pk": 6,
     "fields": {
-      "slug": "our-story",
-      "title": "محتوى صفحة من نحن (القصة)",
+      "slug": "our-story-page",
+      "title": "محتوى صفحة قصتنا",
       "content": null,
       "content_structured": {
         "hero_title": {
@@ -453,7 +453,7 @@
     "fields": {
       "page": 6,
       "slug": "our-story-storytelling-icon",
-      "name": "About Us Storytelling Icon",
+      "name": "عنا أيقونة لرواية القصص",
       "image": null,
       "alt_text": "أيقونة القصة"
     }
@@ -464,7 +464,7 @@
     "fields": {
       "page": 6,
       "slug": "our-story-greeting-icon",
-      "name": "About Us Greeting Icon",
+      "name": "عنا أيقونة تحية",
       "image": null,
       "alt_text": "أيقونة الترحيب"
     }
@@ -475,7 +475,7 @@
     "fields": {
       "page": 6,
       "slug": "our-story-phone-promo",
-      "name": "About Us Phone Promo",
+      "name": "حولنا الترويجي للهاتف",
       "image": null,
       "alt_text": "عرض تطبيق قادر على الهاتف"
     }
@@ -486,7 +486,7 @@
     "fields": {
       "page": 6,
       "slug": "our-story-laptop-1",
-      "name": "About Us Laptop 1",
+      "name": "عنا الكمبيوتر المحمول 1",
       "image": null,
       "alt_text": "عرض منصة قادر على اللابتوب"
     }
@@ -497,7 +497,7 @@
     "fields": {
       "page": 6,
       "slug": "our-story-laptop-2",
-      "name": "About Us Laptop 2",
+      "name": "عنا الكمبيوتر المحمول 2",
       "image": null,
       "alt_text": "عرض آخر لمنصة قادر على اللابتوب"
     }
@@ -507,7 +507,7 @@
     "model": "content.page",
     "pk": 7,
     "fields": {
-      "slug": "partners-page-content",
+      "slug": "partners-page",
       "title": "محتوى صفحة شركاء النجاح",
       "content": null,
       "content_structured": {
@@ -583,7 +583,7 @@
     "fields": {
       "page": 7,
       "slug": "partners-page-logo",
-      "name": "Partners Page Logo Image",
+      "name": "صورة شعار صفحة الشركاء",
       "image": null,
       "alt_text": "شعار منصة قادر"
     }
@@ -594,7 +594,7 @@
     "fields": {
       "page": null,
       "slug": "partners-icon-school",
-      "name": "Partners Icon School",
+      "name": "مدرسة الشركاء أيقونة",
       "image": null,
       "alt_text": "أيقونة شراكة المدارس"
     }
@@ -605,7 +605,7 @@
     "fields": {
       "page": null,
       "slug": "partners-icon-trainer",
-      "name": "Partners Icon Trainer",
+      "name": "شركاء أيقونة مدرب",
       "image": null,
       "alt_text": "أيقونة شراكة المدربين"
     }
@@ -616,7 +616,7 @@
     "fields": {
       "page": null,
       "slug": "partners-icon-student",
-      "name": "Partners Icon Student",
+      "name": "شركاء أيقونة الطالب",
       "image": null,
       "alt_text": "أيقونة شراكة الطلاب"
     }
@@ -626,7 +626,7 @@
     "model": "content.page",
     "pk": 8,
     "fields": {
-      "slug": "faq-page-content",
+      "slug": "faq-page",
       "title": "محتوى صفحة الأسئلة الشائعة",
       "content": null,
       "content_structured": {
@@ -740,7 +740,7 @@
     "model": "content.page",
     "pk": 9,
     "fields": {
-      "slug": "contact-page-content",
+      "slug": "contact-page",
       "title": "محتوى صفحة تواصل معنا",
       "content": null,
       "content_structured": {

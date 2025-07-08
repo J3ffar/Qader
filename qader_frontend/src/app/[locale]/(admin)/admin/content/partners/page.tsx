@@ -25,26 +25,7 @@ export default async function AdminPartnerCategoriesPage() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <div className="space-y-4">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href={PATHS.ADMIN.DASHBOARD}>
-                {t("breadcrumbDashboard")}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href={PATHS.ADMIN.CONTENT_PAGES_LIST}>
-                {t("breadcrumbContent")}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{t("partners.breadcrumb")}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      <div className="space-y-2">
         <h1 className="text-2xl font-bold">{t("partners.pageTitle")}</h1>
         <p className="text-muted-foreground">{t("partners.pageDescription")}</p>
         <PartnerCategoriesClient />

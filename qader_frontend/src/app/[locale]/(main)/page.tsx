@@ -11,7 +11,11 @@ export default async function Home() {
 
   if (!data) {
     return (
-      <p className="text-center py-20">لا يمكن تحميل محتوى الصفحة حالياً.</p>
+      <div className="flex flex-col justify-center items-center h-screen dark:bg-[#081028]">
+        <h2 className="text-3xl font-bold">
+          عذراً، لم نتمكن من تحميل محتوى الصفحة.
+        </h2>
+      </div>
     );
   }
 

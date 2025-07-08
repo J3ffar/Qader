@@ -84,7 +84,6 @@ export const signupUser = (data: ApiSignupData): Promise<SignupResponse> => {
   });
 };
 
-// ... (confirmEmail, requestOtp, verifyOtp, resetPasswordWithOtp are all fine)
 export interface ConfirmEmailParams {
   uidb64: string;
   token: string;

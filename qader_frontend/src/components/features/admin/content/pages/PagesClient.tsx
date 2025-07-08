@@ -52,10 +52,10 @@ export function PagesClient() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t("table.title")}</TableHead>
-                <TableHead>{t("table.images")}</TableHead> {/* NEW COLUMN */}
+                <TableHead>{t("table.images")}</TableHead>
                 <TableHead>{t("table.slug")}</TableHead>
                 <TableHead>{t("table.status")}</TableHead>
-                <TableHead className="text-right">
+                <TableHead className="text-center">
                   {t("table.actions")}
                 </TableHead>
               </TableRow>
@@ -142,9 +142,10 @@ export function PagesClient() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button asChild variant="ghost" size="icon">
+                      <Button asChild variant="outline">
                         <Link href={PATHS.ADMIN.CONTENT_PAGE_EDIT(page.slug)}>
                           <Edit className="h-4 w-4" />
+                          تعديل المحتوى
                           <span className="sr-only">{t("editPage")}</span>
                         </Link>
                       </Button>

@@ -119,8 +119,6 @@ export function ContactMessagesClient() {
   const messages = response?.results ?? [];
   const pageCount = response ? Math.ceil(response.count / ITEMS_PER_PAGE) : 0;
 
-  // *** THE FIX IS HERE ***
-  // Calculate the pagination state based on current page and total page count.
   const canPreviousPage = page > 1;
   const canNextPage = page < pageCount;
 
@@ -144,7 +142,7 @@ export function ContactMessagesClient() {
           };
         }
       );
-      setDialogOpen(false);
+      // setDialogOpen(false);
     },
     onError: (err) =>
       toast.error(t("toast.updateError"), { description: err.message }),
@@ -243,9 +241,9 @@ export function ContactMessagesClient() {
                         {message.email}
                       </div>
                     </TableCell>
-                    <TableCell>{message.subject}</TableCell>
+                    <TableCell className="w-full">{message.subject}</TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {format(new Date(message.created_at), "PPp", {
+                      {format(new Date(message.created_at), "PPPpp", {
                         locale: arSA,
                       })}
                     </TableCell>
@@ -261,10 +259,10 @@ export function ContactMessagesClient() {
                     <TableCell>
                       <Button
                         variant="outline"
-                        size="icon"
                         onClick={() => handleOpenDialog(message)}
                       >
                         <Eye className="h-4 w-4" />
+                        قراءة الرسالة
                         <span className="sr-only">{t("viewMessage")}</span>
                       </Button>
                     </TableCell>
@@ -294,7 +292,7 @@ export function ContactMessagesClient() {
               <br />
               {t("dialog.receivedLabel")}:{" "}
               {selectedMessage &&
-                format(new Date(selectedMessage.created_at), "PPp", {
+                format(new Date(selectedMessage.created_at), "PPPppp", {
                   locale: arSA,
                 })}
             </DialogDescription>

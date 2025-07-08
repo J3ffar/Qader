@@ -40,30 +40,16 @@ export default function AdminFaqsPage() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="space-y-4">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href={PATHS.ADMIN.DASHBOARD}>
-                {t("breadcrumbDashboard")}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href={PATHS.ADMIN.CONTENT_PAGES_LIST}>
-                {t("breadcrumbContent")}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{tFaqs("breadcrumb")}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      <div className="space-y-2">
         <h1 className="text-2xl font-bold">{tFaqs("pageTitle")}</h1>
         <p className="text-muted-foreground">{tFaqs("pageDescription")}</p>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full"
+          dir="rtl"
+        >
           <TabsList>
             <TabsTrigger value="categories" onClick={handleBackToCategories}>
               {tFaqs("tabs.categories")}

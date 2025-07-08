@@ -26,20 +26,7 @@ export default async function AdminPagesManagementPage() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <div className="space-y-4">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href={PATHS.ADMIN.DASHBOARD}>
-                {t("breadcrumbDashboard")}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{t("breadcrumbContent")}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      <div className="space-y-2">
         <h1 className="text-2xl font-bold">{t("pagesListTitle")}</h1>
         <p className="text-muted-foreground">{t("pagesListDescription")}</p>
         <PagesClient />
