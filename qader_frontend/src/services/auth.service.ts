@@ -33,21 +33,26 @@ import { ApiUpdateUserProfileData } from "@/types/api/user.types";
 export const loginUser = (
   credentials: LoginCredentials
 ): Promise<{ access: string; user: UserProfile }> => {
-  // This is a direct fetch call to our own backend. We don't use apiClient here.
   return fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
   }).then(async (res) => {
+    // We need the error data regardless of whether the response is ok or not
+    const responseData = await res.json();
+
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new ApiError(
-        errorData.detail || "Login failed",
-        res.status,
-        errorData
-      );
+      const errorMessage =
+        responseData.non_field_errors?.[0] || // Django's "No active account found..."
+        responseData.detail || // Django's other generic errors
+        "Login failed"; // Fallback
+
+      // Pass the full error data object in the ApiError constructor
+      throw new ApiError(errorMessage, res.status, responseData);
     }
-    return res.json();
+
+    // If successful, the data is already parsed
+    return responseData;
   });
 };
 
@@ -66,7 +71,7 @@ export const getAuthSession = async (): Promise<{
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new ApiError(
-      errorData.error || "Session not found",
+      errorData.non_field_errors?.[0] || errorData.error || "Session not found",
       response.status,
       errorData
     );
