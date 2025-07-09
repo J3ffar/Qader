@@ -123,18 +123,7 @@ class BlogPost(models.Model):
         # even though we've stripped tags, it's robust for text.
         return truncatewords_html(normalized_text, 130)
 
-    @property
-    def author_display_name(self) -> str:
-        """Returns the author's preferred name or username, or a default."""
-        if self.author:
-            if (
-                hasattr(self.author, "profile")
-                and self.author.profile
-                and getattr(self.author.profile, "preferred_name", None)
-            ):
-                return self.author.profile.preferred_name
-            return self.author.username
-        return _("Qader Team")
+    
 
     def save(self, *args, **kwargs):
         if not self.slug and self.title:

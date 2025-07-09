@@ -7,35 +7,27 @@ class BlogPostAdmin(admin.ModelAdmin):
     list_display = (
         "title",
         "slug",
-        "author_display_name",
+        "author",
         "status",
         "published_at",
         "created_at",
         "updated_at",
     )
     list_filter = ("status", "tags", "author")
-    search_fields = ("title", "content", "slug", "tags__name")
+    search_fields = ("title", "content", "slug", "tags__name", "author__username")
     prepopulated_fields = {"slug": ("title",)}  # Auto-populate slug in admin
+    raw_id_fields = ("author",)
     ordering = ("-status", "-published_at")
     date_hierarchy = "published_at"
     # Consider adding filter_horizontal or filter_vertical for 'tags' if using ManyToMany directly without taggit
 
     fieldsets = (
-        (None, {"fields": ("title", "slug", "content", "tags")}),
+        (None, {"fields": ("title", "slug", "content", "image", "tags")}),
         ("Publication", {"fields": ("status", "published_at", "author")}),
     )
 
     # Ensure read-only fields are displayed
     readonly_fields = ("created_at", "updated_at")
-
-    # Override the default queryset to show the display name
-    def author_display_name(self, obj):
-        return obj.author_display_name
-
-    author_display_name.short_description = "Author Name"
-    author_display_name.admin_order_field = (
-        "author__username"  # Allow sorting by username
-    )
 
 
 @admin.register(BlogAdviceRequest)

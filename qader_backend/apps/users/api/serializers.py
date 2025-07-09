@@ -761,6 +761,11 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
             # Nested serializers
             "subscription",
             "referral",
+            "bio",
+            "linkedin_url",
+            "twitter_url",
+            "facebook_url",
+            "instagram_url",
         )
         read_only_fields = (
             fields  # All fields are read-only in this response serializer
@@ -853,6 +858,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "referral",
             "assigned_mentor",
             "mentees_count",
+            "bio",
+            "linkedin_url",
+            "twitter_url",
+            "facebook_url",
+            "instagram_url",
         )
         read_only_fields = fields
 
@@ -938,6 +948,11 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             "notify_reminders_enabled",
             "upcoming_test_date",
             "study_reminder_time",
+            "bio",
+            "linkedin_url",
+            "twitter_url",
+            "facebook_url",
+            "instagram_url",
         )
 
     def validate_profile_picture(self, image):
