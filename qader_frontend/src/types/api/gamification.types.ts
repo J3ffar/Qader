@@ -67,7 +67,7 @@ export type StoreItemGamificaiton = {
   title: string;
   desc: string;
   points: number;
-  image_url: string;
+  image_url?: string;
 };
 export type PointsDataType = { day: string; percent: number };
 
@@ -84,6 +84,7 @@ export type RewardItem = {
   name: string;
   description: string;
   cost_points: number;
+  image_url?: string;
 };
 
 export type Badge = {

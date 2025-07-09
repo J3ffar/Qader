@@ -151,4 +151,8 @@ export const API_ENDPOINTS = {
     POINTS_SUMMARY: "/gamification/points-summary/",
     MY_ITEMS: "/gamification/my-items/",
   },
+  Blog: {
+    POSTS: "/blog/posts/",
+    adviceRequests: "/blog/advice-requests/",
+  },
 };

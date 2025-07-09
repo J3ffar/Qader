@@ -25,11 +25,11 @@ import {
   PointsDataType,
   PointsSummary,
   PurchasedItemResponse,
-  RewardItem,
+  RewardStoreItem,
   StoreItemGamificaiton,
 } from "@/types/api/gamification.types";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO, subDays } from "date-fns";
 import dayjs from "dayjs";
 import Image from "next/image";
@@ -66,24 +66,29 @@ const RewardsDashboard = () => {
     const todayQuery = useQuery({
       queryKey: ["points-total", "today"],
       queryFn: () => fetchPointsTotal(today, today),
+      refetchOnWindowFocus: true,
     });
 
     const thisWeekQuery = useQuery({
       queryKey: ["points-total", "this-week"],
       queryFn: () => fetchPointsTotal(weekStart, weekEnd),
+      refetchOnWindowFocus: true,
     });
     const lastWeekQuery = useQuery({
       queryKey: ["points-total", "last-week"],
       queryFn: () => fetchPointsTotal(lastWeekStart, lastWeekEnd),
+      refetchOnWindowFocus: true,
     });
     const lastMonthQuery = useQuery({
       queryKey: ["points-total", "last-month"],
       queryFn: () => fetchPointsTotal(monthStart, monthEnd),
+      refetchOnWindowFocus: true,
     });
 
     const last90DaysQuery = useQuery({
       queryKey: ["points-total", "last-90-days"],
       queryFn: () => fetchPointsTotal(last90Days, today),
+      refetchOnWindowFocus: true,
     });
     return {
       todayTotal: todayQuery.data ?? 0,
@@ -110,24 +115,28 @@ const RewardsDashboard = () => {
   // end the madaka
   const defaultStoreItems: StoreItemGamificaiton[] = [
     {
+      id: 0,
       title: "تصاميم",
       desc: "استبدل 20 نقطة مقابل الحصول على تصاميم، شرح وافٍ لما ستحصل عليه.",
       points: 20,
       image_url: "",
     },
     {
+      id: 1,
       title: "الدخول للمسابقة الكبرى",
       desc: "استبدل 30 نقطة مقابل الدخول للمسابقة الكبرى، التي سيتم الإعلان عنها لاحقاً.",
       points: 30,
       image_url: "",
     },
     {
+      id: 2,
       title: "أشعار",
       desc: "استبدل 10 نقاط مقابل الحصول على أشعار، شرح وافٍ لما ستحصل عليه.",
       points: 10,
       image_url: "",
     },
     {
+      id: 3,
       title: "مخطوطة",
       desc: "استبدل 5 نقاط مقابل الحصول على مخطوطة، شرح وافٍ لما ستحصل عليه.",
       points: 5,
@@ -174,7 +183,7 @@ const RewardsDashboard = () => {
   });
   // start days summary
   const { data: PointsSummary } = useQuery<PaginatedDailyPointSummaryResponse>({
-    queryKey: ["PointsSummary"],
+    queryKey: ["mPointsSummary"],
     queryFn: getPointsSummary,
   });
   type PointsData = { day: string; percent: number };
@@ -191,9 +200,19 @@ const RewardsDashboard = () => {
 
   const results = PointsSummary?.results ?? [];
 
-  const dayPointsMap: Record<string, number> = {};
+  const weekStartDate = dayjs().startOf("week");
+  const weekEndDate = dayjs().endOf("week");
 
-  results.forEach(({ date, total_points }) => {
+  const currentWeekResults = results.filter(({ date }) => {
+    const day = dayjs(date);
+    return (
+      day.isAfter(weekStartDate.subtract(1, "day")) &&
+      day.isBefore(weekEndDate.add(1, "day"))
+    );
+  });
+
+  const dayPointsMap: Record<string, number> = {};
+  currentWeekResults.forEach(({ date, total_points }) => {
     const dayIndex = new Date(date).getDay();
     const dayName = daysMap[dayIndex];
     dayPointsMap[dayName] = total_points;
@@ -227,7 +246,7 @@ const RewardsDashboard = () => {
         setActiveIndexes(indexes);
       }
     }
-  }, [activeIndexes]);
+  }, [activeIndexes, fullWeek]);
   //last week charts
   useEffect(() => {
     const lastWeekResults = results.filter(({ date }) => {
@@ -266,6 +285,7 @@ const RewardsDashboard = () => {
   const { data: studyDaysData } = useQuery<PaginatedStudyDayLogResponse>({
     queryKey: ["StudyDaysLog"],
     queryFn: () => getStudyDaysLog(),
+    refetchOnWindowFocus: true,
   });
 
   const [myStreak, setMyStreak] = useState(0);
@@ -312,16 +332,18 @@ const RewardsDashboard = () => {
     queryFn: getPointsSummary,
   });
 
-  const { data: PurchasedItems } = useQuery<PurchasedItemResponse>({
-    queryKey: ["getMyPurchasedItems"],
-    queryFn: getMyPurchasedItems,
-  });
+  const { data: PurchasedItems, refetch: refetchPurchasedItems } =
+    useQuery<PurchasedItemResponse>({
+      queryKey: ["getMyPurchasedItems"],
+      queryFn: getMyPurchasedItems,
+    });
   const PurchasedItemsIds =
     PurchasedItems?.results.map((entry) => entry.item.id) ?? [];
-  const { data: storeData } = useQuery<RewardItem[]>({
+  const { data: storeData } = useQuery<RewardStoreItem[]>({
     queryKey: ["rewardStoreItems"],
     queryFn: getRewardStoreItems,
   });
+  const queryClient = useQueryClient();
 
   // Derived state
   const mybadgesCount = badgesData?.filter((b) => b.is_earned).length || 0;
@@ -340,6 +362,7 @@ const RewardsDashboard = () => {
           title: item.name,
           desc: item.description,
           points: item.cost_points,
+          image_url: item.image_url,
         }))
       : defaultStoreItems;
 
@@ -351,6 +374,10 @@ const RewardsDashboard = () => {
     try {
       await purchaseRewardItem(selectedReward.id);
       setIsConfirmed(true);
+      queryClient.invalidateQueries({ queryKey: ["getMyPurchasedItems"] });
+      queryClient.invalidateQueries({ queryKey: ["pointsSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["gamificationSummary"] });
+      await refetchPurchasedItems();
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -416,7 +443,7 @@ const RewardsDashboard = () => {
             </div>
 
             {/* Emoji icons */}
-            <div className="flex justify-center gap-2 text-[24px] leading-none ">
+            <div className="flex justify-center gap-2 text-[24px] leading-none flex-wrap ">
               {["🥇", "🥈", "🏆", "🌟", "🎗️", "🌞", "🎯", "🏅", "👑"].map(
                 (emoji, index) => {
                   const badge = myBadges[index];
@@ -441,7 +468,7 @@ const RewardsDashboard = () => {
                           alt=""
                           width={32}
                           height={32}
-                          src="badge.icon_url"
+                          src={badge.icon_url}
                         />
                       ) : (
                         emoji
@@ -496,7 +523,7 @@ const RewardsDashboard = () => {
                 />
               </div>
               <span className="text-xs font-medium text-gray-600">
-                {studyDaysData ? studyDaysData.count : "0"}/7
+                {myStreak || 0}/7
               </span>
             </div>
 
@@ -515,7 +542,7 @@ const RewardsDashboard = () => {
                   key={idx}
                   className="flex flex-col items-center justify-center space-y-1"
                 >
-                  {activeIndexes.includes(idx) ? (
+                  {activeIndexes.includes(idx) && fullWeek[idx]?.percent > 0 ? (
                     <Image
                       width={20}
                       className="rotate-6 text-[#2f80ed]"
@@ -631,7 +658,7 @@ const RewardsDashboard = () => {
         <div className="grid justify-around w-full lg:grid-cols-[repeat(auto-fill,minmax(300px,483px))] gap-4">
           {storeItems.map((item, index) => (
             <div
-              key={index}
+              key={item.id}
               className="flex-col sm:flex-row items-center border rounded-[8px] p-4 hover:border-[#9EC9FA] sm:items-start hover:bg-[#9ec9fa3d] dark:hover:bg-[unset] flex gap-6 justify-between"
             >
               <div className="flex items-center justify-between mt-4">
@@ -649,7 +676,8 @@ const RewardsDashboard = () => {
               <div className="flex flex-col gap-2.5 h-full justify-around">
                 <p className="font-bold mb-1 text-2xl">{item.title}</p>
                 <p className="text-[1.2rem] text-gray-600">{item.desc}</p>
-                {PurchasedItemsIds.includes(index) ? (
+                {typeof item.id === "number" &&
+                PurchasedItemsIds.includes(item.id) ? (
                   <div className="text-green-600 font-semibold text-[1.2rem] h-14 flex items-center justify-center rounded-lg border border-green-500 bg-green-100">
                     تم الاستبدال
                   </div>
