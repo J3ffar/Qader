@@ -58,6 +58,13 @@ class CommunityPost(models.Model):
         _("Content"),
         help_text=_("The main body of the post."),
     )
+    image = models.ImageField(
+        _("Image"),
+        upload_to="community/posts/%Y/%m/",
+        blank=True,
+        null=True,
+        help_text=_("Optional image attached to the post."),
+    )
     is_pinned = models.BooleanField(
         _("Is Pinned"),
         default=False,
@@ -76,6 +83,13 @@ class CommunityPost(models.Model):
         help_text=_("Relevant keywords or topics for the post."),
     )
 
+    likes = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="liked_community_posts",
+        blank=True,
+        verbose_name=_("Likes"),
+    )
+
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
 
@@ -91,6 +105,10 @@ class CommunityPost(models.Model):
     def __str__(self):
         title_part = f' "{self.title}"' if self.title else ""
         return f"{self.get_post_type_display()}: {title_part} by {self.author.username} ({self.id})"
+
+    @property
+    def like_count(self):
+        return self.likes.count()
 
     @property
     def reply_count(self):
@@ -150,6 +168,13 @@ class CommunityReply(models.Model):
         db_index=True,  # Index for efficiently fetching child replies
     )
 
+    likes = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="liked_community_replies",
+        blank=True,
+        verbose_name=_("Likes"),
+    )
+
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
 
@@ -166,6 +191,10 @@ class CommunityReply(models.Model):
 
     def __str__(self):
         return f"Reply by {self.author.username} on Post {self.post.id} ({self.id})"
+
+    @property
+    def like_count(self):
+        return self.likes.count()
 
     @property
     def child_replies_count(self):

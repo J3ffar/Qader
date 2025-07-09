@@ -11,7 +11,9 @@ from apps.learning.models import LearningSection  # Import the actual model
 
 # --- Nested Serializers (Assume these exist and are correctly defined) ---
 from apps.users.api.serializers import SimpleUserSerializer
-from apps.learning.api.serializers import LearningSectionSerializer
+from apps.learning.api.serializers import (
+    LearningSectionBasicSerializer,
+)
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -53,6 +55,8 @@ class CommunityReplySerializer(serializers.ModelSerializer):
     )
     # Assumes annotation or property exists on the model/queryset
     child_replies_count = serializers.IntegerField(read_only=True, required=False)
+    like_count = serializers.IntegerField(source="likes.count", read_only=True)
+    is_liked_by_user = serializers.SerializerMethodField()
 
     class Meta:
         model = CommunityReply
@@ -66,6 +70,8 @@ class CommunityReplySerializer(serializers.ModelSerializer):
             "parent_reply_id",  # Write-only field for input
             "parent_reply_read_id",  # Read-only representation of parent ID
             "child_replies_count",
+            "like_count",
+            "is_liked_by_user",
         ]
         # Fields that are set automatically or shouldn't be changed directly by user input
         read_only_fields = [
@@ -76,8 +82,16 @@ class CommunityReplySerializer(serializers.ModelSerializer):
             "post",
             "parent_reply_read_id",
             "child_replies_count",
+            "like_count",
+            "is_liked_by_user",
         ]
         # Note: 'content' is writable
+
+    def get_is_liked_by_user(self, obj):
+        user = self.context["request"].user
+        if user.is_authenticated:
+            return obj.likes.filter(pk=user.pk).exists()
+        return False
 
     def validate_parent_reply_id(self, value):
         """
@@ -109,7 +123,9 @@ class CommunityPostListSerializer(TaggitSerializer, serializers.ModelSerializer)
     # Expects 'content_excerpt' property on the model or annotation
     content_excerpt = serializers.CharField(read_only=True)
     # Use basic serializer for related section in list view
-    section_filter = LearningSectionSerializer(read_only=True)
+    section_filter = LearningSectionBasicSerializer(read_only=True)
+    like_count = serializers.IntegerField(source="likes.count", read_only=True)
+    is_liked_by_user = serializers.SerializerMethodField()
 
     class Meta:
         model = CommunityPost
@@ -120,7 +136,10 @@ class CommunityPostListSerializer(TaggitSerializer, serializers.ModelSerializer)
             "title",
             "section_filter",  # Show basic related section info
             "content_excerpt",
+            "image",
             "reply_count",
+            "like_count",
+            "is_liked_by_user",
             "created_at",
             "tags",
             "is_pinned",
@@ -128,6 +147,12 @@ class CommunityPostListSerializer(TaggitSerializer, serializers.ModelSerializer)
         ]
         # All fields are typically read-only in a list summary
         read_only_fields = fields
+
+    def get_is_liked_by_user(self, obj):
+        user = self.context["request"].user
+        if user.is_authenticated:
+            return obj.likes.filter(pk=user.pk).exists()
+        return False
 
 
 class CommunityPostCreateUpdateSerializer(
@@ -162,6 +187,7 @@ class CommunityPostCreateUpdateSerializer(
             "post_type",
             "title",
             "content",
+            "image",
             "section_filter",
             "tags",
             "created_at",
@@ -211,7 +237,7 @@ class CommunityPostDetailSerializer(TaggitSerializer, serializers.ModelSerialize
 
     author = SimpleUserSerializer(read_only=True)
     tags = TagListSerializerField(read_only=True)
-    section_filter = LearningSectionSerializer(read_only=True)
+    section_filter = LearningSectionBasicSerializer(read_only=True)
     reply_count = serializers.IntegerField(
         source="reply_count_annotated", read_only=True
     )

@@ -8,6 +8,7 @@ from rest_framework.exceptions import PermissionDenied, NotFound
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from taggit.models import Tag
+from rest_framework.decorators import action
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
@@ -101,6 +102,22 @@ from apps.api.permissions import (
         description="Delete an existing community post. Requires ownership or admin privileges.",
         responses={204: None},
     ),
+    toggle_like=extend_schema(
+        summary="Toggle Like on Post",
+        description="Toggles the like status for the current user on a specific post.",
+        request=None,
+        responses={
+            200: {
+                "description": "Like status toggled successfully.",
+                "examples": {
+                    "application/json": {
+                        "status": "like toggled",
+                        "liked": True,
+                    }
+                },
+            }
+        },
+    ),
 )
 class CommunityPostViewSet(viewsets.ModelViewSet):
     """
@@ -144,7 +161,8 @@ class CommunityPostViewSet(viewsets.ModelViewSet):
                 # Prefetching replies here can be heavy for list view, handle in retrieve
             )
             .annotate(
-                reply_count_annotated=Count("replies")  # Efficiently count replies
+                reply_count_annotated=Count("replies"),  # Efficiently count replies
+                like_count_annotated=Count("likes")  # Add this annotation
             )
         )
 
@@ -268,6 +286,21 @@ class CommunityPostViewSet(viewsets.ModelViewSet):
         # Add the paginated replies under the 'replies' key in the response
         post_data["replies"] = paginated_replies
         return Response(post_data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def toggle_like(self, request, pk=None):
+        """Toggles the like status for the current user on a post."""
+        post = self.get_object()
+        user = request.user
+
+        if user in post.likes.all():
+            post.likes.remove(user)
+            liked = False
+        else:
+            post.likes.add(user)
+            liked = True
+
+        return Response({"status": "like toggled", "liked": liked})
 
 
 @extend_schema(

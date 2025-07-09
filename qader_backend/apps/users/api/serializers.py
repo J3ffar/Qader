@@ -63,6 +63,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
     preferred_name = serializers.CharField(
         source="profile.preferred_name", read_only=True, allow_null=True
     )
+    grade = serializers.CharField(source="profile.grade", read_only=True)
 
     # Use a SerializerMethodField for the profile picture to build the full URL
     profile_picture_url = serializers.SerializerMethodField()
@@ -75,6 +76,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
             "email",
             "full_name",
             "preferred_name",
+            "grade",
             "profile_picture_url",
         )
         read_only_fields = fields

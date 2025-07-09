@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from apps.community.api import views
+from apps.community.api.reply_views import CommunityReplyLikeToggleView
 
 app_name = "community"
 
@@ -23,6 +24,11 @@ urlpatterns = [
         "posts/<int:post_pk>/replies/",
         views.CommunityReplyListCreateView.as_view(),
         name="post-replies-list-create",  # Descriptive name
+    ),
+    path(
+        "replies/<int:reply_pk>/toggle_like/",
+        CommunityReplyLikeToggleView.as_view(),
+        name="reply-toggle-like",
     ),
     # Custom URL for listing tags
     # Example: /tags/
