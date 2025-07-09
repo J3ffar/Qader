@@ -106,13 +106,15 @@ const ArticlePage = () => {
           />
         </div>
         <p className="font-bold mt-2">{blog.author?.preferred_name}</p>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          {blog.author.bio && blog.author.bio}
-        </p>
+        {blog.author?.bio && (
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            blog.author?.bio
+          </p>
+        )}
         <div className="flex justify-center gap-4 mt-4 text-gray-700 dark:text-white">
           {blog.author?.facebook_url && (
             <a
-              href={blog.author.facebook_url}
+              href={blog.author?.facebook_url}
               aria-label="Facebook"
               target="_blank"
               rel="noopener noreferrer"
@@ -122,7 +124,7 @@ const ArticlePage = () => {
           )}
           {blog.author?.linkedin_url && (
             <a
-              href={blog.author.linkedin_url}
+              href={blog.author?.linkedin_url}
               aria-label="LinkedIn"
               target="_blank"
               rel="noopener noreferrer"
@@ -132,7 +134,7 @@ const ArticlePage = () => {
           )}
           {blog.author?.twitter_url && (
             <a
-              href={blog.author.twitter_url}
+              href={blog.author?.twitter_url}
               aria-label="Twitter"
               target="_blank"
               rel="noopener noreferrer"
@@ -141,7 +143,7 @@ const ArticlePage = () => {
             </a>
           )}
           {blog.author?.instagram_url && (
-            <a href={blog.author.instagram_url} aria-label="instagram">
+            <a href={blog.author?.instagram_url} aria-label="instagram">
               <Instagram color="#074182" size={18} />
             </a>
           )}
