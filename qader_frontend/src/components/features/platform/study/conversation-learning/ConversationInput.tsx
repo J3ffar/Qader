@@ -44,39 +44,8 @@ export const ConversationInput: React.FC<Props> = ({
   };
 
   return (
-    <div className="border-t bg-background p-4">
+    <div className="bg-background p-4 w-full min-w-[300px]">
       <div className="mx-auto max-w-3xl">
-        <div className="mb-2 flex justify-center space-x-2 rtl:space-x-reverse">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onAskForQuestion}
-                  disabled={isSending}
-                >
-                  <Bot className="me-2 h-4 w-4" /> {t("askAQuestion")}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t("askAQuestion")}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onConfirmUnderstanding}
-                  disabled={isSending}
-                >
-                  <Lightbulb className="me-2 h-4 w-4" />{" "}
-                  {t("testMyUnderstanding")}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t("testMyUnderstanding")}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
         <div className="relative">
           <Textarea
             placeholder={t("inputPlaceholder")}
@@ -90,12 +59,12 @@ export const ConversationInput: React.FC<Props> = ({
           <Button
             type="submit"
             size="icon"
-            className="absolute end-3 top-1/2 -translate-y-1/2 rounded-full"
+            className="absolute end-3 top-1/2 -translate-y-1/2 rounded-sm w-fit px-4"
             onClick={handleSend}
             disabled={isSending || !message.trim()}
           >
             <Send className="h-5 w-5" />
-            <span className="sr-only">{t("send")}</span>
+            <span className="">{t("send")}</span>
           </Button>
         </div>
       </div>
