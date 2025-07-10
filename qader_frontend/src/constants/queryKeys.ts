@@ -103,10 +103,13 @@ export const queryKeys = {
         categories: () =>
           [...queryKeys.admin.content.partners.all(), "categories"] as const,
       },
-      contact: { // NEW SECTION
+      contact: {
+        // NEW SECTION
         all: () => [...queryKeys.admin.content.all(), "contact"] as const,
-        lists: () => [...queryKeys.admin.content.contact.all(), "list"] as const,
-        list: (filters: object) => [...queryKeys.admin.content.contact.lists(), filters] as const,
+        lists: () =>
+          [...queryKeys.admin.content.contact.all(), "list"] as const,
+        list: (filters: object) =>
+          [...queryKeys.admin.content.contact.lists(), filters] as const,
       },
       // Other content types can be added here following the same pattern
     },
@@ -196,5 +199,25 @@ export const queryKeys = {
     detail: (id: number | string) =>
       [...queryKeys.challenges.details(), id] as const,
     types: () => [...queryKeys.challenges.all, "types"] as const,
+  },
+  community: {
+    all: ["community"] as const,
+    posts: {
+      all: () => [...queryKeys.community.all, "posts"] as const,
+      lists: () => [...queryKeys.community.posts.all(), "list"] as const,
+      list: (filters: object) =>
+        [...queryKeys.community.posts.lists(), filters] as const,
+    },
+    postDetails: {
+      all: () => [...queryKeys.community.all, "postDetails"] as const,
+      detail: (id: number | string) =>
+        [...queryKeys.community.postDetails.all(), id] as const,
+    },
+    tags: {
+      all: () => [...queryKeys.community.all, "tags"] as const,
+      lists: () => [...queryKeys.community.tags.all(), "list"] as const,
+      list: (filters: object) =>
+        [...queryKeys.community.tags.lists(), filters] as const,
+    },
   },
 };

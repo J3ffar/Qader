@@ -184,4 +184,14 @@ export const API_ENDPOINTS = {
     POINTS_SUMMARY: "/gamification/points-summary/",
     MY_ITEMS: "/gamification/my-items/",
   },
+  COMMUNITY: {
+    POSTS: "/community/posts/",
+    POST_DETAIL: (id: number | string) => `/community/posts/${id}/`,
+    POST_TOGGLE_LIKE: (id: number | string) =>
+      `/community/posts/${id}/toggle_like/`,
+    REPLIES: (postId: number | string) => `/community/posts/${postId}/replies/`,
+    REPLY_TOGGLE_LIKE: (id: number | string) =>
+      `/community/replies/${id}/toggle_like/`,
+    TAGS: "/community/tags/",
+  },
 };
