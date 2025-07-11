@@ -9,6 +9,7 @@ import {
   ToggleLikeResponse,
 } from "@/types/api/community.types";
 import { apiClient } from "./apiClient";
+import { CommunityPostDetail } from "@/types/api/community.types";
 
 export const getCommunityPosts = async ({ pageParam = 1, queryKey }: any) => {
   const [, , , filters] = queryKey;
@@ -20,12 +21,21 @@ export const getCommunityPosts = async ({ pageParam = 1, queryKey }: any) => {
   );
 };
 
+export const getPostDetails = async (postId: number) => {
+  return await apiClient<CommunityPostDetail>(
+    API_ENDPOINTS.COMMUNITY.POST_DETAIL(postId)
+  );
+};
+
 export const createPost = async (payload: CreatePostPayload) => {
   const formData = new FormData();
   formData.append("post_type", payload.post_type);
   formData.append("content", payload.content);
   if (payload.title) formData.append("title", payload.title);
   if (payload.image) formData.append("image", payload.image);
+  if (payload.section_filter) {
+    formData.append("section_filter", payload.section_filter.toString());
+  }
   // Add other fields as needed
 
   return await apiClient<CommunityPostList>(API_ENDPOINTS.COMMUNITY.POSTS, {

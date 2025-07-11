@@ -13,7 +13,7 @@ export interface CommunityPostList {
   author: SimpleUser;
   post_type: PostType;
   title: string | null;
-  image_url: string | null;
+  image: string | null;
   section_filter: {
     id: number;
     name: string;

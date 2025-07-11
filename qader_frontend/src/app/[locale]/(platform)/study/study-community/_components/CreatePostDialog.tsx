@@ -33,7 +33,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // <-- IMPORT SELECT
+} from "@/components/ui/select";
 import { createPost } from "@/services/community.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { CreatePostPayload, PostType } from "@/types/api/community.types";
@@ -49,7 +49,6 @@ const POST_TYPE_CONFIG: Record<
   partner_search: { title: "", buttonText: "" },
 };
 
-// --- 1. Enhanced Zod Schema with Title and Section Filter ---
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = [
   "image/jpeg",
@@ -81,8 +80,8 @@ const createPostSchema = z.object({
   section_filter: z.string().optional(),
 });
 
-// Assuming slugs from the backend
 const SECTIONS = [
+  { label: "بدون قسم محدد", value: "none" },
   { label: "القسم اللفظي", value: "verbal" },
   { label: "القسم الكمي", value: "quantitative" },
 ];
@@ -100,7 +99,7 @@ export function CreatePostDialog({ postType }: { postType: PostType }) {
       title: "",
       content: "",
       image: undefined,
-      section_filter: undefined,
+      section_filter: "none",
     },
   });
 
@@ -141,14 +140,16 @@ export function CreatePostDialog({ postType }: { postType: PostType }) {
   };
 
   const onSubmit = (values: z.infer<typeof createPostSchema>) => {
-    mutation.mutate({
+    const payload = {
       ...values,
       post_type: postType,
       title: values.title || undefined,
       image: values.image || undefined,
-      section_filter: values.section_filter || undefined,
-      tags: [], // Sending empty tags array as requested
-    });
+      section_filter:
+        values.section_filter === "none" ? undefined : values.section_filter,
+      tags: [],
+    };
+    mutation.mutate(payload);
   };
 
   return (
@@ -173,7 +174,7 @@ export function CreatePostDialog({ postType }: { postType: PostType }) {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* --- 2. Title Field --- */}
+            {/* Title Field */}
             <FormField
               control={form.control}
               name="title"
@@ -191,6 +192,7 @@ export function CreatePostDialog({ postType }: { postType: PostType }) {
               )}
             />
 
+            {/* Content Field */}
             <FormField
               control={form.control}
               name="content"
@@ -209,7 +211,7 @@ export function CreatePostDialog({ postType }: { postType: PostType }) {
               )}
             />
 
-            {/* --- 3. Section Filter Select Field --- */}
+            {/* Section Filter Field */}
             <FormField
               control={form.control}
               name="section_filter"
@@ -238,6 +240,7 @@ export function CreatePostDialog({ postType }: { postType: PostType }) {
               )}
             />
 
+            {/* Image Field */}
             <FormField
               control={form.control}
               name="image"

@@ -188,18 +188,55 @@ class CommunityPostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Set the author automatically when creating a post."""
-        # Potential Enhancement: Implement automatic tagging based on content
-        # content = serializer.validated_data.get('content', '')
-        # if '#FirstTimeOver90' in content: # Basic check
-        #     tags = serializer.validated_data.get('tags', [])
-        #     if 'achievement' not in tags: tags.append('achievement')
-        #     if 'FirstTimeOver90' not in tags: tags.append('FirstTimeOver90')
-        #     serializer.validated_data['tags'] = tags
-        #     if serializer.validated_data.get('post_type') != CommunityPost.PostType.ACHIEVEMENT:
-        #        serializer.validated_data['post_type'] = CommunityPost.PostType.ACHIEVEMENT
-
         serializer.save(author=self.request.user)
 
+    def create(self, request, *args, **kwargs):
+        """
+        Override create to use the Detail serializer for the response.
+        """
+        # Use the default serializer for validation and saving
+        write_serializer = self.get_serializer(data=request.data)
+        write_serializer.is_valid(raise_exception=True)
+        self.perform_create(write_serializer)
+        instance = write_serializer.instance
+
+        # Use the Detail serializer to create the response payload
+        read_serializer = CommunityPostDetailSerializer(
+            instance, context=self.get_serializer_context()
+        )
+
+        headers = self.get_success_headers(read_serializer.data)
+        return Response(
+            read_serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
+
+    def update(self, request, *args, **kwargs):
+        """
+        Override update to use the Detail serializer for the response.
+        """
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+
+        # Use the default serializer for validation and saving
+        write_serializer = self.get_serializer(
+            instance, data=request.data, partial=partial
+        )
+        write_serializer.is_valid(raise_exception=True)
+        self.perform_update(write_serializer)
+
+        if getattr(instance, "_prefetched_objects_cache", None):
+            # If 'prefetch_related' has been used, we need to
+            # forcibly refresh the instance from the database.
+            instance = self.get_object()
+
+        # Use the Detail serializer to create the response payload
+        read_serializer = CommunityPostDetailSerializer(
+            instance, context=self.get_serializer_context()
+        )
+        return Response(read_serializer.data)
+
+    # The update method now handles both full and partial updates.
+    # We no longer need a separate perform_update, but we keep it for admin logic.
     def perform_update(self, serializer):
         """
         Handle updates, allowing admins to modify 'is_pinned' and 'is_closed'.
