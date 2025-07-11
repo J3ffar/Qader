@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import { Heart, MessageSquare, Lock, Loader2 } from "lucide-react";
+import { Heart, MessageSquare, Lock, Loader2, Pin } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -127,6 +127,12 @@ export function PostCard({ post: initialPost, listQueryKey }: PostCardProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {post.is_pinned && (
+              <Badge variant="outline">
+                <Pin />
+                مثبت
+              </Badge>
+            )}
             {post.section_filter && (
               <Badge variant="outline">
                 {SECTION_LABELS[post.section_filter.slug] ||
