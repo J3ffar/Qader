@@ -39,6 +39,7 @@ from apps.api.permissions import (
 )
 from apps.notifications.services import create_notification
 from apps.notifications.models import NotificationTypeChoices
+from apps.users.constants import RoleChoices
 
 
 @extend_schema(
@@ -97,6 +98,7 @@ class PartnerSearchView(generics.ListAPIView):
         return (
             User.objects.select_related("profile")
             .filter(profile__isnull=False, is_active=True)
+            .filter(profile__role=RoleChoices.STUDENT)
             .filter(active_subscription_q)
             .exclude(pk=self.request.user.pk)
             .order_by("-last_login", "profile__full_name")
