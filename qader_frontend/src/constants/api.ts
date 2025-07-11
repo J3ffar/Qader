@@ -193,5 +193,11 @@ export const API_ENDPOINTS = {
     REPLY_TOGGLE_LIKE: (id: number | string) =>
       `/community/replies/${id}/toggle_like/`,
     TAGS: "/community/tags/",
+    PARTNERS: "/community/partners/",
+    PARTNER_REQUESTS: "/community/partner-requests/",
+    PARTNER_REQUEST_ACCEPT: (id: number) =>
+      `/community/partner-requests/${id}/accept/`,
+    PARTNER_REQUEST_REJECT: (id: number) =>
+      `/community/partner-requests/${id}/reject/`,
   },
 };

@@ -8,8 +8,10 @@ import {
   CommunityReply,
   ToggleLikeResponse,
 } from "@/types/api/community.types";
-import { apiClient } from "./apiClient";
+import { User } from "@/types/api/user.types";
 import { CommunityPostDetail } from "@/types/api/community.types";
+import { apiClient } from "./apiClient";
+import { PartnerRequest } from "@/types/api/community.types";
 
 export const getCommunityPosts = async ({ pageParam = 1, queryKey }: any) => {
   const [, , , filters] = queryKey;
@@ -89,6 +91,26 @@ export const toggleReplyLike = async (replyId: number) => {
     API_ENDPOINTS.COMMUNITY.REPLY_TOGGLE_LIKE(replyId),
     {
       method: "POST",
+    }
+  );
+};
+
+export const searchPartners = async ({ pageParam = 1, queryKey }: any) => {
+  const [, , , filters] = queryKey;
+  return await apiClient<PaginatedResponse<User>>(
+    API_ENDPOINTS.COMMUNITY.PARTNERS,
+    {
+      params: { ...filters, page: pageParam },
+    }
+  );
+};
+
+export const sendPartnerRequest = async (toUserId: number) => {
+  return await apiClient<PartnerRequest>(
+    API_ENDPOINTS.COMMUNITY.PARTNER_REQUESTS,
+    {
+      method: "POST",
+      body: JSON.stringify({ to_user_id: toUserId }),
     }
   );
 };

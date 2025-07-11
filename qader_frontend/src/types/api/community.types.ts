@@ -68,3 +68,11 @@ export interface ToggleLikeResponse {
   liked: boolean;
   like_count: number;
 }
+
+export interface PartnerRequest {
+  id: number;
+  from_user: SimpleUser;
+  to_user: SimpleUser;
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
+}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PostType } from "@/types/api/community.types";
+import { PartnerSearchPage } from "./partner_search/PartnerSearchPage"; // <-- IMPORT
 import { CommunityFeed } from "./CommunityFeed";
 import { CreatePostDialog } from "./CreatePostDialog";
 import { CommunitySortMenu } from "./CommunitySortMenu";
@@ -18,10 +19,17 @@ interface CommunityContentProps {
 }
 
 const CAN_CREATE_POST_TYPES: PostType[] = ["discussion", "achievement", "tip"];
+const SHOW_SORT_MENU: PostType[] = [
+  "competition",
+  "discussion",
+  "achievement",
+  "tip",
+];
 
 export function CommunityContent({ postType }: CommunityContentProps) {
   const [sortOrder, setSortOrder] = useState<SortOption>("-is_pinned");
   const canCreatePost = CAN_CREATE_POST_TYPES.includes(postType);
+  const showSortMenu = SHOW_SORT_MENU.includes(postType);
 
   // Combine postType and sortOrder to create the dynamic filters object
   const filters = {
@@ -42,13 +50,7 @@ export function CommunityContent({ postType }: CommunityContentProps) {
         );
 
       case "partner_search":
-        return (
-          <div className="flex items-center justify-center h-96 rounded-lg border-2 border-dashed">
-            <p className="text-muted-foreground">
-              UI for 'Partner Search' will be implemented here.
-            </p>
-          </div>
-        );
+        return <PartnerSearchPage />;
 
       default:
         return null;
@@ -59,10 +61,14 @@ export function CommunityContent({ postType }: CommunityContentProps) {
     <div>
       <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
         {canCreatePost ? <CreatePostDialog postType={postType} /> : <div />}
-        <CommunitySortMenu
-          currentSort={sortOrder}
-          onSortChange={(newSort) => setSortOrder(newSort)}
-        />
+        {showSortMenu ? (
+          <CommunitySortMenu
+            currentSort={sortOrder}
+            onSortChange={(newSort) => setSortOrder(newSort)}
+          />
+        ) : (
+          <div />
+        )}
       </div>
       {renderContent()}
     </div>

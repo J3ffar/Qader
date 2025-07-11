@@ -226,5 +226,18 @@ export const queryKeys = {
       list: (filters: object) =>
         [...queryKeys.community.tags.lists(), filters] as const,
     },
+    partners: {
+      all: () => [...queryKeys.community.all, "partners"] as const,
+      lists: () => [...queryKeys.community.partners.all(), "list"] as const,
+      list: (filters: object) =>
+        [...queryKeys.community.partners.lists(), filters] as const,
+    },
+    partnerRequests: {
+      all: () => [...queryKeys.community.all, "partnerRequests"] as const,
+      lists: () =>
+        [...queryKeys.community.partnerRequests.all(), "list"] as const,
+      list: (filters: object) =>
+        [...queryKeys.community.partnerRequests.lists(), filters] as const,
+    },
   },
 };
