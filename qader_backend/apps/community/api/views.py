@@ -161,8 +161,12 @@ class CommunityPostViewSet(viewsets.ModelViewSet):
                 # Prefetching replies here can be heavy for list view, handle in retrieve
             )
             .annotate(
-                reply_count_annotated=Count("replies"),  # Efficiently count replies
-                like_count_annotated=Count("likes")  # Add this annotation
+                reply_count_annotated=Count(
+                    "replies", distinct=True
+                ),  # Efficiently count replies
+                like_count_annotated=Count(
+                    "likes", distinct=True
+                ),  # Add this annotation
             )
         )
 

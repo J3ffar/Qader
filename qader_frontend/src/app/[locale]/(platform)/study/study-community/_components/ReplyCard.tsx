@@ -1,19 +1,19 @@
-"use client";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CommunityReply } from "@/types/api/community.types";
-import { Heart, MessageSquare } from "lucide-react";
+import { Heart } from "lucide-react";
 import { useState } from "react";
 import { CreateReplyForm } from "./CreateReplyForm";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toggleReplyLike } from "@/services/community.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { toast } from "sonner";
+import { CommunityReply } from "@/types/api/community.types";
+import { NestedReply } from "@/utils/replyUtils";
+import { formatRelativeTime } from "@/utils/time"; // <-- IMPORT
 
 interface ReplyCardProps {
-  reply: CommunityReply;
+  reply: NestedReply; // <-- USE NESTED TYPE
   isPostClosed: boolean;
 }
 
@@ -63,48 +63,53 @@ export function ReplyCard({ reply, isPostClosed }: ReplyCardProps) {
 
   return (
     <div className="flex space-x-3 rtl:space-x-reverse">
-      <Avatar className="h-9 w-9">
+      <Avatar className="h-9 w-9 flex-shrink-0">
         <AvatarImage
           src={reply.author.profile_picture_url || undefined}
           alt={reply.author.full_name || "المستخدم"}
         />
         <AvatarFallback>{reply.author.full_name?.charAt(0)}</AvatarFallback>
       </Avatar>
-      <div className="flex-1 space-y-1">
-        <div className="bg-muted rounded-xl p-3">
-          <p className="font-semibold text-sm">{reply.author.full_name}</p>
-          <p className="text-sm whitespace-pre-wrap">{reply.content}</p>
-        </div>
-        <div className="flex items-center space-x-3 rtl:space-x-reverse ps-3 text-xs">
-          <button
-            onClick={() => likeMutation.mutate()}
-            className={cn("font-semibold hover:underline", {
-              "text-primary": reply.is_liked_by_user,
-            })}
-          >
-            إعجاب
-          </button>
-          {!isPostClosed && (
+      <div className="flex-1 space-y-2">
+        {/* Main Reply Content */}
+        <div>
+          <div className="bg-muted rounded-xl p-3">
+            <p className="font-semibold text-sm">{reply.author.full_name}</p>
+            <p className="text-sm whitespace-pre-wrap">{reply.content}</p>
+          </div>
+          <div className="flex items-center space-x-3 rtl:space-x-reverse ps-3 text-xs mt-1">
             <button
-              onClick={() => setIsReplying(!isReplying)}
-              className="font-semibold hover:underline"
+              onClick={() => likeMutation.mutate()}
+              className={cn("font-semibold hover:underline", {
+                "text-primary": reply.is_liked_by_user,
+              })}
             >
-              رد
+              إعجاب
             </button>
-          )}
-          <span className="text-muted-foreground">
-            {new Date(reply.created_at).toLocaleTimeString("ar-EG", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
-          {reply.like_count > 0 && (
-            <span className="flex items-center text-muted-foreground">
-              <Heart className="h-3 w-3 fill-red-500 text-red-500 me-1" />{" "}
-              {reply.like_count}
+            {!isPostClosed && (
+              <button
+                onClick={() => setIsReplying(!isReplying)}
+                className="font-semibold hover:underline"
+              >
+                رد
+              </button>
+            )}
+            <span
+              className="text-muted-foreground"
+              title={new Date(reply.created_at).toLocaleString()}
+            >
+              {formatRelativeTime(reply.created_at)} {/* <-- USE FORMATTER */}
             </span>
-          )}
+            {reply.like_count > 0 && (
+              <span className="flex items-center text-muted-foreground">
+                <Heart className="h-3 w-3 fill-red-500 text-red-500 me-1" />{" "}
+                {reply.like_count}
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* Form for replying to this comment */}
         {isReplying && (
           <CreateReplyForm
             postId={reply.post}
@@ -114,8 +119,19 @@ export function ReplyCard({ reply, isPostClosed }: ReplyCardProps) {
             autoFocus
           />
         )}
-        {/* Placeholder for viewing child replies */}
-        {/* {reply.child_replies_count > 0 && ...} */}
+
+        {/* Render Child Replies (The Thread) */}
+        {reply.childReplies && reply.childReplies.length > 0 && (
+          <div className="space-y-4 pt-2">
+            {reply.childReplies.map((childReply) => (
+              <ReplyCard
+                key={childReply.id}
+                reply={childReply}
+                isPostClosed={isPostClosed}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

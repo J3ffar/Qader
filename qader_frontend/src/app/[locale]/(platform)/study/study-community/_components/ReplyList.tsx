@@ -3,10 +3,11 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getRepliesForPost } from "@/services/community.service";
 import { queryKeys } from "@/constants/queryKeys";
-import { CommunityReply } from "@/types/api/community.types";
 import { Loader2 } from "lucide-react";
 import { ReplyCard } from "./ReplyCard";
 import { Button } from "@/components/ui/button";
+import { useMemo } from "react";
+import { buildReplyTree } from "@/utils/replyUtils";
 
 interface ReplyListProps {
   postId: number;
@@ -24,7 +25,7 @@ export function ReplyList({ postId, isPostClosed }: ReplyListProps) {
   } = useInfiniteQuery({
     queryKey: queryKeys.community.postDetails.replies(postId),
     queryFn: getRepliesForPost,
-    initialPageParam: "1",
+    initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       if (lastPage.next) {
         const url = new URL(lastPage.next);
@@ -33,6 +34,12 @@ export function ReplyList({ postId, isPostClosed }: ReplyListProps) {
       return undefined;
     },
   });
+
+  const allReplies = useMemo(
+    () => data?.pages.flatMap((page) => page.results) ?? [],
+    [data]
+  );
+  const nestedReplies = useMemo(() => buildReplyTree(allReplies), [allReplies]);
 
   if (isLoading) {
     return (
@@ -49,18 +56,16 @@ export function ReplyList({ postId, isPostClosed }: ReplyListProps) {
     );
   }
 
-  const replies = data?.pages.flatMap((page) => page.results) ?? [];
-
   return (
     <div className="space-y-4 pt-4">
-      {replies.map((reply: CommunityReply) => (
+      {nestedReplies.map((reply) => (
         <ReplyCard key={reply.id} reply={reply} isPostClosed={isPostClosed} />
       ))}
 
       {hasNextPage && (
         <Button
           variant="link"
-          className="p-0 h-auto"
+          className="p-0 h-auto text-sm"
           onClick={() => fetchNextPage()}
           disabled={isFetchingNextPage}
         >
