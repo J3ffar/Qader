@@ -20,8 +20,8 @@ import { queryKeys } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Send } from "lucide-react";
 import type {
+  OptimisticSupportTicketReply,
   SupportTicketDetail,
-  SupportTicketReply,
 } from "@/types/api/support.types";
 import { useAuthStore } from "@/store/auth.store";
 
@@ -62,16 +62,19 @@ export function TicketReplyForm({
 
       // 3. Optimistically update to the new value
       if (previousTicket && currentUser) {
-        const optimisticReply: SupportTicketReply & { optimistic?: boolean } = {
-          id: Date.now(), // Temporary ID
+        const optimisticReply: OptimisticSupportTicketReply = {
+          id: Date.now(),
           message: newReply.message,
           user: {
             id: currentUser.id,
             username: currentUser.username,
-            email: currentUser.email,
+            full_name: currentUser.full_name,
+            preferred_name: currentUser.preferred_name,
+            profile_picture_url: currentUser.profile_picture_url,
+            grade: currentUser.grade,
           },
           created_at: new Date().toISOString(),
-          optimistic: true, // Flag for styling
+          optimistic: true,
         };
 
         queryClient.setQueryData(queryKeys.user.support.detail(ticketId), {

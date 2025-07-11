@@ -38,8 +38,10 @@ export function TicketChatView({ ticket }: TicketChatViewProps) {
   ];
 
   return (
-    <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-      <div className="space-y-6">
+    // FIX: The ScrollArea itself is now a flex-grow item
+    <ScrollArea className="flex-1" ref={scrollAreaRef}>
+      {/* FIX: This div now has h-full to ensure it can scroll within the viewport */}
+      <div className="p-4 space-y-6 h-full">
         {allMessages.map((reply) => {
           const isCurrentUser = reply.user.id === currentUser?.id;
           const userInitial = (

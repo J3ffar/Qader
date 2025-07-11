@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
 import { MessageSquare, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { TicketDetailHeader } from "./TicketDetailHeader"; // New Component
 import { TicketChatView } from "./TicketChatView";
 import { TicketReplyForm } from "./TicketReplyForm";
 import { TicketDetailSkeleton } from "./TicketDetailSkeleton";
@@ -67,15 +67,17 @@ export function TicketDetailPageClient({ ticketId }: { ticketId: string }) {
   }
 
   return (
+    // FIX: Restructured with flexbox for proper scrolling
     <div
-      className="flex flex-col h-[calc(100vh-120px)] bg-background"
+      className="flex flex-col h-[calc(100vh-100px)] bg-background"
       dir="rtl"
     >
-      <header className="p-4 border-b bg-card">
-        <h1 className="text-xl font-bold">{ticket?.subject}</h1>
-        <p className="text-sm text-muted-foreground">محادثة مع الدعم الإداري</p>
-      </header>
+      {/* New, richer header component */}
+      <TicketDetailHeader ticket={ticket} />
+
+      {/* The chat view will now correctly fill the remaining space */}
       <TicketChatView ticket={ticket} />
+
       <TicketReplyForm
         ticketId={ticket.id}
         isTicketClosed={ticket.status === "closed"}
