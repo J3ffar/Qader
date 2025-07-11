@@ -81,8 +81,12 @@ class BlogPost(models.Model):
     tags = TaggableManager(
         verbose_name=_("Tags"), blank=True, help_text=_("Comma-separated tags.")
     )
-    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+    created_at = models.DateTimeField(
+        _("Created At"), null=True, blank=True, auto_now_add=True
+    )
+    updated_at = models.DateTimeField(
+        _("Updated At"), null=True, blank=True, auto_now=True
+    )
 
     class Meta:
         verbose_name = _("Blog Post")
@@ -119,18 +123,7 @@ class BlogPost(models.Model):
         # even though we've stripped tags, it's robust for text.
         return truncatewords_html(normalized_text, 130)
 
-    @property
-    def author_display_name(self) -> str:
-        """Returns the author's preferred name or username, or a default."""
-        if self.author:
-            if (
-                hasattr(self.author, "profile")
-                and self.author.profile
-                and getattr(self.author.profile, "preferred_name", None)
-            ):
-                return self.author.profile.preferred_name
-            return self.author.username
-        return _("Qader Team")
+    
 
     def save(self, *args, **kwargs):
         if not self.slug and self.title:

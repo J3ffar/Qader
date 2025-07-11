@@ -12,6 +12,7 @@ from apps.notifications.models import Notification, NotificationTypeChoices
 from .constants import (
     AccountTypeChoices,
     GenderChoices,
+    GradeChoices,
     RoleChoices,
     DarkModePrefChoices,
     SubscriptionTypeChoices,
@@ -304,6 +305,7 @@ class UserProfile(models.Model):
     grade = models.CharField(
         _("Grade/Level"),
         max_length=100,
+        choices=GradeChoices.choices,  # <-- Use choices here
         blank=True,
         null=True,
         help_text=_("Educational level (e.g., Grade 12, University Freshman)."),
@@ -316,6 +318,25 @@ class UserProfile(models.Model):
     )
     profile_picture = models.ImageField(
         _("Profile Picture"), upload_to="profiles/", null=True, blank=True
+    )
+    bio = models.TextField(
+        _("Bio / Description"),
+        blank=True,
+        null=True,
+        help_text=_("A short description or biography about the user."),
+    )
+    # Social Links
+    linkedin_url = models.URLField(
+        _("LinkedIn Profile URL"), max_length=255, blank=True, null=True
+    )
+    twitter_url = models.URLField(
+        _("X/Twitter Profile URL"), max_length=255, blank=True, null=True
+    )
+    facebook_url = models.URLField(
+        _("Facebook Profile URL"), max_length=255, blank=True, null=True
+    )
+    instagram_url = models.URLField(
+        _("Instagram Profile URL"), max_length=255, blank=True, null=True
     )
     role = models.CharField(
         _("Role"),

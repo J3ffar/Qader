@@ -766,7 +766,6 @@ const RewardsDashboard = () => {
                   <div className="flex items-center justify-between mt-4">
                     <div className="w-40 h-40 bg-gray-200 rounded-xl animate-pulse"></div>
                   </div>
-
                   <div className="flex flex-col gap-4 flex-1">
                     <div className="h-7 w-3/4 bg-gray-200 rounded-full animate-pulse"></div>
                     <div className="space-y-2">

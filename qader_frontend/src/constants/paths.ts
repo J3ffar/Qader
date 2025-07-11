@@ -58,6 +58,11 @@ export const PATHS = {
     STATISTICS: "/study/statistics",
     CHALLENGE_COLLEAGUES: "/study/challenge-peers",
     STUDY_COMMUNITY: "/study/study-community", // Could be a forum, groups, etc.
+    COMMUNITY_DISCUSSION: "/study/study-community/discussion",
+    COMMUNITY_ACHIEVEMENT: "/study/study-community/achievement",
+    COMMUNITY_PARTNER_SEARCH: "/study/study-community/partner_search",
+    COMMUNITY_TIPS: "/study/study-community/tip",
+    COMMUNITY_COMPETITIONS: "/study/study-community/competition",
     BLOG: {
       HOME: "/study/blog",
     },
@@ -78,8 +83,15 @@ export const PATHS = {
     DASHBOARD: "/admin/dashboard",
     EMPLOYEES_MANAGEMENT: "/admin/employees",
     STUDENTS_MANAGEMENT: "/admin/students",
-    STATISTICS_OVERVIEW: "/admin/statistics/overview", // NEW PATH
-    PAGES_MANAGEMENT: "/admin/pages",
+    STATISTICS_OVERVIEW: "/admin/statistics/overview",
+
+    CONTENT_PAGES_LIST: "/admin/content/pages",
+    CONTENT_PAGE_EDIT: (slug: string) => `/admin/content/pages/${slug}`,
+    CONTENT_FAQS: "/admin/content/faqs",
+    CONTENT_HOMEPAGE: "/admin/content/homepage",
+    CONTENT_PARTNERS: "/admin/content/partners",
+    CONTENT_CONTACT_MESSAGES: "/admin/content/contact",
+
     SUPPORT_TICKETS: "/admin/support",
     ANALYTICS: "/admin/analytics",
     SETTINGS: "/admin/settings",

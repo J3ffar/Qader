@@ -12,7 +12,7 @@ router.register(r"pages", views.PageViewSet, basename="page")  # Basename is imp
 urlpatterns = [
     path("", include(router.urls)),  # Includes '/pages/' and '/pages/{slug}/'
     path("homepage/", views.HomepageView.as_view(), name="homepage"),
-    path("faq/", views.FAQListView.as_view(), name="faq-list"),
+    path("faq-page/", views.FAQListView.as_view(), name="faq-list"),
     path(
         "partners/",
         views.PartnerCategoryListView.as_view(),

@@ -8,6 +8,7 @@ from .views import (
     CancelSubscriptionView,
     SubscriptionPlanListView,
     UserRedeemedCodesListView,
+    GradeListView,
 )
 
 app_name = "users"
@@ -40,6 +41,12 @@ urlpatterns = [
         "me/redeemed-codes/",
         UserRedeemedCodesListView.as_view(),
         name="user-redeemed-codes",
+    ),
+    # --- ADD NEW URL PATTERN HERE ---
+    path(
+        "grades/",
+        GradeListView.as_view(),
+        name="grades_list",
     ),
     path(
         "subscription-plans/",

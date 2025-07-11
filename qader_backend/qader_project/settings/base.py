@@ -383,6 +383,10 @@ SPECTACULAR_SETTINGS = {
             "description": "Endpoints for the community forum.",
         },
         {
+            "name": "Student Community - Partner Search",
+            "description": "Endpoints searching for Study Partners.",
+        },
+        {
             "name": "Blog",
             "description": "Endpoints for blog posts and advice requests.",
         },

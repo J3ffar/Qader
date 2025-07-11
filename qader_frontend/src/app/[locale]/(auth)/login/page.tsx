@@ -9,6 +9,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Mail, Lock, Eye, EyeOff, Sparkles, Loader2 } from "lucide-react"; // Added Loader2
 import { useTranslations } from "next-intl";
+import Cookies from "js-cookie";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,12 +53,12 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated && authUser) {
-      toast.info(tAuth("alreadyLoggedIn"), { id: "already-logged-in-toast" });
+      // toast.info(tAuth("alreadyLoggedIn"), { id: "already-logged-in-toast" });
       const redirectTo =
         searchParams.get("redirect_to") ||
         (authUser.profile_complete
           ? authUser.is_super || authUser.is_staff
-            ? PATHS.ADMIN.DASHBOARD
+            ? PATHS.ADMIN.EMPLOYEES_MANAGEMENT
             : PATHS.STUDY.HOME
           : PATHS.COMPLETE_PROFILE);
       router.replace(redirectTo);
@@ -68,16 +69,22 @@ export default function LoginPage() {
     mutationKey: queryKeys.auth.login(),
     mutationFn: loginUser,
     onSuccess: (data) => {
-      storeLogin({ access: data.access, refresh: data.refresh }, data.user);
+      storeLogin({ access: data.access }, data.user);
       setIsProfileComplete(data.user.profile_complete); // Set profile completeness
       toast.success(tAuth("loginSuccess"));
       reset(); // Clear form
+
+      if (data.user.is_staff || data.user.is_super) {
+        Cookies.set("qader-user-role", "admin", { path: "/" });
+      } else {
+        Cookies.set("qader-user-role", "student", { path: "/" });
+      }
 
       const redirectTo = searchParams.get("redirect_to");
       if (redirectTo) {
         router.replace(redirectTo); // Handle redirect from middleware
       } else if (data.user?.is_super || data.user?.is_staff) {
-        router.replace(PATHS.ADMIN.DASHBOARD);
+        router.replace(PATHS.ADMIN.EMPLOYEES_MANAGEMENT);
       } else if (!data.user.profile_complete) {
         router.replace(PATHS.COMPLETE_PROFILE);
       } else {

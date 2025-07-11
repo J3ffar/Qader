@@ -18,6 +18,7 @@ export const queryKeys = {
       [...queryKeys.user.all, "profile", userId] as const, // For /users/me
     completeProfile: () => [...queryKeys.user.all, "completeProfile"] as const,
     subscription: () => [...queryKeys.user.all, "subscription"] as const, // For /users/me
+    grades: () => [...queryKeys.user.all, "grades"] as const,
   },
 
   // ADDING ADMIN SECTION
@@ -40,10 +41,12 @@ export const queryKeys = {
       detail: (userId: number | string) =>
         [...queryKeys.admin.userDetails.all(), userId] as const,
     },
-    statistics: { // NEW SECTION
+    statistics: {
       all: () => [...queryKeys.admin.all, "statistics"] as const,
-      overviews: () => [...queryKeys.admin.statistics.all(), "overviews"] as const,
-      overview: (filters: object) => [...queryKeys.admin.statistics.overviews(), filters] as const,
+      overviews: () =>
+        [...queryKeys.admin.statistics.all(), "overviews"] as const,
+      overview: (filters: object) =>
+        [...queryKeys.admin.statistics.overviews(), filters] as const,
     },
     support: {
       all: () => [...queryKeys.admin.all, "support"] as const,
@@ -55,6 +58,61 @@ export const queryKeys = {
         [...queryKeys.admin.support.details(), id] as const,
       replies: (id: number | string) =>
         [...queryKeys.admin.support.detail(id), "replies"] as const,
+    },
+    content: {
+      all: () => [...queryKeys.admin.all, "content"] as const,
+      // Pages
+      pages: {
+        all: () => [...queryKeys.admin.content.all(), "pages"] as const,
+        lists: () => [...queryKeys.admin.content.pages.all(), "list"] as const,
+        list: (params: object) =>
+          [...queryKeys.admin.content.pages.lists(), params] as const,
+        details: () =>
+          [...queryKeys.admin.content.pages.all(), "details"] as const,
+        detail: (slug: string) =>
+          [...queryKeys.admin.content.pages.details(), slug] as const,
+      },
+      // FAQs
+      faqs: {
+        all: () => [...queryKeys.admin.content.all(), "faqs"] as const,
+        categories: () =>
+          [...queryKeys.admin.content.faqs.all(), "categories"] as const,
+        items: () => [...queryKeys.admin.content.faqs.all(), "items"] as const,
+        categoryList: () =>
+          [
+            ...queryKeys.admin.content.faqs.all(),
+            "categories",
+            "list",
+          ] as const,
+        itemList: (categoryId: number) =>
+          [
+            ...queryKeys.admin.content.faqs.all(),
+            "items",
+            "list",
+            categoryId,
+          ] as const,
+      },
+      homepage: {
+        all: () => [...queryKeys.admin.content.all(), "homepage"] as const,
+        features: () =>
+          [...queryKeys.admin.content.homepage.all(), "features"] as const,
+        stats: () =>
+          [...queryKeys.admin.content.homepage.all(), "stats"] as const,
+      },
+      partners: {
+        all: () => [...queryKeys.admin.content.all(), "partners"] as const,
+        categories: () =>
+          [...queryKeys.admin.content.partners.all(), "categories"] as const,
+      },
+      contact: {
+        // NEW SECTION
+        all: () => [...queryKeys.admin.content.all(), "contact"] as const,
+        lists: () =>
+          [...queryKeys.admin.content.contact.all(), "list"] as const,
+        list: (filters: object) =>
+          [...queryKeys.admin.content.contact.lists(), filters] as const,
+      },
+      // Other content types can be added here following the same pattern
     },
   },
 
@@ -142,5 +200,45 @@ export const queryKeys = {
     detail: (id: number | string) =>
       [...queryKeys.challenges.details(), id] as const,
     types: () => [...queryKeys.challenges.all, "types"] as const,
+  },
+  community: {
+    all: ["community"] as const,
+    posts: {
+      all: () => [...queryKeys.community.all, "posts"] as const,
+      lists: () => [...queryKeys.community.posts.all(), "list"] as const,
+      list: (filters: object) =>
+        [...queryKeys.community.posts.lists(), filters] as const,
+    },
+    postDetails: {
+      all: () => [...queryKeys.community.all, "postDetails"] as const,
+      detail: (id: number | string) =>
+        [...queryKeys.community.postDetails.all(), id] as const,
+      // NEW: Specific key for a post's replies
+      replies: (postId: number | string, filters: object = {}) =>
+        [
+          ...queryKeys.community.postDetails.detail(postId),
+          "replies",
+          filters,
+        ] as const,
+    },
+    tags: {
+      all: () => [...queryKeys.community.all, "tags"] as const,
+      lists: () => [...queryKeys.community.tags.all(), "list"] as const,
+      list: (filters: object) =>
+        [...queryKeys.community.tags.lists(), filters] as const,
+    },
+    partners: {
+      all: () => [...queryKeys.community.all, "partners"] as const,
+      lists: () => [...queryKeys.community.partners.all(), "list"] as const,
+      list: (filters: object) =>
+        [...queryKeys.community.partners.lists(), filters] as const,
+    },
+    partnerRequests: {
+      all: () => [...queryKeys.community.all, "partnerRequests"] as const,
+      lists: () =>
+        [...queryKeys.community.partnerRequests.all(), "list"] as const,
+      list: (filters: object) =>
+        [...queryKeys.community.partnerRequests.lists(), filters] as const,
+    },
   },
 };

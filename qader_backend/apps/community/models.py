@@ -3,6 +3,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from taggit.managers import TaggableManager
 from apps.learning.models import LearningSection
+from django.db.models import Q, UniqueConstraint
 
 
 class CommunityPost(models.Model):
@@ -58,6 +59,13 @@ class CommunityPost(models.Model):
         _("Content"),
         help_text=_("The main body of the post."),
     )
+    image = models.ImageField(
+        _("Image"),
+        upload_to="community/posts/%Y/%m/",
+        blank=True,
+        null=True,
+        help_text=_("Optional image attached to the post."),
+    )
     is_pinned = models.BooleanField(
         _("Is Pinned"),
         default=False,
@@ -74,6 +82,13 @@ class CommunityPost(models.Model):
         blank=True,
         verbose_name=_("Tags"),
         help_text=_("Relevant keywords or topics for the post."),
+    )
+
+    likes = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="liked_community_posts",
+        blank=True,
+        verbose_name=_("Likes"),
     )
 
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True, db_index=True)
@@ -93,6 +108,10 @@ class CommunityPost(models.Model):
         return f"{self.get_post_type_display()}: {title_part} by {self.author.username} ({self.id})"
 
     @property
+    def like_count(self):
+        return self.likes.count()
+
+    @property
     def reply_count(self):
         """
         Calculates the number of direct replies.
@@ -103,7 +122,7 @@ class CommunityPost(models.Model):
         return self.replies.count()
 
     @property
-    def content_excerpt(self, length=150):
+    def content_excerpt(self, length=500):
         """Provides a short preview of the content."""
         if len(self.content) > length:
             # Ensure clean cut (avoid cutting mid-word if complex logic needed)
@@ -150,6 +169,13 @@ class CommunityReply(models.Model):
         db_index=True,  # Index for efficiently fetching child replies
     )
 
+    likes = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="liked_community_replies",
+        blank=True,
+        verbose_name=_("Likes"),
+    )
+
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
 
@@ -168,6 +194,61 @@ class CommunityReply(models.Model):
         return f"Reply by {self.author.username} on Post {self.post.id} ({self.id})"
 
     @property
+    def like_count(self):
+        return self.likes.count()
+
+    @property
     def child_replies_count(self):
         """Calculates the number of direct child replies."""
         return self.child_replies.count()
+
+class PartnerRequest(models.Model):
+    """
+    Represents a request from one user to another to become study partners.
+    """
+
+    class StatusChoices(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        ACCEPTED = "accepted", _("Accepted")
+        REJECTED = "rejected", _("Rejected")
+
+    from_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="sent_partner_requests",
+        verbose_name=_("Sender"),
+        help_text=_("The user who sent the request."),
+    )
+    to_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="received_partner_requests",
+        verbose_name=_("Recipient"),
+        help_text=_("The user who received the request."),
+    )
+    status = models.CharField(
+        _("Status"),
+        max_length=10,
+        choices=StatusChoices.choices,
+        default=StatusChoices.PENDING,
+        db_index=True,
+    )
+
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("Partner Request")
+        verbose_name_plural = _("Partner Requests")
+        ordering = ["-created_at"]
+        # A user can only have one pending request to another user at a time.
+        constraints = [
+            UniqueConstraint(
+                fields=["from_user", "to_user"],
+                condition=Q(status="pending"),
+                name="unique_pending_request_per_user_pair",
+            )
+        ]
+
+    def __str__(self):
+        return f"Request from {self.from_user.username} to {self.to_user.username} ({self.get_status_display()})"

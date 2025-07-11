@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-30 14:56+0300\n"
+"POT-Creation-Date: 2025-07-11 09:35+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -27,123 +27,145 @@ msgstr "حجم المرفق لا يمكن أن يتجاوز 5 ميجابايت."
 msgid "Support Management"
 msgstr "إدارة الدعم الفني"
 
-#: .\apps\support\models.py:12
-msgid "Technical"
-msgstr "تقني"
-
-#: .\apps\support\models.py:13
-msgid "Problem with a question"
-msgstr "مشكلة في سؤال"
-
-#: .\apps\support\models.py:14
-msgid "Suggestion"
-msgstr "اقتراح"
-
-#: .\apps\support\models.py:15
-msgid "General Inquiry"
-msgstr "استفسار عام"
-
 #: .\apps\support\models.py:16
-msgid "Other"
-msgstr "أخرى"
+msgid "Name"
+msgstr ""
 
-#: .\apps\support\models.py:19
-msgid "Open"
-msgstr "مفتوحة"
+#: .\apps\support\models.py:17
+msgid "A unique identifier for the issue type (e.g., 'technical')."
+msgstr ""
 
 #: .\apps\support\models.py:21
-msgid "Pending Admin Response"
-msgstr "بانتظار رد المسؤول"
+msgid "Display Name"
+msgstr ""
 
-#: .\apps\support\models.py:24
-msgid "Pending User Response"
-msgstr "بانتظار رد المستخدم"
+#: .\apps\support\models.py:22
+msgid "The user-facing name (e.g., 'Technical')."
+msgstr ""
 
-#: .\apps\support\models.py:26
-msgid "Closed"
-msgstr "مغلقة"
-
-#: .\apps\support\models.py:29
-msgid "High"
-msgstr "عالية"
-
-#: .\apps\support\models.py:30
-msgid "Medium"
-msgstr "متوسطة"
-
-#: .\apps\support\models.py:31
-msgid "Low"
-msgstr "منخفضة"
-
-#: .\apps\support\models.py:37 .\apps\support\models.py:117
-msgid "User"
-msgstr "المستخدم"
-
-#: .\apps\support\models.py:42
+#: .\apps\support\models.py:26 .\apps\support\models.py:67
 msgid "Issue Type"
 msgstr "نوع المشكلة"
 
-#: .\apps\support\models.py:45
+#: .\apps\support\models.py:27
+#, fuzzy
+#| msgid "Issue Type"
+msgid "Issue Types"
+msgstr "نوع المشكلة"
+
+#: .\apps\support\models.py:40
+msgid "Technical"
+msgstr "تقني"
+
+#: .\apps\support\models.py:41
+msgid "Problem with a question"
+msgstr "مشكلة في سؤال"
+
+#: .\apps\support\models.py:42
+msgid "Suggestion"
+msgstr "اقتراح"
+
+#: .\apps\support\models.py:43
+msgid "General Inquiry"
+msgstr "استفسار عام"
+
+#: .\apps\support\models.py:44
+msgid "Other"
+msgstr "أخرى"
+
+#: .\apps\support\models.py:47
+msgid "Open"
+msgstr "مفتوحة"
+
+#: .\apps\support\models.py:48
+msgid "Pending Admin Response"
+msgstr "بانتظار رد المسؤول"
+
+#: .\apps\support\models.py:49
+msgid "Pending User Response"
+msgstr "بانتظار رد المستخدم"
+
+#: .\apps\support\models.py:50
+msgid "Closed"
+msgstr "مغلقة"
+
+#: .\apps\support\models.py:53
+msgid "High"
+msgstr "عالية"
+
+#: .\apps\support\models.py:54
+msgid "Medium"
+msgstr "متوسطة"
+
+#: .\apps\support\models.py:55
+msgid "Low"
+msgstr "منخفضة"
+
+#: .\apps\support\models.py:61 .\apps\support\models.py:141
+msgid "User"
+msgstr "المستخدم"
+
+#: .\apps\support\models.py:72
 msgid "Subject"
 msgstr "الموضوع"
 
-#: .\apps\support\models.py:46
+#: .\apps\support\models.py:73
 msgid "Description"
 msgstr "الوصف"
 
-#: .\apps\support\models.py:51
+#: .\apps\support\models.py:78
 msgid "Attachment"
 msgstr "المرفق"
 
-#: .\apps\support\models.py:57
+#: .\apps\support\models.py:84
 msgid "Status"
 msgstr "الحالة"
 
-#: .\apps\support\models.py:61
+#: .\apps\support\models.py:88
 msgid "Priority"
 msgstr "الأولوية"
 
-#: .\apps\support\models.py:69
+#: .\apps\support\models.py:96
 msgid "Assigned To"
 msgstr "مخصصة لـ"
 
-#: .\apps\support\models.py:74 .\apps\support\models.py:124
+#: .\apps\support\models.py:101 .\apps\support\models.py:148
 msgid "Created At"
 msgstr "تاريخ الإنشاء"
 
-#: .\apps\support\models.py:76 .\apps\support\models.py:127
+#: .\apps\support\models.py:103 .\apps\support\models.py:150
 msgid "Updated At"
 msgstr "تاريخ التحديث"
 
-#: .\apps\support\models.py:77
+#: .\apps\support\models.py:104
 msgid "Closed At"
 msgstr "تاريخ الإغلاق"
 
-#: .\apps\support\models.py:80
+#: .\apps\support\models.py:107
 msgid "Support Ticket"
 msgstr "تذكرة دعم فني"
 
-#: .\apps\support\models.py:81
+#: .\apps\support\models.py:108
 msgid "Support Tickets"
 msgstr "تذاكر الدعم الفني"
 
-#: .\apps\support\models.py:111
+#: .\apps\support\models.py:135
 msgid "Ticket"
 msgstr "التذكرة"
 
-#: .\apps\support\models.py:119
+#: .\apps\support\models.py:143
 msgid "Message"
 msgstr "الرسالة"
 
-#: .\apps\support\models.py:121
+#: .\apps\support\models.py:145
 msgid "Internal Note (Admin Only)"
 msgstr "ملاحظة داخلية (للمسؤول فقط)"
 
-#: .\apps\support\models.py:131
+#: .\apps\support\models.py:153
 msgid "Support Ticket Reply"
 msgstr "رد على تذكرة الدعم الفني"
 
-#: .\apps\support\models.py:132
+#: .\apps\support\models.py:154
 msgid "Support Ticket Replies"
 msgstr "ردود تذاكر الدعم الفني"
 

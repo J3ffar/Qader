@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/store/auth.store";
-import { refreshTokenApi } from "./auth.service";
+import { getAuthSession, refreshTokenApi } from "./auth.service";
 import { API_BASE_URL, API_VERSION } from "@/constants/api";
 import { getLocaleFromPathname } from "@/utils/locale";
 import { ApiError } from "@/lib/errors";
@@ -50,7 +50,7 @@ export const apiClient = async <T = any>(
 ): Promise<T> => {
   // Get current state. The token will be the old one on first run,
   // and the new one on the retry run.
-  const { accessToken, refreshToken } = useAuthStore.getState();
+  const { accessToken } = useAuthStore.getState();
 
   const currentLocale = options.locale || getLocaleFromPathname() || "ar";
   let baseUrl = `${API_BASE_URL}/${currentLocale}/api/${API_VERSION}${
@@ -88,15 +88,10 @@ export const apiClient = async <T = any>(
     const response = await fetch(baseUrl, config);
 
     if (!response.ok) {
-      // --- Start of 401 Unauthorized Handling ---
+      // --- START OF CORRECTED 401 HANDLING ---
       if (response.status === 401 && !options.isPublic && !options.isRetry) {
-        if (!refreshToken) {
-          console.log("No refresh token found. Logging out.");
-          useAuthStore.getState().logout();
-          return new Promise(() => {});
-        }
-
         if (isCurrentlyRefreshing) {
+          // If a refresh is already in progress, queue this request
           return new Promise<T>((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           });
@@ -105,42 +100,34 @@ export const apiClient = async <T = any>(
         isCurrentlyRefreshing = true;
         useAuthStore.getState().setIsRefreshingToken(true);
 
-        return refreshTokenApi({ refresh: refreshToken })
-          .then((refreshResponse) => {
-            // The refresh token was valid and we got a new access token.
+        return getAuthSession() // Call our BFF to handle the refresh
+          .then((newSession) => {
+            // Our BFF succeeded! It got a new access token.
+            // Update the store with the new session details.
+            useAuthStore
+              .getState()
+              .login({ access: newSession.access }, newSession.user);
 
-            // 1. **FIX**: Update the store with the new access token AND the new refresh token.
-            // If the backend doesn't send a new refresh token, we keep the existing one.
-            useAuthStore.getState().setTokens({
-              access: refreshResponse.access,
-              refresh: refreshResponse.refresh, // This is the crucial addition
-            });
+            // Unblock any other requests that were waiting.
+            processQueue(null);
 
-            // 2. Unblock any other requests that were waiting.
-            processQueue(null, refreshResponse.access);
-
-            // 3. Retry the original request. This part is already correct from the last fix.
-            console.log(
-              "Token refreshed successfully. Retrying original request."
-            );
+            // Retry the original request with the new token.
             return apiClient(endpoint, { ...options, isRetry: true });
           })
-
           .catch((refreshError) => {
-            // This block is now correctly reserved for when the REFRESH TOKEN truly fails.
+            // This now means our HttpOnly cookie is invalid or expired.
+            // The session is truly over.
             console.error(
-              "Unrecoverable session error: Refresh token failed. Initiating logout.",
+              "Unrecoverable session error. Logging out.",
               refreshError
             );
+            processQueue(refreshError);
+
+            // Dispatch a global event and trigger a full logout.
             appEvents.dispatch("auth:session-expired");
-            useAuthStore.getState().logout();
-            const apiError = new ApiError(
-              getApiErrorMessage(refreshError, "Session expired"),
-              401,
-              refreshError.data || {}
-            );
-            processQueue(apiError, null);
-            return new Promise<T>(() => {});
+            useAuthStore.getState().logout(); // This clears client state and calls the /api/auth/logout BFF endpoint.
+
+            return Promise.reject(refreshError);
           })
           .finally(() => {
             isCurrentlyRefreshing = false;

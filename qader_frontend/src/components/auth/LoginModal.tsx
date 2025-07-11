@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -29,6 +29,7 @@ import { loginUser } from "@/services/auth.service"; // Adjust path
 import { useAuthActions, useAuthStore } from "@/store/auth.store"; // Adjust path
 import { PATHS } from "@/constants/paths"; // Adjust path
 import { queryKeys } from "@/constants/queryKeys";
+import Cookies from "js-cookie";
 
 interface LoginModalProps {
   show: boolean;
@@ -46,7 +47,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const { login: storeLogin } = useAuthActions();
-  const [showPassword, setShowPassword] = React.useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const CurrentLoginSchema = useMemo(() => createLoginSchema(tAuth), [tAuth]);
 
@@ -65,12 +66,18 @@ const LoginModal: React.FC<LoginModalProps> = ({
     mutationKey: queryKeys.auth.login(),
     mutationFn: loginUser,
     onSuccess: (data) => {
-      storeLogin({ access: data.access, refresh: data.refresh }, data.user);
+      storeLogin({ access: data.access }, data.user);
       toast.success(tAuth("loginSuccess"));
       onClose();
       reset();
+
+      if (data.user.is_staff || data.user.is_super) {
+        Cookies.set("qader-user-role", "admin", { path: "/" });
+      } else {
+        Cookies.set("qader-user-role", "student", { path: "/" });
+      }
       if (data.user?.is_super || data.user?.is_staff) {
-        router.push(PATHS.ADMIN.DASHBOARD);
+        router.push(PATHS.ADMIN.EMPLOYEES_MANAGEMENT);
       } else if (!data.user.profile_complete) {
         router.push(PATHS.COMPLETE_PROFILE);
       } else {

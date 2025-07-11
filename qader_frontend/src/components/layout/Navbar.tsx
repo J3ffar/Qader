@@ -115,7 +115,8 @@ const Navbar = () => {
   };
 
   const userNavigationAction = () => {
-    if (user?.is_super || user?.is_staff) router.push(PATHS.ADMIN.DASHBOARD);
+    if (user?.is_super || user?.is_staff)
+      router.push(PATHS.ADMIN.EMPLOYEES_MANAGEMENT);
     else router.push(PATHS.STUDY.HOME);
     closeMobileMenu();
   };
@@ -333,21 +334,21 @@ const Navbar = () => {
             {" "}
             {/* Reduced gap slightly */}
             <ThemeToggle />
-            <LanguageSwitcher /> {/* Ensure this is rendered */}
+            {/* <LanguageSwitcher /> */}
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="ghost"
-                    className="relative h-10 w-10 rounded-full p-0"
+                    variant="outline"
+                    className="relative h-14 w-14 rounded-full p-0 border-primary shadow-lg"
                   >
-                    <Avatar className="h-9 w-9 text-black dark:text-white">
+                    <Avatar className="h-9 w-9 text-black dark:text-white border">
                       <AvatarImage
                         src={user.profile_picture_url || undefined}
                         alt={tNav("userAvatarAlt")}
                       />
                       <AvatarFallback>
-                        {(user.preferred_name || user.full_name || "Q")
+                        {(user.preferred_name || user.full_name || "U")
                           .substring(0, 1)
                           .toUpperCase()}
                       </AvatarFallback>
@@ -544,7 +545,7 @@ const Navbar = () => {
               )}
               {/* Language Switcher and Theme Toggle in Mobile Menu */}
               <div className="mt-4 w-full space-y-3 border-t border-border pt-4">
-                <LanguageSwitcher inMobileMenu={true} />
+                {/* <LanguageSwitcher inMobileMenu={true} /> */}
                 <div className="flex w-full justify-start">
                   {" "}
                   {/* Align theme toggle like language switcher */}

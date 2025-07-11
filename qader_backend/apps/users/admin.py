@@ -27,6 +27,7 @@ class UserProfileInline(admin.StackedInline):
                     "grade",
                     "role",
                     "profile_picture",
+                    "bio",
                 )
             },
         ),

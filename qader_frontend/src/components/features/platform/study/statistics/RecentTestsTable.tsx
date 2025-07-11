@@ -57,7 +57,7 @@ export function RecentTestsTable({ tests }: Props) {
   const t = useTranslations("Study.statistics.recentTests");
   const tCommon = useTranslations("Common");
   const locale = useLocale();
-  console.log("tests: ", tests);
+
   return (
     <>
       <div className="overflow-x-auto">

@@ -18,6 +18,7 @@ import { PATHS } from "@/constants/paths";
 import { Button } from "@/components/ui/button";
 import type { ApiError } from "@/types/api/auth.types";
 import { queryKeys } from "@/constants/queryKeys";
+import Cookies from "js-cookie";
 
 export default function ConfirmEmailPage() {
   const tAuth = useTranslations("Auth");
@@ -47,15 +48,21 @@ export default function ConfirmEmailPage() {
     mutationFn: (data: ConfirmEmailParams) => confirmEmail(data),
     onSuccess: (data) => {
       // data is ConfirmEmailResponse
-      storeLogin({ access: data.access, refresh: data.refresh }, data.user);
+      storeLogin({ access: data.access }, data.user);
       storeSetIsProfileComplete(data.user.profile_complete); // Ensure this is set
       toast.success(tAuth("confirmEmailSuccessMessage"));
+
+      if (data.user.is_staff || data.user.is_super) {
+        Cookies.set("qader-user-role", "admin", { path: "/" });
+      } else {
+        Cookies.set("qader-user-role", "student", { path: "/" });
+      }
 
       // Redirect logic based on profile completeness
       if (!data.user.profile_complete) {
         router.replace(PATHS.COMPLETE_PROFILE);
       } else if (data.user.is_super || data.user.is_staff) {
-        router.replace(PATHS.ADMIN.DASHBOARD);
+        router.replace(PATHS.ADMIN.EMPLOYEES_MANAGEMENT);
       } else {
         router.replace(PATHS.STUDY.HOME);
       }
@@ -73,7 +80,7 @@ export default function ConfirmEmailPage() {
       toast.info(tAuth("confirmEmailAlreadyLoggedIn"));
       // Redirect based on existing user's state
       if (user?.is_super || user?.is_staff) {
-        router.replace(PATHS.ADMIN.DASHBOARD);
+        router.replace(PATHS.ADMIN.EMPLOYEES_MANAGEMENT);
       } else if (user?.profile_complete) {
         router.replace(PATHS.STUDY.HOME);
       } else {
@@ -153,7 +160,7 @@ export default function ConfirmEmailPage() {
               if (confirmedUser && !confirmedUser.profile_complete) {
                 router.replace(PATHS.COMPLETE_PROFILE);
               } else if (confirmedUser?.is_super || confirmedUser?.is_staff) {
-                router.replace(PATHS.ADMIN.DASHBOARD);
+                router.replace(PATHS.ADMIN.EMPLOYEES_MANAGEMENT);
               } else {
                 router.replace(PATHS.STUDY.HOME);
               }
