@@ -38,7 +38,7 @@ class CommunityPartnerSerializer(serializers.ModelSerializer):
 
     full_name = serializers.CharField(source="profile.full_name", read_only=True)
     grade = serializers.CharField(source="profile.grade", read_only=True)
-    profile_picture = serializers.ImageField(
+    profile_picture_url = serializers.ImageField(
         source="profile.profile_picture", read_only=True
     )
 
@@ -48,7 +48,7 @@ class CommunityPartnerSerializer(serializers.ModelSerializer):
             "id",
             "full_name",
             "grade",
-            "profile_picture",
+            "profile_picture_url",
         ]
 
 
