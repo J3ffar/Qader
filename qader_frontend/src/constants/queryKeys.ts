@@ -19,6 +19,17 @@ export const queryKeys = {
     completeProfile: () => [...queryKeys.user.all, "completeProfile"] as const,
     subscription: () => [...queryKeys.user.all, "subscription"] as const, // For /users/me
     grades: () => [...queryKeys.user.all, "grades"] as const,
+
+    support: {
+      // <-- ADD THIS NEW SECTION
+      all: () => [...queryKeys.user.all, "support"] as const,
+      lists: () => [...queryKeys.user.support.all(), "lists"] as const,
+      list: (filters: object = {}) =>
+        [...queryKeys.user.support.lists(), filters] as const,
+      details: () => [...queryKeys.user.support.all(), "details"] as const,
+      detail: (id: number | string) => [...queryKeys.user.support.details(), id] as const,
+      issueTypes: () => [...queryKeys.user.support.all(), "issueTypes"] as const, // <-- ADD THIS
+    },
   },
 
   // ADDING ADMIN SECTION
