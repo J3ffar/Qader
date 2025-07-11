@@ -25,7 +25,7 @@ export function ReplyList({ postId, isPostClosed }: ReplyListProps) {
   } = useInfiniteQuery({
     queryKey: queryKeys.community.postDetails.replies(postId),
     queryFn: getRepliesForPost,
-    initialPageParam: 1,
+    initialPageParam: "1",
     getNextPageParam: (lastPage) => {
       if (lastPage.next) {
         const url = new URL(lastPage.next);

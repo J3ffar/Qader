@@ -92,7 +92,7 @@ export function CommunityFeed({ filters }: CommunityFeedProps) {
 
       {!isFetchingNextPage && !isLoading && posts.length === 0 && (
         <div className="text-center text-muted-foreground py-10">
-          لا توجد منشورات في هذا القسم بعد. كن أول من ينشر!
+          لا توجد منشورات في هذا القسم بعد.
         </div>
       )}
     </div>
