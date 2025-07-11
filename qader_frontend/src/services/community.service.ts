@@ -114,3 +114,22 @@ export const sendPartnerRequest = async (toUserId: number) => {
     }
   );
 };
+
+export const getPartnerRequests = async ({ queryKey }: any) => {
+  const [ , , , filters] = queryKey; // e.g., { direction: 'sent' }
+  return await apiClient<PaginatedResponse<PartnerRequest>>(API_ENDPOINTS.COMMUNITY.PARTNER_REQUESTS, {
+    params: filters,
+  });
+};
+
+export const acceptPartnerRequest = async (requestId: number) => {
+  return await apiClient<PartnerRequest>(API_ENDPOINTS.COMMUNITY.PARTNER_REQUEST_ACCEPT(requestId), {
+    method: "POST",
+  });
+};
+
+export const rejectPartnerRequest = async (requestId: number) => {
+  return await apiClient<PartnerRequest>(API_ENDPOINTS.COMMUNITY.PARTNER_REQUEST_REJECT(requestId), {
+    method: "POST",
+  });
+};

@@ -69,10 +69,13 @@ export interface ToggleLikeResponse {
   like_count: number;
 }
 
+export type RequestStatus = 'pending' | 'accepted' | 'rejected';
+
 export interface PartnerRequest {
   id: number;
   from_user: SimpleUser;
   to_user: SimpleUser;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: RequestStatus;
   created_at: string;
+  updated_at: string;
 }

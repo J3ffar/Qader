@@ -1,17 +1,15 @@
-"use client";
-
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useIntersection } from "@mantine/hooks";
-import { queryKeys } from "@/constants/queryKeys";
-import { searchPartners } from "@/services/community.service";
-import { User } from "@/types/api/user.types";
-import { Loader2 } from "lucide-react";
-import { UserCard } from "./UserCard";
-import { UserCardSkeleton } from "./UserCardSkeleton";
 import { SearchPartnerDialog } from "./SearchPartnerDialog";
-import { Button } from "@/components/ui/button";
-import { useDebounce } from "@/hooks/use-debounce"; // Assuming this hook exists
+import { UserCardSkeleton } from "./UserCardSkeleton";
+import { UserCard } from "./UserCard";
+import { Loader2 } from "lucide-react";
+import { User } from "@/types/api/user.types";
+import { searchPartners } from "@/services/community.service";
+import { queryKeys } from "@/constants/queryKeys";
+import { useIntersection } from "@mantine/hooks";
+import { useMemo, useRef, useState, useEffect } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
+import { PartnerRequestsDialog } from "@/app/[locale/(platform)]/study/study-community/_components/partner_search/PartnerRequestsDialog";
 
 // A utility to remove keys with empty/null/undefined values
 const cleanFilters = (obj: any) => {
@@ -28,13 +26,12 @@ export function PartnerSearchPage() {
   const [filters, setFilters] = useState<{ name?: string; grade?: string }>({});
   const debouncedName = useDebounce(filters.name, 500);
 
-  // --- **THE FIX IS HERE** ---
   const queryFilters = useMemo(() => {
     const rawFilters = {
       ...filters,
       name: debouncedName,
     };
-    return cleanFilters(rawFilters); // Use the utility to clean the filters
+    return cleanFilters(rawFilters);
   }, [filters, debouncedName]);
 
   const {
@@ -56,12 +53,11 @@ export function PartnerSearchPage() {
 
   const lastUserRef = useRef<HTMLDivElement>(null);
   const { ref, entry } = useIntersection({
-    root: document.body, // Use the document body as the scroll root
+    root: document.body,
     threshold: 0.5,
   });
 
   useEffect(() => {
-    // This effect handles triggering the fetch for the next page
     if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
@@ -79,7 +75,7 @@ export function PartnerSearchPage() {
           <SearchPartnerDialog
             onSearch={(newFilters) => setFilters(newFilters)}
           />
-          <Button>طلبات الزملاء</Button>
+          <PartnerRequestsDialog />
         </div>
       </div>
 
