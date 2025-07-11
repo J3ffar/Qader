@@ -79,9 +79,9 @@ export function PartnerSearchPage() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {isLoading &&
-          Array.from({ length: 5 }).map((_, i) => <UserCardSkeleton key={i} />)}
+          Array.from({ length: 8 }).map((_, i) => <UserCardSkeleton key={i} />)}
 
         {!isLoading &&
           partners.map((user: User, i) => {
@@ -95,23 +95,24 @@ export function PartnerSearchPage() {
             }
             return <UserCard key={user.id} user={user} />;
           })}
+
+        {!isLoading && !isError && partners.length === 0 && (
+          <div className="col-span-full text-center text-muted-foreground py-10">
+            <p>لم يتم العثور على زملاء يطابقون بحثك.</p>
+            <p className="text-sm">حاول تغيير معايير البحث.</p>
+          </div>
+        )}
+        {isError && (
+          <p className="col-span-full text-center text-destructive py-10">
+            حدث خطأ أثناء البحث عن الزملاء.
+          </p>
+        )}
       </div>
 
       {isFetchingNextPage && (
         <div className="flex justify-center items-center py-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      )}
-      {!isLoading && !isError && partners.length === 0 && (
-        <div className="text-center text-muted-foreground py-10">
-          <p>لم يتم العثور على زملاء يطابقون بحثك.</p>
-          <p className="text-sm">حاول تغيير معايير البحث.</p>
-        </div>
-      )}
-      {isError && (
-        <p className="text-center text-destructive py-10">
-          حدث خطأ أثناء البحث عن الزملاء.
-        </p>
       )}
     </div>
   );
