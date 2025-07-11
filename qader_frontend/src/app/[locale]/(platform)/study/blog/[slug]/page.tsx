@@ -67,7 +67,7 @@ const ArticlePage = () => {
     );
 
   return (
-    <div className="max-w-3xl mx-auto p-4 bg-[#0B1739] space-y-10 text-right">
+    <div className="max-w-3xl mx-auto p-4 dark:bg-[#0B1739] space-y-10 text-right">
       {/* Cover Image + Title */}
       <div className="relative w-full h-64 rounded-lg bg-[#0b1739] overflow-hidden">
         <Image
@@ -108,7 +108,7 @@ const ArticlePage = () => {
         <p className="font-bold mt-2">{blog.author?.preferred_name}</p>
         {blog.author?.bio && (
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            blog.author?.bio
+            {blog.author.bio}
           </p>
         )}
         <div className="flex justify-center gap-4 mt-4 text-gray-700 dark:text-white">
