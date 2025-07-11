@@ -27,16 +27,18 @@ export interface SupportTicketReply {
   created_at: string;
 }
 
-// Added for optimistic UI to prevent type errors
+export type OptimisticMessageStatus = "sent" | "sending" | "error";
+
 export type OptimisticSupportTicketReply = SupportTicketReply & {
   optimistic?: boolean;
+  status?: OptimisticMessageStatus;
 };
 
 export interface SupportTicketDetail extends SupportTicketList {
   description: string;
   attachment: string | null;
   closed_at: string | null;
-  replies: OptimisticSupportTicketReply[]; // Use the optimistic-compatible type
+  replies: OptimisticSupportTicketReply[];
 }
 
 export type PaginatedSupportTickets = PaginatedResponse<SupportTicketList>;

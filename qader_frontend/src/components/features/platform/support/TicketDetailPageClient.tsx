@@ -67,21 +67,23 @@ export function TicketDetailPageClient({ ticketId }: { ticketId: string }) {
   }
 
   return (
-    // FIX: Restructured with flexbox for proper scrolling
-    <div
-      className="flex flex-col h-[calc(100vh-100px)] bg-background"
-      dir="rtl"
-    >
-      {/* New, richer header component */}
+    // FIX: This is the main container for the chat layout. It's a flex column that takes up 100% of the parent's height.
+    <div className="flex flex-col h-full bg-background" dir="rtl">
+      {/* The header will not grow or shrink */}
       <TicketDetailHeader ticket={ticket} />
 
-      {/* The chat view will now correctly fill the remaining space */}
-      <TicketChatView ticket={ticket} />
+      {/* This container will grow to fill the space and provides the boundary for the scrollable area */}
+      <div className="flex-1 min-h-0">
+        <TicketChatView ticket={ticket} />
+      </div>
 
-      <TicketReplyForm
-        ticketId={ticket.id}
-        isTicketClosed={ticket.status === "closed"}
-      />
+      {/* The reply form will not grow or shrink */}
+      <div className="shrink-0">
+        <TicketReplyForm
+          ticketId={ticketId}
+          isTicketClosed={ticket.status === "closed"}
+        />
+      </div>
     </div>
   );
 }

@@ -6,8 +6,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { SupportTicketDetail } from "@/types/api/support.types";
 import { useAuthStore } from "@/store/auth.store";
-import { formatDistanceToNow } from "date-fns";
+import { Clock, Check, AlertCircle } from "lucide-react";
 import { arSA } from "date-fns/locale";
+import { formatDistanceToNow } from "date-fns";
 
 interface TicketChatViewProps {
   ticket: SupportTicketDetail;
@@ -38,10 +39,8 @@ export function TicketChatView({ ticket }: TicketChatViewProps) {
   ];
 
   return (
-    // FIX: The ScrollArea itself is now a flex-grow item
-    <ScrollArea className="flex-1" ref={scrollAreaRef}>
-      {/* FIX: This div now has h-full to ensure it can scroll within the viewport */}
-      <div className="p-4 space-y-6 h-full">
+    <ScrollArea className="h-full" ref={scrollAreaRef}>
+      <div className="p-4 space-y-6">
         {allMessages.map((reply) => {
           const isCurrentUser = reply.user.id === currentUser?.id;
           const userInitial = (
@@ -72,20 +71,31 @@ export function TicketChatView({ ticket }: TicketChatViewProps) {
               )}
               <div
                 className={cn(
-                  "max-w-md lg:max-w-xl p-3 rounded-lg",
+                  "max-w-md lg:max-w-xl p-3 rounded-lg relative",
                   isCurrentUser
                     ? "bg-primary text-primary-foreground rounded-br-none"
                     : "bg-muted rounded-bl-none",
-                  (reply as any).optimistic ? "opacity-60" : "" // Style for optimistic messages
+                  (reply as any).status === "sending" && "opacity-70",
+                  (reply as any).status === "error" && "bg-destructive/80"
                 )}
               >
-                <p className="whitespace-pre-wrap">{reply.message}</p>
-                <p className="text-xs mt-2 opacity-70 text-right">
-                  {formatDistanceToNow(new Date(reply.created_at), {
-                    addSuffix: true,
-                    locale: arSA,
-                  })}
-                </p>
+                <p className="whitespace-pre-wrap pb-4">{reply.message}</p>
+                <div className="absolute bottom-1.5 ltr:right-2 rtl:left-2 flex items-center gap-1 text-xs opacity-80">
+                  {(reply as any).status === "sending" && (
+                    <Clock className="h-3 w-3" />
+                  )}
+                  {(reply as any).status === "error" && (
+                    <AlertCircle className="h-3 w-3" />
+                  )}
+                  <span>
+                    {(reply as any).status === "sending"
+                      ? "جار الإرسال..."
+                      : formatDistanceToNow(new Date(reply.created_at), {
+                          addSuffix: true,
+                          locale: arSA,
+                        })}
+                  </span>
+                </div>
               </div>
               {isCurrentUser && (
                 <Avatar className="h-8 w-8">

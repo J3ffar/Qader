@@ -50,54 +50,76 @@ export function TicketReplyForm({
     mutationFn: (payload: { message: string }) =>
       addTicketReply({ ticketId, payload }),
     onMutate: async (newReply) => {
-      // 1. Cancel any outgoing refetches to avoid overwriting our optimistic update
       await queryClient.cancelQueries({
         queryKey: queryKeys.user.support.detail(ticketId),
       });
 
-      // 2. Snapshot the previous value
       const previousTicket = queryClient.getQueryData<SupportTicketDetail>(
         queryKeys.user.support.detail(ticketId)
       );
 
-      // 3. Optimistically update to the new value
-      if (previousTicket && currentUser) {
-        const optimisticReply: OptimisticSupportTicketReply = {
-          id: Date.now(),
-          message: newReply.message,
-          user: {
-            id: currentUser.id,
-            username: currentUser.username,
-            full_name: currentUser.full_name,
-            preferred_name: currentUser.preferred_name,
-            profile_picture_url: currentUser.profile_picture_url,
-            grade: currentUser.grade,
-          },
-          created_at: new Date().toISOString(),
-          optimistic: true,
-        };
-
-        queryClient.setQueryData(queryKeys.user.support.detail(ticketId), {
-          ...previousTicket,
-          replies: [...previousTicket.replies, optimisticReply],
-        });
+      if (!currentUser) {
+        toast.error("حدث خطأ، المستخدم الحالي غير معروف.");
+        return { previousTicket };
       }
+
+      const optimisticReply: OptimisticSupportTicketReply = {
+        id: Date.now(),
+        message: newReply.message,
+        user: {
+          id: currentUser.id,
+          username: currentUser.username,
+          full_name: currentUser.full_name,
+          preferred_name: currentUser.preferred_name,
+          profile_picture_url: currentUser.profile_picture_url,
+          grade: currentUser.grade,
+        },
+        created_at: new Date().toISOString(),
+        optimistic: true,
+        status: "sending",
+      };
+
+      queryClient.setQueryData<SupportTicketDetail>(
+        queryKeys.user.support.detail(ticketId),
+        (oldTicketData) => {
+          // 'oldTicketData' is the current state in the cache
+          if (!oldTicketData) {
+            return undefined; // Safety check
+          }
+
+          // THIS IS THE KEY: We return a BRAND NEW object.
+          return {
+            // 1. Spread all properties from the old ticket into the new object.
+            ...oldTicketData,
+
+            // 2. Overwrite the 'replies' property with a BRAND NEW array.
+            replies: [
+              // 3. Spread all the old replies into the new array.
+              ...oldTicketData.replies,
+
+              // 4. Add our new optimistic reply to the end of the new array.
+              optimisticReply,
+            ],
+          };
+        }
+      );
 
       form.reset();
       return { previousTicket };
     },
     onError: (error, _newReply, context) => {
-      // 4. Rollback to the previous state on error
+      toast.error(getApiErrorMessage(error, "فشل إرسال الرد."));
+
+      // We can still revert to the snapshot on error
       if (context?.previousTicket) {
         queryClient.setQueryData(
           queryKeys.user.support.detail(ticketId),
           context.previousTicket
         );
       }
-      toast.error(getApiErrorMessage(error, "فشل إرسال الرد."));
     },
-    onSettled: () => {
-      // 5. Always refetch after error or success to ensure data consistency
+    onSuccess: () => {
+      // Invalidate to get the real data from the server and replace the optimistic one
       queryClient.invalidateQueries({
         queryKey: queryKeys.user.support.detail(ticketId),
       });

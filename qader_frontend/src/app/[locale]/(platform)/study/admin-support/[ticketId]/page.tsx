@@ -11,6 +11,10 @@ interface TicketDetailPageProps {
 export default async function TicketDetailPage({
   params,
 }: TicketDetailPageProps) {
-  // The client component will handle all fetching, state management, and UI.
-  return <TicketDetailPageClient ticketId={(await params).ticketId} />;
+  return (
+    // This container is crucial. It sets the boundary for the flex layout inside the client component.
+    <div className="h-[calc(100vh-105px)]">
+      <TicketDetailPageClient ticketId={(await params).ticketId} />
+    </div>
+  );
 }
