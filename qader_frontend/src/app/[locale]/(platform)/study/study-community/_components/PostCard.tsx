@@ -20,64 +20,48 @@ import { Input } from "@/components/ui/input";
 
 interface PostCardProps {
   post: CommunityPostList;
+  listQueryKey: readonly unknown[];
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, listQueryKey }: PostCardProps) {
   const queryClient = useQueryClient();
 
   const likeMutation = useMutation({
     mutationFn: () => togglePostLike(post.id),
     onMutate: async () => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({
-        queryKey: queryKeys.community.posts.all(),
+      // Use the passed-in query key for precision
+      await queryClient.cancelQueries({ queryKey: listQueryKey });
+      const previousData = queryClient.getQueryData(listQueryKey);
+
+      queryClient.setQueryData(listQueryKey, (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            results: page.results.map((p: CommunityPostList) =>
+              p.id === post.id
+                ? {
+                    ...p,
+                    is_liked_by_user: !p.is_liked_by_user,
+                    like_count: p.is_liked_by_user
+                      ? p.like_count - 1
+                      : p.like_count + 1,
+                  }
+                : p
+            ),
+          })),
+        };
       });
-
-      // Snapshot the previous value
-      const previousData = queryClient.getQueryData(
-        queryKeys.community.posts.list({})
-      ); // Adjust filters if necessary
-
-      // Optimistically update to the new value
-      queryClient.setQueryData(
-        queryKeys.community.posts.list({}),
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page: any) => ({
-              ...page,
-              results: page.results.map((p: CommunityPostList) =>
-                p.id === post.id
-                  ? {
-                      ...p,
-                      is_liked_by_user: !p.is_liked_by_user,
-                      like_count: p.is_liked_by_user
-                        ? p.like_count - 1
-                        : p.like_count + 1,
-                    }
-                  : p
-              ),
-            })),
-          };
-        }
-      );
 
       return { previousData };
     },
     onError: (err, newTodo, context) => {
-      // Rollback on error
-      queryClient.setQueryData(
-        queryKeys.community.posts.list({}),
-        context?.previousData
-      );
+      queryClient.setQueryData(listQueryKey, context?.previousData);
       toast.error("حدث خطأ ما، لم يتم تسجيل إعجابك.");
     },
     onSettled: () => {
-      // Invalidate to re-sync with server state
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.community.posts.all(),
-      });
+      queryClient.invalidateQueries({ queryKey: listQueryKey });
     },
   });
 

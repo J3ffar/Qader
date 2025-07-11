@@ -11,7 +11,7 @@ import {
 import { apiClient } from "./apiClient";
 
 export const getCommunityPosts = async ({ pageParam = 1, queryKey }: any) => {
-  const [_key, filters] = queryKey;
+  const [, , , filters] = queryKey;
   return await apiClient<PaginatedResponse<CommunityPostList>>(
     API_ENDPOINTS.COMMUNITY.POSTS,
     {

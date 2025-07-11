@@ -27,6 +27,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { PostType } from "@/types/api/community.types";
+
 const createPostSchema = z.object({
   content: z
     .string()
@@ -35,7 +37,7 @@ const createPostSchema = z.object({
   // Add other fields like image, title etc.
 });
 
-export function CreatePostDialog() {
+export function CreatePostDialog({ postType }: { postType: PostType }) {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -62,7 +64,7 @@ export function CreatePostDialog() {
   });
 
   const onSubmit = (values: z.infer<typeof createPostSchema>) => {
-    mutation.mutate({ ...values, post_type: "discussion" }); // Assuming discussion for now
+    mutation.mutate({ ...values, post_type: postType });
   };
 
   return (
