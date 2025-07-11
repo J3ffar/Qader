@@ -58,6 +58,11 @@ export const PATHS = {
     STATISTICS: "/study/statistics",
     CHALLENGE_COLLEAGUES: "/study/challenge-peers",
     STUDY_COMMUNITY: "/study/study-community", // Could be a forum, groups, etc.
+    COMMUNITY_DISCUSSION: "/study/study-community/discussion",
+    COMMUNITY_ACHIEVEMENT: "/study/study-community/achievement",
+    COMMUNITY_PARTNER_SEARCH: "/study/study-community/partner_search",
+    COMMUNITY_TIPS: "/study/study-community/tip",
+    COMMUNITY_COMPETITIONS: "/study/study-community/competition",
     BLOG: {
       HOME: "/study/blog",
     },

@@ -20,6 +20,7 @@ from apps.users.utils import generate_unique_username_from_fullname
 from ..constants import (
     AccountTypeChoices,
     GenderChoices,
+    GradeChoices,
     RoleChoices,
     DarkModePrefChoices,
     SubscriptionTypeChoices,
@@ -63,6 +64,9 @@ class SimpleUserSerializer(serializers.ModelSerializer):
     preferred_name = serializers.CharField(
         source="profile.preferred_name", read_only=True, allow_null=True
     )
+    grade = serializers.CharField(
+        source="profile.get_grade_display", read_only=True, allow_null=True
+    )
 
     # Use a SerializerMethodField for the profile picture to build the full URL
     profile_picture_url = serializers.SerializerMethodField()
@@ -75,6 +79,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
             "email",
             "full_name",
             "preferred_name",
+            "grade",
             "profile_picture_url",
         )
         read_only_fields = fields
@@ -423,10 +428,10 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
         choices=GenderChoices.choices, required=True, help_text="User's gender."
     )
     language = serializers.ChoiceField(choices=settings.LANGUAGES, required=False)
-    grade = serializers.CharField(
-        max_length=100,
+    grade = serializers.ChoiceField(
+        choices=GradeChoices.choices,
         required=True,
-        help_text="User's current educational grade or level (e.g., 'Grade 11', 'University Freshman').",
+        help_text="User's current educational grade or level.",
     )
     has_taken_qiyas_before = serializers.BooleanField(
         required=True,
@@ -662,7 +667,9 @@ class AuthUserResponseSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(read_only=True)
     preferred_name = serializers.CharField(read_only=True, allow_null=True)
     gender = serializers.CharField(read_only=True, allow_null=True)  # Added
-    grade = serializers.CharField(read_only=True, allow_null=True)  # Added
+    grade = serializers.CharField(
+        source="get_grade_display", read_only=True, allow_null=True
+    )  # Added
     has_taken_qiyas_before = serializers.BooleanField(
         read_only=True, allow_null=True
     )  # Added
@@ -911,8 +918,8 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     gender = serializers.ChoiceField(
         required=False, allow_blank=True, allow_null=True, choices=GenderChoices.choices
     )
-    grade = serializers.CharField(
-        required=False, allow_blank=True, allow_null=True, max_length=100
+    grade = serializers.ChoiceField(
+        required=False, allow_null=True, choices=GradeChoices.choices
     )
     has_taken_qiyas_before = serializers.BooleanField(required=False, allow_null=True)
     profile_picture = serializers.ImageField(required=False, allow_null=True)

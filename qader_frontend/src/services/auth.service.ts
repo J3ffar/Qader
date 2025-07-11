@@ -21,6 +21,7 @@ import type {
   RefreshTokenPayload,
   RefreshTokenResponse,
   LogoutPayload,
+  Grade,
 } from "@/types/api/auth.types";
 import { ApiError } from "@/lib/errors"; // Import our custom error
 import { useAuthStore } from "@/store/auth.store";
@@ -37,6 +38,7 @@ export const loginUser = (
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
+    credentials: "include",
   }).then(async (res) => {
     // We need the error data regardless of whether the response is ok or not
     const responseData = await res.json();
@@ -93,19 +95,34 @@ export interface ConfirmEmailParams {
   uidb64: string;
   token: string;
 }
-export type ConfirmEmailResponse = LoginResponse;
 
-export const confirmEmail = ({
+// This is the response type the CLIENT will get from our BFF
+export type ConfirmEmailResponse = Omit<LoginResponse, "refresh">;
+
+// --- THE FIX: Point this function to our BFF, not directly to Django ---
+export const confirmEmail = async ({
   uidb64,
   token,
 }: ConfirmEmailParams): Promise<ConfirmEmailResponse> => {
-  return apiClient<ConfirmEmailResponse>(
-    API_ENDPOINTS.AUTH.CONFIRM_EMAIL(uidb64, token),
-    {
-      method: "GET",
-      isPublic: true,
-    }
-  );
+  const response = await fetch("/api/auth/confirm-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ uidb64, token }),
+    credentials: "include",
+  });
+
+  const responseData = await response.json();
+
+  if (!response.ok) {
+    // Forward the error from the BFF/Django to the client mutation hook
+    throw new ApiError(
+      responseData.detail || "Email confirmation failed",
+      response.status,
+      responseData
+    );
+  }
+
+  return responseData;
 };
 
 export const requestOtp = (
@@ -204,6 +221,10 @@ export const refreshTokenApi = async (
   }
 
   return response.json();
+};
+
+export const getGrades = (): Promise<Grade[]> => {
+  return apiClient<Grade[]>(API_ENDPOINTS.USERS.GRADES);
 };
 
 export const getCurrentUserProfile = (): Promise<UserProfile> => {

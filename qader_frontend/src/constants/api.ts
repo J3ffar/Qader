@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
     APPLY_SERIAL_CODE: "/users/me/apply-serial-code/", // Moved from STUDY to USERS as it's user-related
     SUBSCRIPTION_PLANS: "/users/subscription-plans/",
     CANCEL_SUBSCRIPTION: "/users/me/subscription/cancel/",
+    GRADES: "/users/grades/",
   },
   ADMIN: {
     USERS: {
@@ -183,5 +184,21 @@ export const API_ENDPOINTS = {
 
     POINTS_SUMMARY: "/gamification/points-summary/",
     MY_ITEMS: "/gamification/my-items/",
+  },
+  COMMUNITY: {
+    POSTS: "/community/posts/",
+    POST_DETAIL: (id: number | string) => `/community/posts/${id}/`,
+    POST_TOGGLE_LIKE: (id: number | string) =>
+      `/community/posts/${id}/toggle_like/`,
+    REPLIES: (postId: number | string) => `/community/posts/${postId}/replies/`,
+    REPLY_TOGGLE_LIKE: (id: number | string) =>
+      `/community/replies/${id}/toggle_like/`,
+    TAGS: "/community/tags/",
+    PARTNERS: "/community/partners/",
+    PARTNER_REQUESTS: "/community/partner-requests/",
+    PARTNER_REQUEST_ACCEPT: (id: number) =>
+      `/community/partner-requests/${id}/accept/`,
+    PARTNER_REQUEST_REJECT: (id: number) =>
+      `/community/partner-requests/${id}/reject/`,
   },
 };
