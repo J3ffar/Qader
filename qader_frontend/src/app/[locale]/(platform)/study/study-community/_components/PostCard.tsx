@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/utils/time";
 import { CreateReplyForm } from "./CreateReplyForm";
 import { ReplyList } from "./ReplyList";
-import { ImageDialog } from "./ImageDialog"; // <-- IMPORT
+import { ImageDialog } from "./ImageDialog";
 
 interface PostCardProps {
   post: CommunityPostList;
@@ -46,16 +46,16 @@ export function PostCard({ post: initialPost, listQueryKey }: PostCardProps) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Use detailed data if available, but always fall back to initial data for properties
   const post = detailedPost || initialPost;
-  const content = showFullContent
-    ? detailedPost?.content || initialPost.content_excerpt
-    : initialPost.content_excerpt;
-  const imageUrl = post.image ?? initialPost.image; // <-- **FIX: PRESERVE IMAGE URL**
+  const imageUrl = post.image ?? initialPost.image;
+
   const canShowReadMore =
-    !showFullContent &&
-    detailedPost?.content &&
-    detailedPost.content.length > initialPost.content_excerpt.length;
+    !showFullContent && initialPost.content_excerpt.endsWith("...");
+
+  // If showing full content, prefer the detailed version, otherwise show the excerpt.
+  const contentToDisplay = showFullContent
+    ? detailedPost?.content ?? initialPost.content_excerpt
+    : initialPost.content_excerpt;
 
   const likeMutation = useMutation({
     mutationFn: () => togglePostLike(post.id),
@@ -146,14 +146,23 @@ export function PostCard({ post: initialPost, listQueryKey }: PostCardProps) {
         {post.title && <h3 className="text-lg font-bold mb-2">{post.title}</h3>}
 
         <p className="whitespace-pre-wrap">
-          {content}
+          {contentToDisplay}
+
+          {/* Button to trigger showing full content */}
           {canShowReadMore && (
             <button
               onClick={() => setShowFullContent(true)}
               className="text-primary font-semibold hover:underline ms-1"
             >
-              ...اقرأ المزيد
+              اقرأ المزيد
             </button>
+          )}
+
+          {/* Inline loader while fetching the full content after click */}
+          {showFullContent && isLoadingDetails && (
+            <span className="ms-2 inline-block">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </span>
           )}
         </p>
 
@@ -204,7 +213,11 @@ export function PostCard({ post: initialPost, listQueryKey }: PostCardProps) {
         </div>
 
         <div className="w-full pt-2">
-          <CreateReplyForm postId={post.id} isClosed={post.is_closed} onReplySuccess={() => setIsCommentsOpen(true)} />
+          <CreateReplyForm
+            postId={post.id}
+            isClosed={post.is_closed}
+            onReplySuccess={() => setIsCommentsOpen(true)}
+          />
         </div>
 
         {isCommentsOpen && (

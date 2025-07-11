@@ -121,7 +121,7 @@ class CommunityPost(models.Model):
         return self.replies.count()
 
     @property
-    def content_excerpt(self, length=150):
+    def content_excerpt(self, length=500):
         """Provides a short preview of the content."""
         if len(self.content) > length:
             # Ensure clean cut (avoid cutting mid-word if complex logic needed)
