@@ -5,32 +5,40 @@ export interface NestedReply extends CommunityReply {
 }
 
 export function buildReplyTree(replies: CommunityReply[]): NestedReply[] {
-  // Sort all replies by newest first before building the tree
-  const sortedReplies = [...replies].sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
-
+  // We don't need to pre-sort the entire list. It's more efficient to sort children as they are added.
   const replyMap = new Map<number, NestedReply>();
   const rootReplies: NestedReply[] = [];
 
-  sortedReplies.forEach((reply) => {
+  replies.forEach((reply) => {
     replyMap.set(reply.id, { ...reply, childReplies: [] });
   });
 
+  // Create a new array for roots to avoid mutation issues during iteration
+  const potentialRoots: NestedReply[] = [];
   replyMap.forEach((nestedReply) => {
     if (nestedReply.parent_reply_read_id) {
       const parent = replyMap.get(nestedReply.parent_reply_read_id);
       if (parent) {
-        // Since the initial array is sorted newest to oldest, we unshift to maintain that order in children.
-        parent.childReplies.unshift(nestedReply);
+        parent.childReplies.push(nestedReply);
       } else {
-        rootReplies.push(nestedReply);
+        potentialRoots.push(nestedReply);
       }
     } else {
-      rootReplies.push(nestedReply);
+      potentialRoots.push(nestedReply);
     }
   });
 
-  return rootReplies;
+  // Now, sort the root replies and all child replies from newest to oldest
+  const sortByDate = (a: NestedReply, b: NestedReply) =>
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+
+  potentialRoots.forEach((reply) => {
+    if (reply.childReplies.length > 1) {
+      reply.childReplies.sort(sortByDate); // <-- **THE FIX**
+    }
+  });
+
+  potentialRoots.sort(sortByDate);
+
+  return potentialRoots;
 }
