@@ -9,8 +9,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RequestList } from "./RequestList";
 import { Users } from "lucide-react";
+import { RequestList } from "./RequestList";
 
 export function PartnerRequestsDialog() {
   return (

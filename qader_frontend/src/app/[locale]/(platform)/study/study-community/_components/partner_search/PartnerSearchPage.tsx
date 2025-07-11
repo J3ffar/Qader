@@ -9,7 +9,7 @@ import { useIntersection } from "@mantine/hooks";
 import { useMemo, useRef, useState, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/use-debounce";
-import { PartnerRequestsDialog } from "@/app/[locale/(platform)]/study/study-community/_components/partner_search/PartnerRequestsDialog";
+import { PartnerRequestsDialog } from "@/app/[locale]/(platform)/study/study-community/_components/partner_search/PartnerRequestsDialog";
 
 // A utility to remove keys with empty/null/undefined values
 const cleanFilters = (obj: any) => {
