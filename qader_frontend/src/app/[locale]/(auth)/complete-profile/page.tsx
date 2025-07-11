@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -38,12 +38,11 @@ import {
   type CompleteProfileFormValues,
   type ApiCompleteProfileData,
 } from "@/types/forms/auth.schema";
-import { completeUserProfile } from "@/services/auth.service";
+import { getGrades, completeUserProfile } from "@/services/auth.service";
 import { useAuthCore, useAuthActions, useAuthStore } from "@/store/auth.store"; // Added useAuthCore
 import { PATHS } from "@/constants/paths";
-import type { ApiError, UserProfile } from "@/types/api/auth.types";
+import type { ApiError, UserProfile, Grade } from "@/types/api/auth.types";
 import { queryKeys } from "@/constants/queryKeys";
-import { grades } from "@/constants/config";
 
 export default function CompleteProfilePage() {
   const tAuth = useTranslations("Auth");
@@ -57,6 +56,17 @@ export default function CompleteProfilePage() {
     setUser: storeSetUser,
     setIsProfileComplete: storeSetIsProfileComplete,
   } = useAuthActions();
+
+  const {
+    data: grades = [],
+    isLoading: isLoadingGrades,
+    error: gradesError,
+  } = useQuery({
+    queryKey: queryKeys.user.grades(),
+    queryFn: getGrades,
+    staleTime: 1000 * 60 * 60, // Grades list is static, cache for 1 hour
+    refetchOnWindowFocus: false,
+  });
 
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -417,6 +427,7 @@ export default function CompleteProfilePage() {
                 onValueChange={field.onChange}
                 value={field.value} // Use value for controlled
                 dir={tCommon("dir") as "ltr" | "rtl"}
+                disabled={isLoadingGrades}
               >
                 <SelectTrigger id="grade_page_trigger" className="mt-1 w-full">
                   {" "}
@@ -424,9 +435,9 @@ export default function CompleteProfilePage() {
                   <SelectValue placeholder={tAuth("selectGradePlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {grades.map((gradeItem) => (
-                    <SelectItem key={gradeItem} value={gradeItem}>
-                      {gradeItem}
+                  {grades.map((grade) => (
+                    <SelectItem key={grade.key} value={grade.key}>
+                      {grade.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

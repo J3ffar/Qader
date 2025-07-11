@@ -21,6 +21,7 @@ import type {
   RefreshTokenPayload,
   RefreshTokenResponse,
   LogoutPayload,
+  Grade,
 } from "@/types/api/auth.types";
 import { ApiError } from "@/lib/errors"; // Import our custom error
 import { useAuthStore } from "@/store/auth.store";
@@ -204,6 +205,10 @@ export const refreshTokenApi = async (
   }
 
   return response.json();
+};
+
+export const getGrades = (): Promise<Grade[]> => {
+  return apiClient<Grade[]>(API_ENDPOINTS.USERS.GRADES);
 };
 
 export const getCurrentUserProfile = (): Promise<UserProfile> => {

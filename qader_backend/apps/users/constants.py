@@ -78,6 +78,26 @@ class GenderChoices(models.TextChoices):
     FEMALE = "female", _("Female")
 
 
+# --- NEW: Grade Choices ---
+class GradeChoices(models.TextChoices):
+    PRIMARY_1 = "primary_1", _("أولى ابتدائي")
+    PRIMARY_2 = "primary_2", _("ثانية ابتدائي")
+    PRIMARY_3 = "primary_3", _("ثالثة ابتدائي")
+    PRIMARY_4 = "primary_4", _("رابعة ابتدائي")
+    PRIMARY_5 = "primary_5", _("خامسة ابتدائي")
+    PRIMARY_6 = "primary_6", _("سادسة ابتدائي")
+    MIDDLE_1 = "middle_1", _("أولى متوسط")
+    MIDDLE_2 = "middle_2", _("ثانية متوسط")
+    MIDDLE_3 = "middle_3", _("ثالثة متوسط")
+    HIGH_1 = "high_1", _("أولى ثانوي")
+    HIGH_2 = "high_2", _("ثانية ثانوي")
+    HIGH_3 = "high_3", _("ثالث ثانوي")
+    UNI_PREP = "uni_prep", _("سنة تحضيرية جامعة")
+    UNI_STUDENT = "uni_student", _("طالب جامعي")
+    GRADUATE = "graduate", _("خريج")
+    OTHER = "other", _("أخرى")
+
+
 class RoleChoices(models.TextChoices):
     STUDENT = "student", _("Student")
     TEACHER = "teacher", _("Teacher")

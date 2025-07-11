@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
     APPLY_SERIAL_CODE: "/users/me/apply-serial-code/", // Moved from STUDY to USERS as it's user-related
     SUBSCRIPTION_PLANS: "/users/subscription-plans/",
     CANCEL_SUBSCRIPTION: "/users/me/subscription/cancel/",
+    GRADES: "/users/grades/",
   },
   ADMIN: {
     USERS: {

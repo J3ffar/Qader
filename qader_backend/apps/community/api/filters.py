@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 
 from apps.community.models import CommunityPost
+from apps.users.constants import GradeChoices
 
 
 # Adheres to SRP: This class is solely responsible for defining filtering logic for CommunityPost.
@@ -70,16 +71,16 @@ class UserPartnerFilter(django_filters.FilterSet):
         method="filter_by_name", label=_("User's Name or Username")
     )
     grade = django_filters.CharFilter(
-        field_name="profile__grade", lookup_expr="iexact", label=_("Grade/Level")
+        method="filter_by_grades",
+        label=_("Grade(s) (comma-separated keys, e.g., high_1,high_2)"),
     )
     # Filter by learning section the user has posted in
     section = django_filters.CharFilter(
         field_name="community_posts__section_filter__slug",
         lookup_expr="iexact",
         label=_("Learning Section Slug"),
-        distinct=True, # Important to avoid duplicate users
+        distinct=True,  # Important to avoid duplicate users
     )
-
 
     class Meta:
         model = User
@@ -95,3 +96,28 @@ class UserPartnerFilter(django_filters.FilterSet):
         return queryset.filter(
             Q(username__icontains=value) | Q(profile__full_name__icontains=value)
         ).distinct()
+
+    def filter_by_grades(self, queryset, name, value):
+        """
+        Filters users by one or more grade keys provided as a comma-separated string.
+        """
+        if not value:
+            return queryset
+
+        # Split the string, strip whitespace, and filter out any empty strings
+        grade_keys = [key.strip() for key in value.split(",") if key.strip()]
+        print(grade_keys)
+        if not grade_keys:
+            return queryset
+
+        # Optional but recommended: Validate that the provided keys are valid choices.
+        # This prevents invalid data from being passed to the DB query.
+        valid_keys = GradeChoices.values
+        validated_grade_keys = [key for key in grade_keys if key in valid_keys]
+
+        if not validated_grade_keys:
+            return queryset
+
+        # Filter the queryset where the user's profile grade is in the list of provided keys.
+        # .distinct() is good practice here to ensure a user isn't returned multiple times if somehow possible.
+        return queryset.filter(profile__grade__in=validated_grade_keys).distinct()

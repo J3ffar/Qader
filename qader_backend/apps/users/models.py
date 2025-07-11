@@ -12,6 +12,7 @@ from apps.notifications.models import Notification, NotificationTypeChoices
 from .constants import (
     AccountTypeChoices,
     GenderChoices,
+    GradeChoices,
     RoleChoices,
     DarkModePrefChoices,
     SubscriptionTypeChoices,
@@ -304,6 +305,7 @@ class UserProfile(models.Model):
     grade = models.CharField(
         _("Grade/Level"),
         max_length=100,
+        choices=GradeChoices.choices,  # <-- Use choices here
         blank=True,
         null=True,
         help_text=_("Educational level (e.g., Grade 12, University Freshman)."),

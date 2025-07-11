@@ -74,6 +74,7 @@ from .serializers import (
 from ..constants import (
     SUBSCRIPTION_PLANS_CONFIG,
     SubscriptionTypeChoices,
+    GradeChoices,
 )
 from ..models import (
     UserProfile,
@@ -1684,6 +1685,36 @@ class UserRedeemedCodesListView(generics.ListAPIView):
         user = self.request.user
         # Filter codes where used_by is the current user and order by most recent
         return SerialCode.objects.filter(used_by=user).order_by("-used_at")
+
+
+@extend_schema(
+    tags=["User Profile"],
+    summary="List Available Educational Grades",
+    description="Provides a list of all available educational grades for user profiles.",
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=inline_serializer(
+                name="GradeListResponse",
+                fields={
+                    "key": serializers.CharField(),
+                    "label": serializers.CharField(),
+                },
+                many=True,
+            ),
+            description="List of available grades.",
+        ),
+    },
+)
+class GradeListView(views.APIView):
+    """Lists available educational grades."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request: Request, *args, **kwargs) -> Response:
+        grades = [
+            {"key": choice[0], "label": choice[1]} for choice in GradeChoices.choices
+        ]
+        return Response(grades, status=status.HTTP_200_OK)
 
 
 @extend_schema(

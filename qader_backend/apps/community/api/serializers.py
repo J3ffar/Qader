@@ -30,14 +30,15 @@ class TagSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "name", "slug", "count"]
 
 
-# NEW SERIALIZER FOR PARTNER SEARCH
 class CommunityPartnerSerializer(serializers.ModelSerializer):
     """
     Serializer for listing users as potential study partners in the community.
     """
 
     full_name = serializers.CharField(source="profile.full_name", read_only=True)
-    grade = serializers.CharField(source="profile.grade", read_only=True)
+    grade = serializers.CharField(
+        source="profile.get_grade_display", read_only=True, allow_null=True
+    )
     profile_picture_url = serializers.ImageField(
         source="profile.profile_picture", read_only=True
     )
@@ -50,6 +51,7 @@ class CommunityPartnerSerializer(serializers.ModelSerializer):
             "grade",
             "profile_picture_url",
         ]
+        read_only_fields = fields
 
 
 class CommunityReplySerializer(serializers.ModelSerializer):

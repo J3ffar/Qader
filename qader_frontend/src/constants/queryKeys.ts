@@ -18,6 +18,7 @@ export const queryKeys = {
       [...queryKeys.user.all, "profile", userId] as const, // For /users/me
     completeProfile: () => [...queryKeys.user.all, "completeProfile"] as const,
     subscription: () => [...queryKeys.user.all, "subscription"] as const, // For /users/me
+    grades: () => [...queryKeys.user.all, "grades"] as const,
   },
 
   // ADDING ADMIN SECTION

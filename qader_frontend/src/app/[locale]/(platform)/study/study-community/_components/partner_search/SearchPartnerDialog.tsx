@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/constants/queryKeys";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,7 +28,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Search } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { grades } from "@/constants/config"; // <-- **IMPORT GRADES**
+import { getGrades } from "@/services/auth.service";
+import { useTranslations } from "next-intl";
 
 const searchSchema = z.object({
   name: z.string().optional(),
@@ -41,6 +44,17 @@ interface SearchPartnerDialogProps {
 
 export function SearchPartnerDialog({ onSearch }: SearchPartnerDialogProps) {
   const [isOpen, setIsOpen] = useState(false); // <-- **STATE TO CONTROL DIALOG**
+
+  const {
+    data: grades = [],
+    isLoading: isLoadingGrades,
+    error: gradesError,
+  } = useQuery({
+    queryKey: queryKeys.user.grades(),
+    queryFn: getGrades,
+    staleTime: 1000 * 60 * 60, // Grades list is static, cache for 1 hour
+    refetchOnWindowFocus: false,
+  });
 
   const form = useForm<SearchFilters>({
     resolver: zodResolver(searchSchema),
@@ -87,6 +101,7 @@ export function SearchPartnerDialog({ onSearch }: SearchPartnerDialogProps) {
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    disabled={isLoadingGrades}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -94,10 +109,9 @@ export function SearchPartnerDialog({ onSearch }: SearchPartnerDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {/* ** DYNAMICALLY RENDER GRADES ** */}
                       {grades.map((grade) => (
-                        <SelectItem key={grade} value={grade}>
-                          {grade}
+                        <SelectItem key={grade.key} value={grade.key}>
+                          {grade.label}
                         </SelectItem>
                       ))}
                     </SelectContent>

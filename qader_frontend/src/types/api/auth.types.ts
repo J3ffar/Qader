@@ -133,3 +133,8 @@ export interface ApiError extends Error {
   status?: number;
   data?: ApiErrorDetail;
 }
+
+export interface Grade {
+  key: string;
+  label: string;
+}
