@@ -43,26 +43,7 @@ import { useAuthCore, useAuthActions, useAuthStore } from "@/store/auth.store"; 
 import { PATHS } from "@/constants/paths";
 import type { ApiError, UserProfile } from "@/types/api/auth.types";
 import { queryKeys } from "@/constants/queryKeys";
-
-const grades = [
-  // This list should ideally come from backend or be localized via i18n
-  "أولى ابتدائي",
-  "ثانية ابتدائي",
-  "ثالثة ابتدائي",
-  "رابعة ابتدائي",
-  "خامسة ابتدائي",
-  "سادسة ابتدائي",
-  "أولى متوسط",
-  "ثانية متوسط",
-  "ثالثة متوسط",
-  "أولى ثانوي",
-  "ثانية ثانوي",
-  "ثالث ثانوي",
-  "سنة تحضيرية جامعة",
-  "طالب جامعي",
-  "خريج",
-  "أخرى",
-];
+import { grades } from "@/constants/config";
 
 export default function CompleteProfilePage() {
   const tAuth = useTranslations("Auth");

@@ -13,17 +13,29 @@ import { SearchPartnerDialog } from "./SearchPartnerDialog";
 import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/use-debounce"; // Assuming this hook exists
 
+// A utility to remove keys with empty/null/undefined values
+const cleanFilters = (obj: any) => {
+  const newObj: any = {};
+  for (const key in obj) {
+    if (obj[key] !== null && obj[key] !== undefined && obj[key] !== "") {
+      newObj[key] = obj[key];
+    }
+  }
+  return newObj;
+};
+
 export function PartnerSearchPage() {
   const [filters, setFilters] = useState<{ name?: string; grade?: string }>({});
   const debouncedName = useDebounce(filters.name, 500);
 
-  const queryFilters = useMemo(
-    () => ({
+  // --- **THE FIX IS HERE** ---
+  const queryFilters = useMemo(() => {
+    const rawFilters = {
       ...filters,
       name: debouncedName,
-    }),
-    [filters, debouncedName]
-  );
+    };
+    return cleanFilters(rawFilters); // Use the utility to clean the filters
+  }, [filters, debouncedName]);
 
   const {
     data,
@@ -42,13 +54,14 @@ export function PartnerSearchPage() {
         : undefined,
   });
 
-  const lastUserRef = useRef<HTMLElement>(null);
+  const lastUserRef = useRef<HTMLDivElement>(null);
   const { ref, entry } = useIntersection({
-    root: lastUserRef.current,
-    threshold: 1,
+    root: document.body, // Use the document body as the scroll root
+    threshold: 0.5,
   });
 
   useEffect(() => {
+    // This effect handles triggering the fetch for the next page
     if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
@@ -66,20 +79,26 @@ export function PartnerSearchPage() {
           <SearchPartnerDialog
             onSearch={(newFilters) => setFilters(newFilters)}
           />
-          <Button>طلبات الزملاء</Button>{" "}
-          {/* Placeholder for viewing requests */}
+          <Button>طلبات الزملاء</Button>
         </div>
       </div>
 
       <div className="space-y-4">
         {isLoading &&
           Array.from({ length: 5 }).map((_, i) => <UserCardSkeleton key={i} />)}
+
         {!isLoading &&
-          partners.map((user: User, i) => (
-            <div key={user.id} ref={i === partners.length - 1 ? ref : null}>
-              <UserCard user={user} />
-            </div>
-          ))}
+          partners.map((user: User, i) => {
+            // Attach the ref to the *last* element in the list
+            if (i === partners.length - 1) {
+              return (
+                <div key={user.id} ref={ref}>
+                  <UserCard user={user} />
+                </div>
+              );
+            }
+            return <UserCard key={user.id} user={user} />;
+          })}
       </div>
 
       {isFetchingNextPage && (

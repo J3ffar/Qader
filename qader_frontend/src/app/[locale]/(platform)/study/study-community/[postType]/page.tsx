@@ -15,13 +15,13 @@ const ALLOWED_POST_TYPES: PostType[] = [
 ];
 
 interface CommunityTypePageProps {
-  params: { postType: PostType };
+  params: Promise<{ local: string; postType: PostType }>;
 }
 
 export default async function CommunityTypePage({
   params,
 }: CommunityTypePageProps) {
-  const { postType } = params;
+  const { postType } = await params;
 
   if (!ALLOWED_POST_TYPES.includes(postType)) {
     notFound();

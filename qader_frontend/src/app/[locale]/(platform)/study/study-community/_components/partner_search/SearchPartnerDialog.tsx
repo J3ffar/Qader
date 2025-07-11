@@ -1,5 +1,4 @@
-"use client";
-
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,6 +26,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Search } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { grades } from "@/constants/config"; // <-- **IMPORT GRADES**
 
 const searchSchema = z.object({
   name: z.string().optional(),
@@ -40,6 +40,8 @@ interface SearchPartnerDialogProps {
 }
 
 export function SearchPartnerDialog({ onSearch }: SearchPartnerDialogProps) {
+  const [isOpen, setIsOpen] = useState(false); // <-- **STATE TO CONTROL DIALOG**
+
   const form = useForm<SearchFilters>({
     resolver: zodResolver(searchSchema),
     defaultValues: { name: "", grade: "" },
@@ -47,10 +49,11 @@ export function SearchPartnerDialog({ onSearch }: SearchPartnerDialogProps) {
 
   const onSubmit = (values: SearchFilters) => {
     onSearch(values);
+    setIsOpen(false); // <-- **CLOSE DIALOG ON SUBMIT**
   };
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
           <Search className="me-2 h-4 w-4" />
@@ -91,9 +94,12 @@ export function SearchPartnerDialog({ onSearch }: SearchPartnerDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="ثالث ثانوي">ثالث ثانوي</SelectItem>
-                      <SelectItem value="ثاني ثانوي">ثاني ثانوي</SelectItem>
-                      <SelectItem value="أول ثانوي">أول ثانوي</SelectItem>
+                      {/* ** DYNAMICALLY RENDER GRADES ** */}
+                      {grades.map((grade) => (
+                        <SelectItem key={grade} value={grade}>
+                          {grade}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </FormItem>
