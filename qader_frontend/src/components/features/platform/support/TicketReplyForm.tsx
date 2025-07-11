@@ -158,6 +158,7 @@ export function TicketReplyForm({
                   <Textarea
                     placeholder="اكتب رسالتك هنا..."
                     {...field}
+                    rows={20}
                     className="min-h-[40px] resize-none"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {

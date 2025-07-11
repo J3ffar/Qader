@@ -71,7 +71,7 @@ export function TicketChatView({ ticket }: TicketChatViewProps) {
               )}
               <div
                 className={cn(
-                  "max-w-md lg:max-w-xl p-3 rounded-lg relative",
+                  "max-w-2xl min-w-40 p-3 rounded-lg relative",
                   isCurrentUser
                     ? "bg-primary text-primary-foreground rounded-br-none"
                     : "bg-muted rounded-bl-none",
