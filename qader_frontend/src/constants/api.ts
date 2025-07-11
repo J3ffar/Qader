@@ -185,6 +185,10 @@ export const API_ENDPOINTS = {
     POINTS_SUMMARY: "/gamification/points-summary/",
     MY_ITEMS: "/gamification/my-items/",
   },
+  Blog: {
+    POSTS: "/blog/posts/",
+    adviceRequests: "/blog/advice-requests/",
+  },
   COMMUNITY: {
     POSTS: "/community/posts/",
     POST_DETAIL: (id: number | string) => `/community/posts/${id}/`,
