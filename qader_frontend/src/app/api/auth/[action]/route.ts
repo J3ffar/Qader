@@ -12,51 +12,122 @@ export async function POST(
   { params }: { params: Promise<{ action: string }> }
 ) {
   // We only support 'login' via POST
-  if ((await params).action !== "login") {
-    return NextResponse.json({ error: "Not Found" }, { status: 404 });
-  }
-
-  try {
-    const body = await req.json();
-    const response = await fetch(
-      `${DJANGO_API_URL}${API_ENDPOINTS.AUTH.LOGIN}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+  // --- Login Logic (Unchanged but shown for context) ---
+  if ((await params).action === "login") {
+    try {
+      const body = await req.json();
+      const response = await fetch(
+        `${DJANGO_API_URL}${API_ENDPOINTS.AUTH.LOGIN}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: req.headers.get("Cookie") ?? "",
+          },
+          body: JSON.stringify(body),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        return NextResponse.json(data, { status: response.status });
       }
-    );
 
-    const data = await response.json();
+      const responseToBrowser = NextResponse.json(data);
 
-    if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
-    }
+      response.headers.forEach((value, key) => {
+        if (key.toLowerCase() === "set-cookie") {
+          responseToBrowser.headers.append("Set-Cookie", value);
+        }
+      });
 
-    const { access, refresh, user } = data;
-    if (!refresh) {
+      const { access, refresh, user } = data;
+      if (!refresh) {
+        return NextResponse.json(
+          { error: "Refresh token not provided" },
+          { status: 500 }
+        );
+      }
+
+      (await cookies()).set(REFRESH_TOKEN_COOKIE_NAME, refresh, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+      });
+
+      return responseToBrowser;
+    } catch (error) {
+      console.error("Login API route error:", error);
       return NextResponse.json(
-        { error: "Refresh token not provided by backend" },
+        { error: "Internal Server Error" },
         { status: 500 }
       );
     }
-
-    (await cookies()).set(REFRESH_TOKEN_COOKIE_NAME, refresh, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    });
-
-    return NextResponse.json({ access, user });
-  } catch (error) {
-    console.error("Login API route error:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
   }
+
+  // --- THE FIX: Add a new handler for 'confirm-email' ---
+  if ((await params).action === "confirm-email") {
+    try {
+      const { uidb64, token } = await req.json();
+
+      if (!uidb64 || !token) {
+        return NextResponse.json(
+          { error: "Missing confirmation parameters" },
+          { status: 400 }
+        );
+      }
+
+      // The Django endpoint is a GET request
+      const response = await fetch(
+        `${DJANGO_API_URL}${API_ENDPOINTS.AUTH.CONFIRM_EMAIL(uidb64, token)}`,
+        { method: "GET" }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return NextResponse.json(data, { status: response.status });
+      }
+
+      const responseToBrowser = NextResponse.json(data);
+
+      response.headers.forEach((value, key) => {
+        if (key.toLowerCase() === "set-cookie") {
+          responseToBrowser.headers.append("Set-Cookie", value);
+        }
+      });
+
+      const { access, refresh, user } = data;
+      if (!refresh) {
+        return NextResponse.json(
+          { error: "Refresh token not provided by backend on confirmation" },
+          { status: 500 }
+        );
+      }
+
+      // Securely set the refresh token in the HttpOnly cookie
+      (await cookies()).set(REFRESH_TOKEN_COOKIE_NAME, refresh, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+      });
+
+      // Return only the access token and user data to the client
+      return responseToBrowser;
+    } catch (error) {
+      console.error("Confirm Email API route error:", error);
+      return NextResponse.json(
+        { error: "Internal Server Error" },
+        { status: 500 }
+      );
+    }
+  }
+
+  // Fallback for unsupported actions
+  return NextResponse.json({ error: "Action not supported" }, { status: 404 });
 }
 
 // --- GET Handler for Logout and Session Hydration ('me') ---

@@ -70,8 +70,8 @@ export type User = UserProfile;
 // For /auth/login/ and /auth/confirm-email/
 export interface LoginResponse {
   access: string;
-  // refresh: string;
-  user: UserProfile; // API doc indicates a full user object similar to UserProfile
+  refresh?: string;
+  user: UserProfile;
 }
 
 // For /auth/signup/
