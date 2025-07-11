@@ -18,6 +18,7 @@ class NotificationTypeChoices(models.TextChoices):
     USER_PROFILE = "USER_PROFILE", _("User Profile Update")
     SUBSCRIPTION = "SUBSCRIPTION", _("Subscription Update")
     BADGE_EARNED = "BADGE_EARNED", _("Badge Earned")
+    COMMUNITY_PARTNER = "COMMUNITY_PARTNER", _("Community Searching For Partner")
     COMMUNITY_POST = "COMMUNITY_POST", _("Community Post Interaction")
     COMMUNITY_REPLY = "COMMUNITY_REPLY", _("Community Reply Interaction")
     CHALLENGE_INVITE = "CHALLENGE_INVITE", _("Challenge Invitation")

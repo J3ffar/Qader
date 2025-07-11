@@ -2,12 +2,12 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
 msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-01 17:13+0300\n"
+"POT-Creation-Date: 2025-07-11 09:35+0300\n"
 "PO-Revision-Date: 2025-05-18 13:10+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -17,171 +17,270 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
-#: .\apps\community\api\filters.py:22 .\apps\community\models.py:34
+
+#: .\apps\community\api\filters.py:24 .\apps\community\models.py:35
 msgid "Post Type"
 msgstr "نوع المنشور"
 
-#: .\apps\community\api\filters.py:28
+#: .\apps\community\api\filters.py:30
 msgid "Section Slug"
 msgstr "سلاغ القسم"
 
-#: .\apps\community\api\filters.py:32
+#: .\apps\community\api\filters.py:34
 msgid "Tags (comma-separated names/slugs)"
 msgstr "الوسوم (أسماء/سلاغات مفصولة بفواصل)"
 
-#: .\apps\community\api\filters.py:34
+#: .\apps\community\api\filters.py:36
 msgid "Is Pinned?"
 msgstr "هل هو مثبت؟"
 
-#: .\apps\community\api\serializers.py:46
-#: .\apps\community\api\serializers.py:52
+#: .\apps\community\api\filters.py:70
+msgid "User's Name or Username"
+msgstr "اسم المستخدم أو اسم المستخدم"
+
+#: .\apps\community\api\filters.py:73
+msgid "Grade/Level"
+msgstr "الدرجة/المستوى"
+
+#: .\apps\community\api\filters.py:79
+#, fuzzy
+#| msgid "Section Slug"
+msgid "Learning Section Slug"
+msgstr "سلاغ القسم"
+
+#: .\apps\community\api\serializers.py:72
+#: .\apps\community\api\serializers.py:78
 msgid "ID of the parent reply being responded to (for threading)."
 msgstr "معرف الرد الأصلي الذي يتم الرد عليه (للترابط)."
 
-#: .\apps\community\api\serializers.py:93
+#: .\apps\community\api\serializers.py:131
 msgid "Parent reply not found."
 msgstr "لم يتم العثور على الرد الأصلي."
 
-#: .\apps\community\api\serializers.py:153
+#: .\apps\community\api\serializers.py:202
 msgid "Slug of the learning section to associate this post with (optional)."
 msgstr "سلاغ قسم التعلم لربط هذا المنشور به (اختياري)."
 
-#: .\apps\community\api\serializers.py:185
+#: .\apps\community\api\serializers.py:235
 msgid "Invalid post type selected."
 msgstr "تم تحديد نوع منشور غير صالح."
 
-#: .\apps\community\api\serializers.py:201
+#: .\apps\community\api\serializers.py:251
 msgid "A title is required for this post type."
 msgstr "العنوان مطلوب لهذا النوع من المنشورات."
 
-#: .\apps\community\api\views.py:339
+#: .\apps\community\api\serializers.py:300
+msgid "Recipient User ID"
+msgstr "معرف المستخدم المستلم"
+
+#: .\apps\community\api\serializers.py:329
+msgid "You cannot send a partner request to yourself."
+msgstr "لا يمكنك إرسال طلب شراكة لنفسك."
+
+#: .\apps\community\api\serializers.py:339
+msgid "You already have a pending request with this user."
+msgstr "لديك بالفعل طلب معلق مع هذا المستخدم."
+
+#: .\apps\community\api\serializers.py:351
+msgid "You are already partners with this user."
+msgstr "أنت بالفعل شريك مع هذا المستخدم."
+
+#: .\apps\community\api\views.py:481
 msgid "Parent reply does not belong to this post."
 msgstr "الرد الأصلي لا ينتمي إلى هذا المنشور."
 
-#: .\apps\community\models.py:18
+#: .\apps\community\api\views.py:586
+msgid "sent you a study partner request"
+msgstr "أرسل لك طلب شراكة دراسية"
+
+#: .\apps\community\api\views.py:618
+msgid "accepted your study partner request"
+msgstr "قبل طلب شراكتك الدراسية"
+
+#: .\apps\community\models.py:19
 msgid "Study Discussion"
 msgstr "مناقشة دراسية"
 
-#: .\apps\community\models.py:19
+#: .\apps\community\models.py:20
 msgid "Achievement"
 msgstr "إنجاز"
 
-#: .\apps\community\models.py:20
+#: .\apps\community\models.py:21
 msgid "Find Study Partners"
 msgstr "البحث عن شركاء دراسة"
 
-#: .\apps\community\models.py:21
+#: .\apps\community\models.py:22
 msgid "Tips & Experiences"
 msgstr "نصائح وتجارب"
 
-#: .\apps\community\models.py:23
+#: .\apps\community\models.py:24
 msgid "Monthly Competition"
 msgstr "مسابقة شهرية"
 
-#: .\apps\community\models.py:30 .\apps\community\models.py:135
+#: .\apps\community\models.py:31 .\apps\community\models.py:154
 msgid "Author"
 msgstr "المؤلف"
 
-#: .\apps\community\models.py:31
+#: .\apps\community\models.py:32
 msgid "The user who created this post."
 msgstr "المستخدم الذي أنشأ هذا المنشور."
 
-#: .\apps\community\models.py:38
+#: .\apps\community\models.py:39
 msgid "The category or purpose of the post."
 msgstr "فئة المنشور أو الغرض منه."
 
-#: .\apps\community\models.py:47
+#: .\apps\community\models.py:48
 msgid "Section Filter"
 msgstr "تصفية حسب القسم"
 
-#: .\apps\community\models.py:48
+#: .\apps\community\models.py:49
 msgid "Optional filter by main learning section (e.g., Quant, Verbal)"
 msgstr "تصفية اختيارية حسب قسم التعلم الرئيسي (مثل الكمي، اللفظي)"
 
-#: .\apps\community\models.py:51
+#: .\apps\community\models.py:52
 msgid "Title"
 msgstr "العنوان"
 
-#: .\apps\community\models.py:55
+#: .\apps\community\models.py:56
 msgid "Optional title for the post."
 msgstr "عنوان اختياري للمنشور."
 
-#: .\apps\community\models.py:58 .\apps\community\models.py:139
+#: .\apps\community\models.py:59 .\apps\community\models.py:158
 msgid "Content"
 msgstr "المحتوى"
 
-#: .\apps\community\models.py:59
+#: .\apps\community\models.py:60
 msgid "The main body of the post."
 msgstr "النص الرئيسي للمنشور."
 
-#: .\apps\community\models.py:62
+#: .\apps\community\models.py:63
+msgid "Image"
+msgstr "صورة"
+
+#: .\apps\community\models.py:67
+#, fuzzy
+#| msgid "Optional title for the post."
+msgid "Optional image attached to the post."
+msgstr "عنوان اختياري للمنشور."
+
+#: .\apps\community\models.py:70
 msgid "Is Pinned"
 msgstr "مثبت"
 
-#: .\apps\community\models.py:65
+#: .\apps\community\models.py:73
 msgid "Pinned posts appear at the top (Admin/Moderator action)."
 msgstr "المنشورات المثبتة تظهر في الأعلى (إجراء المسؤول/المشرف)."
 
-#: .\apps\community\models.py:68
+#: .\apps\community\models.py:76
 msgid "Is Closed"
 msgstr "مغلق"
 
-#: .\apps\community\models.py:70
+#: .\apps\community\models.py:78
 msgid "Prevents further replies (Admin/Moderator action)."
 msgstr "يمنع الردود الإضافية (إجراء المسؤول/المشرف)."
 
-#: .\apps\community\models.py:75
+#: .\apps\community\models.py:83
 msgid "Tags"
 msgstr "الوسوم"
 
-#: .\apps\community\models.py:76
+#: .\apps\community\models.py:84
 msgid "Relevant keywords or topics for the post."
 msgstr "كلمات مفتاحية أو مواضيع ذات صلة بالمنشور."
 
-#: .\apps\community\models.py:79 .\apps\community\models.py:153
+#: .\apps\community\models.py:91 .\apps\community\models.py:176
+msgid "Likes"
+msgstr "الإعجابات"
+
+#: .\apps\community\models.py:94 .\apps\community\models.py:179
+#: .\apps\community\models.py:237
 msgid "Created At"
 msgstr "تاريخ الإنشاء"
 
-#: .\apps\community\models.py:80 .\apps\community\models.py:154
+#: .\apps\community\models.py:95 .\apps\community\models.py:180
+#: .\apps\community\models.py:238
 msgid "Updated At"
 msgstr "تاريخ التحديث"
 
-#: .\apps\community\models.py:83
+#: .\apps\community\models.py:98
 msgid "Community Post"
 msgstr "منشور مجتمع"
 
-#: .\apps\community\models.py:84
+#: .\apps\community\models.py:99
 msgid "Community Posts"
 msgstr "منشورات المجتمع"
 
-#: .\apps\community\models.py:128
+#: .\apps\community\models.py:147
 msgid "Post"
 msgstr "المنشور"
 
-#: .\apps\community\models.py:129
+#: .\apps\community\models.py:148
 msgid "The post this reply belongs to."
 msgstr "المنشور الذي ينتمي إليه هذا الرد."
 
-#: .\apps\community\models.py:136
+#: .\apps\community\models.py:155
 msgid "The user who wrote this reply."
 msgstr "المستخدم الذي كتب هذا الرد."
 
-#: .\apps\community\models.py:140
+#: .\apps\community\models.py:159
 msgid "The body of the reply."
 msgstr "نص الرد."
 
-#: .\apps\community\models.py:148
+#: .\apps\community\models.py:167
 msgid "Parent Reply"
 msgstr "الرد الأصلي"
 
-#: .\apps\community\models.py:149
+#: .\apps\community\models.py:168
 msgid "Links to the reply being responded to for threading."
 msgstr "روابط إلى الرد الذي يتم الرد عليه للترابط."
 
-#: .\apps\community\models.py:157
+#: .\apps\community\models.py:183
 msgid "Community Reply"
 msgstr "رد مجتمع"
 
-#: .\apps\community\models.py:158
+#: .\apps\community\models.py:184
 msgid "Community Replies"
 msgstr "ردود المجتمع"
+
+#: .\apps\community\models.py:211
+msgid "Pending"
+msgstr "معلق"
+
+#: .\apps\community\models.py:212
+msgid "Accepted"
+msgstr "مقبول"
+
+#: .\apps\community\models.py:213
+msgid "Rejected"
+msgstr "مرفوض"
+
+#: .\apps\community\models.py:219
+msgid "Sender"
+msgstr "المرسل"
+
+#: .\apps\community\models.py:220
+#, fuzzy
+#| msgid "The user who created this post."
+msgid "The user who sent the request."
+msgstr "المستخدم الذي أنشأ هذا المنشور."
+
+#: .\apps\community\models.py:226
+msgid "Recipient"
+msgstr "المستلم"
+
+#: .\apps\community\models.py:227
+#, fuzzy
+#| msgid "The user who created this post."
+msgid "The user who received the request."
+msgstr "المستخدم الذي أنشأ هذا المنشور."
+
+#: .\apps\community\models.py:230
+msgid "Status"
+msgstr "الحالة"
+
+#: .\apps\community\models.py:241
+msgid "Partner Request"
+msgstr "طلب شراكة"
+
+#: .\apps\community\models.py:242
+msgid "Partner Requests"
+msgstr "طلبات الشراكة"

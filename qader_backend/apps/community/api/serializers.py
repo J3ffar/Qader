@@ -5,8 +5,10 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import (
     Count,
 )  # Needed if we annotate count in TagListView queryset
+from django.contrib.auth.models import User  # Import the User model
+from django.db.models import Q
 
-from apps.community.models import CommunityPost, CommunityReply
+from apps.community.models import CommunityPost, CommunityReply, PartnerRequest
 from apps.learning.models import LearningSection  # Import the actual model
 
 # --- Nested Serializers (Assume these exist and are correctly defined) ---
@@ -26,6 +28,28 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ["id", "name", "slug", "count"]
         read_only_fields = ["id", "name", "slug", "count"]
+
+
+# NEW SERIALIZER FOR PARTNER SEARCH
+class CommunityPartnerSerializer(serializers.ModelSerializer):
+    """
+    Serializer for listing users as potential study partners in the community.
+    """
+
+    full_name = serializers.CharField(source="profile.full_name", read_only=True)
+    grade = serializers.CharField(source="profile.grade", read_only=True)
+    profile_picture = serializers.ImageField(
+        source="profile.profile_picture", read_only=True
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "full_name",
+            "grade",
+            "profile_picture",
+        ]
 
 
 class CommunityReplySerializer(serializers.ModelSerializer):
@@ -260,3 +284,71 @@ class CommunityPostDetailSerializer(TaggitSerializer, serializers.ModelSerialize
         ]
         # Detail view is typically read-only for standard users
         read_only_fields = fields
+
+
+# NEW SERIALIZER FOR PARTNER REQUESTS
+class PartnerRequestSerializer(serializers.ModelSerializer):
+    """Serializer for viewing and creating Partner Requests."""
+
+    from_user = SimpleUserSerializer(read_only=True)
+    to_user = SimpleUserSerializer(read_only=True)
+    # Writable field to specify the recipient when creating a request
+    to_user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source="to_user",
+        write_only=True,
+        label=_("Recipient User ID"),
+    )
+
+    class Meta:
+        model = PartnerRequest
+        fields = [
+            "id",
+            "from_user",
+            "to_user",
+            "to_user_id",  # For writing
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "from_user",
+            "to_user",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate(self, attrs):
+        from_user = self.context["request"].user
+        to_user = attrs.get("to_user")
+
+        if from_user == to_user:
+            raise serializers.ValidationError(
+                _("You cannot send a partner request to yourself.")
+            )
+
+        # Check for an existing pending request
+        if PartnerRequest.objects.filter(
+            from_user=from_user,
+            to_user=to_user,
+            status=PartnerRequest.StatusChoices.PENDING,
+        ).exists():
+            raise serializers.ValidationError(
+                _("You already have a pending request with this user.")
+            )
+
+        # Check for an existing accepted relationship (bi-directional)
+        if PartnerRequest.objects.filter(
+            (
+                Q(from_user=from_user, to_user=to_user)
+                | Q(from_user=to_user, to_user=from_user)
+            ),
+            status=PartnerRequest.StatusChoices.ACCEPTED,
+        ).exists():
+            raise serializers.ValidationError(
+                _("You are already partners with this user.")
+            )
+
+        return attrs

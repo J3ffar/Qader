@@ -3,6 +3,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from taggit.managers import TaggableManager
 from apps.learning.models import LearningSection
+from django.db.models import Q, UniqueConstraint
 
 
 class CommunityPost(models.Model):
@@ -200,3 +201,54 @@ class CommunityReply(models.Model):
     def child_replies_count(self):
         """Calculates the number of direct child replies."""
         return self.child_replies.count()
+
+class PartnerRequest(models.Model):
+    """
+    Represents a request from one user to another to become study partners.
+    """
+
+    class StatusChoices(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        ACCEPTED = "accepted", _("Accepted")
+        REJECTED = "rejected", _("Rejected")
+
+    from_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="sent_partner_requests",
+        verbose_name=_("Sender"),
+        help_text=_("The user who sent the request."),
+    )
+    to_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="received_partner_requests",
+        verbose_name=_("Recipient"),
+        help_text=_("The user who received the request."),
+    )
+    status = models.CharField(
+        _("Status"),
+        max_length=10,
+        choices=StatusChoices.choices,
+        default=StatusChoices.PENDING,
+        db_index=True,
+    )
+
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("Partner Request")
+        verbose_name_plural = _("Partner Requests")
+        ordering = ["-created_at"]
+        # A user can only have one pending request to another user at a time.
+        constraints = [
+            UniqueConstraint(
+                fields=["from_user", "to_user"],
+                condition=Q(status="pending"),
+                name="unique_pending_request_per_user_pair",
+            )
+        ]
+
+    def __str__(self):
+        return f"Request from {self.from_user.username} to {self.to_user.username} ({self.get_status_display()})"

@@ -1,7 +1,7 @@
-from django.db.models import Count, Prefetch
-from rest_framework import viewsets, generics, status
+from django.db.models import Count, Prefetch, Q
+from rest_framework import viewsets, generics, status, mixins
 from rest_framework.serializers import ValidationError
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, BasePermission
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, NotFound
@@ -15,24 +15,92 @@ from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiTypes,
 )
+from django.contrib.auth.models import User
+from django.utils import timezone
 
-from apps.community.models import CommunityPost, CommunityReply
+from apps.community.models import CommunityPost, CommunityReply, PartnerRequest
 from apps.community.api.serializers import (
-    CommunityPostCreateUpdateSerializer,  # Renamed for clarity
+    CommunityPartnerSerializer,  # Import new serializer
+    CommunityPostCreateUpdateSerializer,
     CommunityPostListSerializer,
     CommunityPostDetailSerializer,
     CommunityReplySerializer,
     TagSerializer,
+    PartnerRequestSerializer,
 )
-from apps.community.api.filters import CommunityPostFilter
-
-# Ensure these permissions exist and are correctly implemented
+from apps.community.api.filters import (
+    CommunityPostFilter,
+    UserPartnerFilter,
+)  # Import new filter
+from apps.users.models import AccountTypeChoices
 from apps.api.permissions import (
     IsSubscribed,
     IsOwnerOrAdminOrReadOnly,
-)  # Example refined permission
+)
+from apps.notifications.services import create_notification
+from apps.notifications.models import NotificationTypeChoices
 
-# Using standard DRF permissions for now if custom ones aren't ready:
+
+@extend_schema(
+    tags=["Student Community - Partner Search"],
+    summary="Search for Study Partners",
+    description="Retrieve a paginated list of users who are potential study partners. "
+    "All listed users have an active subscription. "
+    "Filter by `name` (searches username and full name), `grade`, and `section` (learning section slug).",
+    parameters=[
+        OpenApiParameter(
+            "name",
+            OpenApiTypes.STR,
+            OpenApiParameter.QUERY,
+            description="Search term for the user's full name or username.",
+        ),
+        OpenApiParameter(
+            "grade",
+            OpenApiTypes.STR,
+            OpenApiParameter.QUERY,
+            description="Filter by the user's grade (e.g., 'ثالث ثانوي').",
+        ),
+        OpenApiParameter(
+            "section",
+            OpenApiTypes.STR,
+            OpenApiParameter.QUERY,
+            description="Filter by learning section slug (e.g., 'quantitative', 'verbal').",
+        ),
+    ],
+    responses={200: CommunityPartnerSerializer(many=True)},
+)
+class PartnerSearchView(generics.ListAPIView):
+    """
+    Provides a searchable list of potential study partners.
+
+    - Lists only users with an active subscription.
+    - Excludes the currently authenticated user from the list.
+    - Supports filtering by name and grade.
+    """
+
+    serializer_class = CommunityPartnerSerializer
+    permission_classes = [IsAuthenticated, IsSubscribed]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = UserPartnerFilter
+
+    def get_queryset(self):
+        """
+        - Returns a queryset of `User` objects.
+        - Filters for users with an active subscription.
+        - Excludes the requesting user.
+        - Optimizes by selecting related profile and ordering by recent activity.
+        """
+        active_subscription_q = Q(
+            profile__subscription_expires_at__gte=timezone.now()
+        ) | Q(profile__account_type=AccountTypeChoices.PERMANENT)
+
+        return (
+            User.objects.select_related("profile")
+            .filter(profile__isnull=False, is_active=True)
+            .filter(active_subscription_q)
+            .exclude(pk=self.request.user.pk)
+            .order_by("-last_login", "profile__full_name")
+        )
 
 
 @extend_schema(tags=["Student Community"])
@@ -453,3 +521,130 @@ class TagListView(generics.ListAPIView):
             .filter(count__gt=0)
             .order_by("-count", "name")
         )  # Order by count, then name alphabetically
+
+
+class IsRequestRecipient(BasePermission):
+    """
+    Permission to only allow the recipient of a request to modify it.
+    """
+
+    message = "You do not have permission to perform this action."
+
+    def has_object_permission(self, request, view, obj):
+        return obj.to_user == request.user
+
+
+@extend_schema(
+    tags=["Student Community - Partner Requests"],
+    summary="Manage Study Partner Requests",
+    description="Create, view, accept, or reject study partner requests.",
+)
+class PartnerRequestViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    ViewSet for managing partner requests.
+    - `create`: Send a new partner request to a user.
+    - `list`: View your sent and received requests.
+    - `accept`: (Action) Accept a received request.
+    - `reject`: (Action) Reject a received request.
+    """
+
+    serializer_class = PartnerRequestSerializer
+    permission_classes = [IsAuthenticated, IsSubscribed]
+
+    def get_queryset(self):
+        """
+        Return requests where the user is either the sender or the recipient.
+        Filter by direction (sent/received).
+        """
+        user = self.request.user
+        direction = self.request.query_params.get("direction", None)
+
+        base_query = PartnerRequest.objects.filter(
+            Q(from_user=user) | Q(to_user=user)
+        ).select_related("from_user__profile", "to_user__profile")
+
+        if direction == "sent":
+            return base_query.filter(from_user=user)
+        elif direction == "received":
+            return base_query.filter(to_user=user)
+
+        return base_query
+
+    def perform_create(self, serializer):
+        """Set the sender automatically and send a notification."""
+        instance = serializer.save(from_user=self.request.user)
+
+        # Send notification to the recipient
+        create_notification(
+            recipient=instance.to_user,
+            actor=instance.from_user,
+            verb=_("sent you a study partner request"),
+            target=instance,
+            notification_type=NotificationTypeChoices.COMMUNITY_PARTNER,
+            url=f"/communstudy/study-community/partner_search?tab=received",  # Example frontend URL
+            send_email=True,
+        )
+
+    @extend_schema(
+        summary="Accept a Partner Request",
+        description="Accept a pending partner request that was sent to you.",
+        responses={200: PartnerRequestSerializer()},
+    )
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[IsAuthenticated, IsSubscribed, IsRequestRecipient],
+    )
+    def accept(self, request, pk=None):
+        partner_request = self.get_object()
+        if partner_request.status != PartnerRequest.StatusChoices.PENDING:
+            return Response(
+                {"detail": "This request is not pending and cannot be accepted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        partner_request.status = PartnerRequest.StatusChoices.ACCEPTED
+        partner_request.save(update_fields=["status", "updated_at"])
+
+        # Notify the original sender that their request was accepted
+        create_notification(
+            recipient=partner_request.from_user,
+            actor=partner_request.to_user,
+            verb=_("accepted your study partner request"),
+            target=partner_request,
+            notification_type=NotificationTypeChoices.COMMUNITY_PARTNER,
+            url=f"/study/study-community/partner_search?tab=sent",  # Example frontend URL
+            send_email=True,
+        )
+
+        serializer = self.get_serializer(partner_request)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Reject a Partner Request",
+        description="Reject a pending partner request that was sent to you.",
+        responses={200: PartnerRequestSerializer()},
+    )
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[IsAuthenticated, IsSubscribed, IsRequestRecipient],
+    )
+    def reject(self, request, pk=None):
+        partner_request = self.get_object()
+        if partner_request.status != PartnerRequest.StatusChoices.PENDING:
+            return Response(
+                {"detail": "This request is not pending and cannot be rejected."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        partner_request.status = PartnerRequest.StatusChoices.REJECTED
+        partner_request.save(update_fields=["status", "updated_at"])
+
+        serializer = self.get_serializer(partner_request)
+        return Response(serializer.data, status=status.HTTP_200_OK)

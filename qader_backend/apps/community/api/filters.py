@@ -1,6 +1,8 @@
 import django_filters
 from django.utils.translation import gettext_lazy as _
 from taggit.models import Tag
+from django.contrib.auth.models import User
+from django.db.models import Q
 
 from apps.community.models import CommunityPost
 
@@ -51,3 +53,45 @@ class CommunityPostFilter(django_filters.FilterSet):
         # Use Taggit's built-in __in lookup for efficiency
         # distinct() is important when filtering across M2M relationships
         return queryset.filter(tags__name__in=tag_names).distinct()
+
+
+# NEW FILTERSET FOR PARTNER SEARCH
+class UserPartnerFilter(django_filters.FilterSet):
+    """
+    FilterSet for searching for potential study partners (Users).
+
+    Provides filters for:
+    - `name`: Search by full name or username.
+    - `grade`: Exact match on the user's grade/level.
+    - `section`: Filter by a learning section slug the user has posted in.
+    """
+
+    name = django_filters.CharFilter(
+        method="filter_by_name", label=_("User's Name or Username")
+    )
+    grade = django_filters.CharFilter(
+        field_name="profile__grade", lookup_expr="iexact", label=_("Grade/Level")
+    )
+    # Filter by learning section the user has posted in
+    section = django_filters.CharFilter(
+        field_name="community_posts__section_filter__slug",
+        lookup_expr="iexact",
+        label=_("Learning Section Slug"),
+        distinct=True, # Important to avoid duplicate users
+    )
+
+
+    class Meta:
+        model = User
+        fields = ["name", "grade", "section"]
+
+    def filter_by_name(self, queryset, name, value):
+        """
+        Filters by full_name (in UserProfile) or username (in User).
+        """
+        if not value:
+            return queryset
+
+        return queryset.filter(
+            Q(username__icontains=value) | Q(profile__full_name__icontains=value)
+        ).distinct()
