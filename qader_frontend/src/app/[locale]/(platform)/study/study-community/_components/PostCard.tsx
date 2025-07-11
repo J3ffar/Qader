@@ -1,5 +1,4 @@
-"use client";
-
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,14 +8,16 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { CommunityPostList } from "@/types/api/community.types";
-import { Heart, MessageSquare } from "lucide-react";
+import { Heart, MessageSquare, Lock } from "lucide-react";
 import Image from "next/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { togglePostLike } from "@/services/community.service";
 import { toast } from "sonner";
 import { queryKeys } from "@/constants/queryKeys";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { ReplyList } from "./ReplyList";
+import { CreateReplyForm } from "./CreateReplyForm";
+import { Badge } from "@/components/ui/badge";
 
 interface PostCardProps {
   post: CommunityPostList;
@@ -24,6 +25,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, listQueryKey }: PostCardProps) {
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const likeMutation = useMutation({
@@ -68,24 +70,34 @@ export function PostCard({ post, listQueryKey }: PostCardProps) {
   return (
     <Card className="w-full">
       <CardHeader>
-        <div className="flex items-center space-x-4 rtl:space-x-reverse">
-          <Avatar>
-            <AvatarImage
-              src={post.author.profile_picture_url || undefined}
-              alt={post.author.full_name || "المستخدم"}
-            />
-            <AvatarFallback>{post.author.full_name?.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-semibold">{post.author.full_name}</p>
-            <p className="text-sm text-muted-foreground">
-              {post.author.grade} •{" "}
-              {new Date(post.created_at).toLocaleDateString("ar-EG", {
-                day: "numeric",
-                month: "long",
-              })}
-            </p>
+        <div className="flex justify-between items-start">
+          <div className="flex items-center space-x-4 rtl:space-x-reverse">
+            <Avatar>
+              <AvatarImage
+                src={post.author.profile_picture_url || undefined}
+                alt={post.author.full_name || "المستخدم"}
+              />
+              <AvatarFallback>
+                {post.author.full_name?.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-semibold">{post.author.full_name}</p>
+              <p className="text-sm text-muted-foreground">
+                {post.author.grade} •{" "}
+                {new Date(post.created_at).toLocaleDateString("ar-EG", {
+                  day: "numeric",
+                  month: "long",
+                })}
+              </p>
+            </div>
           </div>
+          {post.is_closed && (
+            <Badge variant="secondary">
+              <Lock className="me-1 h-3 w-3" />
+              مغلق
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -101,7 +113,7 @@ export function PostCard({ post, listQueryKey }: PostCardProps) {
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex flex-col items-start space-y-4">
+      <CardFooter className="flex flex-col items-start space-y-2">
         <div className="flex justify-between w-full text-sm text-muted-foreground">
           <span>{post.like_count} إعجاب</span>
           <span>{post.reply_count} تعليقات</span>
@@ -119,17 +131,22 @@ export function PostCard({ post, listQueryKey }: PostCardProps) {
             />
             إعجاب
           </Button>
-          <Button variant="ghost">
+          <Button
+            variant="ghost"
+            onClick={() => setIsCommentsOpen(!isCommentsOpen)}
+          >
             <MessageSquare className="me-2 h-4 w-4" />
             تعليق
           </Button>
         </div>
-        {/* Reply form and list would go here */}
-        <div className="w-full flex items-center space-x-2 rtl:space-x-reverse">
-          <Avatar className="h-8 w-8">{/* Current user avatar */}</Avatar>
-          <Input placeholder="اكتب رد..." className="flex-1" />
-          <Button size="sm">إرسال</Button>
-        </div>
+
+        {/* --- Conditional Rendering of Replies --- */}
+        {isCommentsOpen && (
+          <div className="w-full border-t pt-4">
+            <CreateReplyForm postId={post.id} isClosed={post.is_closed} />
+            <ReplyList postId={post.id} isPostClosed={post.is_closed} />
+          </div>
+        )}
       </CardFooter>
     </Card>
   );

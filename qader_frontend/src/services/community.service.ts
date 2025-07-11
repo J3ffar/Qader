@@ -43,20 +43,42 @@ export const togglePostLike = async (postId: number) => {
   );
 };
 
+// This function now uses the more specific query key
+export const getRepliesForPost = async ({ pageParam = 1, queryKey }: any) => {
+  const [, , postId, filters] = queryKey; // Deconstruct to get postId
+  return await apiClient<PaginatedResponse<CommunityReply>>(
+    API_ENDPOINTS.COMMUNITY.REPLIES(postId),
+    {
+      params: { ...filters, page: pageParam },
+    }
+  );
+};
+
+// Renamed and enhanced to support threaded replies
 export const createReply = async ({
   postId,
-  payload,
+  content,
+  parentReplyId,
 }: {
   postId: number;
-  payload: CreateReplyPayload;
+  content: string;
+  parentReplyId?: number;
 }) => {
   return await apiClient<CommunityReply>(
     API_ENDPOINTS.COMMUNITY.REPLIES(postId),
     {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ content, parent_reply_id: parentReplyId }),
     }
   );
 };
 
-// ... other service functions like toggleReplyLike, getTags etc.
+// NEW: Service function to like a reply
+export const toggleReplyLike = async (replyId: number) => {
+  return await apiClient<ToggleLikeResponse>(
+    API_ENDPOINTS.COMMUNITY.REPLY_TOGGLE_LIKE(replyId),
+    {
+      method: "POST",
+    }
+  );
+};

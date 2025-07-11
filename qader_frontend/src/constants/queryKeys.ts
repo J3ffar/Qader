@@ -212,6 +212,13 @@ export const queryKeys = {
       all: () => [...queryKeys.community.all, "postDetails"] as const,
       detail: (id: number | string) =>
         [...queryKeys.community.postDetails.all(), id] as const,
+      // NEW: Specific key for a post's replies
+      replies: (postId: number | string, filters: object = {}) =>
+        [
+          ...queryKeys.community.postDetails.detail(postId),
+          "replies",
+          filters,
+        ] as const,
     },
     tags: {
       all: () => [...queryKeys.community.all, "tags"] as const,
