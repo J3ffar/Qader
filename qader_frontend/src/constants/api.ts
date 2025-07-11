@@ -24,6 +24,12 @@ export const API_ENDPOINTS = {
     SUBSCRIPTION_PLANS: "/users/subscription-plans/",
     CANCEL_SUBSCRIPTION: "/users/me/subscription/cancel/",
     GRADES: "/users/grades/",
+    SUPPORT: {
+      // <-- ADD THIS NEW SECTION
+      TICKETS: "/support/tickets/",
+      DETAIL: (id: number | string) => `/support/tickets/${id}/`,
+      REPLIES: (id: number | string) => `/support/tickets/${id}/replies/`,
+    },
   },
   ADMIN: {
     USERS: {
