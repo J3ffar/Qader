@@ -14,13 +14,15 @@ interface TicketChatViewProps {
 }
 
 export function TicketChatView({ ticket }: TicketChatViewProps) {
-  const viewportRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const currentUser = useAuthStore((state) => state.user);
 
-  // Auto-scroll to the bottom on new messages
   useEffect(() => {
-    if (viewportRef.current) {
-      viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
+    const viewport = scrollAreaRef.current?.querySelector(
+      "[data-radix-scroll-area-viewport]"
+    );
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
     }
   }, [ticket.replies]);
 
@@ -36,10 +38,18 @@ export function TicketChatView({ ticket }: TicketChatViewProps) {
   ];
 
   return (
-    <ScrollArea className="flex-1 p-4" viewportRef={viewportRef}>
+    <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
       <div className="space-y-6">
-        {allMessages.map((reply, index) => {
+        {allMessages.map((reply) => {
           const isCurrentUser = reply.user.id === currentUser?.id;
+          const userInitial = (
+            reply.user.full_name ||
+            reply.user.username ||
+            "U"
+          )
+            .charAt(0)
+            .toUpperCase();
+
           return (
             <div
               key={reply.id}
@@ -50,8 +60,12 @@ export function TicketChatView({ ticket }: TicketChatViewProps) {
             >
               {!isCurrentUser && (
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/images/logo/logo-icon.png" alt="Admin" />
-                  <AvatarFallback>ق</AvatarFallback>
+                  {/* Use the profile picture URL from the API */}
+                  <AvatarImage
+                    src={reply.user.profile_picture_url || ""}
+                    alt={reply.user.full_name || reply.user.username}
+                  />
+                  <AvatarFallback>{userInitial}</AvatarFallback>
                 </Avatar>
               )}
               <div
@@ -74,12 +88,10 @@ export function TicketChatView({ ticket }: TicketChatViewProps) {
               {isCurrentUser && (
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={currentUser?.profile_picture}
-                    alt={currentUser?.username}
+                    src={reply.user.profile_picture_url || ""}
+                    alt={reply.user.full_name || reply.user.username}
                   />
-                  <AvatarFallback>
-                    {currentUser?.username?.charAt(0).toUpperCase()}
-                  </AvatarFallback>
+                  <AvatarFallback>{userInitial}</AvatarFallback>
                 </Avatar>
               )}
             </div>

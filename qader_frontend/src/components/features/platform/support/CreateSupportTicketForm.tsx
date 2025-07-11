@@ -1,10 +1,9 @@
-// src/components/features/platform/support/CreateSupportTicketForm.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,16 +23,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createSupportTicket } from "@/services/support.service";
+import {
+  createSupportTicket,
+  getSupportIssueTypes,
+} from "@/services/support.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Paperclip, Send } from "lucide-react";
 import { useRef } from "react";
 
 const formSchema = z.object({
-  issue_type: z.enum(["technical", "financial", "question_problem", "other"], {
-    required_error: "نوع المشكلة مطلوب.",
-  }),
+  issue_type: z.string({ required_error: "نوع المشكلة مطلوب." }),
   subject: z.string().min(5, "يجب أن يكون الموضوع 5 أحرف على الأقل.").max(100),
   description: z
     .string()
@@ -52,6 +52,13 @@ const issueTypeTranslations: { [key: string]: string } = {
 export function CreateSupportTicketForm() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch issue types dynamically
+  const { data: issueTypes, isLoading: isLoadingIssueTypes } = useQuery({
+    queryKey: queryKeys.user.support.issueTypes(),
+    queryFn: getSupportIssueTypes,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -103,16 +110,26 @@ export function CreateSupportTicketForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>نوع المشكلة</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isLoadingIssueTypes}
+              >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="اختر نوع المشكلة" />
+                    <SelectValue
+                      placeholder={
+                        isLoadingIssueTypes
+                          ? "جاري التحميل..."
+                          : "اختر نوع المشكلة"
+                      }
+                    />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {Object.entries(issueTypeTranslations).map(([key, value]) => (
-                    <SelectItem key={key} value={key}>
-                      {value}
+                  {issueTypes?.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

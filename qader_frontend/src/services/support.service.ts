@@ -1,10 +1,9 @@
-// src/services/support.service.ts
-
 import { apiClient } from "./apiClient";
 import { API_ENDPOINTS } from "@/constants/api";
 import type {
   AddReplyPayload,
   CreateSupportTicketPayload,
+  IssueTypeChoice,
   PaginatedSupportTickets,
   SupportTicketDetail,
   SupportTicketReply,
@@ -34,6 +33,11 @@ export const createSupportTicket = (payload: CreateSupportTicketPayload) => {
     method: "POST",
     body: formData,
   });
+};
+
+// NEW function to fetch dynamic issue types
+export const getSupportIssueTypes = () => {
+  return apiClient<IssueTypeChoice[]>(API_ENDPOINTS.USERS.SUPPORT.ISSUE_TYPES);
 };
 
 export const addTicketReply = ({

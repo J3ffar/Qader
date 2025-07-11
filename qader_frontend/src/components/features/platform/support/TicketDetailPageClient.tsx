@@ -1,4 +1,3 @@
-// src/components/features/platform/support/TicketDetailPageClient.tsx
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
@@ -60,6 +59,11 @@ export function TicketDetailPageClient({ ticketId }: { ticketId: string }) {
         </Button>
       </div>
     );
+  }
+
+  if (!ticket) {
+    // This state should be rare if not loading and not error, but it's a safe fallback.
+    return null;
   }
 
   return (

@@ -27,8 +27,8 @@ export const queryKeys = {
       list: (filters: object = {}) =>
         [...queryKeys.user.support.lists(), filters] as const,
       details: () => [...queryKeys.user.support.all(), "details"] as const,
-      detail: (id: number | string) =>
-        [...queryKeys.user.support.details(), id] as const,
+      detail: (id: number | string) => [...queryKeys.user.support.details(), id] as const,
+      issueTypes: () => [...queryKeys.user.support.all(), "issueTypes"] as const, // <-- ADD THIS
     },
   },
 

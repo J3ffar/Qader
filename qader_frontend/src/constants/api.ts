@@ -25,10 +25,10 @@ export const API_ENDPOINTS = {
     CANCEL_SUBSCRIPTION: "/users/me/subscription/cancel/",
     GRADES: "/users/grades/",
     SUPPORT: {
-      // <-- ADD THIS NEW SECTION
       TICKETS: "/support/tickets/",
       DETAIL: (id: number | string) => `/support/tickets/${id}/`,
       REPLIES: (id: number | string) => `/support/tickets/${id}/replies/`,
+      ISSUE_TYPES: "/support/tickets/issue_types/", // <-- ADD THIS
     },
   },
   ADMIN: {
