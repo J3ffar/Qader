@@ -44,9 +44,9 @@ export const ConversationInput: React.FC<Props> = ({
   };
 
   return (
-    <div className="bg-background p-4 w-full min-w-[300px]">
+    <div className="p-4 w-full min-w-[300px]">
       <div className="mx-auto max-w-3xl">
-        <div className="relative">
+        <div className="relative dark:bg-[#091029] rounded-xl">
           <Textarea
             placeholder={t("inputPlaceholder")}
             value={message}
@@ -54,7 +54,7 @@ export const ConversationInput: React.FC<Props> = ({
             onKeyDown={handleKeyDown}
             disabled={isSending}
             rows={1}
-            className="min-h-[48px] resize-none rounded-2xl p-4 pe-16"
+            className="min-h-[48px] resize-none dark:bg-[#091029] rounded-xl p-4 pe-16"
           />
           <Button
             type="submit"

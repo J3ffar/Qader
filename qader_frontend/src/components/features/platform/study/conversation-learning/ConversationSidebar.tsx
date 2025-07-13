@@ -134,7 +134,7 @@ export const ConversationSidebar: React.FC<Props> = ({
   }
   return (
     <div className="flex flex-nowrap min-w-[300px] md:flex-col mb-8 md:mb-0 overflow-x-auto md:overflow-x-hidden md:justify-end p-4 gap-4  max-w-full h-full md:max-w-[25%] md:w-1/4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-      <div className="flex flex-1 flex-col min-w-[268px] rounded-2xl flex-shrink-0 items-center text-center justify-center gap-1 border p-4 h-full w-full hover:border-[#9EC9FA] hover:bg-[#9ec9fa3d] dark:hover:bg-[unset]">
+      <div className="flex flex-1 flex-col min-w-[268px] rounded-2xl dark:bg-[#0B1739] flex-shrink-0 items-center text-center justify-center gap-1 border p-4 h-full w-full hover:border-[#9EC9FA] hover:bg-[#9ec9fa3d] dark:hover:bg-[unset]">
         <Image
           src="/images/placeholder.svg"
           alt="Placeholder"
@@ -156,7 +156,7 @@ export const ConversationSidebar: React.FC<Props> = ({
         </Button>
       </div>
 
-      <div className="flex flex-1 flex-col min-w-[268px] rounded-2xl items-center text-center justify-center gap-1 border p-4 h-full w-full hover:border-[#9EC9FA] hover:bg-[#9ec9fa3d] dark:hover:bg-[unset]">
+      <div className="flex flex-1 flex-col min-w-[268px] rounded-2xl items-center text-center justify-center gap-1 border p-4 h-full w-full dark:bg-[#0B1739] hover:border-[#9EC9FA] hover:bg-[#9ec9fa3d] dark:hover:bg-[unset]">
         <Image
           src="/images/placeholder.svg"
           alt="Placeholder"

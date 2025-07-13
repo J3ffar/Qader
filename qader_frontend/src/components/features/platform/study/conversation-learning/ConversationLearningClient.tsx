@@ -116,9 +116,9 @@ export const ConversationLearningClient = () => {
           onConfirmUnderstanding={() => confirmUnderstandingMutation.mutate()}
         />
 
-        <div className="w-full md:w-3/4 min-w-2/5 border rounded-2xl h-full flex flex-col">
+        <div className="w-full md:w-3/4 min-w-2/5 border rounded-2xl h-full flex flex-col dark:bg-[#0B1739]">
           <div className="flex-1 px-4 pb-2 overflow-y-auto">
-            <div className="max-h-[calc(100vh-14rem)] overflow-y-auto">
+            <div className="max-h-[calc(100vh-14rem)] overflow-y-auto ">
               {messages.length === 0 ? (
                 <div className="flex flex-col min-w-fit items-center my-32">
                   <Image
@@ -141,7 +141,7 @@ export const ConversationLearningClient = () => {
             </div>
           </div>
 
-          <div>
+          <div className="border-sm">
             <ConversationInput
               isSending={isSending}
               onSendMessage={handleSendMessage}
