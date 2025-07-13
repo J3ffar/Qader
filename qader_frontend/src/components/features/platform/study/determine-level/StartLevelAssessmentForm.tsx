@@ -259,7 +259,7 @@ const StartLevelAssessmentForm: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 w-full">
-      <Card className="overflow-hidden w-full max-w-none">
+      <Card className="overflow-hidden w-full max-w-none dark:bg-[#0B1739]">
         <CardHeader>
           <CardTitle>{t("selectSectionsAndCount")}</CardTitle>
           <CardDescription>{t("selectSectionsDescription")}</CardDescription>
@@ -302,7 +302,7 @@ const StartLevelAssessmentForm: React.FC = () => {
                   key={section.slug}
                   className="w-full max-w-full rounded-2xl border-2 p-6 shadow-md"
                 >
-                    <div className="flex items-center space-x-3 rtl:space-x-reverse mb-4 mr-2">
+                    <div className="flex items-center space-x-3 rtl:space-x-reverse mb-4 mr-2 ">
                       <Checkbox
                         id={`section-${section.slug}`}
                         checked={mainCheckboxState === "checked"}
@@ -313,7 +313,7 @@ const StartLevelAssessmentForm: React.FC = () => {
                             checked === true
                           );
                         }}
-                        className={cn("cursor-pointer",
+                        className={cn("cursor-pointer dark",
                           mainCheckboxState === "indeterminate" &&
                             "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:text-primary-foreground"
                         )}
@@ -338,8 +338,8 @@ const StartLevelAssessmentForm: React.FC = () => {
                         className={cn(
                           "cursor-pointer rounded-lg p-4 text-center text-sm transition select-none border",
                           isSelected
-                            ? "border-2 border-blue-500 bg-blue-100 font-semibold"
-                            : "border border-gray-300 hover:border-blue-300 font-normal"
+                            ? "border-2 border-gray-300 bg-blue-100 font-semibold"
+                            : "border border-gray-300 hover:border-blue-300 font-norm"
                         )}
                       >
                         {subsection.name}
@@ -369,9 +369,16 @@ const StartLevelAssessmentForm: React.FC = () => {
                   >
                     –
                   </Button>
-                  <div className="w-12 text-center text-lg font-semibold">
-                    {field.value || 0}
-                  </div>
+                  
+                  <input
+                    type="text"
+                    value={field.value || ''}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      field.onChange(isNaN(value) ? '' : Math.max(value, 0)); // prevent negative
+                    }}
+                    className="w-16 text-center text-lg font-semibold border rounded px-2 py-1"
+                  />
                   <Button
                     type="button"
                     variant="outline"
