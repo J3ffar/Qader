@@ -1,7 +1,7 @@
 {
   "conversationalLearning": {
-    "title": "التعلم عبر المحادثة",
-    "description": "تفاعل مع مساعدنا الذكي 'قادر' لفهم نقاط ضعفك أو طرح أي سؤال.",
+    "title": "تعلم عبر المحادثة",
+    "description": "اختبر قدراتك مع قادر او اطرح عليه سؤال.",
     "sidebarTitle": "محادثة جديدة",
     "selectTone": "اختر نبرة صوت الذكاء الاصطناعي",
     "tone": {
@@ -9,12 +9,15 @@
       "serious": "جدية"
     },
     "startConversation": "بدء المحادثة",
-    "askAQuestion": "اسألني سؤالاً",
+    "askAQuestion": "اطرح سؤالك",
+    "askAQuestionHere": "اطرح سؤالك من هنا",
     "testMyUnderstanding": "فهمتُ، اختبر فهمي!",
-    "inputPlaceholder": "اكتب رسالتك أو سؤالك...",
+    "testMe": "اختبرني",
+    "testYourSkills": "اختبر قدراتك من هنا",
+    "inputPlaceholder": "اكتب سؤالك هنا...",
     "send": "إرسال",
-    "emptyStateTitle": "مرحباً بك في التعلم عبر المحادثة!",
-    "emptyStateDescription": "ابدأ محادثة جديدة من اللوحة الجانبية للبدء.",
+    "emptyStateTitle": "لا توجد محادثات!",
+    "emptyStateDescription": "اختر أحد الخيارات الجانبية للبدء",
     "aiTyping": "قادر يكتب...",
     "session": {
       "explanation": "الشرح",
