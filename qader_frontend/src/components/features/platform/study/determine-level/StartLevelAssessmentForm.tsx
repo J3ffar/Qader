@@ -276,25 +276,21 @@ const StartLevelAssessmentForm: React.FC = () => {
           <Accordion
             type="multiple"
             value={sections.map((s) => s.slug)}
-            className="w-full grid grid-cols-1 md:grid-cols-2 gap-6" // make the catagory paralel
+            className="w-full grid grid-cols-1 md:grid-cols-2 gap-6"
           >
             {sections.map((section) => {
               const mainSectionState = selectedSectionsWatched?.[section.slug];
               const allSubsectionsSelected =
-                mainSectionState &&
-                Object.values(mainSectionState.subsections).every(Boolean);
+                mainSectionState && Object.values(mainSectionState.subsections).every(Boolean);
               const someSubsectionsSelected =
-                mainSectionState &&
-                Object.values(mainSectionState.subsections).some(Boolean);
+                mainSectionState && Object.values(mainSectionState.subsections).some(Boolean);
 
-              const mainCheckboxState:
-                | "checked"
-                | "unchecked"
-                | "indeterminate" = allSubsectionsSelected
-                ? "checked"
-                : someSubsectionsSelected
-                ? "indeterminate"
-                : "unchecked";
+              const mainCheckboxState: "checked" | "unchecked" | "indeterminate" =
+                allSubsectionsSelected
+                  ? "checked"
+                  : someSubsectionsSelected
+                  ? "indeterminate"
+                  : "unchecked";
 
               return (
                 <AccordionItem
@@ -302,56 +298,65 @@ const StartLevelAssessmentForm: React.FC = () => {
                   key={section.slug}
                   className="w-full max-w-full rounded-2xl border-2 p-6 shadow-md"
                 >
-                    <div className="flex items-center space-x-3 rtl:space-x-reverse mb-4 mr-2 ">
-                      <Checkbox
-                        id={`section-${section.slug}`}
-                        checked={mainCheckboxState === "checked"}
-                        data-state={mainCheckboxState} // For styling indeterminate
-                        onCheckedChange={(checked) => {
-                          handleMainSectionChange(
-                            section.slug,
-                            checked === true
-                          );
-                        }}
-                        className={cn("cursor-pointer dark",
-                          mainCheckboxState === "indeterminate" &&
-                            "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:text-primary-foreground"
-                        )}
-                        aria-label={`Select all in ${section.name}`}
-                      >
-                        {mainCheckboxState === "indeterminate" && (
-                          <Minus className="h-4 w-4" />
-                        )}
-                      </Checkbox>
-                      <label
-                        htmlFor={`section-${section.slug}`}
-                        className="cursor-pointer font-semibold text-lg sm:text-xl rtl:mr-3"
-                      >
-                        {section.name}
-                      </label>
-                    </div>
+                  {/* Main Section Checkbox + Label */}
+                  <div className="flex items-center space-x-3 rtl:space-x-reverse mb-4">
+                    <Checkbox
+                      id={`section-${section.slug}`}
+                      checked={mainCheckboxState === "checked"}
+                      data-state={mainCheckboxState}
+                      onCheckedChange={(checked) =>
+                        handleMainSectionChange(section.slug, checked === true)
+                      }
+                      className={cn(
+                        "cursor-pointer",
+                        mainCheckboxState === "indeterminate" &&
+                          "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:text-primary-foreground"
+                      )}
+                      aria-label={`Select all in ${section.name}`}
+                    >
+                      {mainCheckboxState === "indeterminate" && (
+                        <Minus className="h-4 w-4" />
+                      )}
+                    </Checkbox>
+
+                    <label
+                      htmlFor={`section-${section.slug}`}
+                      className="cursor-pointer font-semibold text-lg sm:text-xl rtl:mr-3"
+                    >
+                      {section.name}
+                    </label>
+                  </div>
+
+                  {/* Subsection Clickable Boxes */}
                   <AccordionContent className="grid grid-cols-1 gap-3 p-4 pt-0 sm:grid-cols-3">
-                    {section.subsections.map((subsection) =>{
-                      const isSelected = selectedSectionsWatched?.[section.slug]?.subsections?.[subsection.slug] || false; // replace the normal checkbox by make the whole box be bold
-                    return(
-                      <div key={subsection.slug} onClick={() =>handleSubSectionChange(section.slug, subsection.slug, !isSelected)}
-                        className={cn(
-                          "cursor-pointer rounded-lg p-4 text-center text-sm transition select-none border",
-                          isSelected
-                            ? "border-2 border-gray-300 bg-blue-100 font-semibold"
-                            : "border border-gray-300 hover:border-blue-300 font-norm"
-                        )}
-                      >
-                        {subsection.name}
-                      </div>
-                    );
+                    {section.subsections.map((subsection) => {
+                      const isSelected =
+                        selectedSectionsWatched?.[section.slug]?.subsections?.[subsection.slug] ||
+                        false;
+
+                      return (
+                        <div
+                          key={subsection.slug}
+                          onClick={() =>
+                            handleSubSectionChange(section.slug, subsection.slug, !isSelected)
+                          }
+                          className={cn(
+                            "cursor-pointer rounded-lg p-4 text-center text-sm transition select-none border",
+                            isSelected
+                              ? "border-2 border-primary bg-primary/10 font-semibold"
+                              : "border border-gray-300 hover:border-primary font-normal"
+                          )}
+                        >
+                          {subsection.name}
+                        </div>
+                      );
                     })}
                   </AccordionContent>
                 </AccordionItem>
               );
             })}
           </Accordion>
-
+          
           <div className="w-full">
             <Label htmlFor="num_questions" className="text-base font-medium justify-center">
               {t("numQuestions")}
