@@ -89,7 +89,7 @@ export function EmergencyModeSetup() {
       "نصيحة 4",
     ];
     setGeneralTips(fetchedTips);
-  }, generalTips);
+  }, []);
 
   const focusOptions = [
     { id: "verbal", label: t("verbal") },
