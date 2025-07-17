@@ -76,8 +76,6 @@ export function EmergencyModeSetup() {
         description: getApiErrorMessage(error, tSession("settingsUpdateErrorToast")),
       }),
   });
-  console.log("sessionId:", sessionId);
-  console.log("calm_mode_active:", isCalmModeActive);
   useEffect(() => {
     // Fetch general tips from the backend or any other source
     // For now, use dummy data
