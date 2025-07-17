@@ -1,175 +1,203 @@
 "use client";
 
-import React from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Rocket } from "lucide-react";
-import { startEmergencyMode } from "@/services/study.service";
+import { Card, CardContent } from "@/components/ui/card";
+import { CircleAlert, Send } from "lucide-react";
 import { useEmergencyModeStore } from "@/store/emergency.store";
-import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import EmergencyModeActivitationForm from "./EmergencyModeActivitationForm";
+import { Switch } from "@/components/ui/switch";
+import { useParams } from "next/navigation";
+import ReportProblemForm from "./ReportProblemForm";
+import { Label } from "@/components/ui/label";
+import { useMutation } from "@tanstack/react-query";
 import { queryKeys } from "@/constants/queryKeys";
-
-const emergencyModeSchema = z.object({
-  available_time_hours: z.coerce
-    .number()
-    .min(1, { message: "Must be at least 1 hour" })
-    .max(24),
-  focus_areas: z
-    .array(z.enum(["verbal", "quantitative"]))
-    .min(1, { message: "Please select at least one area to focus on." }),
-  reason: z.string().optional(),
-});
+import {
+  startEmergencyMode,
+  updateEmergencySession,
+} from "@/services/study.service";
+import { toast } from "sonner";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 export function EmergencyModeSetup() {
+  const { locale } = useParams();
+  const dir = locale === "en" ? "ltr" : "rtl";
   const t = useTranslations("Study.emergencyMode.setup");
-  const startNewSession = useEmergencyModeStore(
-    (state) => state.startNewSession
-  );
+  const tSession = useTranslations("Study.emergencyMode.session");
+  const [generalTips, setGeneralTips] = useState<string[]>([]);
+  const {
+    sessionId,
+    suggestedPlan,
+    questions,
+    currentQuestionIndex,
+    isSessionActive,
+    isCalmModeActive,
+    isSharedWithAdmin,
+    startNewSession,
+    setQuestions,
+    goToNextQuestion,
+    endSession,
+    setCalmMode,
+    setSharedWithAdmin,
+  } = useEmergencyModeStore();
 
-  const form = useForm<z.infer<typeof emergencyModeSchema>>({
-    resolver: zodResolver(emergencyModeSchema),
-    defaultValues: {
-      available_time_hours: 1,
-      focus_areas: ["verbal", "quantitative"],
-      reason: "",
-    },
-  });
-
+  // For activating the emergency mode
   const { mutate, isPending } = useMutation({
     mutationKey: queryKeys.emergencyMode.all,
     mutationFn: startEmergencyMode,
     onSuccess: (data) => {
-      toast.success(t("sessionStartedToast"));
+      toast.success(tSession("sessionStartedToast"));
       startNewSession(data.session_id, data.suggested_plan);
     },
     onError: (error) => {
-      toast.error(t("sessionStartErrorToast"), {
-        description: getApiErrorMessage(error, t("sessionStartErrorToast")),
+      toast.error(tSession("sessionStartErrorToast"), {
+        description: getApiErrorMessage(error, tSession("sessionStartErrorToast")),
       });
     },
   });
 
-  function onSubmit(values: z.infer<typeof emergencyModeSchema>) {
-    mutate(values);
-  }
+  // For updating the calm mode
+  const { mutate: updateSettings } = useMutation({
+    mutationKey: queryKeys.emergencyMode.session(sessionId as number),
+    mutationFn: (payload: {
+      calm_mode_active?: boolean;
+      shared_with_admin?: boolean;
+    }) => updateEmergencySession({ sessionId: sessionId!, payload }),
+    onSuccess: (data) => {
+      toast.success(tSession("settingsUpdatedToast"));
+      // Sync local store state with the response from the server
+      setCalmMode(data.calm_mode_active);
+      setSharedWithAdmin(data.shared_with_admin);
+    },
+    onError: (error) =>
+      toast.error(tSession("settingsUpdateErrorToast"), {
+        description: getApiErrorMessage(error, tSession("settingsUpdateErrorToast")),
+      }),
+  });
+  useEffect(() => {
+    // Fetch general tips from the backend or any other source
+    // For now, use dummy data
+    const fetchedTips = [
+      "تحتاج التقليل من التوتر.",
+      "نصيحة 1",
+      "نصيحة 2",
+      "نصيحة 3",
+      "نصيحة 4",
+    ];
+    setGeneralTips(fetchedTips);
+  }, []);
 
-  // --- THE FIX IS HERE ---
   const focusOptions = [
     { id: "verbal", label: t("verbal") },
     { id: "quantitative", label: t("quantitative") },
-  ] as const; // This assertion is key!
+  ] as const;
 
+  // TODO: handle the toggle for calm mode
+  const handleCalmModeToggle = (checked: boolean) => {
+    setCalmMode(checked); // Optimistic UI update
+    updateSettings({ calm_mode_active: checked });
+  };
   return (
-    <Card className="mx-auto max-w-3xl">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Rocket className="h-6 w-6 text-primary" />
-          {t("title")}
-        </CardTitle>
-        <CardDescription>{t("description")}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="available_time_hours"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("hoursLabel")}</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="e.g., 2" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="focus_areas"
-              render={() => (
-                <FormItem>
-                  <FormLabel>{t("focusAreasLabel")}</FormLabel>
-                  <div className="flex flex-col gap-4 sm:flex-row">
-                    {/* Now, `item.id` will have the type "verbal" | "quantitative" */}
-                    {focusOptions.map((item) => (
-                      <FormField
-                        key={item.id}
-                        control={form.control}
-                        name="focus_areas"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rtl:space-x-reverse">
-                            <FormControl>
-                              <Checkbox
-                                // This line is now type-safe
-                                checked={field.value?.includes(item.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...field.value, item.id])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== item.id
-                                        )
-                                      );
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              {item.label}
-                            </FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="reason"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("reasonLabel")}</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder={t("reasonPlaceholder")} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("startSessionButton")}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <main className="flex-1 flex flex-col gap-4 max-h-fit" dir={dir}>
+      {/* Header Container */}
+      <div className="w-full p-4 pb-0">
+        <p className="font-semibold text-2xl">{t("title")}</p>
+        <p className="text-muted-foreground">{t("description")} </p>
+      </div>
+
+      {/* Content Container */}
+      <div className="flex-1 grid grid-rows-1 gap-2 w-full min-h-0">
+        {/* Upper Section */}
+        <Card
+          className="w-full p-1 min-w-0 shadow-none dark:bg-[#0A1739]"
+          dir={dir}
+        >
+          <CardContent className="flex flex-col items-center gap-0 p-0">
+            <div className="w-full rounded-md p-4 flex flex-col justify-center">
+              <div>
+                <p className="font-semibold text-xl">
+                  {t("activateEmergencyMode")}
+                </p>
+                <p className="text-muted-foreground">
+                  {t("selectDaysAndHours")}
+                </p>
+              </div>
+              {/* Form */}
+              <EmergencyModeActivitationForm onSubmit={mutate} />
+            </div>
+            <div className="flex flex-col justify-center items-center p-4 gap-2">
+              <Image
+                src="/images/document.svg"
+                alt="Document illustration"
+                width={400}
+                height={300}
+                className="object-contain"
+              />
+              <div className="text-center space-y-2">
+                <p className="font-semibold text-2xl">
+                  {t("selectDaysAndHours")}
+                </p>
+                <p className="text-muted-foreground">{t("needToSelect")}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lower Section */}
+        <Card
+          className="h-fit border-none shadow-none py-4 bg-inherit"
+          dir={dir}
+        >
+          <CardContent className="p-0 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-4">
+            <div className="flex flex-col gap-4">
+              {/* Focus Mode */}
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg dark:bg-[#0A1739]">
+                <span className="font-semibold">
+                  {tSession("activateQuietMode")}
+                </span>
+                <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                  <Label htmlFor="calm-mode">{tSession("calmModeLabel")}</Label>
+                  <Switch
+                    id="calm-mode"
+                    checked={isCalmModeActive}
+                    onCheckedChange={handleCalmModeToggle}
+                  />
+                  <CircleAlert className="h-5 w-5 text-muted-foreground hover:text-inherit transition" />
+                </div>
+              </div>
+              {/* Tips */}
+              <div className="p-4 border rounded-lg h-full dark:bg-[#0A1739]">
+                <h3 className="font-bold mb-1 text-2xl">
+                  {tSession("generalTipsForYou")}
+                </h3>
+                <ul className="list-disc pr-4 space-y-1 text-sm">
+                  {/* ToDo: fetch them from the backend */}
+                  {generalTips.map((tip, index) => (
+                    <li key={index} className="text-muted-foreground">
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            {/* Report a problem */}
+            <div className="flex flex-col justify-between border rounded-lg p-4 dark:bg-[#0A1739]">
+              <div>
+                <h2 className="font-bold text-lg mb-1">
+                  {tSession("shareWithAdminLabel")}{" "}
+                </h2>
+                <p className="text-sm mb-4">
+                  <span className="w-1 h-1 mx-1 inline-block" />
+                  {tSession("stillConfusedMessage")}
+                </p>
+              </div>
+              <ReportProblemForm />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
   );
 }
