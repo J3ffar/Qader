@@ -12,7 +12,7 @@ export default function EmergencyModePage() {
   );
 
   return (
-    <div className="min-h-full w-full sm:p-6">
+    <div className="min-h-full dark:bg-gray-900 sm:p-6">
       <AnimatePresence mode="wait">
         {!isSessionActive ? (
           <motion.div
