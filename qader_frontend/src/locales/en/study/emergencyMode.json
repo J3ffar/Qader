@@ -24,6 +24,7 @@
     "session": {
       "settingsTitle": "Session Settings",
       "quietModeLabel": "Activate Quiet Mode",
+      "calmModeLabel": "Activate Calm Mode",
       "activateQuietMode": "Do you want to activate quiet mode for better focus?",
       "generalTipsForYou": "General tips for you",
       "shareWithAdminLabel": "Share My Status with Administration",

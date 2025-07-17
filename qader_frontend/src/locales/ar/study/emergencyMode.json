@@ -24,6 +24,7 @@
     "session": {
       "settingsTitle": "إعدادات الجلسة",
       "quietModeLabel": "الوضع الهادئ",
+      "calmModeLabel": "الوضع الهادئ",
       "activateQuietMode": "هل تريد تفعيل الوضع الهادئ للتركيز أكثر",
       "generalTipsForYou": "نصائح عامة لك",
       "shareWithAdminLabel": "مشاركة وضعي مع الإدارة",
