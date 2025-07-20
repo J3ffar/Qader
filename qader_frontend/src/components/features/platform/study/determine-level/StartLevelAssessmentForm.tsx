@@ -259,7 +259,7 @@ const StartLevelAssessmentForm: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 w-full">
-      <Card className="overflow-hidden w-full max-w-none dark:bg-[#0B1739]">
+      <Card className="overflow-hidden w-full max-w-none dark:bg-[#0B1739] dark:border-[#7E89AC]" >
         <CardHeader>
           <CardTitle>{t("selectSectionsAndCount")}</CardTitle>
           <CardDescription>{t("selectSectionsDescription")}</CardDescription>
@@ -343,7 +343,7 @@ const StartLevelAssessmentForm: React.FC = () => {
                           className={cn(
                             "cursor-pointer rounded-lg p-4 text-center text-sm transition select-none border",
                             isSelected
-                              ? "border-2 border-primary bg-primary/10 font-semibold"
+                              ? "border-2 border-primary dark:bg-[#074182] font-semibold"
                               : "border border-gray-300 hover:border-primary font-normal"
                           )}
                         >

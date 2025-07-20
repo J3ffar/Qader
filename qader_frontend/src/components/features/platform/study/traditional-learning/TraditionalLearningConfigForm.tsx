@@ -146,7 +146,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
       onSubmit={handleSubmit(onSubmit)}
       className="mx-auto max-w-4xl space-y-8"
     >
-      <Card>
+      <Card className="overflow-hidden w-full max-w-none border-2 dark:bg-[#0B1739] dark:border-[#7E89AC]">
         <CardHeader>
           <CardTitle>{t("sectionsTitle")}</CardTitle>
           <CardDescription>{t("sectionsDescription")}</CardDescription>
@@ -221,10 +221,10 @@ const TraditionalLearningConfigForm: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => field.onChange(!field.value)}
-                            className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                            className={`px-4 py-2 rounded-lg border text-sm font-medium transition cursor-pointer ${
                               field.value
                                 ? "bg-primary text-white border-primary"
-                                : "bg-muted text-muted-foreground hover:border-primary"
+                                : "border border-gray-300 hover:border-primary font-normal"
                             }`}
                           >
                             {sub.name}
@@ -241,7 +241,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="overflow-hidden w-full max-w-none border-2 dark:bg-[#0B1739] dark:border-[#7E89AC]">
         <CardHeader>
           <CardTitle>{t("advancedOptionsTitle")}</CardTitle>
           <CardDescription>{t("advancedOptionsDescription")}</CardDescription>
