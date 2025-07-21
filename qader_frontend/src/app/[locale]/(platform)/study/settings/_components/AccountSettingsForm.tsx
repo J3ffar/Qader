@@ -35,6 +35,7 @@ import { UserProfile } from "@/types/api/auth.types";
 import ChangePasswordDialog from "./ChangePasswordDialog";
 import { queryKeys } from "@/constants/queryKeys";
 import { useParams } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 // Schema for form validation
 const accountSettingsSchema = z.object({
@@ -108,15 +109,15 @@ export default function AccountSettingsForm({
   return (
     <Card className="w-full max-w-5xl mx-auto mt-8 dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]">
       <CardHeader>
-        <CardTitle>{t("title")}</CardTitle>
-        <CardDescription>{t("description")}</CardDescription>
+        <CardTitle className={cn( locale === "ar" ? "text-right" : "text-left")}>{t("title")}</CardTitle>
+        <CardDescription className={cn( locale === "ar" ? "text-right" : "text-left")}>{t("description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="flex flex-col items-center gap-4 sm:flex-row">
-              <div className="relative">
-                <Avatar className="h-24 w-24">
+          <form onSubmit={form.handleSubmit(onSubmit)} className={cn("flex flex-col space-y-8", locale === "ar" ? "items-start" : "items-end")}>
+            <div className={cn("flex flex-col items-center gap-4",locale === "ar" ? "sm:flex-row-reverse items-end" : "sm:flex-row items-start")}>
+              <div dir={locale === "ar" ? "rtl" : "ltr"} className="relative">
+                <Avatar dir={locale === "ar" ? "rtl" : "ltr"} className="h-24 w-24">
                   <AvatarImage
                     src={preview || ""}
                     alt={user.preferred_name || user.full_name}
@@ -141,9 +142,9 @@ export default function AccountSettingsForm({
                   onChange={handleFileChange}
                 />
               </div>
-              <div className="flex-1 text-center sm:text-start ltr:sm:text-left rtl:sm:text-right">
-                <p className="text-lg font-semibold">{t("upload.title")}</p>
-                <p className="text-sm text-muted-foreground">
+              <div className="flex-1">
+                <p className={cn( "text-lg font-semibold",locale === "ar" ? "text-right" : "text-left")} >{t("upload.title")}</p>
+                <p className={cn( "text-muted-foreground",locale === "ar" ? "text-right" : "text-left")} >{t("upload.title")} 
                   {t("upload.description")}
                 </p>
               </div>
@@ -154,12 +155,13 @@ export default function AccountSettingsForm({
                 control={form.control}
                 name="full_name"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("fullName.label")}</FormLabel>
-                    <FormControl>
+                  <FormItem  dir={locale === "ar" ? "rtl" : "ltr"}>
+                    <FormLabel >{t("fullName.label")}</FormLabel>
+                    <FormControl >
                       <Input
                         placeholder={t("fullName.placeholder")}
                         {...field}
+                        className={cn( "text-lg",locale === "ar" ? "text-right" : "text-left")} 
                       />
                     </FormControl>
                     <FormMessage />
@@ -170,26 +172,27 @@ export default function AccountSettingsForm({
                 control={form.control}
                 name="preferred_name"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem dir={locale === "ar" ? "rtl" : "ltr"}>
                     <FormLabel>{t("preferredName.label")}</FormLabel>
                     <FormControl>
                       <Input
                         placeholder={t("preferredName.placeholder")}
                         {...field}
+                        className={cn(locale === "ar" ? "text-right" : "text-left")}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormItem>
+              <FormItem dir={locale === "ar" ? "rtl" : "ltr"}>
                 <FormLabel>{t("email.label")}</FormLabel>
                 <FormControl>
-                  <Input value={user.email} disabled />
+                  <Input className={cn(locale === "ar" ? "text-right" : "text-left")} value={user.email} disabled />
                 </FormControl>
               </FormItem>
-              <FormItem>
-                <FormLabel>{t("password.label")}</FormLabel>
+              <FormItem dir={locale === "ar" ? "rtl" : "ltr"}>
+                <FormLabel className={cn(locale === "ar" ? "text-right" : "text-left")}>{t("password.label")}</FormLabel>
                 <ChangePasswordDialog />
               </FormItem>
             </div>

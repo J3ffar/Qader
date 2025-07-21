@@ -63,6 +63,7 @@ const PlanCardSkeleton = () => (
   </Card>
 );
 
+
 export default function SubscriptionDetails({
   currentSubscription,
   plans,
@@ -106,19 +107,19 @@ export default function SubscriptionDetails({
   });
 
   return (
-    <div className="flex space-y-8 justify-center items-center flex-col p-4 md:p-6 lg:p-8">
+    <div dir={locale === "ar" ? "ltr" : "rtl"} className="flex space-y-8 justify-center items-center flex-col p-4 md:p-6 lg:p-8">
       {/* Current Subscription Card */}
       <Card className="overflow-hidden w-full border-2 dark:bg-[#0B1739] dark:border-[#7E89AC]">
-        <CardHeader>
+        <CardHeader className={cn("flex flex-col", locale === "ar" ? "items-end" : "items-start")}>
           <CardTitle className="flex items-center gap-2">
             <Crown className="h-6 w-6 text-yellow-500" />
             {t("current.title")}
           </CardTitle>
-          <CardDescription>{t("current.description")}</CardDescription>
+          <CardDescription className={locale === "ar" ? "text-right" : "text-left"}>{t("current.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 flex flex-col items-center">
-          <div className="flex items-center justify-between rounded-lg border p-4 w-full">
-            <div className="space-y-1">
+          <div dir={locale ==="ar"?"ltr":"rtl"} className="flex items-center justify-between rounded-lg border p-4 w-full">
+            <div>
               <p className="font-semibold">{t("current.planName")}</p>
               <p className="text-lg font-bold">
                 {currentSubscription.plan_name || t("current.noPlan")}
@@ -136,9 +137,9 @@ export default function SubscriptionDetails({
             </Badge>
           </div>
          {/* {currentSubscription.is_active && currentSubscription.expires_at && ( */}
-            <div className="flex items-center justify-between rounded-lg border p-4 w-full">
-              <div className="space-y-1">
-                <p className="font-semibold">{t("current.expiresAt")}</p>
+            <div dir={locale ==="ar"?"ltr":"rtl"} className="flex justify-between items-center rounded-lg border p-4 w-full">
+              <div>
+                <p className= "font-semibold">{t("current.expiresAt")}</p>
                 <p className="text-lg font-bold">
                   {/* {format(new Date(currentSubscription.expires_at), "PPP", {
                     locale: dateLocale,
@@ -157,12 +158,12 @@ export default function SubscriptionDetails({
                     {t("current.cancelButton")}
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className={cn("flex flex-col", locale === "ar" ? "items-start" : "items-end")}>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className={cn( locale === "ar" ? "text-right" : "text-left")}>
+                <AlertDialogContent  className={cn("flex flex-col", locale === "ar" ? "items-start" : "items-end")}>
+                  <AlertDialogHeader dir={locale === "ar" ? "rtl" : "ltr"}>
+                    <AlertDialogTitle className={locale === "ar" ? "text-right" : "text-left"}>
                       {t("cancelDialog.title")}
                     </AlertDialogTitle>
-                    <AlertDialogDescription className={cn( locale === "ar" ? "text-right" : "text-left")}>
+                    <AlertDialogDescription className={locale === "ar" ? "text-right" : "text-left"}>
                       {t("cancelDialog.description")}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -191,7 +192,7 @@ export default function SubscriptionDetails({
       <Separator />
 
       {/* Available Plans */}
-      <div dir={locale === "ar" ? "rtl" : "ltr"} className="space-y-4 flex flex-col w-full">
+      <div className="space-y-4 flex flex-col w-full">
         <h3 className="mb-4 text-xl font-bold">{t("available.title")}</h3>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3 w-11/12">
           {arePlansLoading ? (
@@ -206,7 +207,7 @@ export default function SubscriptionDetails({
             (plans || []).map((plan, index) => (
               <Card key={plan.id} className={`flex flex-col transition-all duration-300 ease-in-out transform hover:scale-105 hover:translate-y-[-10px] ${
             index === 1 ? "shadow-lg dark:hover:bg-[#074182] dark:bg-[#0B1739] dark:border-[#7E89AC]" : " dark:border-[#7E89AC] dark:hover:bg-[#074182] dark:bg-[#0B1739] z-10 hover:shadow-xl rounded-lg p-4"}`}>
-                <CardHeader>
+                <CardHeader dir={locale ==="ar"?"ltr":"rtl"}>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-6 w-6 text-primary" />
                     {plan.name}
