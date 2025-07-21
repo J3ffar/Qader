@@ -38,6 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { queryKeys } from "@/constants/queryKeys";
+import { cn } from "@/lib/utils";
 
 interface SubscriptionDetailsProps {
   currentSubscription: SubscriptionDetailResponse;
@@ -115,8 +116,8 @@ export default function SubscriptionDetails({
           </CardTitle>
           <CardDescription>{t("current.description")}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 ">
-          <div className="flex items-center justify-between rounded-lg border p-4">
+        <CardContent className="space-y-4 flex flex-col items-center">
+          <div className="flex items-center justify-between rounded-lg border p-4 w-full">
             <div className="space-y-1">
               <p className="font-semibold">{t("current.planName")}</p>
               <p className="text-lg font-bold">
@@ -127,20 +128,21 @@ export default function SubscriptionDetails({
               variant={
                 currentSubscription.is_active ? "default" : "destructive"
               }
+              className="flex items-center text-center w-24 h-7 justify-center text-md"
             >
               {currentSubscription.is_active
                 ? t("current.statusActive")
                 : t("current.statusInactive")}
             </Badge>
           </div>
-          {currentSubscription.is_active && currentSubscription.expires_at && (
-            <div className="flex items-center justify-between rounded-lg border p-4">
+         {/* {currentSubscription.is_active && currentSubscription.expires_at && ( */}
+            <div className="flex items-center justify-between rounded-lg border p-4 w-full">
               <div className="space-y-1">
                 <p className="font-semibold">{t("current.expiresAt")}</p>
                 <p className="text-lg font-bold">
-                  {format(new Date(currentSubscription.expires_at), "PPP", {
+                  {/* {format(new Date(currentSubscription.expires_at), "PPP", {
                     locale: dateLocale,
-                  })}
+                  })} */}
                 </p>
               </div>
 
@@ -150,28 +152,28 @@ export default function SubscriptionDetails({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
+                    className="cursor-pointer text-destructive hover:text-destructive dar:border-2 hover:border-destructive/90 dark:border-[#7E89AC]"
                   >
                     {t("current.cancelButton")}
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className={cn("flex flex-col", locale === "ar" ? "items-start" : "items-end")}>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>
+                    <AlertDialogTitle className={cn( locale === "ar" ? "text-right" : "text-left")}>
                       {t("cancelDialog.title")}
                     </AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogDescription className={cn( locale === "ar" ? "text-right" : "text-left")}>
                       {t("cancelDialog.description")}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>
+                    <AlertDialogCancel className="cursor-pointer">
                       {t("cancelDialog.cancelButton")}
                     </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => cancelMutation.mutate()}
                       disabled={cancelMutation.isPending}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className="bg-destructive text-destructive-foreground text-white hover:bg-destructive/90 cursor-pointer"
                     >
                       {cancelMutation.isPending
                         ? t("cancelDialog.confirmButtonLoading")
@@ -181,7 +183,7 @@ export default function SubscriptionDetails({
                 </AlertDialogContent>
               </AlertDialog>
             </div>
-          )}
+          {/* )} */}
         </CardContent>
       </Card>
 
@@ -189,7 +191,7 @@ export default function SubscriptionDetails({
       <Separator />
 
       {/* Available Plans */}
-      <div className="space-y-4 flex flex-col items-end w-full">
+      <div dir={locale === "ar" ? "rtl" : "ltr"} className="space-y-4 flex flex-col w-full">
         <h3 className="mb-4 text-xl font-bold">{t("available.title")}</h3>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3 w-11/12">
           {arePlansLoading ? (

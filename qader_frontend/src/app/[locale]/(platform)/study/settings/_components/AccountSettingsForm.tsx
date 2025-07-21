@@ -34,6 +34,7 @@ import { useRef, useState } from "react";
 import { UserProfile } from "@/types/api/auth.types";
 import ChangePasswordDialog from "./ChangePasswordDialog";
 import { queryKeys } from "@/constants/queryKeys";
+import { useParams } from "next/navigation";
 
 // Schema for form validation
 const accountSettingsSchema = z.object({
@@ -59,7 +60,7 @@ export default function AccountSettingsForm({
   const [preview, setPreview] = useState<string | null>(
     user.profile_picture_url
   );
-
+  const { locale } = useParams();
   const form = useForm<AccountSettingsValues>({
     resolver: zodResolver(accountSettingsSchema),
     defaultValues: {
@@ -105,7 +106,7 @@ export default function AccountSettingsForm({
   }
 
   return (
-    <Card>
+    <Card className="w-full max-w-5xl mx-auto mt-8 dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]">
       <CardHeader>
         <CardTitle>{t("title")}</CardTitle>
         <CardDescription>{t("description")}</CardDescription>
@@ -193,7 +194,7 @@ export default function AccountSettingsForm({
               </FormItem>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-start">
               <Button
                 type="submit"
                 disabled={!form.formState.isDirty || mutation.isPending}
