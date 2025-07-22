@@ -160,7 +160,6 @@ const Navbar = () => {
       icon: ChatBubbleOvalLeftEllipsisIcon,
     },
   ];
-
   const isDarkTheme = isClient && theme === "dark";
   const desktopLogoSrc = isDarkTheme
     ? "/images/logodrk.png"
@@ -272,7 +271,7 @@ const Navbar = () => {
   return (
     <>
       <div className="relative z-50">
-        <nav className="flex w-full items-center justify-between bg-background px-4 py-4 shadow-lg max-md:flex-row-reverse max-md:gap-6 max-md:bg-[#074182] dark:max-md:bg-[#053061] sm:px-8 md:bg-[#FDFDFD] md:px-16 dark:md:bg-[#081028]">
+        <nav className="flex w-full items-center justify-between bg-background px-4 py-4 shadow-lg max-md:flex-row-reverse max-md:gap-6 max-md:bg-primary dark:max-md:bg-[#081029] border-b sm:px-8 md:bg-[#FDFDFD] md:px-16 dark:md:bg-[#081028]">
           {/* ... (Mobile menu button and Logo remain the same) ... */}
           <div className="md:hidden">
             <button
@@ -333,7 +332,9 @@ const Navbar = () => {
           <div className="hidden items-center gap-2 md:flex">
             {" "}
             {/* Reduced gap slightly */}
-            <ThemeToggle />
+            <span className="mx-4">
+              <ThemeToggle />
+            </span>
             {/* <LanguageSwitcher /> */}
             {isAuthenticated && user ? (
               <DropdownMenu>
@@ -418,12 +419,12 @@ const Navbar = () => {
                   <span className="hidden lg:inline">{tAuth("signup")}</span>
                 </button>
                 <button
-                  className="hidden cursor-pointer gap-2 rounded-[8px] border-[1.5px] border-[#074182] bg-transparent p-2 font-[600] text-[#074182] transition-all hover:bg-[#07418211] dark:border-[#3D93F5] dark:text-[#3D93F5] dark:hover:bg-[#3D93F511] lg:flex min-[1120px]:px-4 min-[1120px]:py-2.5"
+                  className="cursor-pointer gap-2 rounded-[8px] border-[1.5px] border-[#074182] bg-transparent p-2 font-[600] text-[#074182] transition-all hover:bg-[#07418211] dark:border-[#3D93F5] dark:text-[#3D93F5] dark:hover:bg-[#3D93F511] lg:flex min-[1120px]:px-4 min-[1120px]:py-2.5"
                   onClick={openLogin}
                   aria-label={tAuth("login")}
                 >
                   <UserSolidIcon className="ms-1 h-5 w-5 rtl:me-1 rtl:ms-0" />
-                  <span className="lg:inline">{tAuth("login")}</span>
+                  <span className="hidden lg:inline">{tAuth("login")}</span>
                 </button>
               </>
             )}
