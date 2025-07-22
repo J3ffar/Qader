@@ -124,6 +124,7 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
             # Core Identification & Content
             "id",
             "question_text",
+            "image",
             "options",  # Frontend-friendly dict of options
             "difficulty",
             "hint",

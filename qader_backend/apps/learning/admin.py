@@ -10,14 +10,14 @@ from .models import (
 
 @admin.register(LearningSection)
 class LearningSectionAdmin(admin.ModelAdmin):
-    list_display = ("name", "slug", "order", "created_at")
+    list_display = ("id", "name", "slug", "order", "created_at")
     search_fields = ("name",)
     prepopulated_fields = {"slug": ("name",)}
 
 
 @admin.register(LearningSubSection)
 class LearningSubSectionAdmin(admin.ModelAdmin):
-    list_display = ("name", "section", "slug", "order", "created_at")
+    list_display = ("id", "name", "section", "slug", "order", "created_at")
     list_filter = ("section",)
     search_fields = ("name", "section__name")
     prepopulated_fields = {"slug": ("section", "name")}
@@ -26,7 +26,7 @@ class LearningSubSectionAdmin(admin.ModelAdmin):
 
 @admin.register(Skill)
 class SkillAdmin(admin.ModelAdmin):
-    list_display = ("name", "subsection", "slug", "created_at")
+    list_display = ("id", "name", "subsection", "slug", "created_at")
     list_filter = ("subsection__section", "subsection")
     search_fields = ("name", "subsection__name")
     prepopulated_fields = {"slug": ("subsection", "name")}
@@ -66,7 +66,10 @@ class QuestionAdmin(admin.ModelAdmin):
         "starred_by",
     )  # Better performance for ManyToMany with many users/questions
     fieldsets = (
-        (None, {"fields": ("subsection", "skill", "question_text", "is_active")}),
+        (
+            None,
+            {"fields": ("subsection", "skill", "question_text", "is_active", "image")},
+        ),
         ("Options", {"fields": ("option_a", "option_b", "option_c", "option_d")}),
         ("Answer & Explanation", {"fields": ("correct_answer", "explanation")}),
         ("Meta", {"fields": ("hint", "solution_method_summary", "difficulty")}),

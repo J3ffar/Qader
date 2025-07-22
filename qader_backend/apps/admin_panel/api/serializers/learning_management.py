@@ -1,5 +1,3 @@
-# qader_backend/apps/admin_panel/api/serializers/learning_management.py
-
 from rest_framework import serializers
 from apps.learning.models import (
     LearningSection,
@@ -7,6 +5,8 @@ from apps.learning.models import (
     Skill,
     Question,
 )
+from django.db.models import Count
+from apps.study.models import UserQuestionAttempt, UserTestAttempt
 
 
 class AdminLearningSectionSerializer(serializers.ModelSerializer):
@@ -117,10 +117,51 @@ class AdminLearningSubSectionSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class AdminQuestionSerializer(serializers.ModelSerializer):
-    """Serializer for Admin CRUD operations on Question."""
+class _AdminQuestionSectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LearningSection
+        fields = ["id", "name", "slug"]
 
-    # Represent related objects by ID for writes, include names/slugs for reads.
+
+class _AdminQuestionSubSectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LearningSubSection
+        fields = ["id", "name", "slug"]
+
+
+class _AdminQuestionSkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Skill
+        fields = ["id", "name", "slug"]
+
+
+# --- Main Admin Question Serializer ---
+
+
+class AdminQuestionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Admin CRUD on Questions.
+    - Read: Provides a detailed, nested view similar to the user-facing API.
+    - Write: Uses simple primary key IDs for relationships.
+    - Analytics: Includes question usage counts.
+    """
+
+    # --- Read-only Nested Representations (for GET requests) ---
+    section = _AdminQuestionSectionSerializer(
+        source="subsection.section", read_only=True
+    )
+    subsection = _AdminQuestionSubSectionSerializer(read_only=True)
+    skill = _AdminQuestionSkillSerializer(read_only=True, allow_null=True)
+    options = serializers.SerializerMethodField()
+    image = serializers.ImageField(
+        read_only=True
+    )  # Image is read-only here, write is handled below
+
+    # --- Analytics Fields (Read-only) ---
+    total_usage_count = serializers.IntegerField(read_only=True, default=0)
+    usage_by_test_type = serializers.SerializerMethodField()
+
+    # --- Write-only Fields (for POST/PUT/PATCH requests) ---
     subsection_id = serializers.PrimaryKeyRelatedField(
         queryset=LearningSubSection.objects.all(), source="subsection", write_only=True
     )
@@ -131,51 +172,100 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
         required=False,
         write_only=True,
     )
-    subsection_slug = serializers.CharField(source="subsection.slug", read_only=True)
-    skill_slug = serializers.CharField(
-        source="skill.slug", read_only=True, allow_null=True
+    # Allows image uploads on create/update
+    image_upload = serializers.ImageField(
+        source="image", write_only=True, required=False, allow_null=True
     )
 
     class Meta:
         model = Question
         fields = [
+            # Core Identification & Content
             "id",
             "question_text",
-            "option_a",
-            "option_b",
-            "option_c",
-            "option_d",
-            "correct_answer",  # Admins need to set this
-            "explanation",  # Admins need to set this
+            "image",  # Read URL
+            "options",
+            "difficulty",
+            "is_active",
+            "correct_answer",
+            "explanation",
             "hint",
             "solution_method_summary",
-            "difficulty",
-            "is_active",  # Admins need to control activation
-            "subsection_id",  # Write
-            "skill_id",  # Write
-            "subsection_slug",  # Read
-            "skill_slug",  # Read
+            # Relational Context (Read-only)
+            "section",
+            "subsection",
+            "skill",
+            # Analytics (Read-only)
+            "total_usage_count",
+            "usage_by_test_type",
+            # Timestamps
             "created_at",
             "updated_at",
+            # Write-only fields
+            "subsection_id",
+            "skill_id",
+            "image_upload",
         ]
         read_only_fields = [
             "id",
+            "section",
+            "subsection",
+            "skill",
+            "options",
+            "image",
+            "total_usage_count",
+            "usage_by_test_type",
             "created_at",
             "updated_at",
-            "subsection_slug",
-            "skill_slug",
         ]
 
-    def validate_correct_answer(self, value):
-        """Ensure correct_answer is one of the allowed choices."""
-        if value not in Question.CorrectAnswerChoices.values:
-            raise serializers.ValidationError(
-                f"Invalid choice. Must be one of {Question.CorrectAnswerChoices.labels}."
+    def get_options(self, obj: Question) -> dict:
+        """Constructs a dictionary of all answer options."""
+        return {
+            "A": obj.option_a,
+            "B": obj.option_b,
+            "C": obj.option_c,
+            "D": obj.option_d,
+        }
+
+    def get_usage_by_test_type(self, obj: Question) -> dict | None:
+        """
+        Calculates question usage broken down by test type.
+        This method is only executed for 'retrieve' actions to prevent N+1 queries.
+        """
+        # Only calculate this complex field for single-object detail views.
+        if self.context["view"].action != "retrieve":
+            return None
+
+        # Query UserQuestionAttempt, filter by the current question and where a test_attempt exists
+        usage_data = (
+            UserQuestionAttempt.objects.filter(question=obj, test_attempt__isnull=False)
+            .values(
+                "test_attempt__attempt_type"  # Group by the attempt type from the related UserTestAttempt
             )
-        return value
+            .annotate(count=Count("id"))
+            .order_by()
+        )  # Ungroup to prevent default ordering issues
+
+        # Format the result into the desired dictionary
+        # {'level_assessment': 10, 'practice': 50, ...}
+        usage_dict = {
+            item["test_attempt__attempt_type"]: item["count"]
+            for item in usage_data
+            if item["test_attempt__attempt_type"]
+        }
+
+        # Ensure all possible test types are present in the response, even if count is 0
+        all_test_types = UserTestAttempt.AttemptType.values
+        for test_type in all_test_types:
+            usage_dict.setdefault(test_type, 0)
+
+        return usage_dict
 
     def validate(self, attrs):
-        """Ensure skill belongs to the chosen subsection."""
+        """Ensure skill belongs to the chosen subsection during write operations."""
+        # This validation only runs on write (create/update) because 'subsection' and 'skill'
+        # are only present in `attrs` during those operations.
         subsection = attrs.get("subsection")
         skill = attrs.get("skill")
 
