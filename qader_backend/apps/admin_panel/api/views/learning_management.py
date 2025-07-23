@@ -198,6 +198,7 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         filters.OrderingFilter,
     ]
     filterset_fields = {
+        "subsection__section__id": ["exact", "in"],
         "subsection__slug": ["exact", "in"],
         "subsection__id": ["exact", "in"],
         "skill__slug": ["exact", "in"],

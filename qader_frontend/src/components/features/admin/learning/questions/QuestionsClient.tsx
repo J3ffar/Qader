@@ -3,17 +3,16 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/shared/DataTable";
 import { DataTablePagination } from "@/components/shared/DataTablePagination";
-import { useDebounce } from "@/hooks/use-debounce";
 import { queryKeys } from "@/constants/queryKeys";
 import { getAdminQuestions } from "@/services/api/admin/learning.service";
-import { getColumns } from "./columns";
+import { getColumns } from "./columns"; // We will update this file next
 import { QuestionFormDialog } from "./QuestionFormDialog";
 import { DeleteQuestionDialog } from "./DeleteQuestionDialog";
 import { ViewQuestionDialog } from "./ViewQuestionDialog";
+import { QuestionsTableToolbar } from "./QuestionsTableToolbar"; // New component for filters
 
 const ITEMS_PER_PAGE = 20;
 
@@ -22,29 +21,30 @@ export function QuestionsClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Dialog states
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isViewOpen, setIsViewOpen] = useState(false); // Add state for view dialog
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(
     null
   );
 
-  const page = parseInt(searchParams.get("page") ?? "1", 10);
-  const search = searchParams.get("search") ?? "";
-  const debouncedSearch = useDebounce(search, 500);
-
-  const handleSetUrlParam = (key: string, value: string | null) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set(key, value);
-    else params.delete(key);
-    if (key === "search") params.set("page", "1");
-    router.replace(`${pathname}?${params.toString()}`);
-  };
-
-  const filters = useMemo(
-    () => ({ page, search: debouncedSearch }),
-    [page, debouncedSearch]
-  );
+  // Read all filter/sort/pagination state from the URL
+  const filters = useMemo(() => {
+    const params: Record<string, any> = {
+      page: searchParams.get("page") ?? "1",
+      search: searchParams.get("search") ?? "",
+      ordering: searchParams.get("ordering") ?? "",
+      subsection__section__id: searchParams.get("section") ?? "",
+      subsection__id: searchParams.get("subsection") ?? "",
+      skill__id: searchParams.get("skill") ?? "",
+    };
+    // Remove empty keys
+    Object.keys(params).forEach((key) => {
+      if (!params[key]) delete params[key];
+    });
+    return params;
+  }, [searchParams]);
 
   const { data, isLoading, isFetching, isError, error } = useQuery({
     queryKey: queryKeys.admin.learning.questions.list(filters),
@@ -72,17 +72,27 @@ export function QuestionsClient() {
     setSelectedQuestionId(null);
   };
 
-  const columns = useMemo(
-    () => getColumns(handleEdit, handleDelete, handleView),
-    []
-  );
+  const columns = useMemo(() => getColumns(), []); // We'll remove handlers from here and place them in the row menu
   const pageCount = data?.count ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
+  const currentPage = parseInt(filters.page?.toString() ?? "1", 10);
 
   if (isError) return <div>Error: {error.message}</div>;
 
+  const handleSetUrlParams = (newParams: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    });
+    // Always reset to page 1 when filters (not page itself) change
+    if (!("page" in newParams)) {
+      params.set("page", "1");
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
   return (
     <div className="space-y-4">
-      {/* All dialogs are now present and correctly wired */}
       <QuestionFormDialog
         isOpen={isFormOpen}
         onClose={handleCloseDialogs}
@@ -100,12 +110,7 @@ export function QuestionsClient() {
       />
 
       <div className="flex items-center justify-between gap-2">
-        <Input
-          placeholder="Search questions..."
-          value={search}
-          onChange={(e) => handleSetUrlParam("search", e.target.value)}
-          className="max-w-sm"
-        />
+        <h2 className="text-2xl font-bold tracking-tight">Questions</h2>
         <Button
           onClick={() => {
             setSelectedQuestionId(null);
@@ -117,19 +122,24 @@ export function QuestionsClient() {
       </div>
 
       <div className="rounded-md border">
+        <QuestionsTableToolbar
+          onFilterChange={handleSetUrlParams}
+          currentFilters={filters}
+        />
         <DataTable
           columns={columns}
           data={data?.results ?? []}
           isLoading={isLoading}
+          context={{ handleEdit, handleDelete, handleView }} // Pass actions via context
         />
       </div>
 
       <DataTablePagination
-        page={page}
+        page={currentPage}
         pageCount={pageCount}
-        setPage={(newPage) => handleSetUrlParam("page", newPage.toString())}
-        canPreviousPage={page > 1}
-        canNextPage={page < pageCount}
+        setPage={(newPage) => handleSetUrlParams({ page: newPage.toString() })}
+        canPreviousPage={currentPage > 1}
+        canNextPage={currentPage < pageCount}
         isFetching={isFetching}
       />
     </div>

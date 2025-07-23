@@ -1,4 +1,3 @@
-// src/components/shared/DataTable.tsx
 "use client";
 
 import {
@@ -22,17 +21,20 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   isLoading?: boolean;
+  context?: any; // Add context prop
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   isLoading = false,
+  context, // a new prop
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    meta: context, // Pass context to the table's meta object
   });
 
   const renderTableBody = () => {
