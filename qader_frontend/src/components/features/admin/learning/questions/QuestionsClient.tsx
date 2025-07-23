@@ -1,4 +1,3 @@
-// src/components/features/admin/learning/questions/QuestionsClient.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -12,12 +11,11 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { queryKeys } from "@/constants/queryKeys";
 import { getAdminQuestions } from "@/services/api/admin/learning.service";
 import { getColumns } from "./columns";
-import { QuestionFormDialog } from "./QuestionFormDialog"; // Import the form
-import { DeleteQuestionDialog } from "./DeleteQuestionDialog"; // Import the delete dialog
-// We will skip the ViewQuestionDialog for now to keep it concise, but it would be added here too.
-// import { ViewQuestionDialog } from './ViewQuestionDialog';
+import { QuestionFormDialog } from "./QuestionFormDialog";
+import { DeleteQuestionDialog } from "./DeleteQuestionDialog";
+import { ViewQuestionDialog } from "./ViewQuestionDialog";
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 20;
 
 export function QuestionsClient() {
   const router = useRouter();
@@ -26,7 +24,7 @@ export function QuestionsClient() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  // const [isViewOpen, setIsViewOpen] = useState(false); // For View Dialog
+  const [isViewOpen, setIsViewOpen] = useState(false); // Add state for view dialog
   const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(
     null
   );
@@ -63,16 +61,14 @@ export function QuestionsClient() {
     setIsDeleteOpen(true);
   };
   const handleView = (id: number) => {
-    // setSelectedQuestionId(id);
-    // setIsViewOpen(true);
-    // For now, let's just make view open the edit dialog.
-    handleEdit(id);
+    setSelectedQuestionId(id);
+    setIsViewOpen(true);
   };
 
   const handleCloseDialogs = () => {
     setIsFormOpen(false);
     setIsDeleteOpen(false);
-    // setIsViewOpen(false);
+    setIsViewOpen(false);
     setSelectedQuestionId(null);
   };
 
@@ -86,6 +82,7 @@ export function QuestionsClient() {
 
   return (
     <div className="space-y-4">
+      {/* All dialogs are now present and correctly wired */}
       <QuestionFormDialog
         isOpen={isFormOpen}
         onClose={handleCloseDialogs}
@@ -96,7 +93,11 @@ export function QuestionsClient() {
         onClose={handleCloseDialogs}
         questionId={selectedQuestionId}
       />
-      {/* <ViewQuestionDialog isOpen={isViewOpen} onClose={handleCloseDialogs} questionId={selectedQuestionId} /> */}
+      <ViewQuestionDialog
+        isOpen={isViewOpen}
+        onClose={handleCloseDialogs}
+        questionId={selectedQuestionId}
+      />
 
       <div className="flex items-center justify-between gap-2">
         <Input

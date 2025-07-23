@@ -30,7 +30,7 @@ export function DeleteQuestionDialog({
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: () => deleteAdminQuestion(questionId!),
+    mutationFn: (id: number) => deleteAdminQuestion(id),
     onSuccess: () => {
       toast.success("Question deleted successfully.");
       queryClient.invalidateQueries({
@@ -45,7 +45,7 @@ export function DeleteQuestionDialog({
 
   const handleDelete = () => {
     if (questionId) {
-      mutation.mutate();
+      mutation.mutate(questionId);
     }
   };
 

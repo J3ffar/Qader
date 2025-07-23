@@ -42,7 +42,10 @@ import {
   getAdminAllSubSections,
   getAdminAllSkills,
 } from "@/services/api/admin/learning.service";
-import { CorrectAnswer } from "@/types/api/admin/learning.types";
+import {
+  AdminQuestionCreateUpdate,
+  CorrectAnswer,
+} from "@/types/api/admin/learning.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -54,12 +57,13 @@ const difficultyLevels = [
   { value: 5, label: "5 - Very Hard" },
 ];
 
-const answerOptions: CorrectAnswer[] = ["A", "B", "C", "D"];
+const answerOptions = ["A", "B", "C", "D"] as const;
 
+// Zod schema is our single source of truth for validation
 const formSchema = z.object({
   question_text: z
     .string()
-    .min(10, "Question text is required and must be at least 10 characters."),
+    .min(10, "Question text must be at least 10 characters."),
   option_a: z.string().min(1, "Option A is required."),
   option_b: z.string().min(1, "Option B is required."),
   option_c: z.string().min(1, "Option C is required."),
@@ -71,8 +75,8 @@ const formSchema = z.object({
   section_id: z.coerce.number({ required_error: "Section is required." }),
   subsection_id: z.coerce.number({ required_error: "Subsection is required." }),
   skill_id: z.coerce.number().nullable().optional(),
-  is_active: z.boolean().default(true),
-  image: z.any().optional(),
+  is_active: z.boolean(),
+  image_upload: z.any().optional(), // field for the file itself
   explanation: z.string().optional().nullable(),
   hint: z.string().optional().nullable(),
   solution_method_summary: z.string().optional().nullable(),
@@ -80,6 +84,19 @@ const formSchema = z.object({
 
 type QuestionFormValues = z.infer<typeof formSchema>;
 
+// Default values for creating a new question
+const defaultFormValues: Partial<QuestionFormValues> = {
+  question_text: "",
+  option_a: "",
+  option_b: "",
+  option_c: "",
+  option_d: "",
+  is_active: true,
+  difficulty: 3,
+  explanation: "",
+  hint: "",
+  solution_method_summary: "",
+};
 interface QuestionFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -92,15 +109,21 @@ export function QuestionFormDialog({
   questionId,
 }: QuestionFormDialogProps) {
   const queryClient = useQueryClient();
-  const [selectedSection, setSelectedSection] = useState<number | null>(null);
-  const [selectedSubsection, setSelectedSubsection] = useState<number | null>(
-    null
+  const [selectedSection, setSelectedSection] = useState<number | undefined>(
+    undefined
   );
+  const [selectedSubsection, setSelectedSubsection] = useState<
+    number | undefined
+  >(undefined);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const isEditMode = questionId !== null;
 
-  const { data: question, isLoading: isLoadingQuestion } = useQuery({
+  const {
+    data: question,
+    isLoading: isLoadingQuestion,
+    isSuccess: isQuestionLoaded,
+  } = useQuery({
     queryKey: queryKeys.admin.learning.questions.detail(questionId!),
     queryFn: () => getAdminQuestionDetail(questionId!),
     enabled: isEditMode && isOpen,
@@ -109,7 +132,7 @@ export function QuestionFormDialog({
   const { data: sections } = useQuery({
     queryKey: queryKeys.admin.learning.sections.list({ all: true }),
     queryFn: getAdminAllSections,
-    enabled: isOpen,
+    enabled: !isLoadingQuestion && isOpen,
   });
 
   const { data: subsections } = useQuery({
@@ -117,76 +140,65 @@ export function QuestionFormDialog({
       sectionId: selectedSection,
     }),
     queryFn: () => getAdminAllSubSections(selectedSection!),
-    enabled: !!selectedSection && isOpen,
+    enabled: typeof selectedSection === "number" && isOpen,
   });
-
   const { data: skills } = useQuery({
     queryKey: queryKeys.admin.learning.skills.list({
       subsectionId: selectedSubsection,
     }),
     queryFn: () => getAdminAllSkills(selectedSubsection!),
-    enabled: !!selectedSubsection && isOpen,
+    enabled: typeof selectedSubsection === "number" && isOpen,
   });
 
   const form = useForm<QuestionFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { is_active: true },
+    defaultValues: defaultFormValues,
   });
 
   useEffect(() => {
-    if (isOpen) {
-      if (isEditMode && question) {
-        form.reset({
-          question_text: question.question_text,
-          option_a: question.options.A,
-          option_b: question.options.B,
-          option_c: question.options.C,
-          option_d: question.options.D,
-          correct_answer: question.correct_answer,
-          difficulty: question.difficulty,
-          section_id: question.section.id,
-          subsection_id: question.subsection.id,
-          skill_id: question.skill?.id,
-          is_active: question.is_active,
-          explanation: question.explanation,
-          hint: question.hint,
-          solution_method_summary: question.solution_method_summary,
-          image: undefined, // Don't pre-fill file input
-        });
-        setSelectedSection(question.section.id);
-        setSelectedSubsection(question.subsection.id);
-        setImagePreview(question.image);
-      } else {
-        form.reset({
-          question_text: "",
-          option_a: "",
-          option_b: "",
-          option_c: "",
-          option_d: "",
-          is_active: true,
-          difficulty: 3,
-        });
-        setSelectedSection(null);
-        setSelectedSubsection(null);
-        setImagePreview(null);
-      }
+    if (isEditMode && isQuestionLoaded && question) {
+      form.reset({
+        question_text: question.question_text,
+        option_a: question.options.A,
+        option_b: question.options.B,
+        option_c: question.options.C,
+        option_d: question.options.D,
+        correct_answer: question.correct_answer,
+        difficulty: question.difficulty,
+        section_id: question.section.id,
+        subsection_id: question.subsection.id,
+        skill_id: question.skill?.id || null,
+        is_active: question.is_active,
+        explanation: question.explanation,
+        hint: question.hint,
+        solution_method_summary: question.solution_method_summary,
+        image_upload: null,
+      });
+      // This is crucial: update local state for cascading dropdowns after form reset.
+      setSelectedSection(question.section.id);
+      setSelectedSubsection(question.subsection.id);
+      setImagePreview(question.image);
+    } else if (!isEditMode) {
+      // When opening in "create" mode, ensure it's a blank slate.
+      form.reset(defaultFormValues);
+      setSelectedSection(undefined);
+      setSelectedSubsection(undefined);
+      setImagePreview(null);
     }
-  }, [isOpen, isEditMode, question, form]);
+  }, [isEditMode, isQuestionLoaded, question, form]);
 
   const mutation = useMutation({
     mutationFn: (values: QuestionFormValues) => {
-      const payload = {
+      let payload: Partial<AdminQuestionCreateUpdate> & { image?: null } = {
         ...values,
-        image: values.image instanceof File ? values.image : undefined,
       };
-      // To remove image on update, send {"image": null}
-      if (isEditMode && imagePreview === null && question?.image) {
-        (payload as any).image = null;
+      if (payload.image_upload === undefined) {
+        payload.image_upload = null;
       }
 
       return isEditMode
         ? updateAdminQuestion(questionId, payload)
-        : createAdminQuestion(payload);
+        : createAdminQuestion(payload as AdminQuestionCreateUpdate);
     },
     onSuccess: () => {
       toast.success(
@@ -195,6 +207,11 @@ export function QuestionFormDialog({
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.learning.questions.lists(),
       });
+      if (isEditMode) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.admin.learning.questions.detail(questionId),
+        });
+      }
       handleClose();
     },
     onError: (error) => {
@@ -202,10 +219,7 @@ export function QuestionFormDialog({
     },
   });
 
-  const onSubmit = (values: QuestionFormValues) => {
-    mutation.mutate(values);
-  };
-
+  const onSubmit = (values: QuestionFormValues) => mutation.mutate(values);
   const handleClose = () => {
     form.reset();
     onClose();
@@ -215,8 +229,13 @@ export function QuestionFormDialog({
     const file = e.target.files?.[0];
     if (file) {
       setImagePreview(URL.createObjectURL(file));
-      form.setValue("image", file);
+      form.setValue("image_upload", file);
     }
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    form.setValue("image_upload", null);
   };
 
   return (
@@ -259,7 +278,7 @@ export function QuestionFormDialog({
                             setSelectedSection(Number(v));
                             form.setValue("subsection_id", undefined as any);
                             form.setValue("skill_id", undefined);
-                            setSelectedSubsection(null);
+                            setSelectedSubsection(undefined);
                           }}
                           value={field.value?.toString()}
                         >
@@ -343,7 +362,7 @@ export function QuestionFormDialog({
                   {/* Image Upload */}
                   <FormField
                     control={form.control}
-                    name="image"
+                    name="image_upload"
                     render={() => (
                       <FormItem>
                         <FormLabel>Image (Optional)</FormLabel>
@@ -369,7 +388,7 @@ export function QuestionFormDialog({
                             variant="link"
                             size="sm"
                             className="p-0 h-auto"
-                            onClick={() => setImagePreview(null)}
+                            onClick={handleRemoveImage}
                           >
                             Remove Image
                           </Button>

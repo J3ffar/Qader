@@ -108,7 +108,7 @@ export interface AdminQuestionCreateUpdate {
   subsection_id: number;
   is_active?: boolean;
   skill_id?: number | null;
-  image?: File | null;
+  image_upload?: File | null; // RENAMED from 'image' to 'image_upload'
   explanation?: string | null;
   hint?: string | null;
   solution_method_summary?: string | null;

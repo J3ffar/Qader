@@ -15,9 +15,8 @@ import type {
   AdminQuestionCreateUpdate,
 } from "@/types/api/admin/learning.types";
 
-// A simple utility to convert an object to FormData.
-// In a real app, this might be a more robust, shared utility.
-const objectToFormData = (obj: Record<string, any>): FormData => {
+// This converts a standard object to FormData
+export const objectToFormData = (obj: Record<string, any>): FormData => {
   const formData = new FormData();
   for (const key in obj) {
     if (obj[key] !== null && obj[key] !== undefined) {
@@ -26,7 +25,6 @@ const objectToFormData = (obj: Record<string, any>): FormData => {
   }
   return formData;
 };
-
 // --- Sections ---
 export const getAdminSections = (params: Record<string, any> = {}) =>
   apiClient<AdminSectionsListResponse>(API_ENDPOINTS.ADMIN.LEARNING.SECTIONS, {
@@ -126,11 +124,15 @@ export const createAdminQuestion = (data: AdminQuestionCreateUpdate) => {
 
 export const updateAdminQuestion = (
   id: number,
-  data: Partial<AdminQuestionCreateUpdate>
+  data: Partial<AdminQuestionCreateUpdate> & { image?: null }
 ) => {
-  const isMultipart = data.image instanceof File;
-  const body = isMultipart ? objectToFormData(data) : JSON.stringify(data);
-  const headers = isMultipart ? {} : { "Content-Type": "application/json" };
+  const isMultipart = data instanceof FormData;
+
+  const headers = isMultipart
+    ? {} // Let the browser set the Content-Type for FormData
+    : { "Content-Type": "application/json" };
+
+  const body = isMultipart ? data : JSON.stringify(data);
 
   return apiClient<AdminQuestion>(
     API_ENDPOINTS.ADMIN.LEARNING.QUESTION_DETAIL(id),
@@ -151,19 +153,27 @@ export const deleteAdminQuestion = (id: number) =>
 // Assuming the API supports a `page_size` param to fetch more items at once.
 const ALL_ITEMS_PARAMS = { page_size: 1000 };
 
-export const getAdminAllSections = () => 
-  apiClient<AdminSectionsListResponse>(API_ENDPOINTS.ADMIN.LEARNING.SECTIONS, { params: ALL_ITEMS_PARAMS });
+export const getAdminAllSections = () =>
+  apiClient<AdminSectionsListResponse>(API_ENDPOINTS.ADMIN.LEARNING.SECTIONS, {
+    params: ALL_ITEMS_PARAMS,
+  });
 
 export const getAdminAllSubSections = (sectionId?: number) => {
-  const params = sectionId 
+  const params = sectionId
     ? { ...ALL_ITEMS_PARAMS, section__id: sectionId }
     : ALL_ITEMS_PARAMS;
-  return apiClient<AdminSubSectionsListResponse>(API_ENDPOINTS.ADMIN.LEARNING.SUBSECTIONS, { params });
+  return apiClient<AdminSubSectionsListResponse>(
+    API_ENDPOINTS.ADMIN.LEARNING.SUBSECTIONS,
+    { params }
+  );
 };
-  
+
 export const getAdminAllSkills = (subsectionId?: number) => {
-  const params = subsectionId 
+  const params = subsectionId
     ? { ...ALL_ITEMS_PARAMS, subsection__id: subsectionId }
     : ALL_ITEMS_PARAMS;
-  return apiClient<AdminSkillsListResponse>(API_ENDPOINTS.ADMIN.LEARNING.SKILLS, { params });
+  return apiClient<AdminSkillsListResponse>(
+    API_ENDPOINTS.ADMIN.LEARNING.SKILLS,
+    { params }
+  );
 };
