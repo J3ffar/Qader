@@ -131,11 +131,11 @@ export default function ChangePasswordDialog() {
             />
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="secondary">
+                <Button type="button" variant="secondary" className="cursor-pointer">
                   {t("cancelButton")}
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button type="submit" disabled={mutation.isPending} className="cursor-pointer">
                 {mutation.isPending ? t("saveButtonLoading") : t("saveButton")}
               </Button>
             </DialogFooter>

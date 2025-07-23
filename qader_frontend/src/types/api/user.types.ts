@@ -27,6 +27,7 @@ export interface MentorInfoResponse {
 
 // Main User Profile structure from PATCH /users/me/
 export interface UserProfile {
+  locale: string;
   id: number;
   username: string;
   email: string;

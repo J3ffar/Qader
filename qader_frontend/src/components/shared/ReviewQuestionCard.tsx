@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   CheckCircle,
   XCircle,
@@ -36,6 +36,7 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
 }) => {
   // Using a new, shared translation namespace
   const t = useTranslations("Study.review");
+  const locale = useLocale();
 
   const {
     question_text,
@@ -94,7 +95,8 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
 
   return (
     <Card
-      className="w-full shadow-lg"
+      dir={locale==="en"?"ltr":"rtl"}
+      className="w-full shadow-lg dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]"
       data-testid={`question-card-${questionData.id}`}
     >
       <CardHeader>
@@ -124,14 +126,14 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
             <div
               key={key}
               className={cn(
-                "flex items-start space-x-3 rounded-md border p-3.5 transition-all rtl:space-x-reverse",
+                "flex items-start space-x-3 rounded-md border p-3.5 transition-all",
                 getOptionStyle(key)
               )}
             >
               <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-semibold text-muted-foreground">
                 {key}
               </div>
-              <p className="flex-1 text-base" dir="auto">
+              <p className="flex-1 text-base">
                 {options[key]}
               </p>
               {key === user_selected_choice && (

@@ -258,8 +258,8 @@ const StartLevelAssessmentForm: React.FC = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-      <Card className="overflow-hidden">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 w-full">
+      <Card className="overflow-hidden w-full max-w-none dark:bg-[#0B1739] dark:border-[#7E89AC]" >
         <CardHeader>
           <CardTitle>{t("selectSectionsAndCount")}</CardTitle>
           <CardDescription>{t("selectSectionsDescription")}</CardDescription>
@@ -275,116 +275,127 @@ const StartLevelAssessmentForm: React.FC = () => {
           )}
           <Accordion
             type="multiple"
-            defaultValue={sections.map((s) => s.slug)}
-            className="w-full space-y-3"
+            value={sections.map((s) => s.slug)}
+            className="w-full grid grid-cols-1 md:grid-cols-2 gap-6"
           >
             {sections.map((section) => {
               const mainSectionState = selectedSectionsWatched?.[section.slug];
               const allSubsectionsSelected =
-                mainSectionState &&
-                Object.values(mainSectionState.subsections).every(Boolean);
+                mainSectionState && Object.values(mainSectionState.subsections).every(Boolean);
               const someSubsectionsSelected =
-                mainSectionState &&
-                Object.values(mainSectionState.subsections).some(Boolean);
+                mainSectionState && Object.values(mainSectionState.subsections).some(Boolean);
 
-              const mainCheckboxState:
-                | "checked"
-                | "unchecked"
-                | "indeterminate" = allSubsectionsSelected
-                ? "checked"
-                : someSubsectionsSelected
-                ? "indeterminate"
-                : "unchecked";
+              const mainCheckboxState: "checked" | "unchecked" | "indeterminate" =
+                allSubsectionsSelected
+                  ? "checked"
+                  : someSubsectionsSelected
+                  ? "indeterminate"
+                  : "unchecked";
 
               return (
                 <AccordionItem
                   value={section.slug}
                   key={section.slug}
-                  className="rounded-lg border dark:border-gray-700"
+                  className="w-full max-w-full rounded-2xl border-2 p-6 shadow-md"
                 >
-                  <AccordionTrigger className="p-4 hover:no-underline">
-                    <div className="flex items-center space-x-3 rtl:space-x-reverse">
-                      <Checkbox
-                        id={`section-${section.slug}`}
-                        checked={mainCheckboxState === "checked"}
-                        data-state={mainCheckboxState} // For styling indeterminate
-                        onCheckedChange={(checked) => {
-                          handleMainSectionChange(
-                            section.slug,
-                            checked === true
-                          );
-                        }}
-                        className={cn(
-                          mainCheckboxState === "indeterminate" &&
-                            "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:text-primary-foreground"
-                        )}
-                        aria-label={`Select all in ${section.name}`}
-                      >
-                        {mainCheckboxState === "indeterminate" && (
-                          <Minus className="h-4 w-4" />
-                        )}
-                      </Checkbox>
-                      <label
-                        htmlFor={`section-${section.slug}`}
-                        className="cursor-pointer font-medium rtl:mr-3"
-                      >
-                        {section.name}
-                      </label>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="grid grid-cols-1 gap-3 p-4 pt-0 sm:grid-cols-4">
-                    {section.subsections.map((subsection) => (
-                      <div
-                        key={subsection.slug}
-                        className="flex items-center space-x-3 ps-4 rtl:space-x-reverse rtl:pe-4"
-                      >
-                        <Checkbox
-                          id={`subsection-${section.slug}-${subsection.slug}`}
-                          checked={
-                            selectedSectionsWatched?.[section.slug]
-                              ?.subsections?.[subsection.slug] || false
+                  {/* Main Section Checkbox + Label */}
+                  <div className="flex items-center space-x-3 rtl:space-x-reverse mb-4">
+                    <Checkbox
+                      id={`section-${section.slug}`}
+                      checked={mainCheckboxState === "checked"}
+                      data-state={mainCheckboxState}
+                      onCheckedChange={(checked) =>
+                        handleMainSectionChange(section.slug, checked === true)
+                      }
+                      className={cn(
+                        "cursor-pointer",
+                        mainCheckboxState === "indeterminate" &&
+                          "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:text-primary-foreground"
+                      )}
+                      aria-label={`Select all in ${section.name}`}
+                    >
+                      {mainCheckboxState === "indeterminate" && (
+                        <Minus className="h-4 w-4" />
+                      )}
+                    </Checkbox>
+
+                    <label
+                      htmlFor={`section-${section.slug}`}
+                      className="cursor-pointer font-semibold text-lg sm:text-xl rtl:mr-3"
+                    >
+                      {section.name}
+                    </label>
+                  </div>
+
+                  {/* Subsection Clickable Boxes */}
+                  <AccordionContent className="grid grid-cols-1 gap-3 p-4 pt-0 sm:grid-cols-3">
+                    {section.subsections.map((subsection) => {
+                      const isSelected =
+                        selectedSectionsWatched?.[section.slug]?.subsections?.[subsection.slug] ||
+                        false;
+
+                      return (
+                        <div
+                          key={subsection.slug}
+                          onClick={() =>
+                            handleSubSectionChange(section.slug, subsection.slug, !isSelected)
                           }
-                          onCheckedChange={(checked) =>
-                            handleSubSectionChange(
-                              section.slug,
-                              subsection.slug,
-                              checked === true
-                            )
-                          }
-                        />
-                        <label
-                          htmlFor={`subsection-${section.slug}-${subsection.slug}`}
-                          className="cursor-pointer text-sm text-muted-foreground rtl:mr-3"
+                          className={cn(
+                            "cursor-pointer rounded-lg p-4 text-center text-sm transition select-none border",
+                            isSelected
+                              ? "border-2 border-primary dark:bg-[#074182] font-semibold"
+                              : "border border-gray-300 hover:border-primary font-normal"
+                          )}
                         >
                           {subsection.name}
-                        </label>
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </AccordionContent>
                 </AccordionItem>
               );
             })}
           </Accordion>
-
-          <div>
-            <Label htmlFor="num_questions" className="text-base font-medium">
+          
+          <div className="w-full">
+            <Label htmlFor="num_questions" className="text-base font-medium justify-center">
               {t("numQuestions")}
             </Label>
-            <Controller
+            <Controller // make a custom number input with increment/decrement buttons
               name="num_questions"
               control={control}
               render={({ field }) => (
-                <Input
-                  id="num_questions"
-                  type="number"
-                  {...field}
-                  onChange={(e) =>
-                    field.onChange(parseInt(e.target.value, 10) || 0)
-                  }
-                  className="mt-2"
-                />
+                <div className="mt-2 flex justify-center items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => field.onChange(Math.max((field.value || 0) - 1, 0))}
+                    className="w-10 h-10 p-0 text-xl cursor-pointer"
+                  >
+                    –
+                  </Button>
+                  
+                  <input
+                    type="text"
+                    value={field.value || ''}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      field.onChange(isNaN(value) ? '' : Math.max(value, 0)); // prevent negative
+                    }}
+                    className="w-16 text-center text-lg font-semibold border rounded px-2 py-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => field.onChange((field.value || 0) + 1)}
+                    className="w-10 h-10 p-0 text-xl cursor-pointer"
+                  >
+                    +
+                  </Button>
+                </div>
               )}
             />
+
             {errors.num_questions && (
               <p className="mt-1 text-sm font-medium text-destructive">
                 {errors.num_questions.message}
@@ -394,12 +405,12 @@ const StartLevelAssessmentForm: React.FC = () => {
         </CardContent>
       </Card>
 
-      <div className="flex ltr:justify-end rtl:justify-start">
+      <div className="flex justify-center">
         <Button
           type="submit"
           disabled={startAssessmentMutation.isPending || !isValid}
           size="lg"
-          className="text-white"
+          className="text-white w-full max-w-xs cursor-pointer"
         >
           {startAssessmentMutation.isPending && (
             <Loader2 className="me-2 h-5 w-5 animate-spin rtl:me-0 rtl:ms-2" />

@@ -34,6 +34,8 @@ import { useRef, useState } from "react";
 import { UserProfile } from "@/types/api/auth.types";
 import ChangePasswordDialog from "./ChangePasswordDialog";
 import { queryKeys } from "@/constants/queryKeys";
+import { useParams } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 // Schema for form validation
 const accountSettingsSchema = z.object({
@@ -59,7 +61,7 @@ export default function AccountSettingsForm({
   const [preview, setPreview] = useState<string | null>(
     user.profile_picture_url
   );
-
+  const { locale } = useParams();
   const form = useForm<AccountSettingsValues>({
     resolver: zodResolver(accountSettingsSchema),
     defaultValues: {
@@ -105,15 +107,21 @@ export default function AccountSettingsForm({
   }
 
   return (
-    <Card>
+    <Card className="w-full max-w-6xl mx-auto mt-8 dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]">
       <CardHeader>
-        <CardTitle>{t("title")}</CardTitle>
-        <CardDescription>{t("description")}</CardDescription>
+        <CardTitle className={cn( locale === "ar" ? "text-right" : "text-left")}>{t("title")}</CardTitle>
+        <CardDescription className={cn( locale === "ar" ? "text-right" : "text-left")}>{t("description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="flex flex-col items-center gap-4 sm:flex-row">
+            <div dir={locale==="ar"?"ltr":"rtl"} className="flex flex-row gap-4 items-center">
+              <div className="flex-1">
+                <p className={cn( "text-lg font-semibold",locale === "ar" ? "text-right" : "text-left")} >{t("upload.title")}</p>
+                <p className={cn( "text-muted-foreground",locale === "ar" ? "text-right" : "text-left")} >{t("upload.title")} 
+                  {t("upload.description")}
+                </p>
+              </div>
               <div className="relative">
                 <Avatar className="h-24 w-24">
                   <AvatarImage
@@ -127,7 +135,7 @@ export default function AccountSettingsForm({
                 <Button
                   type="button"
                   size="icon"
-                  className="absolute bottom-0 end-0 rounded-full"
+                  className="absolute bottom-0 end-0 rounded-full cursor-pointer"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Edit3 className="h-4 w-4" />
@@ -140,12 +148,6 @@ export default function AccountSettingsForm({
                   onChange={handleFileChange}
                 />
               </div>
-              <div className="flex-1 text-center sm:text-start ltr:sm:text-left rtl:sm:text-right">
-                <p className="text-lg font-semibold">{t("upload.title")}</p>
-                <p className="text-sm text-muted-foreground">
-                  {t("upload.description")}
-                </p>
-              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -153,12 +155,13 @@ export default function AccountSettingsForm({
                 control={form.control}
                 name="full_name"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("fullName.label")}</FormLabel>
-                    <FormControl>
+                  <FormItem  dir={locale === "ar" ? "rtl" : "ltr"}>
+                    <FormLabel >{t("fullName.label")}</FormLabel>
+                    <FormControl >
                       <Input
                         placeholder={t("fullName.placeholder")}
                         {...field}
+                        className={cn( "text-lg",locale === "ar" ? "text-right" : "text-left")} 
                       />
                     </FormControl>
                     <FormMessage />
@@ -169,31 +172,34 @@ export default function AccountSettingsForm({
                 control={form.control}
                 name="preferred_name"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem dir={locale === "ar" ? "rtl" : "ltr"}>
                     <FormLabel>{t("preferredName.label")}</FormLabel>
                     <FormControl>
                       <Input
                         placeholder={t("preferredName.placeholder")}
                         {...field}
+                        className={cn(locale === "ar" ? "text-right" : "text-left")}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormItem>
+              
+              <FormItem dir={locale === "ar" ? "rtl" : "ltr"} className='cursor-not-allowed' >
                 <FormLabel>{t("email.label")}</FormLabel>
                 <FormControl>
-                  <Input value={user.email} disabled />
+                  <Input className={cn(locale === "ar" ? "text-right" : "text-left")} value={user.email} disabled />
                 </FormControl>
               </FormItem>
-              <FormItem>
-                <FormLabel>{t("password.label")}</FormLabel>
+
+              <FormItem dir={locale === "ar" ? "rtl" : "ltr"}>
+                <FormLabel className={cn(locale === "ar" ? "text-right" : "text-left")}>{t("password.label")}</FormLabel>
                 <ChangePasswordDialog />
               </FormItem>
             </div>
 
-            <div className="flex justify-end">
+            <div dir={locale === "en" ? "rtl" : "ltr"} className="flex justify-start">
               <Button
                 type="submit"
                 disabled={!form.formState.isDirty || mutation.isPending}
