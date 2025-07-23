@@ -194,7 +194,7 @@ export default function SubscriptionDetails({
       {/* Available Plans */}
       <div className="space-y-4 flex flex-col w-full">
         <h3 dir={locale ==="en"?"ltr":"rtl"} className="mb-4 text-xl font-bold">{t("available.title")}</h3>
-        <div dir={locale ==="en"?"ltr":"rtl"} className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3 w-11/12">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3 w-11/12 mx-auto">
           {arePlansLoading ? (
             <>
               <PlanCardSkeleton />
