@@ -254,7 +254,7 @@ const LevelAssessmentPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead dir={locale === "en" ? "ltr" : "rtl"}>
+                  <TableHead className={cn(locale==="en" ? "text-left" : "text-right")}>
                     {t("attemptsTable.date")}
                   </TableHead>
                   <TableHead className="text-center">
