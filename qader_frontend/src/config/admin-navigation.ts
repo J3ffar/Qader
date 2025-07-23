@@ -12,6 +12,7 @@ import {
   MessageCircleQuestion,
   Mailbox,
   MessagesSquareIcon,
+  BookOpenCheck,
 } from "lucide-react";
 
 import { PATHS } from "@/constants/paths";
@@ -80,6 +81,11 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminSidebarNavSection[] = [
   {
     titleKey: "AdminSidebar.sections.contentManagement",
     items: [
+      {
+        labelKey: "AdminSidebar.items.learning", // Note: Add 'learning' to your locale files
+        icon: BookOpenCheck,
+        href: PATHS.ADMIN.LEARNING.QUESTIONS,
+      },
       {
         labelKey: "AdminSidebar.items.pages",
         icon: FileText,

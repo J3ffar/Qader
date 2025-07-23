@@ -205,6 +205,10 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
             "subsection_id",
             "skill_id",
             "image_upload",
+            "option_a",
+            "option_b",
+            "option_c",
+            "option_d",
         ]
         read_only_fields = [
             "id",
@@ -218,6 +222,12 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+        extra_kwargs = {
+            "option_a": {"write_only": True, "required": True},
+            "option_b": {"write_only": True, "required": True},
+            "option_c": {"write_only": True, "required": True},
+            "option_d": {"write_only": True, "required": True},
+        }
 
     def get_options(self, obj: Question) -> dict:
         """Constructs a dictionary of all answer options."""
