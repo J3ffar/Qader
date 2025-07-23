@@ -17,6 +17,7 @@ import SettingsPageSkeleton from "./_components/SettingsPageSkeleton";
 import { getSubscriptionPlans } from "@/services/subscription.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { UserProfile } from "@/types/api/auth.types";
+import { useParams } from "next/navigation";
 
 // Assume this service function exists to fetch plans
 // In a real scenario, this would be in `learning.service.ts` or a `subscription.service.ts`
@@ -25,6 +26,8 @@ import { UserProfile } from "@/types/api/auth.types";
 export default function SettingsPage() {
   const t = useTranslations("Study.settings");
   const userFromStore = useAuthStore((state) => state.user);
+  const {locale} = useParams<{ locale: "ar" | "en" }>();
+  
 
   // Fetch current user profile data
   const {
@@ -101,7 +104,7 @@ export default function SettingsPage() {
             currentSubscription={userProfile.subscription}
             plans={plans || []}
             arePlansLoading={arePlansLoading}
-            locale={"ar"}
+            locale={locale}
           />
         </TabsContent>
 

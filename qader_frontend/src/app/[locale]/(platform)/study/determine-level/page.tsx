@@ -45,6 +45,7 @@ import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { AttemptActionButtons } from "./_components/AttemptActionButtons";
 import { DataTablePagination } from "@/components/shared/DataTablePagination"; // Assumes component from previous step exists
 import { queryKeys } from "@/constants/queryKeys";
+import { useParams } from "next/navigation";
 
 // Constants
 const PAGE_SIZE = 20; // Number of attempts to show per page
@@ -203,11 +204,13 @@ const LevelAssessmentPage = () => {
       </div>
     );
   }
+  const {locale}= useParams();
+  console.log(locale);
 
   return (
     <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
-      <Card>
-        <CardHeader className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+      <Card className="dark:bg-[#0B1739] dark:border-[#7E89AC] border-2">
+        <CardHeader dir={locale === "en" ? "ltr" : "rtl"} className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <CardTitle className="text-2xl font-bold">{t("title")}</CardTitle>
             <p className="text-sm text-muted-foreground">{t("description")}</p>
@@ -219,8 +222,8 @@ const LevelAssessmentPage = () => {
             </Link>
           </Button>
         </CardHeader>
-        <CardContent>
-          <div className="mb-6 flex flex-col justify-between gap-4 rounded-lg border bg-card p-4 md:flex-row md:items-center">
+        <CardContent dir={locale === "en" ? "ltr" : "rtl"}>
+          <div className="mb-6 flex flex-col justify-between gap-4 rounded-lg border bg-card p-4 md:flex-row md:items-center dark:bg-[#0B1739]">
             <h3 className="text-lg font-semibold">{t("attemptsLogTitle")}</h3>
             <div className="flex items-center gap-2">
               <ListFilter className="h-5 w-5 text-muted-foreground" />
@@ -251,7 +254,7 @@ const LevelAssessmentPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="rtl:text-right">
+                  <TableHead dir={locale === "en" ? "ltr" : "rtl"}>
                     {t("attemptsTable.date")}
                   </TableHead>
                   <TableHead className="text-center">
@@ -260,10 +263,10 @@ const LevelAssessmentPage = () => {
                   <TableHead className="text-center">
                     {t("attemptsTable.percentage")}
                   </TableHead>
-                  <TableHead className="rtl:text-right">
+                  <TableHead className="text-center">
                     {t("attemptsTable.quantitativePerformance")}
                   </TableHead>
-                  <TableHead className="rtl:text-right">
+                  <TableHead className="text-center">
                     {t("attemptsTable.verbalPerformance")}
                   </TableHead>
                   <TableHead className="text-center">
@@ -299,7 +302,7 @@ const LevelAssessmentPage = () => {
                         ? t("attemptsTable.statusInProgress")
                         : "-"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <span
                         className={cn(
                           "rounded-md px-2 py-1 text-xs font-medium",
@@ -309,7 +312,7 @@ const LevelAssessmentPage = () => {
                         {tBadge(attempt.quantitative_level_key)}
                       </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <span
                         className={cn(
                           "rounded-md px-2 py-1 text-xs font-medium",

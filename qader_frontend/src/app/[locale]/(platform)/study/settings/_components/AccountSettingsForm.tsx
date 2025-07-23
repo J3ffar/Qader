@@ -107,17 +107,23 @@ export default function AccountSettingsForm({
   }
 
   return (
-    <Card className="w-full max-w-5xl mx-auto mt-8 dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]">
+    <Card className="w-full max-w-6xl mx-auto mt-8 dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]">
       <CardHeader>
         <CardTitle className={cn( locale === "ar" ? "text-right" : "text-left")}>{t("title")}</CardTitle>
         <CardDescription className={cn( locale === "ar" ? "text-right" : "text-left")}>{t("description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className={cn("flex flex-col space-y-8", locale === "ar" ? "items-start" : "items-end")}>
-            <div className={cn("flex flex-col items-center gap-4",locale === "ar" ? "sm:flex-row-reverse items-end" : "sm:flex-row items-start")}>
-              <div dir={locale === "ar" ? "rtl" : "ltr"} className="relative">
-                <Avatar dir={locale === "ar" ? "rtl" : "ltr"} className="h-24 w-24">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <div dir={locale==="ar"?"ltr":"rtl"} className="flex flex-row gap-4 items-center">
+              <div className="flex-1">
+                <p className={cn( "text-lg font-semibold",locale === "ar" ? "text-right" : "text-left")} >{t("upload.title")}</p>
+                <p className={cn( "text-muted-foreground",locale === "ar" ? "text-right" : "text-left")} >{t("upload.title")} 
+                  {t("upload.description")}
+                </p>
+              </div>
+              <div className="relative">
+                <Avatar className="h-24 w-24">
                   <AvatarImage
                     src={preview || ""}
                     alt={user.preferred_name || user.full_name}
@@ -129,7 +135,7 @@ export default function AccountSettingsForm({
                 <Button
                   type="button"
                   size="icon"
-                  className="absolute bottom-0 end-0 rounded-full"
+                  className="absolute bottom-0 end-0 rounded-full cursor-pointer"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Edit3 className="h-4 w-4" />
@@ -141,12 +147,6 @@ export default function AccountSettingsForm({
                   accept="image/png, image/jpeg, image/webp"
                   onChange={handleFileChange}
                 />
-              </div>
-              <div className="flex-1">
-                <p className={cn( "text-lg font-semibold",locale === "ar" ? "text-right" : "text-left")} >{t("upload.title")}</p>
-                <p className={cn( "text-muted-foreground",locale === "ar" ? "text-right" : "text-left")} >{t("upload.title")} 
-                  {t("upload.description")}
-                </p>
               </div>
             </div>
 
@@ -185,19 +185,21 @@ export default function AccountSettingsForm({
                   </FormItem>
                 )}
               />
-              <FormItem dir={locale === "ar" ? "rtl" : "ltr"}>
+              
+              <FormItem dir={locale === "ar" ? "rtl" : "ltr"} className='cursor-not-allowed' >
                 <FormLabel>{t("email.label")}</FormLabel>
                 <FormControl>
                   <Input className={cn(locale === "ar" ? "text-right" : "text-left")} value={user.email} disabled />
                 </FormControl>
               </FormItem>
+
               <FormItem dir={locale === "ar" ? "rtl" : "ltr"}>
                 <FormLabel className={cn(locale === "ar" ? "text-right" : "text-left")}>{t("password.label")}</FormLabel>
                 <ChangePasswordDialog />
               </FormItem>
             </div>
 
-            <div className="flex justify-start">
+            <div dir={locale === "en" ? "rtl" : "ltr"} className="flex justify-start">
               <Button
                 type="submit"
                 disabled={!form.formState.isDirty || mutation.isPending}
