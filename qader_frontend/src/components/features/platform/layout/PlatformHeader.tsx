@@ -137,27 +137,29 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
     return (
       <div
         ref={ref} // Apply the forwarded ref here
-        className="sticky top-0 z-40 flex h-auto flex-col border-b-[0.5px] border-border bg-background px-5 shadow-sm transition-all duration-300 dark:border-gray-700 max-md:py-3"
+        className="sticky top-0 z-40 flex h-auto dark:bg-[#091029] flex-col border-b-[0.5px] border-border bg-background px-5 shadow-sm transition-all duration-300 dark:border-gray-700 max-md:py-3"
         // style={navbarStyle} // Re-evaluate this styling approach
       >
-        <div className="flex flex-col-reverse items-center justify-between gap-6 p-4 lg:h-[70px] lg:flex-row lg:gap-0">
+        <div className="flex flex-col-reverse items-center justify-around gap-6 p-4 lg:h-[70px] lg:flex-row lg:gap-0">
           {/* Search Bar */}
-          <div className="flex w-full flex-1 items-center justify-start lg:w-auto">
-            <div className="flex w-full max-w-md items-center overflow-hidden rounded-lg border bg-card dark:bg-transparent">
-              <MagnifyingGlassIcon className="h-5 w-5 text-muted-foreground ltr:ml-2 rtl:mr-2" />
-              <input
-                type="text"
-                placeholder={tNav("searchPlaceholder")}
-                className="flex-1 bg-transparent p-2 placeholder:text-muted-foreground focus:outline-none ltr:text-left rtl:text-right"
-              />
+          <div className="flex w-full flex-1 items-center justify-center lg:justify-start lg:w-auto">
+            <div className="flex w-full max-w-md items-center overflow-hidden rounded-lg bg-card dark:bg-transparent">
+              <div className="flex w-full max-w-sm items-center overflow-hidden shadow-md m-2 border rounded-lg mx-auto lg:mx-4  bg-card dark:bg-transparent">
+                <MagnifyingGlassIcon className="h-5 w-5 text-muted-foreground ltr:ml-2 rtl:mr-2" />
+                <input
+                  type="text"
+                  placeholder={tNav("searchPlaceholder")}
+                  className="flex-1 bg-transparent p-2 placeholder:text-muted-foreground focus:outline-none ltr:text-left rtl:text-right"
+                />
+              </div>
+              <button className="ml-2 mr-2 rounded-lg bg-primary p-2 text-primary-foreground transition hover:bg-primary/70">
+                <MagnifyingGlassIcon className="h-6 w-6" />
+              </button>
             </div>
-            <button className="ml-2 mr-2 rounded-lg bg-primary p-2 text-primary-foreground transition hover:bg-primary/70">
-              <MagnifyingGlassIcon className="h-6 w-6" />
-            </button>
           </div>
 
           {/* Icons: Points, Streak, Gift */}
-          <div className="flex items-center gap-4">
+          <div className="max-sm:hidden flex items-center gap-4 mx-2">
             {/* Streak (Stars) */}
             <span
               ref={streakTriggerRef}
@@ -186,7 +188,7 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
             <span
               ref={pointsTriggerRef}
               className={cn(
-                "flex items-center gap-1 cursor-pointer rounded-xl p-2 border",
+                "flex items-center gap-1 min-w-fit cursor-pointer rounded-xl p-2 border",
                 activeDropdownId === "points"
                   ? "bg-muted dark:bg-muted/50"
                   : "hover:bg-muted dark:hover:bg-muted/50"
@@ -233,7 +235,7 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
           </div>
 
           {/* Notifications and User Profile */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 sm:border-r dark:border-white h-8 mx-2">
             {/* Bell Icon / Notifications */}
             <span
               ref={notificationsTriggerRef}
@@ -311,7 +313,7 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
                   <Skeleton className="h-3 w-[70px]" />
                 </div>
               ) : user ? (
-                <div className="hidden flex-col items-end max-md:hidden md:flex">
+                <div className="flex-col items-end md:flex">
                   <p className="text-sm font-medium">
                     {user.preferred_name || user.full_name || user.username}
                   </p>
