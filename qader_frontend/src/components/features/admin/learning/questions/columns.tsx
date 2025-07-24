@@ -12,6 +12,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const difficultyMap: { [key: number]: string } = {
   1: "سهل جداً",
@@ -94,7 +100,15 @@ const ActionsCell = ({
 };
 
 export const getColumns = (): ColumnDef<AdminQuestion>[] => [
-  { accessorKey: "id", header: "المعرف" },
+  {
+    accessorKey: "id",
+    header: "المعرف",
+    // HIDDEN: Hide on mobile, show on medium screens and up.
+    cell: ({ row }) => <span className="font-mono">{row.original.id}</span>,
+    meta: {
+      className: "hidden md:table-cell",
+    },
+  },
   {
     accessorKey: "image",
     header: "صورة",
@@ -115,16 +129,45 @@ export const getColumns = (): ColumnDef<AdminQuestion>[] => [
   {
     accessorKey: "question_text",
     header: "السؤال",
-    cell: ({ row }) => (
-      <div className="max-w-lg truncate">{row.original.question_text}</div>
-    ),
+    cell: ({ row }) => {
+      const fullText = row.original.question_text;
+      const maxLength = 150;
+
+      // If the text is not long enough to be truncated, just display it normally.
+      if (fullText.length <= maxLength) {
+        return (
+          <div className="min-w-[250px] whitespace-normal break-words font-medium">
+            {fullText}
+          </div>
+        );
+      }
+
+      // If the text is long, truncate it and wrap it in a tooltip.
+      const truncatedText = `${fullText.slice(0, maxLength)}...`;
+
+      return (
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="min-w-[250px] whitespace-normal break-words font-medium cursor-default">
+                {truncatedText}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-md whitespace-pre-wrap">
+              <p>{fullText}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    },
   },
   {
     header: "القسم",
+    // HIDDEN: This detailed hierarchy is hidden on mobile to save space.
     cell: ({ row }) => {
       const { section, subsection, skill } = row.original;
       return (
-        <div className="flex flex-col text-xs">
+        <div className="flex flex-col text-xs min-w-[150px]">
           <span>{section.name}</span>
           <span className="text-muted-foreground">
             {">"} {subsection.name}
@@ -137,15 +180,22 @@ export const getColumns = (): ColumnDef<AdminQuestion>[] => [
         </div>
       );
     },
+    meta: {
+      className: "hidden lg:table-cell",
+    },
   },
   {
     accessorKey: "difficulty",
     header: ({ column }) => (
-      <SortableHeader column={column}>مستوى الصعوبة</SortableHeader>
+      <SortableHeader column={column}>الصعوبة</SortableHeader>
     ),
+    // HIDDEN: Difficulty is less critical on the mobile list view.
     cell: ({ row }) => (
       <span>{difficultyMap[row.original.difficulty] || "N/A"}</span>
     ),
+    meta: {
+      className: "hidden lg:table-cell",
+    },
   },
   {
     accessorKey: "total_usage_count",
@@ -153,6 +203,7 @@ export const getColumns = (): ColumnDef<AdminQuestion>[] => [
       <SortableHeader column={column}>الاستخدام</SortableHeader>
     ),
   },
+
   {
     accessorKey: "is_active",
     header: ({ column }) => (
@@ -163,6 +214,9 @@ export const getColumns = (): ColumnDef<AdminQuestion>[] => [
         {row.original.is_active ? "نشط" : "غير نشط"}
       </Badge>
     ),
+    meta: {
+      className: "hidden md:table-cell",
+    },
   },
   {
     accessorKey: "created_at",
@@ -170,7 +224,10 @@ export const getColumns = (): ColumnDef<AdminQuestion>[] => [
       <SortableHeader column={column}>تاريخ الإنشاء</SortableHeader>
     ),
     cell: ({ row }) =>
-      new Date(row.original.created_at).toLocaleDateString("ar-EG"), // Use locale for date
+      new Date(row.original.created_at).toLocaleDateString("ar-EG"),
+    meta: {
+      className: "hidden xl:table-cell",
+    },
   },
   {
     id: "actions",

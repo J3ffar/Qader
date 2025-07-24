@@ -41,6 +41,32 @@ const difficultyMap: { [key: number]: string } = {
   5: "5 - صعب جداً",
 };
 
+// NEW: A skeleton that better reflects the improved layout.
+function ViewSkeleton() {
+  return (
+    <div className="space-y-6 pt-4">
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-6 w-1/2" />
+        <Skeleton className="h-6 w-2/3" />
+      </div>
+      <Separator />
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+      </div>
+      <Separator />
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+    </div>
+  );
+}
+
 export function ViewQuestionDialog({
   isOpen,
   onClose,
@@ -54,21 +80,17 @@ export function ViewQuestionDialog({
 
   const renderContent = () => {
     if (isLoading) {
-      return (
-        <div className="space-y-4 pt-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-8 w-full" />
-          ))}
-        </div>
-      );
+      // Use the new, more accurate skeleton
+      return <ViewSkeleton />;
     }
     if (!question) {
       return <div className="text-center py-8">بيانات السؤال غير موجودة.</div>;
     }
 
     return (
-      <div className="space-y-4 pt-4">
-        <dl className="space-y-2">
+      <div className="space-y-6 pt-4">
+        {/* Section 1: Core Details */}
+        <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
           <DetailRow label="المعرف" value={question.id} />
           <DetailRow
             label="الحالة"
@@ -79,36 +101,31 @@ export function ViewQuestionDialog({
             }
           />
           <DetailRow
-            label="التسلسل الهرمي"
-            value={`${question.section.name} > ${question.subsection.name} ${
-              question.skill ? `> ${question.skill.name}` : ""
-            }`}
-          />
-          <DetailRow
             label="مستوى الصعوبة"
             value={difficultyMap[question.difficulty]}
           />
+          <DetailRow
+            label="إجمالي الاستخدام"
+            value={question.total_usage_count}
+          />
+          <div className="md:col-span-2">
+            <DetailRow
+              label="التسلسل الهرمي"
+              value={`${question.section.name} > ${question.subsection.name} ${
+                question.skill ? `> ${question.skill.name}` : ""
+              }`}
+            />
+          </div>
         </dl>
 
         <Separator />
 
+        {/* Section 2: Question & Answer */}
         <div className="space-y-4">
-          <h4 className="font-semibold">السؤال والخيارات</h4>
-          <p className="p-3 bg-muted rounded-md text-sm">
+          <h4 className="font-semibold text-lg">السؤال والخيارات</h4>
+          <blockquote className="p-4 bg-muted border-r-4 rtl:border-r-0 rtl:border-l-4 border-primary rounded-r rtl:rounded-r-none rtl:rounded-l">
             {question.question_text}
-          </p>
-          <DetailRow label="الخيار أ" value={question.options.A} />
-          <DetailRow label="الخيار ب" value={question.options.B} />
-          <DetailRow label="الخيار ج" value={question.options.C} />
-          <DetailRow label="الخيار د" value={question.options.D} />
-          <DetailRow
-            label="الإجابة الصحيحة"
-            value={
-              <Badge variant="secondary">
-                الخيار {question.correct_answer}
-              </Badge>
-            }
-          />
+          </blockquote>
           {question.image && (
             <DetailRow
               label="الصورة"
@@ -121,38 +138,48 @@ export function ViewQuestionDialog({
               }
             />
           )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {Object.entries(question.options).map(([key, value]) => (
+              <div
+                key={key}
+                className={`p-3 rounded-md border ${
+                  question.correct_answer === key
+                    ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                    : ""
+                }`}
+              >
+                <span className="font-bold text-sm text-muted-foreground">
+                  الخيار {key}
+                </span>
+                <p className="font-medium">{value}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <Separator />
 
+        {/* Section 3: Helper Information */}
         <div className="space-y-4">
-          <h4 className="font-semibold">معلومات مساعدة</h4>
-          <DetailRow label="الشرح" value={question.explanation} />
-          <DetailRow label="تلميح" value={question.hint} />
+          <h4 className="font-semibold text-lg">معلومات مساعدة</h4>
+          <DetailRow
+            label="الشرح"
+            value={
+              <p className="whitespace-pre-wrap">{question.explanation}</p>
+            }
+          />
+          <DetailRow
+            label="تلميح"
+            value={<p className="whitespace-pre-wrap">{question.hint}</p>}
+          />
           <DetailRow
             label="ملخص الحل"
-            value={question.solution_method_summary}
+            value={
+              <p className="whitespace-pre-wrap">
+                {question.solution_method_summary}
+              </p>
+            }
           />
-        </div>
-
-        <Separator />
-
-        <div className="space-y-4">
-          <h4 className="font-semibold">إحصائيات الاستخدام</h4>
-          <DetailRow
-            label="إجمالي المحاولات"
-            value={question.total_usage_count}
-          />
-          {question.usage_by_test_type &&
-            Object.entries(question.usage_by_test_type).map(([key, value]) => (
-              <DetailRow
-                key={key}
-                label={key
-                  .replace(/_/g, " ")
-                  .replace(/\b\w/g, (l) => l.toUpperCase())} // This part can be improved with a proper translation map if needed
-                value={value}
-              />
-            ))}
         </div>
       </div>
     );
@@ -160,7 +187,7 @@ export function ViewQuestionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>تفاصيل السؤال</DialogTitle>
           <DialogDescription>
