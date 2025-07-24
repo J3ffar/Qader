@@ -224,7 +224,7 @@ export const getColumns = (): ColumnDef<AdminQuestion>[] => [
       <SortableHeader column={column}>تاريخ الإنشاء</SortableHeader>
     ),
     cell: ({ row }) =>
-      new Date(row.original.created_at).toLocaleDateString("ar-EG"),
+      new Date(row.original.created_at).toLocaleDateString("ar"),
     meta: {
       className: "hidden xl:table-cell",
     },

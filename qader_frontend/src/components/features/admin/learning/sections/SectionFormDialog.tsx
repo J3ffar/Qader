@@ -27,7 +27,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { queryKeys } from "@/constants/queryKeys";
-// Make sure getAdminSections is imported
 import {
   createAdminSection,
   updateAdminSection,
@@ -36,7 +35,7 @@ import {
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 const formSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters."),
+  name: z.string().min(3, "يجب ألا يقل الاسم عن 3 أحرف."),
   description: z.string().optional(),
   order: z.coerce.number().int().optional(),
 });
@@ -57,18 +56,10 @@ export function SectionFormDialog({
   const queryClient = useQueryClient();
   const isEditMode = sectionId !== null;
 
-  // **THE FIX IS HERE**
   const { data: sectionData, isLoading } = useQuery({
-    // The queryKey remains the same, targeting the list
-    queryKey: queryKeys.admin.learning.sections.list({ all: true }), // Use a key for all items to avoid pagination issues
-
-    // We add the queryFn to tell React Query how to fetch if data is not cached
-    queryFn: () => getAdminSections({ page_size: 1000 }), // Fetch all sections
-
-    // The select function still works perfectly to find the specific item
+    queryKey: queryKeys.admin.learning.sections.list({ all: true }),
+    queryFn: () => getAdminSections({ page_size: 1000 }),
     select: (data) => data?.results.find((s) => s.id === sectionId),
-
-    // The enabled flag ensures this query only runs when needed
     enabled: isEditMode && isOpen,
   });
 
@@ -85,7 +76,6 @@ export function SectionFormDialog({
         order: sectionData.order,
       });
     } else if (!isEditMode) {
-      // Ensure form is cleared for create mode
       form.reset({ name: "", description: "", order: 0 });
     }
   }, [isOpen, isEditMode, sectionData, form]);
@@ -96,17 +86,14 @@ export function SectionFormDialog({
         ? updateAdminSection(sectionId!, values)
         : createAdminSection(values),
     onSuccess: () => {
-      toast.success(
-        `Section ${isEditMode ? "updated" : "created"} successfully!`
-      );
-      // Invalidate all section list queries to ensure all views are updated
+      toast.success(`تم ${isEditMode ? "تحديث" : "إنشاء"} القسم بنجاح!`);
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.learning.sections.lists(),
       });
       onClose();
     },
     onError: (error) =>
-      toast.error(getApiErrorMessage(error, "Failed to save section.")),
+      toast.error(getApiErrorMessage(error, "فشل حفظ القسم.")),
   });
 
   const onSubmit = (values: SectionFormValues) => mutation.mutate(values);
@@ -116,13 +103,11 @@ export function SectionFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isEditMode ? "Edit Section" : "Create New Section"}
+            {isEditMode ? "تعديل القسم" : "إنشاء قسم جديد"}
           </DialogTitle>
-          <DialogDescription>
-            Fill in the details for the learning section.
-          </DialogDescription>
+          <DialogDescription>املأ تفاصيل القسم التعليمي.</DialogDescription>
         </DialogHeader>
-        {isEditMode && isLoading ? ( // Show skeleton only in edit mode while loading
+        {isEditMode && isLoading ? (
           <div className="space-y-4 py-4">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-24 w-full" />
@@ -139,7 +124,7 @@ export function SectionFormDialog({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name *</FormLabel>
+                    <FormLabel>الاسم *</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -152,7 +137,7 @@ export function SectionFormDialog({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>الوصف</FormLabel>
                     <FormControl>
                       <Textarea {...field} value={field.value ?? ""} />
                     </FormControl>
@@ -165,7 +150,7 @@ export function SectionFormDialog({
                 name="order"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Order</FormLabel>
+                    <FormLabel>الترتيب</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -179,10 +164,10 @@ export function SectionFormDialog({
               />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={onClose}>
-                  Cancel
+                  إلغاء
                 </Button>
                 <Button type="submit" disabled={mutation.isPending}>
-                  {mutation.isPending ? "Saving..." : "Save"}
+                  {mutation.isPending ? "جاري الحفظ..." : "حفظ"}
                 </Button>
               </DialogFooter>
             </form>

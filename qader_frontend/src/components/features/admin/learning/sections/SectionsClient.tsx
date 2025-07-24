@@ -50,14 +50,14 @@ export function SectionsClient() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteAdminSection(id),
     onSuccess: () => {
-      toast.success("Section deleted successfully.");
+      toast.success("تم حذف القسم بنجاح.");
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.learning.sections.lists(),
       });
       handleCloseDialogs();
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Failed to delete section."));
+      toast.error(getApiErrorMessage(error, "فشل حذف القسم."));
     },
   });
 
@@ -86,7 +86,7 @@ export function SectionsClient() {
   const pageCount = data?.count ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
   const currentPage = parseInt(filters.page?.toString() ?? "1", 10);
 
-  if (isError) return <div>Error: {error.message}</div>;
+  if (isError) return <div>خطأ: {error.message}</div>;
 
   const handleSetUrlParams = (newParams: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -112,18 +112,18 @@ export function SectionsClient() {
         onClose={handleCloseDialogs}
         onConfirm={handleDeleteConfirm}
         isPending={deleteMutation.isPending}
-        itemType="section"
+        itemType="القسم" // Translated
       />
 
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-2xl font-bold tracking-tight">Sections</h2>
+        <h2 className="text-2xl font-bold tracking-tight">الأقسام الرئيسية</h2>
         <Button
           onClick={() => {
             setSelectedSectionId(null);
             setIsFormOpen(true);
           }}
         >
-          Add Section
+          إضافة قسم
         </Button>
       </div>
 
