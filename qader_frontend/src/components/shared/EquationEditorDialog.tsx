@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,19 +43,30 @@ export const EquationEditorDialog = ({
 }: EquationEditorDialogProps) => {
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
+    // defaultValues will set the form on its first render
     defaultValues: { latex: initialValue },
   });
+
+  // --- NEW: This useEffect hook makes the component reactive ---
+  // It ensures the form value is updated whenever the dialog is opened
+  // with a new initialValue (i.e., when an existing equation is clicked).
+  useEffect(() => {
+    if (isOpen) {
+      form.reset({ latex: initialValue });
+    }
+  }, [initialValue, isOpen, form]);
+  // -------------------------------------------------------------
 
   const handleInnerFormSubmit = (values: z.infer<typeof schema>) => {
     onSubmit(values.latex);
     onClose();
-    form.reset();
   };
 
+  // onSubmit handler for the form itself
   const onFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); // Prevent default form submission
-    e.stopPropagation(); // Stop the event from bubbling up to the parent form
-    form.handleSubmit(handleInnerFormSubmit)(); // Manually trigger RHF's handler
+    e.preventDefault();
+    e.stopPropagation();
+    form.handleSubmit(handleInnerFormSubmit)();
   };
 
   return (

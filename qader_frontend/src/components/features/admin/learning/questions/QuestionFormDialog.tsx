@@ -54,8 +54,9 @@ import {
 } from "@/types/api/admin/learning.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Circle } from "lucide-react";
+import { Circle, Sigma } from "lucide-react";
 import { RichTextEditor } from "@/components/shared/RichTextEditor";
+import { EquationTutorialDialog } from "./EquationTutorialDialog";
 
 // --- Schema, Types, and Constants (No changes) ---
 const difficultyLevels = [
@@ -238,10 +239,24 @@ function QuestionFormComponent({
             <Card>
               <CardHeader>
                 <CardTitle>السؤال والخيارات والصورة</CardTitle>
-                <DialogDescription className="text-xs pt-1">
-                  لإضافة معادلة رياضية، استخدم الصيغة `$...$`، مثال: `$x^2 + y^2
-                  = r^2$`
-                </DialogDescription>
+                <div className="flex items-start gap-x-3 rounded-md border bg-muted/50 p-3 text-sm mt-2">
+                  <Sigma className="mt-0.5 h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                  <div className="flex-grow">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-semibold">إضافة معادلة رياضية</h4>
+                      {/* THE NEW BUTTON IS HERE */}
+                      <EquationTutorialDialog />
+                    </div>
+                    <p className="text-muted-foreground">
+                      لإدراج معادلة، ضع المؤشر في المكان المطلوب ثم انقر على
+                      أيقونة المعادلة{" "}
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-sm bg-background mx-1 border font-bold">
+                        Σ
+                      </span>{" "}
+                      في شريط الأدوات.
+                    </p>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <FormField

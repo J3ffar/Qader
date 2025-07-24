@@ -22,6 +22,7 @@ interface RichTextEditorProps {
 const Toolbar = ({ editor }: { editor: Editor | null }) => {
   const [isEquationEditorOpen, setIsEquationEditorOpen] = useState(false);
   const [selectionRange, setSelectionRange] = useState<Range | null>(null);
+  const [editingLatex, setEditingLatex] = useState("");
 
   if (!editor) return null;
 
@@ -38,14 +39,21 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   };
 
   const openEquationEditor = () => {
-    // Capture the exact selection from the editor's state *before* it loses focus.
+    // Save the selection range regardless, for accurate placement.
     const { from, to, empty } = editor.state.selection;
-
-    // If the selection is empty (just a cursor), we don't need to save a range.
-    // Our command will correctly insert at the cursor position.
-    // If there IS a selection, we save it.
     setSelectionRange(empty ? null : { from, to });
 
+    // Check if the currently selected node is a 'katex' node.
+    if (editor.isActive("katex")) {
+      // If yes, get its attributes, which includes the 'latex' string.
+      const existingLatex = editor.getAttributes("katex").latex;
+      setEditingLatex(existingLatex); // Set it for the dialog
+    } else {
+      // If not, ensure we're in "create" mode with a blank slate.
+      setEditingLatex("");
+    }
+
+    // Finally, open the dialog.
     setIsEquationEditorOpen(true);
   };
 
@@ -55,6 +63,7 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
         isOpen={isEquationEditorOpen}
         onClose={() => setIsEquationEditorOpen(false)}
         onSubmit={handleEquationSubmit}
+        initialValue={editingLatex}
       />
       <div className="flex flex-wrap items-center gap-1 rounded-t-md border border-b-0 border-input bg-transparent p-2">
         <Toggle
