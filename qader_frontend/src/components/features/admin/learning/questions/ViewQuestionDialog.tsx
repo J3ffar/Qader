@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -24,6 +25,7 @@ import {
   BrainCircuit,
   Lightbulb,
 } from "lucide-react";
+import katex from "katex";
 
 interface ViewQuestionDialogProps {
   isOpen: boolean;
@@ -128,6 +130,46 @@ function ViewSkeleton() {
   );
 }
 
+// A new helper component to render HTML content with math support
+const RichContentViewer = ({ htmlContent }: { htmlContent: string | null }) => {
+  const contentRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      // Find all our custom katex nodes
+      const katexNodes = contentRef.current.querySelectorAll<HTMLElement>(
+        "span[data-katex-node]"
+      );
+
+      katexNodes.forEach((node) => {
+        const latex = node.dataset.latex || "";
+        if (latex) {
+          try {
+            katex.render(latex, node, {
+              throwOnError: false,
+              displayMode: false,
+            });
+          } catch (e) {
+            console.error("KaTeX rendering error:", e);
+            node.textContent = `[Error: ${latex}]`;
+            node.style.color = "red";
+          }
+        }
+      });
+    }
+  }, [htmlContent]);
+
+  if (!htmlContent) return null;
+
+  return (
+    <div
+      ref={contentRef}
+      className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-2"
+      dangerouslySetInnerHTML={{ __html: htmlContent }}
+    />
+  );
+};
+
 export function ViewQuestionDialog({
   isOpen,
   onClose,
@@ -161,9 +203,9 @@ export function ViewQuestionDialog({
               <CardTitle>نص السؤال</CardTitle>
             </CardHeader>
             <CardContent>
-              <blockquote className="p-4 bg-muted border-r-4 rtl:border-r-0 rtl:border-l-4 border-primary rounded-r rtl:rounded-r-none rtl:rounded-l text-base leading-relaxed">
-                {question.question_text}
-              </blockquote>
+              {/* UPDATED to use RichContentViewer */}
+              <RichContentViewer htmlContent={question.question_text} />
+
               {question.image && (
                 <div className="mt-4">
                   <p className="text-sm font-medium text-muted-foreground mb-2">
@@ -199,11 +241,11 @@ export function ViewQuestionDialog({
                     {isCorrect && (
                       <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                     )}
-                    <div className="flex flex-col">
+                    <div className="flex flex-col w-full">
                       <span className="font-bold text-sm text-muted-foreground">
                         الخيار {key}
                       </span>
-                      <p className="font-medium">{value}</p>
+                      <RichContentViewer htmlContent={value} />
                     </div>
                   </div>
                 );
@@ -211,6 +253,7 @@ export function ViewQuestionDialog({
             </CardContent>
           </Card>
 
+          {/* UPDATED for helper info */}
           {(question.explanation ||
             question.hint ||
             question.solution_method_summary) && (
@@ -224,9 +267,7 @@ export function ViewQuestionDialog({
                     icon={Lightbulb}
                     label="الشرح"
                     value={
-                      <p className="whitespace-pre-wrap">
-                        {question.explanation}
-                      </p>
+                      <RichContentViewer htmlContent={question.explanation} />
                     }
                   />
                 )}
@@ -234,9 +275,7 @@ export function ViewQuestionDialog({
                   <DetailRow
                     icon={Lightbulb}
                     label="تلميح"
-                    value={
-                      <p className="whitespace-pre-wrap">{question.hint}</p>
-                    }
+                    value={<RichContentViewer htmlContent={question.hint} />}
                   />
                 )}
                 {question.solution_method_summary && (
@@ -244,9 +283,9 @@ export function ViewQuestionDialog({
                     icon={Lightbulb}
                     label="ملخص الحل"
                     value={
-                      <p className="whitespace-pre-wrap">
-                        {question.solution_method_summary}
-                      </p>
+                      <RichContentViewer
+                        htmlContent={question.solution_method_summary}
+                      />
                     }
                   />
                 )}

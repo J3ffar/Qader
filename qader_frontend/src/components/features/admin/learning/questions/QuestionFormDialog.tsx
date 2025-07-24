@@ -55,6 +55,7 @@ import {
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Circle } from "lucide-react";
+import { RichTextEditor } from "@/components/shared/RichTextEditor";
 
 // --- Schema, Types, and Constants (No changes) ---
 const difficultyLevels = [
@@ -237,6 +238,10 @@ function QuestionFormComponent({
             <Card>
               <CardHeader>
                 <CardTitle>السؤال والخيارات والصورة</CardTitle>
+                <DialogDescription className="text-xs pt-1">
+                  لإضافة معادلة رياضية، استخدم الصيغة `$...$`، مثال: `$x^2 + y^2
+                  = r^2$`
+                </DialogDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <FormField
@@ -246,13 +251,19 @@ function QuestionFormComponent({
                     <FormItem>
                       <FormLabel>نص السؤال *</FormLabel>
                       <FormControl>
-                        <Textarea {...field} rows={5} />
+                        {/* REPLACED */}
+                        <RichTextEditor
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="اكتب نص السؤال هنا..."
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Example for Option A */}
                   <FormField
                     control={form.control}
                     name="option_a"
@@ -260,12 +271,18 @@ function QuestionFormComponent({
                       <FormItem>
                         <FormLabel>الخيار أ *</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          {/* REPLACED */}
+                          <RichTextEditor
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="اكتب نص الخيار أ..."
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                  {/* Repeat for option_b, option_c, option_d */}
                   <FormField
                     control={form.control}
                     name="option_b"
@@ -273,7 +290,11 @@ function QuestionFormComponent({
                       <FormItem>
                         <FormLabel>الخيار ب *</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <RichTextEditor
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="اكتب نص الخيار ب..."
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -286,7 +307,11 @@ function QuestionFormComponent({
                       <FormItem>
                         <FormLabel>الخيار ج *</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <RichTextEditor
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="اكتب نص الخيار ج..."
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -299,7 +324,11 @@ function QuestionFormComponent({
                       <FormItem>
                         <FormLabel>الخيار د *</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <RichTextEditor
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="اكتب نص الخيار د..."
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -556,16 +585,18 @@ function QuestionFormComponent({
                         شرح مفصل للإجابة الصحيحة يظهر للطالب بعد المحاولة.
                       </DialogDescription>
                       <FormControl>
-                        <Textarea
-                          {...field}
+                        {/* REPLACED */}
+                        <RichTextEditor
                           value={field.value ?? ""}
-                          rows={4}
+                          onChange={field.onChange}
+                          placeholder="اكتب شرحاً مفصلاً للإجابة الصحيحة..."
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                {/* Repeat for hint and solution_method_summary */}
                 <FormField
                   control={form.control}
                   name="hint"
@@ -576,10 +607,10 @@ function QuestionFormComponent({
                         تلميح يمكن للطالب طلبه أثناء حل السؤال.
                       </DialogDescription>
                       <FormControl>
-                        <Textarea
-                          {...field}
+                        <RichTextEditor
                           value={field.value ?? ""}
-                          rows={2}
+                          onChange={field.onChange}
+                          placeholder="اكتب تلميحاً للطالب..."
                         />
                       </FormControl>
                       <FormMessage />
@@ -596,10 +627,10 @@ function QuestionFormComponent({
                         وصف مختصر لاستراتيجية الحل.
                       </DialogDescription>
                       <FormControl>
-                        <Textarea
-                          {...field}
+                        <RichTextEditor
                           value={field.value ?? ""}
-                          rows={3}
+                          onChange={field.onChange}
+                          placeholder="اكتب ملخصاً لطريقة الحل..."
                         />
                       </FormControl>
                       <FormMessage />

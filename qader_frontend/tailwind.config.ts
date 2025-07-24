@@ -72,8 +72,8 @@ const config: Config = {
     },
   },
   plugins: [
-    // require("tailwindcss-animate"), // If using this for Shadcn/ui animations rather than tw-animate-css
-    // You are using tw-animate-css, which is imported in globals.css
+    // require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
   ],
 };
 export default config;
