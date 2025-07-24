@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -38,14 +38,15 @@ import {
   createAdminSkill,
   updateAdminSkill,
   getAdminAllSubSections,
+  getAdminAllSections,
 } from "@/services/api/admin/learning.service";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { AdminSkill } from "@/types/api/admin/learning.types";
 
 const formSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters."),
+  name: z.string().min(3, "يجب ألا يقل الاسم عن 3 أحرف."),
   subsection_id: z.coerce.number({
-    required_error: "A parent subsection is required.",
+    required_error: "يجب اختيار القسم الفرعي.",
   }),
   description: z.string().optional(),
 });
@@ -69,28 +70,56 @@ export function SkillFormDialog({
   const queryClient = useQueryClient();
   const isEditMode = skillId !== null;
 
-  const { data: subsectionsData, isLoading: isLoadingSubsections } = useQuery({
-    queryKey: queryKeys.admin.learning.subsections.list({ all: true }),
-    queryFn: () => getAdminAllSubSections(),
-    enabled: isOpen,
-  });
+  // State for the selected section to filter subsections
+  const [selectedSection, setSelectedSection] = useState<number | undefined>();
 
   const form = useForm<SkillFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "", description: "" },
   });
 
+  // Fetch all sections for the first dropdown
+  const { data: sectionsData, isLoading: isLoadingSections } = useQuery({
+    queryKey: queryKeys.admin.learning.sections.list({ all: true }),
+    queryFn: getAdminAllSections,
+    enabled: isOpen,
+  });
+
+  // Fetch all subsections to find parent section in edit mode
+  const { data: allSubsectionsData } = useQuery({
+    queryKey: queryKeys.admin.learning.subsections.list({ all: true }),
+    queryFn: () => getAdminAllSubSections(),
+    enabled: isOpen && isEditMode && !!initialData,
+  });
+
+  // Fetch subsections filtered by the selected section
+  const { data: filteredSubsectionsData, isLoading: isLoadingSubsections } =
+    useQuery({
+      queryKey: queryKeys.admin.learning.subsections.list({
+        sectionId: selectedSection,
+      }),
+      queryFn: () => getAdminAllSubSections(selectedSection),
+      enabled: isOpen && !!selectedSection,
+    });
+
   useEffect(() => {
-    if (isEditMode && initialData) {
+    if (isOpen && isEditMode && initialData && allSubsectionsData) {
+      const parentSub = allSubsectionsData.results.find(
+        (s) => s.id === initialData.subsection_id
+      );
+      if (parentSub) {
+        setSelectedSection(parentSub.section_id);
+      }
       form.reset({
         name: initialData.name,
         description: initialData.description || "",
         subsection_id: initialData.subsection_id,
       });
-    } else {
+    } else if (!isEditMode) {
       form.reset({ name: "", description: "" });
+      setSelectedSection(undefined);
     }
-  }, [isOpen, isEditMode, initialData, form]);
+  }, [isOpen, isEditMode, initialData, form, allSubsectionsData]);
 
   const mutation = useMutation({
     mutationFn: (values: SkillFormValues) =>
@@ -98,32 +127,35 @@ export function SkillFormDialog({
         ? updateAdminSkill(skillId!, values)
         : createAdminSkill(values),
     onSuccess: () => {
-      toast.success(
-        `Skill ${isEditMode ? "updated" : "created"} successfully!`
-      );
+      toast.success(`تم ${isEditMode ? "تحديث" : "إنشاء"} المهارة بنجاح!`);
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.learning.skills.lists(),
       });
       onClose();
     },
     onError: (error) =>
-      toast.error(getApiErrorMessage(error, "Failed to save skill.")),
+      toast.error(getApiErrorMessage(error, "فشل حفظ المهارة.")),
   });
 
   const onSubmit = (values: SkillFormValues) => mutation.mutate(values);
+  const handleClose = () => {
+    onClose();
+    form.reset();
+    setSelectedSection(undefined);
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isEditMode ? "Edit Skill" : "Create New Skill"}
+            {isEditMode ? "تعديل المهارة" : "إنشاء مهارة جديدة"}
           </DialogTitle>
           <DialogDescription>
-            Fill in the details. A parent subsection is required.
+            املأ التفاصيل. يجب اختيار قسم رئيسي وقسم فرعي.
           </DialogDescription>
         </DialogHeader>
-        {isLoadingSubsections ? (
+        {isLoadingSections ? (
           <div className="space-y-4 py-4">
             <Skeleton className="h-24 w-full" />
           </div>
@@ -133,25 +165,55 @@ export function SkillFormDialog({
               onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-4 pt-4"
             >
+              <FormItem>
+                <FormLabel>القسم الرئيسي *</FormLabel>
+                <Select
+                  onValueChange={(v) => {
+                    setSelectedSection(Number(v));
+                    form.resetField("subsection_id");
+                  }}
+                  value={selectedSection?.toString()}
+                  dir="rtl"
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر القسم الرئيسي أولاً" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {sectionsData?.results.map((section) => (
+                      <SelectItem
+                        key={section.id}
+                        value={section.id.toString()}
+                      >
+                        {section.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+
               <FormField
                 control={form.control}
                 name="subsection_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Parent Subsection *</FormLabel>
+                    <FormLabel>القسم الفرعي *</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value?.toString()}
+                      disabled={!selectedSection || isLoadingSubsections}
+                      dir="rtl"
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a parent subsection" />
+                          <SelectValue placeholder="اختر القسم الفرعي" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {subsectionsData?.results.map((sub) => (
+                        {filteredSubsectionsData?.results.map((sub) => (
                           <SelectItem key={sub.id} value={sub.id.toString()}>
-                            {sub.name} ({sub.section_name})
+                            {sub.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -165,7 +227,7 @@ export function SkillFormDialog({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name *</FormLabel>
+                    <FormLabel>اسم المهارة *</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -178,7 +240,7 @@ export function SkillFormDialog({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>الوصف</FormLabel>
                     <FormControl>
                       <Textarea {...field} value={field.value ?? ""} />
                     </FormControl>
@@ -187,11 +249,11 @@ export function SkillFormDialog({
                 )}
               />
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={onClose}>
-                  Cancel
+                <Button type="button" variant="outline" onClick={handleClose}>
+                  إلغاء
                 </Button>
                 <Button type="submit" disabled={mutation.isPending}>
-                  {mutation.isPending ? "Saving..." : "Save"}
+                  {mutation.isPending ? "جاري الحفظ..." : "حفظ"}
                 </Button>
               </DialogFooter>
             </form>

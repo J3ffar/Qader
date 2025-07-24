@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
@@ -8,6 +8,16 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/shared/DataTable";
 import { DataTablePagination } from "@/components/shared/DataTablePagination";
 import { DeleteConfirmationDialog } from "@/components/shared/DeleteConfirmationDialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { X } from "lucide-react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { queryKeys } from "@/constants/queryKeys";
 import {
   getAdminSkills,
@@ -17,13 +27,6 @@ import {
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { getColumns } from "./columns";
 import { SkillFormDialog, SkillWithParentId } from "./SkillFormDialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { AdminSkill } from "@/types/api/admin/learning.types";
 
 const ITEMS_PER_PAGE = 20;
@@ -36,18 +39,28 @@ export function SkillsClient() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<
-    AdminSkill | SkillWithParentId | null
-  >(null);
+  const [selectedItem, setSelectedItem] = useState<SkillWithParentId | null>(
+    null
+  );
 
   const filters = useMemo(
     () => ({
       page: searchParams.get("page") ?? "1",
       subsection__id: searchParams.get("subsection") ?? "",
+      search: searchParams.get("search") ?? "",
       ordering: searchParams.get("ordering") ?? "",
     }),
     [searchParams]
   );
+
+  const [searchValue, setSearchValue] = useState(filters.search);
+  const debouncedSearch = useDebounce(searchValue, 500);
+
+  useEffect(() => {
+    if (debouncedSearch !== filters.search) {
+      handleSetUrlParams({ search: debouncedSearch || null });
+    }
+  }, [debouncedSearch]);
 
   const handleSetUrlParams = (newParams: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -62,64 +75,69 @@ export function SkillsClient() {
     queryKey: queryKeys.admin.learning.subsections.list({ all: true }),
     queryFn: () => getAdminAllSubSections(),
   });
+
   const { data, isLoading, isFetching, isError, error } = useQuery({
     queryKey: queryKeys.admin.learning.skills.list(filters),
-    queryFn: () => getAdminSkills(filters),
+    queryFn: () => getAdminSkills({ ...filters, page_size: 1000 }),
     placeholderData: (prev) => prev,
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteAdminSkill(id),
     onSuccess: () => {
-      toast.success("Skill deleted successfully.");
+      toast.success("تم حذف المهارة بنجاح.");
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.learning.skills.lists(),
       });
       handleCloseDialogs();
     },
-    onError: (err) =>
-      toast.error(getApiErrorMessage(err, "Failed to delete skill.")),
+    onError: (err) => toast.error(getApiErrorMessage(err, "فشل حذف المهارة.")),
   });
 
   const handleEdit = (id: number) => {
     const itemToEdit = data?.results.find((s) => s.id === id);
-    if (itemToEdit) {
-      const parentSub = subsections?.results.find(
+    if (itemToEdit && subsections) {
+      const parentSub = subsections.results.find(
         (s) => s.name === itemToEdit.subsection_name
       );
       if (parentSub) {
-        const itemWithParentId: SkillWithParentId = {
-          ...itemToEdit,
-          subsection_id: parentSub.id,
-        };
-        setSelectedItem(itemWithParentId);
+        setSelectedItem({ ...itemToEdit, subsection_id: parentSub.id });
         setIsFormOpen(true);
       } else {
-        toast.error("Could not find parent subsection data for this item.");
+        toast.error("لا يمكن العثور على بيانات القسم الفرعي لهذه المهارة.");
       }
     }
   };
+
   const handleDelete = (id: number) => {
     const itemToDelete = data?.results.find((s) => s.id === id);
     if (itemToDelete) {
-      setSelectedItem(itemToDelete);
+      setSelectedItem(itemToDelete as SkillWithParentId);
       setIsDeleteOpen(true);
     }
   };
+
   const handleCloseDialogs = () => {
     setIsFormOpen(false);
     setIsDeleteOpen(false);
     setSelectedItem(null);
   };
+
   const handleDeleteConfirm = () => {
     if (selectedItem) deleteMutation.mutate(selectedItem.id);
   };
+
+  const handleClearFilters = () => {
+    setSearchValue("");
+    handleSetUrlParams({ subsection: null, search: null });
+  };
+  const isFiltered = !!filters.subsection__id || !!filters.search;
 
   const columns = useMemo(() => getColumns(), []);
   const pageCount = data?.count ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
   const currentPage = parseInt(filters.page?.toString() ?? "1", 10);
 
-  if (isError) return <div>Error: {error.message}</div>;
+  if (isError) return <div>خطأ: {error.message}</div>;
 
   return (
     <div className="space-y-4">
@@ -127,25 +145,45 @@ export function SkillsClient() {
         isOpen={isFormOpen}
         onClose={handleCloseDialogs}
         skillId={selectedItem?.id || null}
-        initialData={selectedItem as SkillWithParentId | null}
+        initialData={selectedItem}
       />
       <DeleteConfirmationDialog
         isOpen={isDeleteOpen}
         onClose={handleCloseDialogs}
         onConfirm={handleDeleteConfirm}
         isPending={deleteMutation.isPending}
-        itemType="skill"
+        itemType="المهارة"
       />
 
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-2xl font-bold tracking-tight">Skills</h2>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="text-2xl font-bold tracking-tight">المهارات</h2>
+        <Button
+          onClick={() => {
+            setSelectedItem(null);
+            setIsFormOpen(true);
+          }}
+        >
+          إضافة مهارة
+        </Button>
+      </div>
+
+      <div className="p-4 border rounded-md">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Input
+            placeholder="ابحث بالاسم أو الوصف..."
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            className="max-w-xs"
+          />
           <Select
             value={filters.subsection__id}
-            onValueChange={(val) => handleSetUrlParams({ subsection: val })}
+            onValueChange={(val) =>
+              handleSetUrlParams({ subsection: val || null })
+            }
+            dir="rtl"
           >
             <SelectTrigger className="w-[240px]">
-              <SelectValue placeholder="Filter by Subsection..." />
+              <SelectValue placeholder="التصفية حسب القسم الفرعي" />
             </SelectTrigger>
             <SelectContent>
               {subsections?.results.map((s) => (
@@ -155,22 +193,12 @@ export function SkillsClient() {
               ))}
             </SelectContent>
           </Select>
-          {filters.subsection__id && (
-            <Button
-              variant="ghost"
-              onClick={() => handleSetUrlParams({ subsection: null })}
-            >
-              Clear
+          {isFiltered && (
+            <Button variant="ghost" onClick={handleClearFilters}>
+              <X className="rtl:ml-2 ltr:mr-2 h-4 w-4" />
+              مسح الفلاتر
             </Button>
           )}
-          <Button
-            onClick={() => {
-              setSelectedItem(null);
-              setIsFormOpen(true);
-            }}
-          >
-            Add Skill
-          </Button>
         </div>
       </div>
 

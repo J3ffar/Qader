@@ -66,7 +66,7 @@ export const getColumns = (): ColumnDef<AdminSubSection>[] => [
     accessorKey: "created_at",
     header: "تاريخ الإنشاء",
     cell: ({ row }) =>
-      new Date(row.original.created_at).toLocaleDateString("ar-EG"),
+      new Date(row.original.created_at).toLocaleDateString("ar"),
   },
   { id: "actions", cell: ActionsCell },
 ];
