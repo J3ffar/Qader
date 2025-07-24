@@ -59,12 +59,12 @@ export const ConversationInput: React.FC<Props> = ({
           <Button
             type="submit"
             size="icon"
-            className="absolute end-3 top-1/2 -translate-y-1/2 rounded-sm w-fit px-4"
+            className="absolute end-3 top-1/2 -translate-y-1/2 rounded-sm w-fit px-4 cursor-pointer"
             onClick={handleSend}
             disabled={isSending || !message.trim()}
           >
             <Send className="h-5 w-5" />
-            <span className="">{t("send")}</span>
+            <span>{t("send")}</span>
           </Button>
         </div>
       </div>

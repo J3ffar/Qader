@@ -54,7 +54,7 @@ export const MessageList = () => {
       case "text":
         return (
           <TextMessage
-            key={`text-${msg.content.id || index}`}
+            key={`text-${msg.content.id ?? "no_id"}-${index}`}
             message={msg.content}
           />
         );
@@ -62,7 +62,7 @@ export const MessageList = () => {
         // For questions, we need to pass down the submission handler
         return (
           <QuestionMessage
-            key={`q-${msg.content.question.id}`}
+            key={`q-${msg.content.question.id ?? "no_id"}-${index}`}
             content={msg.content}
             onSubmitAnswer={handleSubmitAnswer}
             isSubmitting={submitAnswerMutation.isPending}
@@ -70,7 +70,10 @@ export const MessageList = () => {
         );
       case "feedback":
         return (
-          <FeedbackMessage key={`fb-${msg.content.id}`} result={msg.content} />
+          <FeedbackMessage
+            key={`fb-${msg.content.id ?? "no_id"}-${index}`}
+            result={msg.content}
+          />
         );
       default:
         return null;
