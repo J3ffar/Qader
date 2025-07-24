@@ -18,6 +18,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useEffect, useMemo, useRef } from "react";
+import katex from "katex";
+import fromString, { htmlToText } from "html-to-text";
 
 const difficultyMap: { [key: number]: string } = {
   1: "سهل جداً",
@@ -59,6 +62,99 @@ const SortableHeader = ({
       {children}
       <ArrowUpDown className="rtl:mr-2 ltr:ml-2 h-4 w-4" />
     </Button>
+  );
+};
+
+const RichContentViewer = ({ htmlContent }: { htmlContent: string | null }) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (contentRef.current && htmlContent) {
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = htmlContent;
+
+      const katexNodes = tempDiv.querySelectorAll<HTMLElement>(
+        "span[data-katex-node]"
+      );
+
+      katexNodes.forEach((node) => {
+        const latex = node.dataset.latex || "";
+        if (latex) {
+          try {
+            // Render KaTeX to a new element and replace the placeholder
+            const katexElement = document.createElement("span");
+            katex.render(latex, katexElement, {
+              throwOnError: false,
+              displayMode: false,
+            });
+            node.replaceWith(katexElement);
+          } catch (e) {
+            console.error("KaTeX rendering error:", e);
+            node.textContent = `[Error: ${latex}]`;
+          }
+        }
+      });
+      // Clear the ref and append the processed content
+      contentRef.current.innerHTML = "";
+      contentRef.current.appendChild(tempDiv);
+    }
+  }, [htmlContent]);
+
+  if (!htmlContent) return null;
+
+  return (
+    <div
+      ref={contentRef}
+      className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-2"
+    />
+  );
+};
+
+const QuestionTextCell = ({ row }: { row: Row<AdminQuestion> }) => {
+  const fullHtml = row.original.question_text;
+  const maxLength = 75;
+
+  const plainText = useMemo(() => {
+    if (!fullHtml) return "";
+
+    const katexRegex =
+      /(<span data-katex-node.*?<\/span>|<span data-latex.*?<\/span>|<span class="katex".*?<\/span>)/g;
+    const textWithPlaceholders = fullHtml.replace(katexRegex, " [معادلة] ");
+
+    return htmlToText(textWithPlaceholders, {
+      wordwrap: false,
+      selectors: [{ selector: "a", options: { ignoreHref: true } }],
+    });
+  }, [fullHtml]);
+
+  const isLong = plainText.length > maxLength;
+  const truncatedText = isLong
+    ? `${plainText.slice(0, maxLength)}...`
+    : plainText;
+
+  if (!isLong) {
+    return (
+      <div className="min-w-[250px] whitespace-normal break-words font-medium">
+        {/* We display the clean text directly when it's short */}
+        {plainText}
+      </div>
+    );
+  }
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="min-w-[250px] whitespace-normal break-words font-medium cursor-default">
+            {truncatedText}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-lg border p-2 rounded-md shadow-lg">
+          {/* The tooltip still correctly renders the full rich content */}
+          <RichContentViewer htmlContent={fullHtml} />
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
@@ -129,37 +225,7 @@ export const getColumns = (): ColumnDef<AdminQuestion>[] => [
   {
     accessorKey: "question_text",
     header: "السؤال",
-    cell: ({ row }) => {
-      const fullText = row.original.question_text;
-      const maxLength = 150;
-
-      // If the text is not long enough to be truncated, just display it normally.
-      if (fullText.length <= maxLength) {
-        return (
-          <div className="min-w-[250px] whitespace-normal break-words font-medium">
-            {fullText}
-          </div>
-        );
-      }
-
-      // If the text is long, truncate it and wrap it in a tooltip.
-      const truncatedText = `${fullText.slice(0, maxLength)}...`;
-
-      return (
-        <TooltipProvider delayDuration={200}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="min-w-[250px] whitespace-normal break-words font-medium cursor-default">
-                {truncatedText}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-md whitespace-pre-wrap">
-              <p>{fullText}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    },
+    cell: QuestionTextCell,
   },
   {
     header: "القسم",
