@@ -12,6 +12,7 @@ import { PaginatedResponse } from ".";
 export interface UnifiedQuestion {
   id: number;
   question_text: string;
+  image: string | null;
   options: {
     A: string;
     B: string;
