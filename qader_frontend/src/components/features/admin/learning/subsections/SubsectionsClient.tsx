@@ -52,7 +52,7 @@ export function SubsectionsClient() {
       page: searchParams.get("page") ?? "1",
       section__id: searchParams.get("section") ?? "",
       search: searchParams.get("search") ?? "", // Added search to filters
-      ordering: searchParams.get("ordering") ?? "",
+      ordering: searchParams.get("ordering") ?? "-created_at",
     }),
     [searchParams]
   );

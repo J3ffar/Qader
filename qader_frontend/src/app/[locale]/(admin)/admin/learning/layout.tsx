@@ -22,16 +22,16 @@ const BASE_TABS = [
     path: PATHS.ADMIN.LEARNING.QUESTIONS,
   },
   {
-    value: "sections",
-    label: "الأقسام الرئيسية",
-    path: PATHS.ADMIN.LEARNING.SECTIONS,
-  },
-  {
     value: "subsections",
     label: "الأقسام الفرعية",
     path: PATHS.ADMIN.LEARNING.SUBSECTIONS,
   },
   { value: "skills", label: "المهارات", path: PATHS.ADMIN.LEARNING.SKILLS },
+  {
+    value: "sections",
+    label: "الأقسام الرئيسية",
+    path: PATHS.ADMIN.LEARNING.SECTIONS,
+  },
 ];
 
 export default function LearningManagementLayout({

@@ -48,7 +48,7 @@ export function SkillsClient() {
       page: searchParams.get("page") ?? "1",
       subsection__id: searchParams.get("subsection") ?? "",
       search: searchParams.get("search") ?? "",
-      ordering: searchParams.get("ordering") ?? "",
+      ordering: searchParams.get("ordering") ?? "-created_at",
     }),
     [searchParams]
   );

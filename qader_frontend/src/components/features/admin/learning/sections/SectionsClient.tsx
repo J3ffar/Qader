@@ -36,7 +36,7 @@ export function SectionsClient() {
     () => ({
       page: searchParams.get("page") ?? "1",
       search: searchParams.get("search") ?? "",
-      ordering: searchParams.get("ordering") ?? "",
+      ordering: searchParams.get("ordering") ?? "-created_at",
     }),
     [searchParams]
   );

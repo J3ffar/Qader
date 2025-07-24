@@ -70,7 +70,6 @@ export function SkillFormDialog({
   const queryClient = useQueryClient();
   const isEditMode = skillId !== null;
 
-  // State for the selected section to filter subsections
   const [selectedSection, setSelectedSection] = useState<number | undefined>();
 
   const form = useForm<SkillFormValues>({
@@ -78,21 +77,18 @@ export function SkillFormDialog({
     defaultValues: { name: "", description: "" },
   });
 
-  // Fetch all sections for the first dropdown
   const { data: sectionsData, isLoading: isLoadingSections } = useQuery({
     queryKey: queryKeys.admin.learning.sections.list({ all: true }),
     queryFn: getAdminAllSections,
     enabled: isOpen,
   });
 
-  // Fetch all subsections to find parent section in edit mode
   const { data: allSubsectionsData } = useQuery({
     queryKey: queryKeys.admin.learning.subsections.list({ all: true }),
     queryFn: () => getAdminAllSubSections(),
     enabled: isOpen && isEditMode && !!initialData,
   });
 
-  // Fetch subsections filtered by the selected section
   const { data: filteredSubsectionsData, isLoading: isLoadingSubsections } =
     useQuery({
       queryKey: queryKeys.admin.learning.subsections.list({
@@ -103,13 +99,28 @@ export function SkillFormDialog({
     });
 
   useEffect(() => {
-    if (isOpen && isEditMode && initialData && allSubsectionsData) {
+    // This effect now correctly populates the form in edit mode
+    if (
+      isOpen &&
+      isEditMode &&
+      initialData &&
+      allSubsectionsData &&
+      sectionsData
+    ) {
+      // THE FIX IS HERE: Find the section_id by linking subsection and section data
       const parentSub = allSubsectionsData.results.find(
         (s) => s.id === initialData.subsection_id
       );
+
       if (parentSub) {
-        setSelectedSection(parentSub.section_id);
+        const parentSection = sectionsData.results.find(
+          (sec) => sec.name === parentSub.section_name
+        );
+        if (parentSection) {
+          setSelectedSection(parentSection.id);
+        }
       }
+
       form.reset({
         name: initialData.name,
         description: initialData.description || "",
@@ -119,7 +130,8 @@ export function SkillFormDialog({
       form.reset({ name: "", description: "" });
       setSelectedSection(undefined);
     }
-  }, [isOpen, isEditMode, initialData, form, allSubsectionsData]);
+    // Added dependencies to ensure the effect runs when all data is ready
+  }, [isOpen, isEditMode, initialData, form, allSubsectionsData, sectionsData]);
 
   const mutation = useMutation({
     mutationFn: (values: SkillFormValues) =>
