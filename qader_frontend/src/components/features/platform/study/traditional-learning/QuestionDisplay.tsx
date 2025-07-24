@@ -13,6 +13,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import type { UnifiedQuestion } from "@/types/api/study.types";
 import { QuestionState } from "./TraditionalLearningSession"; // Import the shared type
+import { QuestionRenderer } from "@/components/shared/QuestionRenderer";
+import { RichContentViewer } from "@/components/shared/RichContentViewer";
 
 type OptionKey = "A" | "B" | "C" | "D";
 
@@ -38,9 +40,10 @@ export const QuestionDisplay: React.FC<Props> = ({
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="text-right text-lg leading-relaxed rtl:text-right">
-          {question.question_text}
-        </CardTitle>
+        <QuestionRenderer
+          questionText={question.question_text}
+          imageUrl={question.image}
+        />
       </CardHeader>
       <CardContent>
         <RadioGroup
@@ -97,7 +100,10 @@ export const QuestionDisplay: React.FC<Props> = ({
                   id={optionKey}
                   disabled={isEliminated} // Directly disable the input
                 />
-                <span>{text}</span>
+                <RichContentViewer
+                  htmlContent={text}
+                  className="prose dark:prose-invert max-w-none flex-1"
+                />
               </Label>
             );
           })}
@@ -134,7 +140,12 @@ export const QuestionDisplay: React.FC<Props> = ({
           <Alert className="mt-4 border-yellow-500/50 text-yellow-800 dark:text-yellow-300">
             <Lightbulb className="h-5 w-5 !text-yellow-500" />
             <AlertTitle>{t("controls.hint")}</AlertTitle>
-            <AlertDescription>{questionState.revealedHint}</AlertDescription>
+            <AlertDescription>
+              <RichContentViewer
+                htmlContent={questionState.revealedHint}
+                className="prose prose-sm dark:prose-invert max-w-none"
+              />
+            </AlertDescription>
           </Alert>
         )}
         {questionState?.revealedExplanation && (
@@ -142,7 +153,10 @@ export const QuestionDisplay: React.FC<Props> = ({
             <Info className="h-5 w-5 !text-blue-500" />
             <AlertTitle>{t("explanation")}</AlertTitle>
             <AlertDescription>
-              {questionState.revealedExplanation}
+              <RichContentViewer
+                htmlContent={questionState.revealedExplanation}
+                className="prose prose-sm dark:prose-invert max-w-none"
+              />
             </AlertDescription>
           </Alert>
         )}
