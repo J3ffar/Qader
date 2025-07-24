@@ -8,16 +8,20 @@ import { PATHS } from "@/constants/paths";
 const TABS_CONFIG = [
   {
     value: "questions",
-    label: "Questions",
+    label: "بنك الأسئلة",
     path: PATHS.ADMIN.LEARNING.QUESTIONS,
   },
-  { value: "skills", label: "Skills", path: PATHS.ADMIN.LEARNING.SKILLS },
+  {
+    value: "sections",
+    label: "الأقسام الرئيسية",
+    path: PATHS.ADMIN.LEARNING.SECTIONS,
+  },
   {
     value: "subsections",
-    label: "Sub-Sections",
+    label: "الأقسام الفرعية",
     path: PATHS.ADMIN.LEARNING.SUBSECTIONS,
   },
-  { value: "sections", label: "Sections", path: PATHS.ADMIN.LEARNING.SECTIONS },
+  { value: "skills", label: "المهارات", path: PATHS.ADMIN.LEARNING.SKILLS },
 ];
 
 export default function LearningManagementLayout({
@@ -43,19 +47,20 @@ export default function LearningManagementLayout({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          Learning Management
+          إدارة المحتوى التعليمي
         </h1>
         <p className="text-muted-foreground">
-          Manage questions, skills, subsections, and sections for the learning
-          platform.
+          إدارة الأسئلة، المهارات، الأقسام الفرعية، والأقسام الرئيسية للمنصة
+          التعليمية.
         </p>
       </div>
       <Tabs
         value={currentTab}
         onValueChange={handleTabChange}
+        dir="rtl"
         className="w-full"
       >
-        <TabsList>
+        <TabsList className="w-full">
           {TABS_CONFIG.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value}>
               {tab.label}
@@ -63,7 +68,7 @@ export default function LearningManagementLayout({
           ))}
         </TabsList>
       </Tabs>
-      <div className="pt-4">{children}</div>
+      <div>{children}</div>
     </div>
   );
 }

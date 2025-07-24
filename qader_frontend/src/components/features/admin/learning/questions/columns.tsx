@@ -14,11 +14,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const difficultyMap: { [key: number]: string } = {
-  1: "Very Easy",
-  2: "Easy",
-  3: "Medium",
-  4: "Hard",
-  5: "Very Hard",
+  1: "سهل جداً",
+  2: "سهل",
+  3: "متوسط",
+  4: "صعب",
+  5: "صعب جداً",
 };
 
 // Reusable component for sortable headers
@@ -51,7 +51,7 @@ const SortableHeader = ({
   return (
     <Button variant="ghost" onClick={handleSort}>
       {children}
-      <ArrowUpDown className="ml-2 h-4 w-4" />
+      <ArrowUpDown className="rtl:mr-2 ltr:ml-2 h-4 w-4" />
     </Button>
   );
 };
@@ -71,22 +71,22 @@ const ActionsCell = ({
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-8 w-8 p-0">
-          <span className="sr-only">Open menu</span>
+          <span className="sr-only">فتح القائمة</span>
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="start">
         <DropdownMenuItem onClick={() => handleView(question.id)}>
-          View Details
+          عرض التفاصيل
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleEdit(question.id)}>
-          Edit
+          تعديل
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="text-red-500"
+          className="text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-900/40"
           onClick={() => handleDelete(question.id)}
         >
-          Delete
+          حذف
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -94,15 +94,15 @@ const ActionsCell = ({
 };
 
 export const getColumns = (): ColumnDef<AdminQuestion>[] => [
-  { accessorKey: "id", header: "ID" },
+  { accessorKey: "id", header: "المعرف" },
   {
     accessorKey: "image",
-    header: "Image",
+    header: "صورة",
     cell: ({ row }) =>
       row.original.image ? (
         <img
           src={row.original.image}
-          alt="Question"
+          alt="صورة السؤال"
           className="h-12 w-12 object-cover rounded-md"
         />
       ) : (
@@ -110,19 +110,38 @@ export const getColumns = (): ColumnDef<AdminQuestion>[] => [
           <ImageIcon size={20} />
         </div>
       ),
-    enableSorting: false, // Cannot sort by image as per backend docs
+    enableSorting: false,
   },
   {
     accessorKey: "question_text",
-    header: "Question",
+    header: "السؤال",
     cell: ({ row }) => (
       <div className="max-w-lg truncate">{row.original.question_text}</div>
     ),
   },
   {
+    header: "القسم",
+    cell: ({ row }) => {
+      const { section, subsection, skill } = row.original;
+      return (
+        <div className="flex flex-col text-xs">
+          <span>{section.name}</span>
+          <span className="text-muted-foreground">
+            {">"} {subsection.name}
+          </span>
+          {skill && (
+            <span className="text-muted-foreground">
+              {">>"} {skill.name}
+            </span>
+          )}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: "difficulty",
     header: ({ column }) => (
-      <SortableHeader column={column}>Difficulty</SortableHeader>
+      <SortableHeader column={column}>مستوى الصعوبة</SortableHeader>
     ),
     cell: ({ row }) => (
       <span>{difficultyMap[row.original.difficulty] || "N/A"}</span>
@@ -131,26 +150,27 @@ export const getColumns = (): ColumnDef<AdminQuestion>[] => [
   {
     accessorKey: "total_usage_count",
     header: ({ column }) => (
-      <SortableHeader column={column}>Usage</SortableHeader>
+      <SortableHeader column={column}>الاستخدام</SortableHeader>
     ),
   },
   {
     accessorKey: "is_active",
     header: ({ column }) => (
-      <SortableHeader column={column}>Status</SortableHeader>
+      <SortableHeader column={column}>الحالة</SortableHeader>
     ),
     cell: ({ row }) => (
       <Badge variant={row.original.is_active ? "default" : "outline"}>
-        {row.original.is_active ? "Active" : "Inactive"}
+        {row.original.is_active ? "نشط" : "غير نشط"}
       </Badge>
     ),
   },
   {
     accessorKey: "created_at",
     header: ({ column }) => (
-      <SortableHeader column={column}>Created</SortableHeader>
+      <SortableHeader column={column}>تاريخ الإنشاء</SortableHeader>
     ),
-    cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
+    cell: ({ row }) =>
+      new Date(row.original.created_at).toLocaleDateString("ar-EG"), // Use locale for date
   },
   {
     id: "actions",

@@ -8,11 +8,11 @@ import { DataTable } from "@/components/shared/DataTable";
 import { DataTablePagination } from "@/components/shared/DataTablePagination";
 import { queryKeys } from "@/constants/queryKeys";
 import { getAdminQuestions } from "@/services/api/admin/learning.service";
-import { getColumns } from "./columns"; // We will update this file next
+import { getColumns } from "./columns";
 import { QuestionFormDialog } from "./QuestionFormDialog";
 import { DeleteQuestionDialog } from "./DeleteQuestionDialog";
 import { ViewQuestionDialog } from "./ViewQuestionDialog";
-import { QuestionsTableToolbar } from "./QuestionsTableToolbar"; // New component for filters
+import { QuestionsTableToolbar } from "./QuestionsTableToolbar";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -29,7 +29,6 @@ export function QuestionsClient() {
     null
   );
 
-  // Read all filter/sort/pagination state from the URL
   const filters = useMemo(() => {
     const params: Record<string, any> = {
       page: searchParams.get("page") ?? "1",
@@ -39,7 +38,6 @@ export function QuestionsClient() {
       subsection__id: searchParams.get("subsection") ?? "",
       skill__id: searchParams.get("skill") ?? "",
     };
-    // Remove empty keys
     Object.keys(params).forEach((key) => {
       if (!params[key]) delete params[key];
     });
@@ -72,11 +70,11 @@ export function QuestionsClient() {
     setSelectedQuestionId(null);
   };
 
-  const columns = useMemo(() => getColumns(), []); // We'll remove handlers from here and place them in the row menu
+  const columns = useMemo(() => getColumns(), []);
   const pageCount = data?.count ? Math.ceil(data.count / ITEMS_PER_PAGE) : 0;
   const currentPage = parseInt(filters.page?.toString() ?? "1", 10);
 
-  if (isError) return <div>Error: {error.message}</div>;
+  if (isError) return <div>خطأ: {error.message}</div>;
 
   const handleSetUrlParams = (newParams: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -84,7 +82,6 @@ export function QuestionsClient() {
       if (value) params.set(key, value);
       else params.delete(key);
     });
-    // Always reset to page 1 when filters (not page itself) change
     if (!("page" in newParams)) {
       params.set("page", "1");
     }
@@ -110,14 +107,14 @@ export function QuestionsClient() {
       />
 
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-2xl font-bold tracking-tight">Questions</h2>
+        <h2 className="text-2xl font-bold tracking-tight">الأسئلة</h2>
         <Button
           onClick={() => {
             setSelectedQuestionId(null);
             setIsFormOpen(true);
           }}
         >
-          Add Question
+          إضافة سؤال
         </Button>
       </div>
 
@@ -130,7 +127,7 @@ export function QuestionsClient() {
           columns={columns}
           data={data?.results ?? []}
           isLoading={isLoading}
-          context={{ handleEdit, handleDelete, handleView }} // Pass actions via context
+          context={{ handleEdit, handleDelete, handleView }}
         />
       </div>
 

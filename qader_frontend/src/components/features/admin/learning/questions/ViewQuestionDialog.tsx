@@ -29,16 +29,16 @@ const DetailRow = ({
 }) => (
   <div className="grid grid-cols-3 gap-4 py-2">
     <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
-    <dd className="text-sm col-span-2">{value ?? "N/A"}</dd>
+    <dd className="text-sm col-span-2">{value ?? "غير متوفر"}</dd>
   </div>
 );
 
 const difficultyMap: { [key: number]: string } = {
-  1: "1 - Very Easy",
-  2: "2 - Easy",
-  3: "3 - Medium",
-  4: "4 - Hard",
-  5: "5 - Very Hard",
+  1: "1 - سهل جداً",
+  2: "2 - سهل",
+  3: "3 - متوسط",
+  4: "4 - صعب",
+  5: "5 - صعب جداً",
 };
 
 export function ViewQuestionDialog({
@@ -63,29 +63,29 @@ export function ViewQuestionDialog({
       );
     }
     if (!question) {
-      return <div className="text-center py-8">Question data not found.</div>;
+      return <div className="text-center py-8">بيانات السؤال غير موجودة.</div>;
     }
 
     return (
       <div className="space-y-4 pt-4">
         <dl className="space-y-2">
-          <DetailRow label="ID" value={question.id} />
+          <DetailRow label="المعرف" value={question.id} />
           <DetailRow
-            label="Status"
+            label="الحالة"
             value={
               <Badge variant={question.is_active ? "default" : "outline"}>
-                {question.is_active ? "Active" : "Inactive"}
+                {question.is_active ? "نشط" : "غير نشط"}
               </Badge>
             }
           />
           <DetailRow
-            label="Hierarchy"
+            label="التسلسل الهرمي"
             value={`${question.section.name} > ${question.subsection.name} ${
               question.skill ? `> ${question.skill.name}` : ""
             }`}
           />
           <DetailRow
-            label="Difficulty"
+            label="مستوى الصعوبة"
             value={difficultyMap[question.difficulty]}
           />
         </dl>
@@ -93,29 +93,29 @@ export function ViewQuestionDialog({
         <Separator />
 
         <div className="space-y-4">
-          <h4 className="font-semibold">Question & Options</h4>
+          <h4 className="font-semibold">السؤال والخيارات</h4>
           <p className="p-3 bg-muted rounded-md text-sm">
             {question.question_text}
           </p>
-          <DetailRow label="Option A" value={question.options.A} />
-          <DetailRow label="Option B" value={question.options.B} />
-          <DetailRow label="Option C" value={question.options.C} />
-          <DetailRow label="Option D" value={question.options.D} />
+          <DetailRow label="الخيار أ" value={question.options.A} />
+          <DetailRow label="الخيار ب" value={question.options.B} />
+          <DetailRow label="الخيار ج" value={question.options.C} />
+          <DetailRow label="الخيار د" value={question.options.D} />
           <DetailRow
-            label="Correct Answer"
+            label="الإجابة الصحيحة"
             value={
               <Badge variant="secondary">
-                Option {question.correct_answer}
+                الخيار {question.correct_answer}
               </Badge>
             }
           />
           {question.image && (
             <DetailRow
-              label="Image"
+              label="الصورة"
               value={
                 <img
                   src={question.image}
-                  alt="Question image"
+                  alt="صورة السؤال"
                   className="max-w-xs rounded-md border"
                 />
               }
@@ -126,24 +126,21 @@ export function ViewQuestionDialog({
         <Separator />
 
         <div className="space-y-4">
-          <h4 className="font-semibold">Supporting Info</h4>
+          <h4 className="font-semibold">معلومات مساعدة</h4>
+          <DetailRow label="الشرح" value={question.explanation} />
+          <DetailRow label="تلميح" value={question.hint} />
           <DetailRow
-            label="Explanation"
-            value={question.explanation || "None provided"}
-          />
-          <DetailRow label="Hint" value={question.hint || "None provided"} />
-          <DetailRow
-            label="Solution Summary"
-            value={question.solution_method_summary || "None provided"}
+            label="ملخص الحل"
+            value={question.solution_method_summary}
           />
         </div>
 
         <Separator />
 
         <div className="space-y-4">
-          <h4 className="font-semibold">Usage Statistics</h4>
+          <h4 className="font-semibold">إحصائيات الاستخدام</h4>
           <DetailRow
-            label="Total Attempts"
+            label="إجمالي المحاولات"
             value={question.total_usage_count}
           />
           {question.usage_by_test_type &&
@@ -152,7 +149,7 @@ export function ViewQuestionDialog({
                 key={key}
                 label={key
                   .replace(/_/g, " ")
-                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+                  .replace(/\b\w/g, (l) => l.toUpperCase())} // This part can be improved with a proper translation map if needed
                 value={value}
               />
             ))}
@@ -165,9 +162,9 @@ export function ViewQuestionDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Question Details</DialogTitle>
+          <DialogTitle>تفاصيل السؤال</DialogTitle>
           <DialogDescription>
-            A read-only view of the question and its associated data.
+            عرض للقراءة فقط للسؤال وبياناته المرتبطة.
           </DialogDescription>
         </DialogHeader>
         {renderContent()}

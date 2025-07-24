@@ -32,14 +32,14 @@ export function DeleteQuestionDialog({
   const mutation = useMutation({
     mutationFn: (id: number) => deleteAdminQuestion(id),
     onSuccess: () => {
-      toast.success("Question deleted successfully.");
+      toast.success("تم حذف السؤال بنجاح.");
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.learning.questions.lists(),
       });
       onClose();
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Failed to delete question."));
+      toast.error(getApiErrorMessage(error, "فشل حذف السؤال."));
     },
   });
 
@@ -53,22 +53,22 @@ export function DeleteQuestionDialog({
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the
-            question and its associated data.
+            لا يمكن التراجع عن هذا الإجراء. سيؤدي هذا إلى حذف السؤال وبياناته
+            المرتبطة به بشكل دائم.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onClose} disabled={mutation.isPending}>
-            Cancel
+            إلغاء
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             disabled={mutation.isPending}
             className="bg-red-600 hover:bg-red-700"
           >
-            {mutation.isPending ? "Deleting..." : "Delete"}
+            {mutation.isPending ? "جاري الحذف..." : "حذف"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

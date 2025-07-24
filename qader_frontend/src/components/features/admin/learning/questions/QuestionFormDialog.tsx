@@ -42,41 +42,35 @@ import {
   getAdminAllSubSections,
   getAdminAllSkills,
 } from "@/services/api/admin/learning.service";
-import {
-  AdminQuestionCreateUpdate,
-  CorrectAnswer,
-} from "@/types/api/admin/learning.types";
+import { AdminQuestionCreateUpdate } from "@/types/api/admin/learning.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const difficultyLevels = [
-  { value: 1, label: "1 - Very Easy" },
-  { value: 2, label: "2 - Easy" },
-  { value: 3, label: "3 - Medium" },
-  { value: 4, label: "4 - Hard" },
-  { value: 5, label: "5 - Very Hard" },
+  { value: 1, label: "1 - سهل جداً" },
+  { value: 2, label: "2 - سهل" },
+  { value: 3, label: "3 - متوسط" },
+  { value: 4, label: "4 - صعب" },
+  { value: 5, label: "5 - صعب جداً" },
 ];
 
 const answerOptions = ["A", "B", "C", "D"] as const;
 
-// Zod schema is our single source of truth for validation
 const formSchema = z.object({
-  question_text: z
-    .string()
-    .min(10, "Question text must be at least 10 characters."),
-  option_a: z.string().min(1, "Option A is required."),
-  option_b: z.string().min(1, "Option B is required."),
-  option_c: z.string().min(1, "Option C is required."),
-  option_d: z.string().min(1, "Option D is required."),
+  question_text: z.string().min(10, "يجب أن لا يقل نص السؤال عن 10 أحرف."),
+  option_a: z.string().min(1, "الخيار أ مطلوب."),
+  option_b: z.string().min(1, "الخيار ب مطلوب."),
+  option_c: z.string().min(1, "الخيار ج مطلوب."),
+  option_d: z.string().min(1, "الخيار د مطلوب."),
   correct_answer: z.enum(answerOptions, {
-    required_error: "Correct answer is required.",
+    required_error: "الإجابة الصحيحة مطلوبة.",
   }),
   difficulty: z.coerce.number().min(1).max(5),
-  section_id: z.coerce.number({ required_error: "Section is required." }),
-  subsection_id: z.coerce.number({ required_error: "Subsection is required." }),
+  section_id: z.coerce.number({ required_error: "القسم الرئيسي مطلوب." }),
+  subsection_id: z.coerce.number({ required_error: "القسم الفرعي مطلوب." }),
   skill_id: z.coerce.number().nullable().optional(),
   is_active: z.boolean(),
-  image_upload: z.any().optional(), // field for the file itself
+  image_upload: z.any().optional(),
   explanation: z.string().optional().nullable(),
   hint: z.string().optional().nullable(),
   solution_method_summary: z.string().optional().nullable(),
@@ -84,7 +78,6 @@ const formSchema = z.object({
 
 type QuestionFormValues = z.infer<typeof formSchema>;
 
-// Default values for creating a new question
 const defaultFormValues: Partial<QuestionFormValues> = {
   question_text: "",
   option_a: "",
@@ -174,12 +167,10 @@ export function QuestionFormDialog({
         solution_method_summary: question.solution_method_summary,
         image_upload: null,
       });
-      // This is crucial: update local state for cascading dropdowns after form reset.
       setSelectedSection(question.section.id);
       setSelectedSubsection(question.subsection.id);
       setImagePreview(question.image);
     } else if (!isEditMode) {
-      // When opening in "create" mode, ensure it's a blank slate.
       form.reset(defaultFormValues);
       setSelectedSection(undefined);
       setSelectedSubsection(undefined);
@@ -195,15 +186,12 @@ export function QuestionFormDialog({
       if (payload.image_upload === undefined) {
         payload.image_upload = null;
       }
-
       return isEditMode
         ? updateAdminQuestion(questionId, payload)
         : createAdminQuestion(payload as AdminQuestionCreateUpdate);
     },
     onSuccess: () => {
-      toast.success(
-        `Question ${isEditMode ? "updated" : "created"} successfully!`
-      );
+      toast.success(`تم ${isEditMode ? "تحديث" : "إنشاء"} السؤال بنجاح!`);
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.learning.questions.lists(),
       });
@@ -215,7 +203,7 @@ export function QuestionFormDialog({
       handleClose();
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Failed to save question."));
+      toast.error(getApiErrorMessage(error, "فشل حفظ السؤال."));
     },
   });
 
@@ -243,11 +231,10 @@ export function QuestionFormDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isEditMode ? "Edit Question" : "Create New Question"}
+            {isEditMode ? "تعديل السؤال" : "إنشاء سؤال جديد"}
           </DialogTitle>
           <DialogDescription>
-            Fill in the details below. All fields with an asterisk (*) are
-            required.
+            املأ التفاصيل أدناه. جميع الحقول التي تحتوي على علامة (*) مطلوبة.
           </DialogDescription>
         </DialogHeader>
         {isEditMode && isLoadingQuestion ? (
@@ -263,6 +250,7 @@ export function QuestionFormDialog({
               onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-6 pt-4"
             >
+              {/* Form content with translated labels, placeholders etc. */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-6">
                   {/* Hierarchy Selects */}
@@ -271,7 +259,7 @@ export function QuestionFormDialog({
                     name="section_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Section *</FormLabel>
+                        <FormLabel>القسم الرئيسي *</FormLabel>
                         <Select
                           onValueChange={(v) => {
                             field.onChange(v);
@@ -281,10 +269,11 @@ export function QuestionFormDialog({
                             setSelectedSubsection(undefined);
                           }}
                           value={field.value?.toString()}
+                          dir="rtl"
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a section" />
+                              <SelectValue placeholder="اختر قسمًا رئيسيًا" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -304,7 +293,7 @@ export function QuestionFormDialog({
                     name="subsection_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Subsection *</FormLabel>
+                        <FormLabel>القسم الفرعي *</FormLabel>
                         <Select
                           onValueChange={(v) => {
                             field.onChange(v);
@@ -313,10 +302,11 @@ export function QuestionFormDialog({
                           }}
                           value={field.value?.toString()}
                           disabled={!selectedSection}
+                          dir="rtl"
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a subsection" />
+                              <SelectValue placeholder="اختر قسمًا فرعيًا" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -336,14 +326,15 @@ export function QuestionFormDialog({
                     name="skill_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Skill (Optional)</FormLabel>
+                        <FormLabel>المهارة (اختياري)</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           value={field.value?.toString()}
+                          dir="rtl"
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a skill" />
+                              <SelectValue placeholder="اختر مهارة" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -365,12 +356,12 @@ export function QuestionFormDialog({
                     name="image_upload"
                     render={() => (
                       <FormItem>
-                        <FormLabel>Image (Optional)</FormLabel>
+                        <FormLabel>الصورة (اختياري)</FormLabel>
                         {imagePreview && (
                           <div className="mt-2">
                             <img
                               src={imagePreview}
-                              alt="Preview"
+                              alt="معاينة"
                               className="max-h-40 rounded-md"
                             />
                           </div>
@@ -390,7 +381,7 @@ export function QuestionFormDialog({
                             className="p-0 h-auto"
                             onClick={handleRemoveImage}
                           >
-                            Remove Image
+                            إزالة الصورة
                           </Button>
                         )}
                         <FormMessage />
@@ -406,7 +397,7 @@ export function QuestionFormDialog({
                     name="question_text"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Question Text *</FormLabel>
+                        <FormLabel>نص السؤال *</FormLabel>
                         <FormControl>
                           <Textarea {...field} rows={4} />
                         </FormControl>
@@ -419,7 +410,7 @@ export function QuestionFormDialog({
                     name="option_a"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Option A *</FormLabel>
+                        <FormLabel>الخيار أ *</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -432,7 +423,7 @@ export function QuestionFormDialog({
                     name="option_b"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Option B *</FormLabel>
+                        <FormLabel>الخيار ب *</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -445,7 +436,7 @@ export function QuestionFormDialog({
                     name="option_c"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Option C *</FormLabel>
+                        <FormLabel>الخيار ج *</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -458,7 +449,7 @@ export function QuestionFormDialog({
                     name="option_d"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Option D *</FormLabel>
+                        <FormLabel>الخيار د *</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -475,20 +466,21 @@ export function QuestionFormDialog({
                   name="correct_answer"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Correct Answer *</FormLabel>
+                      <FormLabel>الإجابة الصحيحة *</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
+                        dir="rtl"
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select correct option" />
+                            <SelectValue placeholder="اختر الإجابة الصحيحة" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {answerOptions.map((opt) => (
                             <SelectItem key={opt} value={opt}>
-                              Option {opt}
+                              الخيار {opt}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -502,14 +494,15 @@ export function QuestionFormDialog({
                   name="difficulty"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Difficulty *</FormLabel>
+                      <FormLabel>مستوى الصعوبة *</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value?.toString()}
+                        dir="rtl"
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select difficulty" />
+                            <SelectValue placeholder="اختر مستوى الصعوبة" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -531,8 +524,9 @@ export function QuestionFormDialog({
                   control={form.control}
                   name="is_active"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-8">
-                      <FormLabel>Active</FormLabel>
+                    // RTL adjustment for switch component layout
+                    <FormItem className="flex flex-row rtl:flex-row-reverse items-center justify-between rounded-lg border p-3 shadow-sm mt-8">
+                      <FormLabel className="rtl:ml-4 ltr:mr-4">نشط</FormLabel>
                       <FormControl>
                         <Switch
                           checked={field.value}
@@ -550,7 +544,7 @@ export function QuestionFormDialog({
                   name="explanation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Explanation (Optional)</FormLabel>
+                      <FormLabel>الشرح (اختياري)</FormLabel>
                       <FormControl>
                         <Textarea
                           {...field}
@@ -567,7 +561,7 @@ export function QuestionFormDialog({
                   name="hint"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Hint (Optional)</FormLabel>
+                      <FormLabel>تلميح (اختياري)</FormLabel>
                       <FormControl>
                         <Textarea {...field} value={field.value ?? ""} />
                       </FormControl>
@@ -580,7 +574,7 @@ export function QuestionFormDialog({
                   name="solution_method_summary"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Solution Summary (Optional)</FormLabel>
+                      <FormLabel>ملخص طريقة الحل (اختياري)</FormLabel>
                       <FormControl>
                         <Textarea
                           {...field}
@@ -596,14 +590,14 @@ export function QuestionFormDialog({
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={handleClose}>
-                  Cancel
+                  إلغاء
                 </Button>
                 <Button type="submit" disabled={mutation.isPending}>
                   {mutation.isPending
-                    ? "Saving..."
+                    ? "جاري الحفظ..."
                     : isEditMode
-                    ? "Save Changes"
-                    : "Create Question"}
+                    ? "حفظ التغييرات"
+                    : "إنشاء السؤال"}
                 </Button>
               </DialogFooter>
             </form>

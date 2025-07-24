@@ -29,7 +29,6 @@ export function QuestionsTableToolbar({
   onFilterChange,
   currentFilters,
 }: QuestionsTableToolbarProps) {
-  // Initialize local state from the friendly URL filter props
   const [search, setSearch] = useState(currentFilters.search ?? "");
   const [selectedSection, setSelectedSection] = useState<string>(
     currentFilters.section ?? ""
@@ -54,7 +53,6 @@ export function QuestionsTableToolbar({
     queryFn: getAdminAllSections,
   });
 
-  // This query now correctly depends on the selectedSection state
   const { data: subsections } = useQuery({
     queryKey: queryKeys.admin.learning.subsections.list({
       sectionId: selectedSection,
@@ -91,22 +89,19 @@ export function QuestionsTableToolbar({
     !!currentFilters.skill;
 
   return (
-    <div className="flex items-center gap-2 p-4 border-b">
+    <div className="flex items-center gap-2 p-4 border-b flex-wrap">
       <Input
-        placeholder="Search questions..."
+        placeholder="ابحث في الأسئلة..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="max-w-xs"
       />
 
-      {/* --- REVISED SECTION SELECT --- */}
       <Select
         value={selectedSection}
         onValueChange={(value) => {
           const newSection = value || "";
           setSelectedSection(newSection);
-
-          // When section changes, clear downstream filters and update URL
           setSelectedSubsection("");
           setSelectedSkill("");
           onFilterChange({
@@ -115,9 +110,10 @@ export function QuestionsTableToolbar({
             skill: null,
           });
         }}
+        dir="rtl"
       >
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="All Sections" />
+          <SelectValue placeholder="كل الأقسام الرئيسية" />
         </SelectTrigger>
         <SelectContent>
           {sections?.results.map((s) => (
@@ -128,7 +124,6 @@ export function QuestionsTableToolbar({
         </SelectContent>
       </Select>
 
-      {/* Subsection and Skill Selects remain the same as the last version */}
       <Select
         value={selectedSubsection}
         onValueChange={(value) => {
@@ -137,10 +132,11 @@ export function QuestionsTableToolbar({
           setSelectedSkill("");
           onFilterChange({ subsection: newSubsection || null, skill: null });
         }}
-        disabled={!selectedSection} // Disabling logic is now correct
+        disabled={!selectedSection}
+        dir="rtl"
       >
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="All Subsections" />
+          <SelectValue placeholder="كل الأقسام الفرعية" />
         </SelectTrigger>
         <SelectContent>
           {subsections?.results.map((s) => (
@@ -159,9 +155,10 @@ export function QuestionsTableToolbar({
           onFilterChange({ skill: newSkill || null });
         }}
         disabled={!selectedSubsection}
+        dir="rtl"
       >
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="All Skills" />
+          <SelectValue placeholder="كل المهارات" />
         </SelectTrigger>
         <SelectContent>
           {skills?.results.map((s) => (
@@ -178,8 +175,8 @@ export function QuestionsTableToolbar({
           onClick={handleClearFilters}
           className="h-8 px-2 lg:px-3"
         >
-          <X className="mr-2 h-4 w-4" />
-          Clear
+          <X className="rtl:ml-2 ltr:mr-2 h-4 w-4" />
+          مسح
         </Button>
       )}
     </div>
