@@ -53,6 +53,8 @@ import {
   AdminQuestionCreateUpdate,
 } from "@/types/api/admin/learning.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Circle } from "lucide-react";
 
 // --- Schema, Types, and Constants (No changes) ---
 const difficultyLevels = [
@@ -73,8 +75,8 @@ const formSchema = z.object({
     required_error: "الإجابة الصحيحة مطلوبة.",
   }),
   difficulty: z.coerce.number().min(1).max(5),
-  section_id: z.coerce.number({ required_error: "القسم الرئيسي مطلوب." }),
-  subsection_id: z.coerce.number({ required_error: "القسم الفرعي مطلوب." }),
+  section_id: z.coerce.number({ message: "القسم الرئيسي مطلوب." }),
+  subsection_id: z.coerce.number({ message: "القسم الفرعي مطلوب." }),
   skill_id: z.coerce.number().nullable().optional(),
   is_active: z.boolean(),
   image_upload: z.any().optional(),
@@ -99,58 +101,48 @@ const defaultFormValues: Partial<QuestionFormValues> = {
 function FormSkeleton() {
   return (
     <div className="space-y-6 pt-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        {/* Left Column Skeleton */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-24" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-32 w-full" />
-            </CardContent>
-          </Card>
-        </div>
-        {/* Right Column Skeleton */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-40" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-28" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </CardContent>
-          </Card>
-        </div>
+      <div className="flex w-full space-x-2 rtl:space-x-reverse">
+        <Skeleton className="h-10 flex-1" />
+        <Skeleton className="h-10 flex-1" />
+        <Skeleton className="h-10 flex-1" />
       </div>
-      <DialogFooter>
+      <Card className="mt-6">
+        <CardHeader>
+          <Skeleton className="h-7 w-48" />
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <Skeleton className="h-5 w-24 mb-2" />
+            <Skeleton className="h-28 w-full" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Skeleton className="h-5 w-20 mb-2" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div>
+              <Skeleton className="h-5 w-20 mb-2" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div>
+              <Skeleton className="h-5 w-20 mb-2" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div>
+              <Skeleton className="h-5 w-20 mb-2" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </div>
+          <div>
+            <Skeleton className="h-5 w-32 mb-2" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+      <div className="flex justify-end items-center pt-6 gap-2">
         <Skeleton className="h-10 w-24" />
         <Skeleton className="h-10 w-32" />
-      </DialogFooter>
+      </div>
     </div>
   );
 }
@@ -173,8 +165,22 @@ interface QuestionFormProps {
   setSelectedSection: (id: number | undefined) => void;
   setSelectedSubsection: (id: number | undefined) => void;
 }
+// --- Fields per tab for error checking ---
+const CORE_CONTENT_FIELDS: (keyof QuestionFormValues)[] = [
+  "question_text",
+  "option_a",
+  "option_b",
+  "option_c",
+  "option_d",
+];
+const CLASSIFICATION_FIELDS: (keyof QuestionFormValues)[] = [
+  "section_id",
+  "subsection_id",
+  "difficulty",
+  "correct_answer",
+];
 
-// --- NEW: The Internal "Dumb" Form Component ---
+// --- REFACTORED: The Internal "Dumb" Form Component with Tabs ---
 function QuestionFormComponent({
   form,
   onSubmit,
@@ -190,6 +196,18 @@ function QuestionFormComponent({
   setSelectedSection,
   setSelectedSubsection,
 }: QuestionFormProps) {
+  const {
+    formState: { errors },
+  } = form;
+
+  // Helper function to check for errors in a tab
+  const hasErrorInTab = (fieldNames: (keyof QuestionFormValues)[]) => {
+    return fieldNames.some((field) => Object.keys(errors).includes(field));
+  };
+
+  const hasCoreContentError = hasErrorInTab(CORE_CONTENT_FIELDS);
+  const hasClassificationError = hasErrorInTab(CLASSIFICATION_FIELDS);
+
   return (
     <Form {...form}>
       <form
@@ -197,14 +215,172 @@ function QuestionFormComponent({
         className="space-y-6 pt-4"
         encType="multipart/form-data"
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          {/* Left Column */}
-          <div className="space-y-6">
+        <Tabs defaultValue="content" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="content">
+              المحتوى الأساسي
+              {hasCoreContentError && (
+                <Circle className="h-2 w-2 rtl:mr-2 ltr:ml-2 fill-red-500 text-red-500" />
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="classification">
+              التصنيف والإعدادات
+              {hasClassificationError && (
+                <Circle className="h-2 w-2 rtl:mr-2 ltr:ml-2 fill-red-500 text-red-500" />
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="helpers">معلومات مساعدة</TabsTrigger>
+          </TabsList>
+
+          {/* TAB 1: Core Content */}
+          <TabsContent value="content" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>التسلسل التعليمي *</CardTitle>
+                <CardTitle>السؤال والخيارات والصورة</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="question_text"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نص السؤال *</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} rows={5} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="option_a"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>الخيار أ *</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="option_b"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>الخيار ب *</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="option_c"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>الخيار ج *</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="option_d"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>الخيار د *</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="correct_answer"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>الإجابة الصحيحة</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        dir="rtl"
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر الإجابة الصحيحة" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {answerOptions.map((opt) => (
+                            <SelectItem key={opt} value={opt}>
+                              الخيار {opt}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="image_upload"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>الصورة (اختياري)</FormLabel>
+                      {imagePreview && (
+                        <div className="mt-2 relative w-fit">
+                          <img
+                            src={imagePreview}
+                            alt="معاينة"
+                            className="max-h-40 rounded-md border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                            onClick={handleRemoveImage}
+                          >
+                            <span className="sr-only">إزالة الصورة</span>×
+                          </Button>
+                        </div>
+                      )}
+                      <FormControl>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="pt-2 file:text-sm file:font-medium"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TAB 2: Classification & Settings */}
+          <TabsContent value="classification" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>التصنيف الهرمي والإعدادات الهامة</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <FormField
                   control={form.control}
                   name="section_id"
@@ -305,24 +481,85 @@ function QuestionFormComponent({
                     </FormItem>
                   )}
                 />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                  <FormField
+                    control={form.control}
+                    name="difficulty"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>مستوى الصعوبة</FormLabel>
+                        <Select
+                          onValueChange={(v) => field.onChange(Number(v))}
+                          value={field.value?.toString()}
+                          dir="rtl"
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر مستوى الصعوبة" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {difficultyLevels.map((lvl) => (
+                              <SelectItem
+                                key={lvl.value}
+                                value={lvl.value.toString()}
+                              >
+                                {lvl.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row rtl:flex-row-reverse items-center justify-between rounded-lg border p-4 shadow-sm">
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-0.5">
+                        <FormLabel>حالة السؤال</FormLabel>
+                        <DialogDescription className="text-xs">
+                          إذا كان غير نشط، فلن يظهر للطلاب.
+                        </DialogDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* TAB 3: Helper Information */}
+          <TabsContent value="helpers" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>معلومات إضافية (اختياري)</CardTitle>
+                <CardTitle>معلومات مساعدة (اختياري)</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <FormField
                   control={form.control}
                   name="explanation"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>الشرح</FormLabel>
+                      <DialogDescription className="text-xs pb-2">
+                        شرح مفصل للإجابة الصحيحة يظهر للطالب بعد المحاولة.
+                      </DialogDescription>
                       <FormControl>
                         <Textarea
                           {...field}
                           value={field.value ?? ""}
-                          rows={3}
+                          rows={4}
                         />
                       </FormControl>
                       <FormMessage />
@@ -335,8 +572,15 @@ function QuestionFormComponent({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>تلميح</FormLabel>
+                      <DialogDescription className="text-xs pb-2">
+                        تلميح يمكن للطالب طلبه أثناء حل السؤال.
+                      </DialogDescription>
                       <FormControl>
-                        <Textarea {...field} value={field.value ?? ""} />
+                        <Textarea
+                          {...field}
+                          value={field.value ?? ""}
+                          rows={2}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -348,124 +592,14 @@ function QuestionFormComponent({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>ملخص طريقة الحل</FormLabel>
+                      <DialogDescription className="text-xs pb-2">
+                        وصف مختصر لاستراتيجية الحل.
+                      </DialogDescription>
                       <FormControl>
-                        <Textarea {...field} value={field.value ?? ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          </div>
-          {/* Right Column */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>السؤال والخيارات *</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="question_text"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>نص السؤال</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} rows={4} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="option_a"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الخيار أ</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="option_b"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الخيار ب</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="option_c"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الخيار ج</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="option_d"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الخيار د</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>الصورة (اختياري)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={form.control}
-                  name="image_upload"
-                  render={() => (
-                    <FormItem>
-                      {imagePreview && (
-                        <div className="mt-2 relative w-fit">
-                          <img
-                            src={imagePreview}
-                            alt="معاينة"
-                            className="max-h-40 rounded-md border"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                            onClick={handleRemoveImage}
-                          >
-                            <span className="sr-only">إزالة الصورة</span>×
-                          </Button>
-                        </div>
-                      )}
-                      <FormControl>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="pt-2"
+                        <Textarea
+                          {...field}
+                          value={field.value ?? ""}
+                          rows={3}
                         />
                       </FormControl>
                       <FormMessage />
@@ -474,91 +608,13 @@ function QuestionFormComponent({
                 />
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>الإعدادات *</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                <FormField
-                  control={form.control}
-                  name="correct_answer"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الإجابة الصحيحة</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        dir="rtl"
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر الإجابة الصحيحة" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {answerOptions.map((opt) => (
-                            <SelectItem key={opt} value={opt}>
-                              الخيار {opt}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="difficulty"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>مستوى الصعوبة</FormLabel>
-                      <Select
-                        onValueChange={(v) => field.onChange(Number(v))}
-                        value={field.value?.toString()}
-                        dir="rtl"
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر مستوى الصعوبة" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {difficultyLevels.map((lvl) => (
-                            <SelectItem
-                              key={lvl.value}
-                              value={lvl.value.toString()}
-                            >
-                              {lvl.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="is_active"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row rtl:flex-row-reverse items-center justify-between rounded-lg border p-3 shadow-sm h-10 md:col-span-2">
-                      <FormLabel className="rtl:ml-4 ltr:mr-4 mb-0">
-                        تفعيل السؤال
-                      </FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
+        {hasClassificationError && (
+          <p className="text-center fill-red-500 text-red-500">
+            هناك بعض البيانات ناقصة
+          </p>
+        )}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={handleClose}>
             إلغاء
@@ -727,7 +783,7 @@ export function QuestionFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="md:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditMode ? "تعديل السؤال" : "إنشاء سؤال جديد"}
