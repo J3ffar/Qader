@@ -1,3 +1,4 @@
+// qader_frontend/src/components/shared/DeleteConfirmationDialog.tsx
 "use client";
 
 import {
@@ -16,7 +17,7 @@ interface DeleteConfirmationDialogProps {
   onClose: () => void;
   onConfirm: () => void;
   isPending?: boolean;
-  itemType?: string; // e.g., "section", "question"
+  itemType?: string;
 }
 
 export function DeleteConfirmationDialog({
@@ -24,28 +25,28 @@ export function DeleteConfirmationDialog({
   onClose,
   onConfirm,
   isPending = false,
-  itemType = "item",
+  itemType = "العنصر", // Default translated
 }: DeleteConfirmationDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete this{" "}
-            {itemType}.
+            لا يمكن التراجع عن هذا الإجراء. سيؤدي هذا إلى حذف هذا {itemType}{" "}
+            بشكل دائم.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onClose} disabled={isPending}>
-            Cancel
+            إلغاء
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             disabled={isPending}
             className="bg-red-600 hover:bg-red-700"
           >
-            {isPending ? "Deleting..." : "Delete"}
+            {isPending ? "جاري الحذف..." : "حذف"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

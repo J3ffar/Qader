@@ -1,3 +1,4 @@
+// qader_frontend/src/components/features/admin/learning/subsections/columns.tsx
 "use client";
 
 import { ColumnDef, Row, Table } from "@tanstack/react-table";
@@ -25,19 +26,19 @@ const ActionsCell = ({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-8 w-8 p-0">
-          <span className="sr-only">Open menu</span>
+          <span className="sr-only">فتح القائمة</span>
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => handleEdit(subsection.id)}>
-          Edit
+          تعديل
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="text-red-500"
+          className="text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-900/40"
           onClick={() => handleDelete(subsection.id)}
         >
-          Delete
+          حذف
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -45,26 +46,27 @@ const ActionsCell = ({
 };
 
 export const getColumns = (): ColumnDef<AdminSubSection>[] => [
-  { accessorKey: "id", header: "ID" },
-  { accessorKey: "name", header: "Name" },
+  { accessorKey: "id", header: "المعرف" },
+  { accessorKey: "name", header: "الاسم" },
   {
     accessorKey: "section_name",
-    header: "Parent Section",
+    header: "القسم الرئيسي",
   },
   {
     accessorKey: "description",
-    header: "Description",
+    header: "الوصف",
     cell: ({ row }) => (
       <div className="max-w-md truncate">
-        {row.original.description || "N/A"}
+        {row.original.description || "لا يوجد"}
       </div>
     ),
   },
-  { accessorKey: "order", header: "Order" },
+  { accessorKey: "order", header: "الترتيب" },
   {
     accessorKey: "created_at",
-    header: "Created",
-    cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
+    header: "تاريخ الإنشاء",
+    cell: ({ row }) =>
+      new Date(row.original.created_at).toLocaleDateString("ar-EG"),
   },
   { id: "actions", cell: ActionsCell },
 ];

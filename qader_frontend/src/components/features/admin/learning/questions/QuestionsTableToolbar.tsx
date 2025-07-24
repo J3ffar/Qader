@@ -83,10 +83,10 @@ export function QuestionsTableToolbar({
   };
 
   const isFiltered =
-    !!currentFilters.search ||
-    !!currentFilters.section ||
-    !!currentFilters.subsection ||
-    !!currentFilters.skill;
+    !currentFilters.search ||
+    !currentFilters.section ||
+    !currentFilters.subsection ||
+    !currentFilters.skill;
 
   return (
     <div className="flex items-center gap-2 p-4 border-b flex-wrap">
@@ -176,7 +176,7 @@ export function QuestionsTableToolbar({
           className="h-8 px-2 lg:px-3"
         >
           <X className="rtl:ml-2 ltr:mr-2 h-4 w-4" />
-          مسح
+          مسح الفلترة
         </Button>
       )}
     </div>

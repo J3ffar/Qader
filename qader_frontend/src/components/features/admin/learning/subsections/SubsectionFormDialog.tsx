@@ -42,11 +42,10 @@ import {
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { AdminSubSection } from "@/types/api/admin/learning.types";
 
-// The form schema now includes the required `section_id`.
 const formSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters."),
+  name: z.string().min(3, "يجب ألا يقل الاسم عن 3 أحرف."),
   section_id: z.coerce.number({
-    required_error: "A parent section is required.",
+    required_error: "يجب اختيار القسم الرئيسي.",
   }),
   description: z.string().optional(),
   order: z.coerce.number().int().optional(),
@@ -59,7 +58,6 @@ interface SubsectionFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   subsectionId: number | null;
-  // Use the new, more accurate type for the initialData prop
   initialData?: SubsectionWithParentId | null;
 }
 
@@ -72,7 +70,6 @@ export function SubsectionFormDialog({
   const queryClient = useQueryClient();
   const isEditMode = subsectionId !== null;
 
-  // Query to get all sections for the dropdown menu.
   const { data: sectionsData, isLoading: isLoadingSections } = useQuery({
     queryKey: queryKeys.admin.learning.sections.list({ all: true }),
     queryFn: () => getAdminAllSections(),
@@ -103,16 +100,14 @@ export function SubsectionFormDialog({
         ? updateAdminSubSection(subsectionId!, values)
         : createAdminSubSection(values),
     onSuccess: () => {
-      toast.success(
-        `Subsection ${isEditMode ? "updated" : "created"} successfully!`
-      );
+      toast.success(`تم ${isEditMode ? "تحديث" : "إنشاء"} القسم الفرعي بنجاح!`);
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.learning.subsections.lists(),
       });
       onClose();
     },
     onError: (error) =>
-      toast.error(getApiErrorMessage(error, "Failed to save subsection.")),
+      toast.error(getApiErrorMessage(error, "فشل حفظ القسم الفرعي.")),
   });
 
   const onSubmit = (values: SubsectionFormValues) => mutation.mutate(values);
@@ -122,10 +117,10 @@ export function SubsectionFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isEditMode ? "Edit Subsection" : "Create New Subsection"}
+            {isEditMode ? "تعديل القسم الفرعي" : "إنشاء قسم فرعي جديد"}
           </DialogTitle>
           <DialogDescription>
-            Fill in the details. A parent section is required.
+            املأ التفاصيل. اختيار القسم الرئيسي إلزامي.
           </DialogDescription>
         </DialogHeader>
         {isLoadingSections ? (
@@ -143,14 +138,15 @@ export function SubsectionFormDialog({
                 name="section_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Parent Section *</FormLabel>
+                    <FormLabel>القسم الرئيسي *</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value?.toString()}
+                      dir="rtl"
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a parent section" />
+                          <SelectValue placeholder="اختر القسم الرئيسي" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -173,7 +169,7 @@ export function SubsectionFormDialog({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name *</FormLabel>
+                    <FormLabel>الاسم *</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -186,7 +182,7 @@ export function SubsectionFormDialog({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>الوصف</FormLabel>
                     <FormControl>
                       <Textarea {...field} value={field.value ?? ""} />
                     </FormControl>
@@ -199,7 +195,7 @@ export function SubsectionFormDialog({
                 name="order"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Order</FormLabel>
+                    <FormLabel>الترتيب</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -213,10 +209,10 @@ export function SubsectionFormDialog({
               />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={onClose}>
-                  Cancel
+                  إلغاء
                 </Button>
                 <Button type="submit" disabled={mutation.isPending}>
-                  {mutation.isPending ? "Saving..." : "Save"}
+                  {mutation.isPending ? "جاري الحفظ..." : "حفظ"}
                 </Button>
               </DialogFooter>
             </form>
