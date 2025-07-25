@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useEditor, EditorContent, Editor, Range } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -121,9 +121,9 @@ export const RichTextEditor = ({
     extensions: [
       StarterKit.configure({ heading: false, codeBlock: false }),
       Placeholder.configure({ placeholder: placeholder || "اكتب هنا..." }),
-      KatexNode, // <-- Use our custom node
+      KatexNode,
     ],
-    content: value,
+    // DO NOT set content here directly when using immediatelyRender: false
     editorProps: {
       attributes: {
         class: cn(
@@ -133,9 +133,30 @@ export const RichTextEditor = ({
       },
     },
     onUpdate({ editor }) {
+      // The onChange handler is still correct
       onChange(editor.getHTML());
     },
+    immediatelyRender: false,
   });
+
+  // --- NEW useEffect TO POPULATE THE EDITOR ---
+  // This effect runs after the component has mounted safely on the client.
+  useEffect(() => {
+    if (!editor || !value) {
+      return;
+    }
+
+    // Compare the editor's current content with the value prop.
+    // This check is VITAL to prevent an infinite loop. We only update
+    // the content if it's different from the prop, which happens on
+    // initial load or if the parent component forces a change.
+    if (editor.getHTML() !== value) {
+      // Use `setContent` to populate the editor. The `false` argument
+      // prevents this action from triggering the `onUpdate` callback,
+      // further preventing potential loops.
+      editor.commands.setContent(value);
+    }
+  }, [editor, value]); // Rerun this effect if the editor instance or the value prop changes
 
   return (
     <div className="flex flex-col">

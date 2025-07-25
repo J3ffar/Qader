@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm, UseFormReturn } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
-
+import { Skeleton } from "@/components/ui/skeleton";
+import { queryKeys } from "@/constants/queryKeys";
 import {
   Dialog,
   DialogContent,
@@ -35,8 +35,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
-import { queryKeys } from "@/constants/queryKeys";
 import {
   getAdminQuestionDetail,
   createAdminQuestion,
@@ -44,6 +42,7 @@ import {
   getAdminAllSections,
   getAdminAllSubSections,
   getAdminAllSkills,
+  objectToFormData,
 } from "@/services/api/admin/learning.service";
 import {
   AdminQuestion,
@@ -55,10 +54,32 @@ import {
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Circle, Sigma } from "lucide-react";
-import { RichTextEditor } from "@/components/shared/RichTextEditor";
+import { SearchableCombobox } from "@/components/shared/form/SearchableCombobox"; // <--- IMPORT a new component
+// import { RichTextEditor } from "@/components/shared/RichTextEditor";
 import { EquationTutorialDialog } from "./EquationTutorialDialog";
+import * as z from "zod";
+import dynamic from "next/dynamic";
 
-// --- Schema, Types, and Constants ---
+const RichTextEditorSkeleton = () => (
+  <div className="flex flex-col">
+    <Skeleton className="h-10 w-full rounded-b-none rounded-t-md" />
+    <Skeleton className="h-20 w-full rounded-b-md rounded-t-none" />
+  </div>
+);
+
+// Dynamically import the RichTextEditor and disable SSR for it.
+// Provide the custom skeleton as the loading component for a better UX.
+const RichTextEditor = dynamic(
+  () =>
+    import("@/components/shared/RichTextEditor").then(
+      (mod) => mod.RichTextEditor
+    ),
+  {
+    ssr: false,
+    loading: () => <RichTextEditorSkeleton />,
+  }
+);
+
 const difficultyLevels = [
   { value: 1, label: "1 - سهل جداً" },
   { value: 2, label: "2 - سهل" },
@@ -157,7 +178,6 @@ function FormSkeleton() {
   );
 }
 
-// ... (QuestionFormProps and other constants remain unchanged)
 interface QuestionFormProps {
   form: UseFormReturn<QuestionFormValues>;
   onSubmit: (values: QuestionFormValues) => void;
@@ -174,6 +194,8 @@ interface QuestionFormProps {
   // State setters for dependent dropdowns
   setSelectedSection: (id: number | undefined) => void;
   setSelectedSubsection: (id: number | undefined) => void;
+  isLoadingSubsections: boolean;
+  isLoadingSkills: boolean;
 }
 const CORE_CONTENT_FIELDS: (keyof QuestionFormValues)[] = [
   "question_text",
@@ -181,14 +203,13 @@ const CORE_CONTENT_FIELDS: (keyof QuestionFormValues)[] = [
   "option_b",
   "option_c",
   "option_d",
+  "correct_answer",
 ];
 const CLASSIFICATION_FIELDS: (keyof QuestionFormValues)[] = [
   "section_id",
   "subsection_id",
   "difficulty",
-  "correct_answer",
 ];
-
 function QuestionFormComponent({
   form,
   onSubmit,
@@ -203,7 +224,12 @@ function QuestionFormComponent({
   skills,
   setSelectedSection,
   setSelectedSubsection,
-}: QuestionFormProps) {
+  isLoadingSubsections,
+  isLoadingSkills,
+}: QuestionFormProps & {
+  isLoadingSubsections: boolean;
+  isLoadingSkills: boolean;
+}) {
   const {
     formState: { errors },
   } = form;
@@ -423,106 +449,56 @@ function QuestionFormComponent({
                 <CardTitle>التصنيف الهرمي والإعدادات الهامة</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="section_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>القسم الرئيسي</FormLabel>
-                      <Select
-                        onValueChange={(v) => {
-                          const numV = Number(v);
-                          field.onChange(numV);
-                          setSelectedSection(numV);
-                          form.setValue("subsection_id", undefined as any);
-                          form.setValue("skill_id", null);
-                          setSelectedSubsection(undefined);
-                        }}
-                        value={field.value?.toString()}
-                        dir="rtl"
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر قسمًا رئيسيًا" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {sections?.results.map((s) => (
-                            <SelectItem key={s.id} value={s.id.toString()}>
-                              {s.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                {/* === REPLACED WITH COMBOBOX === */}
+                <SearchableCombobox
+                  form={form}
+                  fieldName="section_id"
+                  label="القسم الرئيسي"
+                  options={sections?.results || []}
+                  placeholder="اختر قسمًا رئيسيًا"
+                  searchPlaceholder="ابحث عن قسم..."
+                  emptyMessage="لم يتم العثور على قسم."
+                  onValueChange={(id) => {
+                    setSelectedSection(id);
+                    form.setValue("subsection_id", undefined as any, {
+                      shouldValidate: true,
+                    });
+                    form.setValue("skill_id", null, { shouldValidate: true });
+                    setSelectedSubsection(undefined);
+                  }}
                 />
-                <FormField
-                  control={form.control}
-                  name="subsection_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>القسم الفرعي</FormLabel>
-                      <Select
-                        onValueChange={(v) => {
-                          const numV = Number(v);
-                          field.onChange(numV);
-                          setSelectedSubsection(numV);
-                          form.setValue("skill_id", null);
-                        }}
-                        value={field.value?.toString()}
-                        disabled={!form.watch("section_id")}
-                        dir="rtl"
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر قسمًا فرعيًا" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {subsections?.results.map((s) => (
-                            <SelectItem key={s.id} value={s.id.toString()}>
-                              {s.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+
+                {/* === REPLACED WITH COMBOBOX === */}
+                <SearchableCombobox
+                  form={form}
+                  fieldName="subsection_id"
+                  label="القسم الفرعي"
+                  options={subsections?.results || []}
+                  placeholder="اختر قسمًا فرعيًا"
+                  searchPlaceholder="ابحث عن قسم فرعي..."
+                  emptyMessage="لم يتم العثور على قسم."
+                  disabled={!form.watch("section_id")}
+                  isLoading={isLoadingSubsections}
+                  onValueChange={(id) => {
+                    setSelectedSubsection(id);
+                    form.setValue("skill_id", null, { shouldValidate: true });
+                  }}
                 />
-                <FormField
-                  control={form.control}
-                  name="skill_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>المهارة (اختياري)</FormLabel>
-                      <Select
-                        onValueChange={(v) =>
-                          field.onChange(v ? Number(v) : null)
-                        }
-                        value={field.value?.toString()}
-                        disabled={!form.watch("subsection_id")}
-                        dir="rtl"
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر مهارة" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {skills?.results.map((s) => (
-                            <SelectItem key={s.id} value={s.id.toString()}>
-                              {s.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+
+                {/* === REPLACED WITH COMBOBOX === */}
+                <SearchableCombobox
+                  form={form}
+                  fieldName="skill_id"
+                  label="المهارة (اختياري)"
+                  options={skills?.results || []}
+                  placeholder="اختر مهارة"
+                  searchPlaceholder="ابحث عن مهارة..."
+                  emptyMessage="لم يتم العثور على مهارة."
+                  disabled={!form.watch("subsection_id")}
+                  isLoading={isLoadingSkills}
+                  // No onValueChange needed here as it's the last in the chain
                 />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                   <FormField
                     control={form.control}
@@ -690,7 +666,8 @@ export function QuestionFormDialog({
   >();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  // --- Data Fetching Hooks ---
+  const [isInitialLoading, setIsInitialLoading] = useState(isEditMode);
+
   const { data: question, isLoading: isLoadingQuestion } = useQuery({
     queryKey: queryKeys.admin.learning.questions.detail(questionId!),
     queryFn: () => getAdminQuestionDetail(questionId!),
@@ -760,17 +737,28 @@ export function QuestionFormDialog({
       }
     }
   }, [isOpen, isEditMode, question, form]);
+
   const mutation = useMutation({
     mutationFn: (values: QuestionFormValues) => {
-      let payload: Partial<AdminQuestionCreateUpdate> & { image?: null } = {
-        ...values,
-      };
-      if (payload.image_upload === undefined) {
-        payload.image_upload = null;
+      if (isEditMode) {
+        const payload: Partial<AdminQuestionCreateUpdate> & { image?: null } = {
+          ...values,
+        };
+
+        if (payload.image_upload instanceof File) {
+          const formData = objectToFormData(payload);
+          return updateAdminQuestion(questionId, formData as any);
+        }
+        if (payload.image_upload === null) {
+          payload.image = null;
+          payload.image_upload = null;
+        }
+
+        return updateAdminQuestion(questionId, payload);
+      } else {
+        const payload: AdminQuestionCreateUpdate = values;
+        return createAdminQuestion(payload);
       }
-      return isEditMode
-        ? updateAdminQuestion(questionId, payload)
-        : createAdminQuestion(payload as AdminQuestionCreateUpdate);
     },
     onSuccess: () => {
       toast.success(`تم ${isEditMode ? "تحديث" : "إنشاء"} السؤال بنجاح!`);
@@ -807,18 +795,27 @@ export function QuestionFormDialog({
     setImagePreview(null);
     form.setValue("image_upload", null);
   };
-
   // --- THE MASTER LOADING CONDITION ---
   const isDataReadyForEdit =
     isEditMode &&
     !!question &&
     !!sections &&
-    !!subsections &&
     // We only need to wait for skills if the question HAS a skill
-    (!question.skill || !!skills);
+    (!!subsections || !question.skill || !!skills);
 
-  const showSkeleton = isEditMode && !isDataReadyForEdit;
+  console.log(isDataReadyForEdit);
+
+  useEffect(() => {
+    // Once the initial data is ready, we turn off the full-form skeleton forever.
+    // Subsequent loading will be handled by the individual comboboxes.
+    if (isDataReadyForEdit) {
+      setIsInitialLoading(false);
+    }
+  }, [isDataReadyForEdit]);
+
+  const showSkeleton = isEditMode && !isDataReadyForEdit && isInitialLoading;
   const showCreateForm = !isEditMode && !!sections;
+  const showEditForm = isEditMode && !isInitialLoading;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -834,7 +831,7 @@ export function QuestionFormDialog({
 
         {showSkeleton && <FormSkeleton />}
 
-        {(isDataReadyForEdit || showCreateForm) && (
+        {!showSkeleton && (showEditForm || showCreateForm) && (
           <QuestionFormComponent
             form={form}
             onSubmit={onSubmit}
@@ -849,6 +846,9 @@ export function QuestionFormDialog({
             skills={skills}
             setSelectedSection={setSelectedSection}
             setSelectedSubsection={setSelectedSubsection}
+            // Pass loading states down to the form component
+            isLoadingSubsections={isLoadingSubsections}
+            isLoadingSkills={isLoadingSkills}
           />
         )}
       </DialogContent>
