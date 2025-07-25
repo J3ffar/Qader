@@ -12,11 +12,18 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import type { UnifiedQuestion } from "@/types/api/study.types";
-import { QuestionState } from "./TraditionalLearningSession"; // Import the shared type
+import { QuestionState } from "./TraditionalLearningSession";
 import { QuestionRenderer } from "@/components/shared/QuestionRenderer";
 import { RichContentViewer } from "@/components/shared/RichContentViewer";
 
 type OptionKey = "A" | "B" | "C" | "D";
+
+const arabicOptionMap: { [key in OptionKey]: string } = {
+  A: "أ",
+  B: "ب",
+  C: "ج",
+  D: "د",
+};
 
 interface Props {
   question: UnifiedQuestion;
@@ -57,10 +64,8 @@ export const QuestionDisplay: React.FC<Props> = ({
             const optionKey = key as OptionKey;
             const isSelected = questionState?.selectedAnswer === optionKey;
             const isCorrectOption = question.correct_answer === optionKey;
-            // NEW: Check if this option was eliminated by the tool
             const isEliminated =
               questionState?.eliminatedOptions?.includes(optionKey);
-            // NEW: Check if this option should be highlighted as the revealed correct answer
             const isRevealedAnswer =
               questionState?.revealedAnswer === optionKey;
 
@@ -98,8 +103,12 @@ export const QuestionDisplay: React.FC<Props> = ({
                 <RadioGroupItem
                   value={optionKey}
                   id={optionKey}
-                  disabled={isEliminated} // Directly disable the input
+                  disabled={isEliminated}
+                  className="hidden"
                 />
+                <div className="flex ml-3 border h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground">
+                  {arabicOptionMap[optionKey]}
+                </div>
                 <RichContentViewer
                   htmlContent={text}
                   className="prose dark:prose-invert max-w-none flex-1"
@@ -127,7 +136,13 @@ export const QuestionDisplay: React.FC<Props> = ({
                 <p className="text-sm text-muted-foreground">
                   {t("correctAnswerWas")}{" "}
                   <strong className="text-foreground">
-                    {question.options[question.correct_answer]}
+                    <RichContentViewer
+                      htmlContent={
+                        question.options[
+                          question.correct_answer as keyof typeof question.options
+                        ]
+                      }
+                    />
                   </strong>
                 </p>
               </div>

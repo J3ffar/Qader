@@ -15,6 +15,13 @@ import { RichContentViewer } from "@/components/shared/RichContentViewer";
 
 type OptionKey = "A" | "B" | "C" | "D";
 
+const arabicOptionMap: { [key in OptionKey]: string } = {
+  A: "أ",
+  B: "ب",
+  C: "ج",
+  D: "د",
+};
+
 interface Props {
   content: AIQuestionResponse;
   onSubmitAnswer: (questionId: number, answer: OptionKey) => void;
@@ -28,7 +35,7 @@ export const QuestionMessage: React.FC<Props> = ({
 }) => {
   const t = useTranslations("Study.conversationalLearning.session");
   const [selectedAnswer, setSelectedAnswer] = useState<OptionKey | null>(null);
-  const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
+  const [direction, setDirection] = useState<"ltr" | "rtl">("rtl");
 
   React.useEffect(() => {
     setDirection(document.documentElement.dir as "ltr" | "rtl");
@@ -52,7 +59,6 @@ export const QuestionMessage: React.FC<Props> = ({
           <ReactMarkdown>{content.ai_message}</ReactMarkdown>
         </div>
 
-        {/* --- USE QuestionRenderer for the question text and image --- */}
         <QuestionRenderer
           questionText={content.question.question_text}
           imageUrl={content.question.image}
@@ -77,7 +83,11 @@ export const QuestionMessage: React.FC<Props> = ({
               <RadioGroupItem
                 value={key}
                 id={`${content.question.id}-${key}`}
+                className="hidden"
               />
+              <div className="flex ml-3 border h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground">
+                {arabicOptionMap[key as OptionKey]}
+              </div>
               <RichContentViewer
                 htmlContent={text}
                 className="prose prose-sm dark:prose-invert max-w-none flex-1"

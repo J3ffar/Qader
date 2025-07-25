@@ -31,12 +31,18 @@ interface ReviewQuestionCardProps {
 
 type OptionKey = "A" | "B" | "C" | "D";
 
+const arabicOptionMap: { [key in OptionKey]: string } = {
+  A: "أ",
+  B: "ب",
+  C: "ج",
+  D: "د",
+};
+
 const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   questionData,
   questionNumber,
   totalQuestionsInFilter,
 }) => {
-  // Using a new, shared translation namespace
   const t = useTranslations("Study.review");
 
   const {
@@ -55,7 +61,6 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   const user_selected_choice = user_answer_details?.selected_choice;
   const is_correct = user_answer_details?.is_correct;
 
-  // Helper to determine the overall status of the user's answer
   const getStatusInfo = () => {
     if (is_correct === true) {
       return {
@@ -81,7 +86,6 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
     };
   };
 
-  // Helper to determine the styling for each individual option
   const getOptionStyle = (optionKey: OptionKey) => {
     if (optionKey === correct_answer) {
       return "border-green-500 ring-2 ring-green-500/80 bg-green-500/10";
@@ -129,8 +133,8 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
                 getOptionStyle(key)
               )}
             >
-              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-semibold text-muted-foreground">
-                {key}
+              <div className="mt-0.5 ml-3 border flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-muted font-sans text-sm font-semibold text-muted-foreground">
+                {arabicOptionMap[key]}
               </div>
               <RichContentViewer
                 htmlContent={options[key]}
