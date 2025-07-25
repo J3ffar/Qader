@@ -17,6 +17,7 @@ import { queryKeys } from "@/constants/queryKeys";
 import { getAdminQuestionDetail } from "@/services/api/admin/learning.service";
 import { AdminQuestionUsageByTestType } from "@/types/api/admin/learning.types";
 import { cn } from "@/lib/utils";
+import { RichContentViewer } from "@/components/shared/RichContentViewer";
 import {
   CheckCircle2,
   Hash,
@@ -25,7 +26,6 @@ import {
   BrainCircuit,
   Lightbulb,
 } from "lucide-react";
-import katex from "katex";
 
 interface ViewQuestionDialogProps {
   isOpen: boolean;
@@ -135,44 +135,6 @@ function ViewSkeleton() {
     </div>
   );
 }
-
-const RichContentViewer = ({ htmlContent }: { htmlContent: string | null }) => {
-  const contentRef = React.useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (contentRef.current) {
-      const katexNodes = contentRef.current.querySelectorAll<HTMLElement>(
-        "span[data-katex-node]"
-      );
-
-      katexNodes.forEach((node) => {
-        const latex = node.dataset.latex || "";
-        if (latex) {
-          try {
-            katex.render(latex, node, {
-              throwOnError: false,
-              displayMode: false,
-            });
-          } catch (e) {
-            console.error("KaTeX rendering error:", e);
-            node.textContent = `[Error: ${latex}]`;
-            node.style.color = "red";
-          }
-        }
-      });
-    }
-  }, [htmlContent]);
-
-  if (!htmlContent) return null;
-
-  return (
-    <div
-      ref={contentRef}
-      className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-2"
-      dangerouslySetInnerHTML={{ __html: htmlContent }}
-    />
-  );
-};
 
 export function ViewQuestionDialog({
   isOpen,

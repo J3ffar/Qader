@@ -188,6 +188,22 @@ h6 {
   font-family: var(--font-heading);
 }
 
+h1 {
+  font-size: xx-large;
+}
+h2 {
+  font-size: x-large;
+}
+h3 {
+  font-size: large;
+}
+h4 {
+  font-size: medium;
+}
+h5 {
+  font-size: small;
+}
+
 @keyframes fade-in-scale {
   from {
     opacity: 0;

@@ -23,6 +23,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "lucide-react";
+// --- IMPORT THE TUTORIAL DIALOG ---
+import { EquationTutorialDialog } from "../features/admin/learning/questions/EquationTutorialDialog";
 
 const schema = z.object({
   latex: z.string().min(1, "صيغة LaTeX مطلوبة."),
@@ -43,26 +45,20 @@ export const EquationEditorDialog = ({
 }: EquationEditorDialogProps) => {
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    // defaultValues will set the form on its first render
     defaultValues: { latex: initialValue },
   });
 
-  // --- NEW: This useEffect hook makes the component reactive ---
-  // It ensures the form value is updated whenever the dialog is opened
-  // with a new initialValue (i.e., when an existing equation is clicked).
   useEffect(() => {
     if (isOpen) {
       form.reset({ latex: initialValue });
     }
   }, [initialValue, isOpen, form]);
-  // -------------------------------------------------------------
 
   const handleInnerFormSubmit = (values: z.infer<typeof schema>) => {
     onSubmit(values.latex);
     onClose();
   };
 
-  // onSubmit handler for the form itself
   const onFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -72,9 +68,15 @@ export const EquationEditorDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>إضافة / تعديل معادلة</DialogTitle>
-          <DialogDescription>أدخل صيغة LaTeX للمعادلة أدناه.</DialogDescription>
+        {/* --- MODIFIED: Added flex layout to header and placed the tutorial dialog --- */}
+        <DialogHeader className="flex-row justify-between items-start">
+          <div className="space-y-1.5">
+            <DialogTitle>إضافة / تعديل معادلة</DialogTitle>
+            <DialogDescription>
+              أدخل صيغة LaTeX للمعادلة أدناه.
+            </DialogDescription>
+          </div>
+          <EquationTutorialDialog />
         </DialogHeader>
         <div className="py-4">
           <a
