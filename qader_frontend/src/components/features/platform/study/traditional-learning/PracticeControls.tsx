@@ -28,7 +28,7 @@ type OptionKey = "A" | "B" | "C" | "D";
 
 interface Props {
   attemptId: string;
-  question: UnifiedQuestion; // Now needs the full question object
+  question: UnifiedQuestion;
   questionState?: QuestionState;
   setQuestionStates: React.Dispatch<
     React.SetStateAction<Record<number, QuestionState>>
@@ -66,7 +66,7 @@ export const PracticeControls: React.FC<Props> = ({
     onSuccess: (data) => {
       if (data.hint) {
         updateQuestionState({ revealedHint: data.hint });
-        toast.info(t("api.hintSuccess")); // Simple toast, UI will update
+        toast.info(t("api.hintSuccess"));
       } else {
         toast.info(t("api.hintNotAvailable"));
       }
@@ -79,7 +79,7 @@ export const PracticeControls: React.FC<Props> = ({
     onSuccess: (data) => {
       if (data.explanation) {
         updateQuestionState({ revealedExplanation: data.explanation });
-        toast.info(t("api.explanationRevealSuccess")); // Simple toast
+        toast.info(t("api.explanationRevealSuccess"));
       } else {
         toast.info(t("api.explanationNotAvailable"));
       }
@@ -101,24 +101,33 @@ export const PracticeControls: React.FC<Props> = ({
   const eliminateMutation = useMutation({
     mutationFn: () => recordEliminationForQuestion(attemptId, questionId),
     onSuccess: () => {
-      // NEW: Client-side logic to choose an option to eliminate
       const options = Object.keys(question.options) as OptionKey[];
-      const incorrectOptions = options.filter(
-        (opt) => opt !== question.correct_answer
+      const alreadyEliminated = questionState?.eliminatedOptions || [];
+
+      // Step 1: Create a pool of options that are incorrect AND not yet eliminated.
+      const availableToEliminate = options.filter(
+        (opt) =>
+          opt !== question.correct_answer && !alreadyEliminated.includes(opt)
       );
 
-      // Find an incorrect option that hasn't already been eliminated
-      const optionToEliminate = incorrectOptions.find(
-        (opt) => !questionState?.eliminatedOptions?.includes(opt)
-      );
+      // Step 2: If there's at least one option to eliminate, pick one randomly.
+      if (availableToEliminate.length > 0) {
+        // Step 2a: Generate a random index for the available options array.
+        const randomIndex = Math.floor(
+          Math.random() * availableToEliminate.length
+        );
+        const optionToEliminate = availableToEliminate[randomIndex];
 
-      if (optionToEliminate) {
-        const currentEliminated = questionState?.eliminatedOptions || [];
+        // Step 2b: Update the state with the randomly selected option.
         updateQuestionState({
           usedElimination: true,
-          eliminatedOptions: [...currentEliminated, optionToEliminate],
+          eliminatedOptions: [...alreadyEliminated, optionToEliminate],
         });
         toast.success(t("api.eliminateSuccess"));
+      } else {
+        // This case should ideally not be reachable if the button is disabled correctly,
+        // but it's good practice to handle it.
+        toast.info(t("api.noOptionsToEliminate"));
       }
     },
     onError: (err) =>
@@ -134,15 +143,12 @@ export const PracticeControls: React.FC<Props> = ({
       </CardHeader>
       <CardContent className="flex flex-col space-y-3">
         <TooltipProvider>
-          {/* --- Learning Tools (Enabled Post-Answer) --- */}
-
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => hintMutation.mutate()}
-                // *** THE CHANGE IS HERE ***: Removed `isAnswered` check.
                 disabled={
                   hintMutation.isPending || !!questionState?.revealedHint
                 }
@@ -166,7 +172,6 @@ export const PracticeControls: React.FC<Props> = ({
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => explanationMutation.mutate()}
-                // *** THE CHANGE IS HERE ***: Removed `isAnswered` check.
                 disabled={
                   explanationMutation.isPending ||
                   !!questionState?.revealedExplanation
@@ -185,19 +190,18 @@ export const PracticeControls: React.FC<Props> = ({
             </TooltipContent>
           </Tooltip>
 
-          {/* --- Answering Tools (Disabled Post-Answer) --- */}
-
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => eliminateMutation.mutate()}
-                // No change here: this tool is only for before answering.
                 disabled={
                   isAnswered ||
                   eliminateMutation.isPending ||
-                  !!questionState?.usedElimination
+                  (questionState?.eliminatedOptions &&
+                    questionState.eliminatedOptions.length >= 2) || // Disable after two eliminations
+                  !!questionState?.usedElimination // Assuming one-time use per question
                 }
               >
                 <XCircle className="me-3 h-5 w-5 text-orange-500" />{" "}
@@ -215,7 +219,6 @@ export const PracticeControls: React.FC<Props> = ({
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => answerMutation.mutate()}
-                // No change here: this is redundant after the feedback dialog.
                 disabled={
                   isAnswered ||
                   answerMutation.isPending ||
@@ -235,6 +238,3 @@ export const PracticeControls: React.FC<Props> = ({
     </Card>
   );
 };
-
-// A helper for DRY principle, but omitted for brevity in this response.
-// The main logic is in the button `disabled` props above.

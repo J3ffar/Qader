@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { RichContentViewer } from "@/components/shared/RichContentViewer";
 
 export interface FeedbackData {
   isCorrect: boolean;
@@ -60,7 +61,10 @@ export const AnswerFeedbackDialog: React.FC<Props> = ({
             <AlertDialogDescription className="pt-2 text-base">
               {t("correctAnswerWas")}{" "}
               <strong className="text-foreground">
-                {feedback.correctAnswerText}
+                <RichContentViewer
+                  htmlContent={feedback.correctAnswerText}
+                  className="inline-block" // Use inline-block to keep it in the flow
+                />
               </strong>
             </AlertDialogDescription>
           )}
@@ -74,14 +78,16 @@ export const AnswerFeedbackDialog: React.FC<Props> = ({
                 <Lightbulb className="me-2 h-5 w-5 text-yellow-500" />
                 {t("explanation")}
               </h3>
-              <div className="max-h-48 overflow-y-auto rounded-md bg-muted/50 p-3 text-sm text-muted-foreground">
-                {feedback.explanation}
+              <div className="max-h-48 overflow-y-auto rounded-md bg-muted/50 p-3">
+                <RichContentViewer
+                  htmlContent={feedback.explanation}
+                  className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground"
+                />
               </div>
             </div>
           </>
         )}
         <AlertDialogFooter className="mt-4">
-          {/* *** THE CHANGE IS HERE *** */}
           <AlertDialogAction onClick={onClose} className="w-full">
             {t("continue")}
           </AlertDialogAction>

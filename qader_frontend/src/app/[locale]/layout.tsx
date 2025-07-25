@@ -87,6 +87,14 @@ export default async function LocaleLayout({
       dir={currentLocale === "ar" ? "rtl" : "ltr"}
       suppressHydrationWarning
     >
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+          integrity="sha384-n8MVd4RsNIU0KOVEMeaMurDcGvBHncCeUQ+Gjk7/VIltNopUscJDRCdx93cSESYa"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body
         className={cn(
           "font-body bg-background text-foreground antialiased",

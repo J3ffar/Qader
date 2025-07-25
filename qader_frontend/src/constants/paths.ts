@@ -92,6 +92,14 @@ export const PATHS = {
     CONTENT_PARTNERS: "/admin/content/partners",
     CONTENT_CONTACT_MESSAGES: "/admin/content/contact",
 
+    LEARNING: {
+      ROOT: "/admin/learning",
+      SECTIONS: "/admin/learning/sections",
+      SUBSECTIONS: "/admin/learning/subsections",
+      SKILLS: "/admin/learning/skills",
+      QUESTIONS: "/admin/learning/questions",
+    },
+
     SUPPORT_TICKETS: "/admin/support",
     ANALYTICS: "/admin/analytics",
     SETTINGS: "/admin/settings",

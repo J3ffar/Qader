@@ -20,6 +20,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { UnifiedQuestion } from "@/types/api/study.types";
+import { RichContentViewer } from "./RichContentViewer";
+import { QuestionRenderer } from "./QuestionRenderer";
 
 interface ReviewQuestionCardProps {
   questionData: UnifiedQuestion;
@@ -29,16 +31,23 @@ interface ReviewQuestionCardProps {
 
 type OptionKey = "A" | "B" | "C" | "D";
 
+const arabicOptionMap: { [key in OptionKey]: string } = {
+  A: "أ",
+  B: "ب",
+  C: "ج",
+  D: "د",
+};
+
 const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   questionData,
   questionNumber,
   totalQuestionsInFilter,
 }) => {
-  // Using a new, shared translation namespace
   const t = useTranslations("Study.review");
 
   const {
     question_text,
+    image,
     options,
     correct_answer,
     explanation,
@@ -52,7 +61,6 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   const user_selected_choice = user_answer_details?.selected_choice;
   const is_correct = user_answer_details?.is_correct;
 
-  // Helper to determine the overall status of the user's answer
   const getStatusInfo = () => {
     if (is_correct === true) {
       return {
@@ -78,7 +86,6 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
     };
   };
 
-  // Helper to determine the styling for each individual option
   const getOptionStyle = (optionKey: OptionKey) => {
     if (optionKey === correct_answer) {
       return "border-green-500 ring-2 ring-green-500/80 bg-green-500/10";
@@ -113,9 +120,7 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
             {statusInfo.text}
           </Badge>
         </div>
-        <h2 className="text-lg font-semibold leading-relaxed" dir="auto">
-          {question_text}
-        </h2>
+        <QuestionRenderer questionText={question_text} imageUrl={image} />
       </CardHeader>
       <CardContent className="space-y-4">
         <Separator />
@@ -128,12 +133,13 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
                 getOptionStyle(key)
               )}
             >
-              <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-semibold text-muted-foreground">
-                {key}
+              <div className="mt-0.5 ml-3 border flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-muted font-sans text-sm font-semibold text-muted-foreground">
+                {arabicOptionMap[key]}
               </div>
-              <p className="flex-1 text-base" dir="auto">
-                {options[key]}
-              </p>
+              <RichContentViewer
+                htmlContent={options[key]}
+                className="prose dark:prose-invert max-w-none flex-1 text-base"
+              />
               {key === user_selected_choice && (
                 <Badge variant="outline" className="flex-shrink-0 text-xs">
                   {t("yourAnswer")}
@@ -153,11 +159,11 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
                 <Info className="me-2 h-5 w-5" />
                 {t("explanation")}
               </AccordionTrigger>
-              <AccordionContent
-                className="px-4 pb-4 text-base leading-relaxed"
-                dir="auto"
-              >
-                {explanation}
+              <AccordionContent className="px-4 pb-4">
+                <RichContentViewer
+                  htmlContent={explanation}
+                  className="prose dark:prose-invert max-w-none text-base leading-relaxed"
+                />
               </AccordionContent>
             </AccordionItem>
           )}
@@ -170,11 +176,11 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
                 <BookText className="me-2 h-5 w-5" />
                 {t("solutionMethod")}
               </AccordionTrigger>
-              <AccordionContent
-                className="px-4 pb-4 text-base leading-relaxed"
-                dir="auto"
-              >
-                {solution_method_summary}
+              <AccordionContent className="px-4 pb-4">
+                <RichContentViewer
+                  htmlContent={solution_method_summary}
+                  className="prose dark:prose-invert max-w-none text-base leading-relaxed"
+                />
               </AccordionContent>
             </AccordionItem>
           )}

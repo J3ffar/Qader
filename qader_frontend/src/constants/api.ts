@@ -88,6 +88,19 @@ export const API_ENDPOINTS = {
       PARTNER_CATEGORY_DETAIL: (id: number | string) =>
         `/admin/content/partner-categories/${id}/`,
     },
+    LEARNING: {
+      SECTIONS: "/admin/learning/sections/",
+      SECTION_DETAIL: (id: number | string) =>
+        `/admin/learning/sections/${id}/`,
+      SUBSECTIONS: "/admin/learning/subsections/",
+      SUBSECTION_DETAIL: (id: number | string) =>
+        `/admin/learning/subsections/${id}/`,
+      SKILLS: "/admin/learning/skills/",
+      SKILL_DETAIL: (id: number | string) => `/admin/learning/skills/${id}/`,
+      QUESTIONS: "/admin/learning/questions/",
+      QUESTION_DETAIL: (id: number | string) =>
+        `/admin/learning/questions/${id}/`,
+    },
   },
   STUDY: {
     STATISTICS: "/study/statistics/",

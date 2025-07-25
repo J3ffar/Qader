@@ -257,6 +257,13 @@ class Question(TimeStampedModel):
         _("Question Text"),
         help_text=_("The main text or problem statement of the question."),
     )
+    image: models.ImageField = models.ImageField(
+        _("Image"),
+        upload_to="questions/images/",  # Organizes uploaded images in MEDIA_ROOT/questions/images/
+        null=True,  # Allows the database field to be NULL
+        blank=True,  # Allows the field to be blank in forms/admin
+        help_text=_("Optional image to accompany the question text."),
+    )
     option_a: str = models.TextField(_("Option A"))
     option_b: str = models.TextField(_("Option B"))
     option_c: str = models.TextField(_("Option C"))
