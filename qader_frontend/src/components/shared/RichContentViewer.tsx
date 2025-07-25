@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import katex from "katex";
+import { cn } from "@/lib/utils";
 
 interface RichContentViewerProps {
   htmlContent: string | null;
@@ -56,5 +57,5 @@ export const RichContentViewer = ({
 
   // The final div is now a container that gets its content managed by the effect.
   // We pass the className prop to it for flexible styling.
-  return <div ref={contentRef} className={className} />;
+  return <div ref={contentRef} className={cn(className, "relative")} />;
 };
