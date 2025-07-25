@@ -78,7 +78,7 @@ export function SkillsClient() {
 
   const { data, isLoading, isFetching, isError, error } = useQuery({
     queryKey: queryKeys.admin.learning.skills.list(filters),
-    queryFn: () => getAdminSkills({ ...filters, page_size: 1000 }),
+    queryFn: () => getAdminSkills({ ...filters }),
     placeholderData: (prev) => prev,
   });
 
