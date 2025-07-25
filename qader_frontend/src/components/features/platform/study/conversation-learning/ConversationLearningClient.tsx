@@ -99,7 +99,7 @@ export const ConversationLearningClient = () => {
   };
 
   return (
-    <div className="flex flex-col md:h-screen">
+    <div className="flex flex-col md:h-screen max-h-full">
       <div className="flex flex-col p-4 m-4">
         <p className="text-center text-xl font-semibold sm:self-start">
           {t("title")}
@@ -108,7 +108,7 @@ export const ConversationLearningClient = () => {
           {t("description")}
         </p>
       </div>
-      <div className="flex flex-1 flex-col md:flex-row-reverse w-full mb-8">
+      <div className="flex flex-1 flex-col md:flex-row-reverse w-full min-w-0 mb-8">
         <ConversationSidebar
           isSending={isSending}
           onSendMessage={handleSendMessage}
@@ -116,7 +116,7 @@ export const ConversationLearningClient = () => {
           onConfirmUnderstanding={() => confirmUnderstandingMutation.mutate()}
         />
 
-        <div className="w-full md:w-3/4 min-w-2/5 border rounded-2xl h-full flex flex-col dark:bg-[#0B1739]">
+        <div className="w-full md:w-full min-w-2/5 border rounded-2xl h-full flex flex-col dark:bg-[#0B1739]">
           <div className="flex-1 px-4 pb-2 overflow-y-auto">
             <div className="max-h-[calc(100vh-14rem)] overflow-y-auto ">
               {messages.length === 0 ? (

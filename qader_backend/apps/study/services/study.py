@@ -1225,21 +1225,8 @@ def retake_test_attempt(
     Starts a new test attempt based on the configuration of a previous one.
     Handles limits, finding new questions, and creating the new attempt.
     """
-    # 1. Check for Existing Active Test
-    if UserTestAttempt.objects.filter(
-        user=user, status=UserTestAttempt.Status.STARTED
-    ).exists():
-        raise DRFValidationError(
-            {
-                "non_field_errors": [
-                    _(
-                        "Please complete or cancel your ongoing test before starting a new one."
-                    )
-                ]
-            }
-        )
 
-    # 2. Extract and Validate Original Config
+    # 1. Extract and Validate Original Config
     original_config_snapshot = original_attempt.test_configuration
     if not isinstance(original_config_snapshot, dict):
         logger.error(
@@ -1253,6 +1240,23 @@ def retake_test_attempt(
     original_attempt_type = (
         original_attempt.attempt_type
     )  # Use the reliable field from the model
+
+    # 2. Check for Existing Active Test
+    if UserTestAttempt.objects.filter(
+        user=user,
+        status=UserTestAttempt.Status.STARTED,
+        attempt_type=original_attempt_type,
+    ).exists():
+        raise DRFValidationError(
+            {
+                "non_field_errors": [
+                    _(
+                        "Please complete or cancel your ongoing test before starting a new one."
+                    )
+                ]
+            }
+        )
+
     num_questions = original_config_snapshot.get(
         "num_questions_selected"
     )  # Use actual selected number from original

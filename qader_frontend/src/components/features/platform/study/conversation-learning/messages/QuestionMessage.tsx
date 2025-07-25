@@ -100,6 +100,7 @@ export const QuestionMessage: React.FC<Props> = ({
           <Button
             onClick={handleSubmit}
             disabled={!selectedAnswer || isSubmitting}
+            className="cursor-pointer"
           >
             {isSubmitting && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
             {t("submitAnswer")}

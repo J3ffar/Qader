@@ -77,8 +77,8 @@ export const QuestionDisplay: React.FC<Props> = ({
 
             return (
               <Label
-                key={optionKey}
-                htmlFor={optionKey}
+                key={`${question.id}-${optionKey}`}
+                htmlFor={`${question.id}-${optionKey}`}
                 className={cn(
                   "flex items-center space-x-3 rtl:space-x-reverse rounded-md border p-4 transition-all",
                   // Base styles for interactivity

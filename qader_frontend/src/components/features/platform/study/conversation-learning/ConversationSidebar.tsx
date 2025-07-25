@@ -113,7 +113,7 @@ export const ConversationSidebar: React.FC<Props> = ({
               </div>
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full cursor-pointer"
                 disabled={startConversationMutation.isPending}
               >
                 {startConversationMutation.isPending ? (
@@ -147,7 +147,7 @@ export const ConversationSidebar: React.FC<Props> = ({
           {t("testYourSkills")}
         </p>
         <Button
-          className="w-full rounded-sm"
+          className="w-full rounded-sm cursor-pointer"
           onClick={onConfirmUnderstanding}
           disabled={isSending}
         >
@@ -169,7 +169,7 @@ export const ConversationSidebar: React.FC<Props> = ({
           {t("askAQuestionHere")}
         </p>
         <Button
-          className="w-full rounded-sm"
+          className="w-full rounded-sm cursor-pointer"
           onClick={onAskForQuestion}
           disabled={isSending}
         >
