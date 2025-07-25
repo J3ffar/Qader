@@ -58,7 +58,7 @@ import { Circle, Sigma } from "lucide-react";
 import { RichTextEditor } from "@/components/shared/RichTextEditor";
 import { EquationTutorialDialog } from "./EquationTutorialDialog";
 
-// --- Schema, Types, and Constants (No changes) ---
+// --- Schema, Types, and Constants ---
 const difficultyLevels = [
   { value: 1, label: "1 - سهل جداً" },
   { value: 2, label: "2 - سهل" },
@@ -67,6 +67,14 @@ const difficultyLevels = [
   { value: 5, label: "5 - صعب جداً" },
 ];
 const answerOptions = ["A", "B", "C", "D"] as const;
+
+const arabicOptionMap: { [key: string]: string } = {
+  A: "أ",
+  B: "ب",
+  C: "ج",
+  D: "د",
+};
+
 const formSchema = z.object({
   question_text: z.string().min(10, "يجب أن لا يقل نص السؤال عن 10 أحرف."),
   option_a: z.string().min(1, "الخيار أ مطلوب."),
@@ -149,7 +157,7 @@ function FormSkeleton() {
   );
 }
 
-// --- Props for the new Internal Form Component ---
+// ... (QuestionFormProps and other constants remain unchanged)
 interface QuestionFormProps {
   form: UseFormReturn<QuestionFormValues>;
   onSubmit: (values: QuestionFormValues) => void;
@@ -167,7 +175,6 @@ interface QuestionFormProps {
   setSelectedSection: (id: number | undefined) => void;
   setSelectedSubsection: (id: number | undefined) => void;
 }
-// --- Fields per tab for error checking ---
 const CORE_CONTENT_FIELDS: (keyof QuestionFormValues)[] = [
   "question_text",
   "option_a",
@@ -182,7 +189,6 @@ const CLASSIFICATION_FIELDS: (keyof QuestionFormValues)[] = [
   "correct_answer",
 ];
 
-// --- REFACTORED: The Internal "Dumb" Form Component with Tabs ---
 function QuestionFormComponent({
   form,
   onSubmit,
@@ -202,7 +208,6 @@ function QuestionFormComponent({
     formState: { errors },
   } = form;
 
-  // Helper function to check for errors in a tab
   const hasErrorInTab = (fieldNames: (keyof QuestionFormValues)[]) => {
     return fieldNames.some((field) => Object.keys(errors).includes(field));
   };
@@ -234,7 +239,6 @@ function QuestionFormComponent({
             <TabsTrigger value="helpers">معلومات مساعدة</TabsTrigger>
           </TabsList>
 
-          {/* TAB 1: Core Content */}
           <TabsContent value="content" className="mt-6">
             <Card>
               <CardHeader>
@@ -244,7 +248,6 @@ function QuestionFormComponent({
                   <div className="flex-grow">
                     <div className="flex justify-between items-center">
                       <h4 className="font-semibold">إضافة معادلة رياضية</h4>
-                      {/* THE NEW BUTTON IS HERE */}
                       <EquationTutorialDialog />
                     </div>
                     <p className="text-muted-foreground">
@@ -266,7 +269,6 @@ function QuestionFormComponent({
                     <FormItem>
                       <FormLabel>نص السؤال *</FormLabel>
                       <FormControl>
-                        {/* REPLACED */}
                         <RichTextEditor
                           value={field.value}
                           onChange={field.onChange}
@@ -278,7 +280,6 @@ function QuestionFormComponent({
                   )}
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Example for Option A */}
                   <FormField
                     control={form.control}
                     name="option_a"
@@ -286,7 +287,6 @@ function QuestionFormComponent({
                       <FormItem>
                         <FormLabel>الخيار أ *</FormLabel>
                         <FormControl>
-                          {/* REPLACED */}
                           <RichTextEditor
                             value={field.value}
                             onChange={field.onChange}
@@ -297,7 +297,6 @@ function QuestionFormComponent({
                       </FormItem>
                     )}
                   />
-                  {/* Repeat for option_b, option_c, option_d */}
                   <FormField
                     control={form.control}
                     name="option_b"
@@ -369,7 +368,7 @@ function QuestionFormComponent({
                         <SelectContent>
                           {answerOptions.map((opt) => (
                             <SelectItem key={opt} value={opt}>
-                              الخيار {opt}
+                              الخيار {arabicOptionMap[opt]}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -418,7 +417,6 @@ function QuestionFormComponent({
             </Card>
           </TabsContent>
 
-          {/* TAB 2: Classification & Settings */}
           <TabsContent value="classification" className="mt-6">
             <Card>
               <CardHeader>
@@ -582,8 +580,6 @@ function QuestionFormComponent({
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* TAB 3: Helper Information */}
           <TabsContent value="helpers" className="mt-6">
             <Card>
               <CardHeader>
@@ -600,7 +596,6 @@ function QuestionFormComponent({
                         شرح مفصل للإجابة الصحيحة يظهر للطالب بعد المحاولة.
                       </DialogDescription>
                       <FormControl>
-                        {/* REPLACED */}
                         <RichTextEditor
                           value={field.value ?? ""}
                           onChange={field.onChange}
@@ -611,7 +606,6 @@ function QuestionFormComponent({
                     </FormItem>
                   )}
                 />
-                {/* Repeat for hint and solution_method_summary */}
                 <FormField
                   control={form.control}
                   name="hint"
@@ -678,7 +672,6 @@ function QuestionFormComponent({
   );
 }
 
-// --- Main Dialog Component (The Data Orchestrator) ---
 export function QuestionFormDialog({
   isOpen,
   onClose,

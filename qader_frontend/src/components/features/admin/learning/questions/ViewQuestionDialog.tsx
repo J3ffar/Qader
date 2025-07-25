@@ -53,6 +53,13 @@ const DetailRow = ({
 );
 
 // --- Mappings for clean display ---
+const arabicOptionMap: { [key: string]: string } = {
+  A: "أ",
+  B: "ب",
+  C: "ج",
+  D: "د",
+};
+
 const difficultyMap: { [key: number]: { label: string; className: string } } = {
   1: {
     label: "سهل جداً",
@@ -87,7 +94,6 @@ const usageMap: { [key in keyof AdminQuestionUsageByTestType]: string } = {
   traditional: "تعلم تقليدي",
 };
 
-// --- Updated Skeleton to match the new dashboard layout ---
 function ViewSkeleton() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
@@ -130,13 +136,11 @@ function ViewSkeleton() {
   );
 }
 
-// A new helper component to render HTML content with math support
 const RichContentViewer = ({ htmlContent }: { htmlContent: string | null }) => {
   const contentRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (contentRef.current) {
-      // Find all our custom katex nodes
       const katexNodes = contentRef.current.querySelectorAll<HTMLElement>(
         "span[data-katex-node]"
       );
@@ -203,9 +207,7 @@ export function ViewQuestionDialog({
               <CardTitle>نص السؤال</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* UPDATED to use RichContentViewer */}
               <RichContentViewer htmlContent={question.question_text} />
-
               {question.image && (
                 <div className="mt-4">
                   <p className="text-sm font-medium text-muted-foreground mb-2">
@@ -220,7 +222,6 @@ export function ViewQuestionDialog({
               )}
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>الخيارات</CardTitle>
@@ -243,7 +244,7 @@ export function ViewQuestionDialog({
                     )}
                     <div className="flex flex-col w-full">
                       <span className="font-bold text-sm text-muted-foreground">
-                        الخيار {key}
+                        الخيار {arabicOptionMap[key] || key}
                       </span>
                       <RichContentViewer htmlContent={value} />
                     </div>
@@ -253,7 +254,6 @@ export function ViewQuestionDialog({
             </CardContent>
           </Card>
 
-          {/* UPDATED for helper info */}
           {(question.explanation ||
             question.hint ||
             question.solution_method_summary) && (
