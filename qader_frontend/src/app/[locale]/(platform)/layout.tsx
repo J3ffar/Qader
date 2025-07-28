@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import PlatformHeader from "@/components/features/platform/layout/PlatformHeader";
 import PlatformSidebar from "@/components/features/platform/layout/PlatformSidebar";
 import { WebSocketNotificationHandler } from "@/components/global/WebSocketNotificationHandler";
+import { useState } from "react";
 
 export default function UserLayout({
   children,
@@ -13,15 +13,15 @@ export default function UserLayout({
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="flex min-h-screen dark:bg-[#081028]">
+    <div className="flex min-h-screen dark:bg-[#081028] bg-background">
       {/* Sidebar */}
       <PlatformSidebar isOpen={isOpen} setIsOpen={setIsOpen} />
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col overflow-hidden">
         {/* Navbar */}
         <PlatformHeader isSidebarOpen={isOpen} />
 
-        <div className="p-4">{children}</div>
+        <div className="sm:p-4 overflow-hidden">{children}</div>
         <WebSocketNotificationHandler />
       </div>
     </div>

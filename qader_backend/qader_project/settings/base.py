@@ -265,10 +265,7 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
     ],
     # "EXCEPTION_HANDLER": "apps.api.exceptions.custom_exception_handler",
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": config("API_PAGE_SIZE", default=20, cast=int),
-    "PAGE_SIZE_QUERY_PARAM": "page_size",
-    "MAX_PAGE_SIZE": config("API_MAX_PAGE_SIZE", default=100, cast=int),
+    "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.StandardResultsSetPagination",
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.OrderingFilter",
@@ -381,6 +378,10 @@ SPECTACULAR_SETTINGS = {
         {
             "name": "Student Community",
             "description": "Endpoints for the community forum.",
+        },
+        {
+            "name": "Student Community - Partner Search",
+            "description": "Endpoints searching for Study Partners.",
         },
         {
             "name": "Blog",

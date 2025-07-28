@@ -1,30 +1,22 @@
 {
   "AdminDashboard": {
-    "title": "إدارة الموظفين",
-    "description": "عرض وإدارة موظفي المنصة.",
-    "export": "تصدير",
-    "addEmployee": "إضافة موظف",
-    "employeeList": "قائمة الموظفين",
-    "employeeListDescription": "قائمة بجميع الموظفين في مؤسستك.",
-    "searchPlaceholder": "البحث في القائمة...",
-    "filter": "فلتر",
-    "sort": "فرز",
+    "title": "لوحة التحكم الرئيسية",
+    "description": "عرض عام للإحصائيات والأنشطة الأخيرة.",
+    "totalUsers": "إجمالي المستخدمين",
+    "blogPosts": "المقالات المنشورة",
+    "activeChallenges": "التحديات النشطة",
+    "userEngagement": "تفاعل المستخدمين",
+    "recentActivity": "النشاط الأخير",
+    "latestBlogPosts": "أحدث المقالات",
     "table": {
-      "id": "الرقم",
-      "name": "الاسم",
-      "email": "الايميل",
-      "status": "الحالة",
-      "joinDate": "تاريخ الانضمام",
-      "actions": "إجراءات"
+      "title": "العنوان",
+      "author": "المؤلف",
+      "publishedAt": "تاريخ النشر"
     },
-    "toggleMenu": "فتح القائمة",
-    "actions": "اتخاذ إجراء",
-    "viewDetails": "عرض التفاصيل",
-    "editUser": "تعديل المستخدم",
-    "deleteUser": "حذف المستخدم",
-    "statuses": {
-      "active": "نشط",
-      "blocked": "محظور"
+    "activity": {
+      "registered": "قام بالتسجيل.",
+      "published_post": "نشر مقالاً جديداً.",
+      "completed_challenge": "أكمل تحدياً."
     }
   }
 }

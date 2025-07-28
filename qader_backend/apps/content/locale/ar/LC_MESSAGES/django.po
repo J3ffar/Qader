@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-18 16:10+0300\n"
+"POT-Creation-Date: 2025-07-11 09:35+0300\n"
 "PO-Revision-Date: 2025-05-18 13:14+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -18,273 +18,345 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
-#: .\apps\content\api\serializers.py:117
+#: .\apps\content\api\serializers.py:166
 msgid "Subject must be at least 5 characters long."
 msgstr "يجب أن يكون الموضوع 5 أحرف على الأقل."
 
-#: .\apps\content\api\views.py:202 .\apps\content\tests\test_api.py:254
+#: .\apps\content\api\views.py:301 .\apps\content\tests\test_api.py:254
 msgid ""
 "Thank you for contacting us. We will get back to you as soon as possible, "
 "God willing."
 msgstr "شكراً لتواصلك معنا. سنعود إليك في أقرب وقت ممكن، إن شاء الله."
 
-#: .\apps\content\models.py:12
+#: .\apps\content\models.py:11
 msgid "Created At"
 msgstr "تاريخ الإنشاء"
 
-#: .\apps\content\models.py:13
+#: .\apps\content\models.py:14
 msgid "Updated At"
 msgstr "تاريخ التحديث"
 
-#: .\apps\content\models.py:23
+#: .\apps\content\models.py:25
 msgid "Slug"
 msgstr "سلاغ"
 
-#: .\apps\content\models.py:27
+#: .\apps\content\models.py:29
+#, fuzzy
+#| msgid ""
+#| "Unique identifier for the page/content (e.g., 'terms-and-conditions'). "
+#| "Used in URLs."
 msgid ""
-"Unique identifier for the page/content (e.g., 'terms-and-conditions'). Used "
-"in URLs."
+"Unique identifier for the page/content (e.g., 'our-story'). Used in URLs."
 msgstr ""
 "معرف فريد للصفحة/المحتوى (مثل 'terms-and-conditions'). يستخدم في عناوين URL."
 
-#: .\apps\content\models.py:30 .\apps\content\models.py:196
+#: .\apps\content\models.py:32 .\apps\content\models.py:258
 msgid "Title"
 msgstr "العنوان"
 
-#: .\apps\content\models.py:32
-msgid "Content"
-msgstr "المحتوى"
+#: .\apps\content\models.py:34
+msgid "Content (Simple/Legacy)"
+msgstr ""
 
-#: .\apps\content\models.py:32
-msgid "Main content (supports HTML or Markdown)."
-msgstr "المحتوى الرئيسي (يدعم HTML أو Markdown)."
+#: .\apps\content\models.py:38
+msgid ""
+"For simple HTML content. Use 'Structured Content' for modern, template-based "
+"pages."
+msgstr ""
 
-#: .\apps\content\models.py:35 .\apps\content\models.py:205
-#: .\apps\content\models.py:231
+#: .\apps\content\models.py:42
+msgid "Structured Content (Template-based)"
+msgstr ""
+
+#: .\apps\content\models.py:46
+msgid ""
+"Key-value JSON for template-based pages. E.g., {'hero_title': {'value': "
+"'...'}}"
+msgstr ""
+
+#: .\apps\content\models.py:50 .\apps\content\models.py:262
+#: .\apps\content\models.py:282
 msgid "Icon Class"
 msgstr "فئة الأيقونة"
 
-#: .\apps\content\models.py:40
-msgid ""
-"Optional CSS class for an icon associated with the page (e.g., for Terms "
-"page sections)."
-msgstr "فئة CSS اختيارية لأيقونة مرتبطة بالصفحة (مثل أقسام صفحة الشروط)."
-
-#: .\apps\content\models.py:44
+#: .\apps\content\models.py:52
 msgid "Is Published"
 msgstr "هل هو منشور؟"
 
-#: .\apps\content\models.py:47
-msgid "Whether the page is visible publicly."
-msgstr "ما إذا كانت الصفحة مرئية للجمهور."
-
-#: .\apps\content\models.py:51
+#: .\apps\content\models.py:55
 msgid "Page"
 msgstr "الصفحة"
 
-#: .\apps\content\models.py:52
+#: .\apps\content\models.py:56
 msgid "Pages"
 msgstr "الصفحات"
 
-#: .\apps\content\models.py:62 .\apps\content\models.py:109
+#: .\apps\content\models.py:75
+msgid "Associated Page"
+msgstr ""
+
+#: .\apps\content\models.py:77
+msgid "The page this image is primarily used on. Leave blank for general use."
+msgstr ""
+
+#: .\apps\content\models.py:81
+msgid "Image Slug"
+msgstr ""
+
+#: .\apps\content\models.py:85
+msgid ""
+"A unique identifier for the image (e.g., 'our-story-hero'). Auto-generated "
+"if left blank."
+msgstr ""
+
+#: .\apps\content\models.py:90
+msgid "Image Name"
+msgstr ""
+
+#: .\apps\content\models.py:93
+msgid "An internal name for organizing images (e.g., 'Our Story Hero Image')."
+msgstr ""
+
+#: .\apps\content\models.py:97
+msgid "Image File"
+msgstr ""
+
+#: .\apps\content\models.py:99
+msgid "Upload the image file."
+msgstr ""
+
+#: .\apps\content\models.py:104
+#, fuzzy
+#| msgid "Text"
+msgid "Alt Text"
+msgstr "النص"
+
+#: .\apps\content\models.py:107
+msgid "Descriptive text for accessibility (SEO)."
+msgstr ""
+
+#: .\apps\content\models.py:118
+#, fuzzy
+#| msgid "Content"
+msgid "Content Image"
+msgstr "المحتوى"
+
+#: .\apps\content\models.py:119
+#, fuzzy
+#| msgid "Content"
+msgid "Content Images"
+msgstr "المحتوى"
+
+#: .\apps\content\models.py:140 .\apps\content\models.py:182
 msgid "Name"
 msgstr "الاسم"
 
-#: .\apps\content\models.py:64 .\apps\content\models.py:94
-#: .\apps\content\models.py:126 .\apps\content\models.py:211
-#: .\apps\content\models.py:233
+#: .\apps\content\models.py:142 .\apps\content\models.py:167
+#: .\apps\content\models.py:196 .\apps\content\models.py:264
+#: .\apps\content\models.py:284
 msgid "Display Order"
 msgstr "ترتيب العرض"
 
-#: .\apps\content\models.py:64
+#: .\apps\content\models.py:142
 msgid "Order in which categories appear."
 msgstr "الترتيب الذي تظهر به الفئات."
 
-#: .\apps\content\models.py:68
+#: .\apps\content\models.py:146
 msgid "FAQ Category"
 msgstr "فئة الأسئلة الشائعة"
 
-#: .\apps\content\models.py:69
+#: .\apps\content\models.py:147
 msgid "FAQ Categories"
 msgstr "فئات الأسئلة الشائعة"
 
-#: .\apps\content\models.py:83
+#: .\apps\content\models.py:161
 msgid "Category"
 msgstr "الفئة"
 
-#: .\apps\content\models.py:85
+#: .\apps\content\models.py:163
 msgid "Question"
 msgstr "السؤال"
 
-#: .\apps\content\models.py:86
+#: .\apps\content\models.py:164
 msgid "Answer"
 msgstr "الإجابة"
 
-#: .\apps\content\models.py:88 .\apps\content\models.py:130
-#: .\apps\content\models.py:212 .\apps\content\models.py:234
+#: .\apps\content\models.py:165 .\apps\content\models.py:197
+#: .\apps\content\models.py:265 .\apps\content\models.py:285
 msgid "Is Active"
 msgstr "هل هو نشط؟"
 
-#: .\apps\content\models.py:91
-msgid "Whether the FAQ is visible."
-msgstr "ما إذا كانت الأسئلة الشائعة مرئية."
-
-#: .\apps\content\models.py:94
+#: .\apps\content\models.py:167
 msgid "Order within the category."
 msgstr "الترتيب داخل الفئة."
 
-#: .\apps\content\models.py:98
+#: .\apps\content\models.py:171
 msgid "FAQ Item"
 msgstr "عنصر الأسئلة الشائعة"
 
-#: .\apps\content\models.py:99
+#: .\apps\content\models.py:172
 msgid "FAQ Items"
 msgstr "عناصر الأسئلة الشائعة"
 
-#: .\apps\content\models.py:111
+#: .\apps\content\models.py:184
 msgid "Description"
 msgstr "الوصف"
 
-#: .\apps\content\models.py:111
+#: .\apps\content\models.py:184
 msgid "Description displayed on the card."
 msgstr "الوصف المعروض على البطاقة."
 
-#: .\apps\content\models.py:114
-msgid "Icon SVG or Class"
-msgstr "أيقونة SVG أو فئة"
+#: .\apps\content\models.py:187
+#, fuzzy
+#| msgid "Icon Class"
+msgid "Icon Image"
+msgstr "فئة الأيقونة"
 
-#: .\apps\content\models.py:118
-msgid "SVG code or CSS class for the icon."
-msgstr "كود SVG أو فئة CSS للأيقونة."
+#: .\apps\content\models.py:192
+msgid "Upload an icon image for the partner category (e.g., 70x70 pixels)."
+msgstr ""
 
-#: .\apps\content\models.py:121
+#: .\apps\content\models.py:195
 msgid "Google Form Link"
 msgstr "رابط نموذج جوجل"
 
-#: .\apps\content\models.py:123
-msgid "Link to the application form for this partnership type."
-msgstr "رابط نموذج التقديم لهذا النوع من الشراكة."
-
-#: .\apps\content\models.py:128
-msgid "Order in which partner cards appear."
-msgstr "الترتيب الذي تظهر به بطاقات الشركاء."
-
-#: .\apps\content\models.py:133
+#: .\apps\content\models.py:200
 msgid "Partner Category"
 msgstr "فئة الشريك"
 
-#: .\apps\content\models.py:134
+#: .\apps\content\models.py:201
 msgid "Partner Categories"
 msgstr "فئات الشركاء"
 
-#: .\apps\content\models.py:149
+#: .\apps\content\models.py:216
 msgid "New"
 msgstr "جديد"
 
-#: .\apps\content\models.py:150
+#: .\apps\content\models.py:217
 msgid "Read"
 msgstr "مقروء"
 
-#: .\apps\content\models.py:151
+#: .\apps\content\models.py:218
 msgid "Replied"
 msgstr "تم الرد"
 
-#: .\apps\content\models.py:152
+#: .\apps\content\models.py:219
 msgid "Archived"
 msgstr "مؤرشف"
 
-#: .\apps\content\models.py:155
+#: .\apps\content\models.py:221
 msgid "Full Name"
 msgstr "الاسم الكامل"
 
-#: .\apps\content\models.py:156
+#: .\apps\content\models.py:222
 msgid "Email"
 msgstr "البريد الإلكتروني"
 
-#: .\apps\content\models.py:157
+#: .\apps\content\models.py:223
 msgid "Subject"
 msgstr "الموضوع"
 
-#: .\apps\content\models.py:158
+#: .\apps\content\models.py:224
 msgid "Message"
 msgstr "الرسالة"
 
-#: .\apps\content\models.py:160
+#: .\apps\content\models.py:226
 msgid "Attachment"
 msgstr "المرفق"
 
-#: .\apps\content\models.py:166
+#: .\apps\content\models.py:229
 msgid "Status"
 msgstr "الحالة"
 
-#: .\apps\content\models.py:178
+#: .\apps\content\models.py:241
 msgid "Responder"
 msgstr "المجيب"
 
-#: .\apps\content\models.py:180
+#: .\apps\content\models.py:243
 msgid "Response"
 msgstr "الرد"
 
-#: .\apps\content\models.py:181
+#: .\apps\content\models.py:244
 msgid "Responded At"
 msgstr "تاريخ الرد"
 
-#: .\apps\content\models.py:184
+#: .\apps\content\models.py:247
 msgid "Contact Message"
 msgstr "رسالة تواصل"
 
-#: .\apps\content\models.py:185
+#: .\apps\content\models.py:248
 msgid "Contact Messages"
 msgstr "رسائل التواصل"
 
-#: .\apps\content\models.py:197
+#: .\apps\content\models.py:259
 msgid "Text"
 msgstr "النص"
 
-#: .\apps\content\models.py:197
-msgid "Short description on the card."
-msgstr "وصف قصير على البطاقة."
-
-#: .\apps\content\models.py:199
+#: .\apps\content\models.py:260
 msgid "SVG Image Code"
 msgstr "كود صورة SVG"
 
-#: .\apps\content\models.py:202
-msgid "Paste the SVG code here, or provide an icon class below."
-msgstr "الصق كود SVG هنا، أو قدم فئة أيقونة أدناه."
-
-#: .\apps\content\models.py:209
-msgid "Alternative to SVG: CSS class for the icon."
-msgstr "بديل لـ SVG: فئة CSS للأيقونة."
-
-#: .\apps\content\models.py:215
+#: .\apps\content\models.py:268
 msgid "Homepage Feature Card"
 msgstr "بطاقة ميزة الصفحة الرئيسية"
 
-#: .\apps\content\models.py:216
+#: .\apps\content\models.py:269
 msgid "Homepage Feature Cards"
 msgstr "بطاقات ميزات الصفحة الرئيسية"
 
-#: .\apps\content\models.py:227
+#: .\apps\content\models.py:279
 msgid "Label"
 msgstr "التسمية"
 
-#: .\apps\content\models.py:227
-msgid "e.g., 'Number of Questions'"
-msgstr "مثال: 'عدد الأسئلة'"
-
-#: .\apps\content\models.py:229
+#: .\apps\content\models.py:280
 msgid "Value"
 msgstr "القيمة"
 
-#: .\apps\content\models.py:229
-msgid "e.g., '15,000+'"
-msgstr "مثال: '15,000+'"
-
-#: .\apps\content\models.py:237
+#: .\apps\content\models.py:288
 msgid "Homepage Statistic"
 msgstr "إحصائية الصفحة الرئيسية"
 
-#: .\apps\content\models.py:238
+#: .\apps\content\models.py:289
 msgid "Homepage Statistics"
 msgstr "إحصائيات الصفحة الرئيسية"
+
+#~ msgid "Main content (supports HTML or Markdown)."
+#~ msgstr "المحتوى الرئيسي (يدعم HTML أو Markdown)."
+
+#~ msgid ""
+#~ "Optional CSS class for an icon associated with the page (e.g., for Terms "
+#~ "page sections)."
+#~ msgstr "فئة CSS اختيارية لأيقونة مرتبطة بالصفحة (مثل أقسام صفحة الشروط)."
+
+#~ msgid "Whether the page is visible publicly."
+#~ msgstr "ما إذا كانت الصفحة مرئية للجمهور."
+
+#~ msgid "Whether the FAQ is visible."
+#~ msgstr "ما إذا كانت الأسئلة الشائعة مرئية."
+
+#~ msgid "Icon SVG or Class"
+#~ msgstr "أيقونة SVG أو فئة"
+
+#~ msgid "SVG code or CSS class for the icon."
+#~ msgstr "كود SVG أو فئة CSS للأيقونة."
+
+#~ msgid "Link to the application form for this partnership type."
+#~ msgstr "رابط نموذج التقديم لهذا النوع من الشراكة."
+
+#~ msgid "Order in which partner cards appear."
+#~ msgstr "الترتيب الذي تظهر به بطاقات الشركاء."
+
+#~ msgid "Short description on the card."
+#~ msgstr "وصف قصير على البطاقة."
+
+#~ msgid "Paste the SVG code here, or provide an icon class below."
+#~ msgstr "الصق كود SVG هنا، أو قدم فئة أيقونة أدناه."
+
+#~ msgid "Alternative to SVG: CSS class for the icon."
+#~ msgstr "بديل لـ SVG: فئة CSS للأيقونة."
+
+#~ msgid "e.g., 'Number of Questions'"
+#~ msgstr "مثال: 'عدد الأسئلة'"
+
+#~ msgid "e.g., '15,000+'"
+#~ msgstr "مثال: '15,000+'"

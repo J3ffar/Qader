@@ -21,6 +21,7 @@ import type {
   RefreshTokenPayload,
   RefreshTokenResponse,
   LogoutPayload,
+  Grade,
 } from "@/types/api/auth.types";
 import { ApiError } from "@/lib/errors"; // Import our custom error
 import { useAuthStore } from "@/store/auth.store";
@@ -29,15 +30,56 @@ import { ApiUpdateUserProfileData } from "@/types/api/user.types";
 // All functions below are solid. They correctly delegate to the apiClient.
 // No changes are needed for most of them.
 
+// THIS FUNCTION NOW CALLS OUR NEXT.JS BFF, NOT DJANGO DIRECTLY
 export const loginUser = (
   credentials: LoginCredentials
-): Promise<LoginResponse> => {
-  return apiClient<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, {
+): Promise<{ access: string; user: UserProfile }> => {
+  return fetch("/api/auth/login", {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
-    isPublic: true,
     credentials: "include",
+  }).then(async (res) => {
+    // We need the error data regardless of whether the response is ok or not
+    const responseData = await res.json();
+
+    if (!res.ok) {
+      const errorMessage =
+        responseData.non_field_errors?.[0] || // Django's "No active account found..."
+        responseData.detail || // Django's other generic errors
+        "Login failed"; // Fallback
+
+      // Pass the full error data object in the ApiError constructor
+      throw new ApiError(errorMessage, res.status, responseData);
+    }
+
+    // If successful, the data is already parsed
+    return responseData;
   });
+};
+
+// NEW FUNCTION FOR SESSION HYDRATION
+export const getAuthSession = async (): Promise<{
+  access: string;
+  user: UserProfile;
+}> => {
+  const response = await fetch("/api/auth/me", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new ApiError(
+      errorData.non_field_errors?.[0] || errorData.error || "Session not found",
+      response.status,
+      errorData
+    );
+  }
+
+  return response.json();
 };
 
 export const signupUser = (data: ApiSignupData): Promise<SignupResponse> => {
@@ -49,24 +91,38 @@ export const signupUser = (data: ApiSignupData): Promise<SignupResponse> => {
   });
 };
 
-// ... (confirmEmail, requestOtp, verifyOtp, resetPasswordWithOtp are all fine)
 export interface ConfirmEmailParams {
   uidb64: string;
   token: string;
 }
-export type ConfirmEmailResponse = LoginResponse;
 
-export const confirmEmail = ({
+// This is the response type the CLIENT will get from our BFF
+export type ConfirmEmailResponse = Omit<LoginResponse, "refresh">;
+
+// --- THE FIX: Point this function to our BFF, not directly to Django ---
+export const confirmEmail = async ({
   uidb64,
   token,
 }: ConfirmEmailParams): Promise<ConfirmEmailResponse> => {
-  return apiClient<ConfirmEmailResponse>(
-    API_ENDPOINTS.AUTH.CONFIRM_EMAIL(uidb64, token),
-    {
-      method: "GET",
-      isPublic: true,
-    }
-  );
+  const response = await fetch("/api/auth/confirm-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ uidb64, token }),
+    credentials: "include",
+  });
+
+  const responseData = await response.json();
+
+  if (!response.ok) {
+    // Forward the error from the BFF/Django to the client mutation hook
+    throw new ApiError(
+      responseData.detail || "Email confirmation failed",
+      response.status,
+      responseData
+    );
+  }
+
+  return responseData;
 };
 
 export const requestOtp = (
@@ -125,38 +181,10 @@ export const completeUserProfile = (
   });
 };
 
-export const logoutUserApi = async (payload: LogoutPayload): Promise<void> => {
-  const locale = getLocaleFromPathname() || "ar";
-  const url = `${API_BASE_URL}/${locale}/api/${API_VERSION}${API_ENDPOINTS.AUTH.LOGOUT}`;
-
-  // Get the access token directly from the store for the Authorization header.
-  const accessToken = useAuthStore.getState().accessToken;
-
-  // If there's no access token, we can't even attempt the call, so we just return.
-  if (!accessToken) {
-    return;
-  }
-
-  try {
-    await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        // The backend's LogoutView requires this header to identify the user
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(payload),
-    });
-    // We don't care about the response. Whether it's 204 or 401,
-    // we are proceeding with client-side logout regardless.
-  } catch (error) {
-    // Also ignore network errors. The user needs to be logged out on the client.
-    console.warn(
-      "Network error during API logout call. Proceeding with client-side cleanup.",
-      error
-    );
-  }
+// THIS FUNCTION NOW CALLS OUR NEXT.JS BFF
+export const logoutUserApi = async (): Promise<void> => {
+  await fetch("/api/auth/logout");
+  // We don't care about the response, just that we fired the request.
 };
 
 /**
@@ -193,6 +221,10 @@ export const refreshTokenApi = async (
   }
 
   return response.json();
+};
+
+export const getGrades = (): Promise<Grade[]> => {
+  return apiClient<Grade[]>(API_ENDPOINTS.USERS.GRADES);
 };
 
 export const getCurrentUserProfile = (): Promise<UserProfile> => {

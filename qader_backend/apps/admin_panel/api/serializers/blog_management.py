@@ -7,6 +7,7 @@ import bleach  # For HTML sanitization
 
 from apps.blog.models import BlogPost, BlogAdviceRequest
 from apps.support.models import SupportTicket
+from apps.blog.api.serializers import BlogAuthorSerializer
 
 User = get_user_model()
 
@@ -81,16 +82,15 @@ class AdminBlogPostSerializer(TaggitSerializer, serializers.ModelSerializer):
     tags = TagListSerializerField(
         required=False, help_text="A comma-separated list of tags."
     )
-    author = serializers.PrimaryKeyRelatedField(
+    author = BlogAuthorSerializer(read_only=True)
+    author_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(is_staff=True),
+        source='author',
+        write_only=True,
         required=False,
         allow_null=True,
         help_text="Select the staff member authoring this post. Defaults to current user if staff.",
     )
-    author_username = serializers.CharField(
-        source="author.username", read_only=True, required=False
-    )
-    author_display_name = serializers.CharField(read_only=True)
     image = serializers.ImageField(
         required=False, allow_null=True, use_url=True
     )  # Ensure image field is present
@@ -103,8 +103,7 @@ class AdminBlogPostSerializer(TaggitSerializer, serializers.ModelSerializer):
         fields = [
             "id",
             "author",
-            "author_username",
-            "author_display_name",
+            "author_id",
             "title",
             "slug",
             "content",  # Admin inputs Markdown here
@@ -117,8 +116,7 @@ class AdminBlogPostSerializer(TaggitSerializer, serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
-            "author_username",
-            "author_display_name",
+            "author",
             "created_at",
             "updated_at",
         ]

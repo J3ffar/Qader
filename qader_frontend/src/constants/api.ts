@@ -23,6 +23,84 @@ export const API_ENDPOINTS = {
     APPLY_SERIAL_CODE: "/users/me/apply-serial-code/", // Moved from STUDY to USERS as it's user-related
     SUBSCRIPTION_PLANS: "/users/subscription-plans/",
     CANCEL_SUBSCRIPTION: "/users/me/subscription/cancel/",
+    GRADES: "/users/grades/",
+    SUPPORT: {
+      TICKETS: "/support/tickets/",
+      DETAIL: (id: number | string) => `/support/tickets/${id}/`,
+      REPLIES: (id: number | string) => `/support/tickets/${id}/replies/`,
+      ISSUE_TYPES: "/support/tickets/issue_types/", // <-- ADD THIS
+    },
+  },
+  ADMIN: {
+    USERS: {
+      LIST: "/admin/users/",
+      DETAIL: (userId: number | string) => `/admin/users/${userId}/`,
+      ADJUST_POINTS: (userId: number) =>
+        `/admin/users/${userId}/adjust-points/`,
+      POINT_LOG: (userId: number) => `/admin/users/${userId}/point-log/`,
+      RESET_PASSWORD: (userId: number) =>
+        `/admin/users/${userId}/reset-password/`,
+      STATISTICS: (userId: number) => `/admin/users/${userId}/statistics/`,
+      TEST_HISTORY: (userId: number) => `/admin/users/${userId}/test-history/`,
+    },
+    STATISTICS: {
+      // NEW SECTION
+      OVERVIEW: "/admin/statistics/overview/",
+      EXPORT: "/admin/statistics/export/",
+    },
+    PERMISSIONS: "/admin/permissions/",
+    SUPPORT: {
+      // NEW SECTION
+      TICKETS: "/admin/support/tickets/",
+      TICKET_DETAIL: (id: number | string) => `/admin/support/tickets/${id}/`,
+      REPLIES: (id: number | string) => `/admin/support/tickets/${id}/replies/`,
+    },
+    CONTENT: {
+      // NEW SECTION
+      // Pages
+      PAGES: "/admin/content/pages/",
+      PAGE_DETAIL: (slug: string) => `/admin/content/pages/${slug}/`,
+      // Page-specific Images
+      PAGE_IMAGES: (pageSlug: string) =>
+        `/admin/content/pages/${pageSlug}/images/`,
+      PAGE_IMAGE_DETAIL: (pageSlug: string, imageId: number | string) =>
+        `/admin/content/pages/${pageSlug}/images/${imageId}/`,
+      // FAQs
+      FAQ_CATEGORIES: "/admin/content/faq-categories/",
+      FAQ_CATEGORY_DETAIL: (id: number | string) =>
+        `/admin/content/faq-categories/${id}/`,
+      FAQ_ITEMS: "/admin/content/faq-items/",
+      FAQ_ITEM_DETAIL: (id: number | string) =>
+        `/admin/content/faq-items/${id}/`,
+      // Contact Messages
+      CONTACT_MESSAGES: "/admin/content/contact-messages/",
+      CONTACT_MESSAGE_DETAIL: (id: number | string) =>
+        `/admin/content/contact-messages/${id}/`,
+      // Homepage
+      HOMEPAGE_FEATURES: "/admin/content/homepage-features/",
+      HOMEPAGE_FEATURE_DETAIL: (id: number | string) =>
+        `/admin/content/homepage-features/${id}/`,
+      HOMEPAGE_STATS: "/admin/content/homepage-stats/",
+      HOMEPAGE_STAT_DETAIL: (id: number | string) =>
+        `/admin/content/homepage-stats/${id}/`,
+      // Partners
+      PARTNER_CATEGORIES: "/admin/content/partner-categories/",
+      PARTNER_CATEGORY_DETAIL: (id: number | string) =>
+        `/admin/content/partner-categories/${id}/`,
+    },
+    LEARNING: {
+      SECTIONS: "/admin/learning/sections/",
+      SECTION_DETAIL: (id: number | string) =>
+        `/admin/learning/sections/${id}/`,
+      SUBSECTIONS: "/admin/learning/subsections/",
+      SUBSECTION_DETAIL: (id: number | string) =>
+        `/admin/learning/subsections/${id}/`,
+      SKILLS: "/admin/learning/skills/",
+      SKILL_DETAIL: (id: number | string) => `/admin/learning/skills/${id}/`,
+      QUESTIONS: "/admin/learning/questions/",
+      QUESTION_DETAIL: (id: number | string) =>
+        `/admin/learning/questions/${id}/`,
+    },
   },
   STUDY: {
     STATISTICS: "/study/statistics/",
@@ -110,12 +188,40 @@ export const API_ENDPOINTS = {
   },
   GAMIFICATION: {
     REWARD_STORE: "/gamification/reward-store/",
-    DAILY_POINTS_SUMMARY: "/gamification/points-summary/daily/",
+    DAILY_POINTS_SUMMARY: "/gamification/points-summary/",
     STUDY_DAYS: "/gamification/study-days/",
     // Adding placeholders for other gamification endpoints that might exist or be added soon
     BADGES_LIST: "/gamification/badges/",
     MY_BADGES: "/gamification/my-badges/",
     POINTS_LOG: "/gamification/point-log/",
     GAMIFICATION_SUMMARY: "/gamification/summary/",
+    POINT_LOG_DETAIL: (id: number | string) => `/gamification/point-log/${id}/`,
+    REWARD_STORE_DETAIL: (id: number | string) =>
+      `/gamification/reward-store/${id}/`,
+    PURCHASE_REWARD_ITEM: (itemId: number | string) =>
+      `/gamification/reward-store/purchase/${itemId}/`,
+
+    POINTS_SUMMARY: "/gamification/points-summary/",
+    MY_ITEMS: "/gamification/my-items/",
+  },
+  Blog: {
+    POSTS: "/blog/posts/",
+    adviceRequests: "/blog/advice-requests/",
+  },
+  COMMUNITY: {
+    POSTS: "/community/posts/",
+    POST_DETAIL: (id: number | string) => `/community/posts/${id}/`,
+    POST_TOGGLE_LIKE: (id: number | string) =>
+      `/community/posts/${id}/toggle_like/`,
+    REPLIES: (postId: number | string) => `/community/posts/${postId}/replies/`,
+    REPLY_TOGGLE_LIKE: (id: number | string) =>
+      `/community/replies/${id}/toggle_like/`,
+    TAGS: "/community/tags/",
+    PARTNERS: "/community/partners/",
+    PARTNER_REQUESTS: "/community/partner-requests/",
+    PARTNER_REQUEST_ACCEPT: (id: number) =>
+      `/community/partner-requests/${id}/accept/`,
+    PARTNER_REQUEST_REJECT: (id: number) =>
+      `/community/partner-requests/${id}/reject/`,
   },
 };

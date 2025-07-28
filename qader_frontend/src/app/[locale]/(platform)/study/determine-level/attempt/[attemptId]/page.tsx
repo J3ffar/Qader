@@ -48,6 +48,9 @@ import type {
 } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { queryKeys } from "@/constants/queryKeys";
+import Image from "next/image";
+import { QuestionRenderer } from "@/components/shared/QuestionRenderer";
+import { RichContentViewer } from "@/components/shared/RichContentViewer";
 
 type OptionKey = "A" | "B" | "C" | "D";
 interface UserSelections {
@@ -357,9 +360,10 @@ const LevelAssessmentAttemptPage = () => {
         </CardHeader>
 
         <CardContent className="min-h-[250px] py-6">
-          <h2 className="mb-6 text-right text-lg font-semibold leading-relaxed rtl:text-right md:text-xl">
-            {currentQuestion.question_text}
-          </h2>
+          <QuestionRenderer
+            questionText={currentQuestion.question_text}
+            imageUrl={currentQuestion.image}
+          />
 
           {currentQuestion.options ? (
             <RadioGroup
@@ -367,7 +371,7 @@ const LevelAssessmentAttemptPage = () => {
               onValueChange={(value: string) =>
                 handleSelectAnswer(value as OptionKey)
               }
-              className="space-y-3"
+              className="space-y-3 mt-8"
               dir={direction}
             >
               {Object.entries(currentQuestion.options).map(([key, text]) => {
@@ -376,14 +380,17 @@ const LevelAssessmentAttemptPage = () => {
                   <Label
                     key={optionKey}
                     htmlFor={`${currentQuestion.id}-${optionKey}`}
-                    className="has-[input:checked]:border-primary has-[input:checked]:bg-primary has-[input:checked]:text-primary-foreground flex cursor-pointer items-center space-x-3 rounded-md border p-3 text-base transition-colors hover:bg-accent rtl:space-x-reverse"
+                    className="has-[input:checked]:border-primary has-[input:checked]:bg-primary has-[input-checked]:text-primary-foreground flex cursor-pointer items-center space-x-3 rounded-md border p-3 text-base transition-colors hover:bg-accent rtl:space-x-reverse"
                   >
                     <RadioGroupItem
                       value={optionKey}
                       id={`${currentQuestion.id}-${optionKey}`}
                       className="border-primary text-primary"
                     />
-                    <span>{text}</span>
+                    <RichContentViewer
+                      htmlContent={text}
+                      className="prose dark:prose-invert max-w-none flex-1"
+                    />
                   </Label>
                 );
               })}

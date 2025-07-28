@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-17 23:30+0300\n"
+"POT-Creation-Date: 2025-07-11 09:35+0300\n"
 "PO-Revision-Date: 2025-05-18 13:08+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -108,7 +108,7 @@ msgid ""
 "at the top of the post."
 msgstr "اختياري: صورة مميزة لمنشور المدونة. ستظهر في القوائم وفي أعلى المنشور."
 
-#: .\apps\blog\models.py:72 .\apps\blog\models.py:179
+#: .\apps\blog\models.py:72 .\apps\blog\models.py:172
 msgid "Status"
 msgstr "الحالة"
 
@@ -124,78 +124,77 @@ msgstr "الوسوم"
 msgid "Comma-separated tags."
 msgstr "وسوم مفصولة بفواصل."
 
-#: .\apps\blog\models.py:84 .\apps\blog\models.py:211
+#: .\apps\blog\models.py:85 .\apps\blog\models.py:204
 msgid "Created At"
 msgstr "تاريخ الإنشاء"
 
-#: .\apps\blog\models.py:85 .\apps\blog\models.py:212
+#: .\apps\blog\models.py:88 .\apps\blog\models.py:205
 msgid "Updated At"
 msgstr "تاريخ التحديث"
 
-#: .\apps\blog\models.py:88
+#: .\apps\blog\models.py:92
 msgid "Blog Post"
 msgstr "منشور مدونة"
 
-#: .\apps\blog\models.py:89
+#: .\apps\blog\models.py:93
 msgid "Blog Posts"
 msgstr "منشورات المدونة"
 
-#: .\apps\blog\models.py:133
-msgid "Qader Team"
-msgstr "فريق قادر"
-
-#: .\apps\blog\models.py:163
+#: .\apps\blog\models.py:156
 msgid "User"
 msgstr "المستخدم"
 
-#: .\apps\blog\models.py:166
+#: .\apps\blog\models.py:159
 msgid "The user requesting advice."
 msgstr "المستخدم الذي يطلب النصيحة."
 
-#: .\apps\blog\models.py:169
+#: .\apps\blog\models.py:162
 msgid "Problem Type/Topic"
 msgstr "نوع المشكلة/الموضوع"
 
-#: .\apps\blog\models.py:173
+#: .\apps\blog\models.py:166
 msgid "Optional: Type of problem or topic user needs advice on."
 msgstr "اختياري: نوع المشكلة أو الموضوع الذي يحتاج المستخدم نصيحة بشأنه."
 
-#: .\apps\blog\models.py:176
+#: .\apps\blog\models.py:169
 msgid "Description"
 msgstr "الوصف"
 
-#: .\apps\blog\models.py:176
+#: .\apps\blog\models.py:169
 msgid "Detailed description of the issue/request."
 msgstr "وصف تفصيلي للمشكلة/الطلب."
 
-#: .\apps\blog\models.py:186
+#: .\apps\blog\models.py:179
 msgid "Response Method"
 msgstr "طريقة الرد"
 
-#: .\apps\blog\models.py:191
+#: .\apps\blog\models.py:184
 msgid "How the user was (or will be) answered."
 msgstr "كيف تم (أو سيتم) الرد على المستخدم."
 
-#: .\apps\blog\models.py:195
+#: .\apps\blog\models.py:188
 msgid "Related Support Ticket"
 msgstr "تذكرة دعم ذات صلة"
 
-#: .\apps\blog\models.py:200
+#: .\apps\blog\models.py:193
 msgid "Link if this request was answered via a support ticket."
 msgstr "رابط إذا تم الرد على هذا الطلب عبر تذكرة دعم."
 
-#: .\apps\blog\models.py:204
+#: .\apps\blog\models.py:197
 msgid "Related Blog Post"
 msgstr "منشور مدونة ذو صلة"
 
-#: .\apps\blog\models.py:209
+#: .\apps\blog\models.py:202
 msgid "Link if this request resulted in a published blog post."
 msgstr "رابط إذا أدى هذا الطلب إلى نشر منشور مدونة."
 
-#: .\apps\blog\models.py:215
+#: .\apps\blog\models.py:208
 msgid "Blog Advice Request"
 msgstr "طلب نصيحة مدونة"
 
-#: .\apps\blog\models.py:216
+#: .\apps\blog\models.py:209
 msgid "Blog Advice Requests"
 msgstr "طلبات نصيحة المدونة"
+
+#~ msgid "Qader Team"
+#~ msgstr "فريق قادر"

@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { locales as appLocales } from "@/config/i18n.config";
 import "@/app/globals.css";
 import { cn } from "@/lib/utils";
+import { SessionProvider } from "@/components/global/SessionProvider";
 
 // Fonts
 const ibm = IBM_Plex_Sans_Arabic({
@@ -86,6 +87,14 @@ export default async function LocaleLayout({
       dir={currentLocale === "ar" ? "rtl" : "ltr"}
       suppressHydrationWarning
     >
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+          integrity="sha384-n8MVd4RsNIU0KOVEMeaMurDcGvBHncCeUQ+Gjk7/VIltNopUscJDRCdx93cSESYa"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body
         className={cn(
           "font-body bg-background text-foreground antialiased",
@@ -100,11 +109,13 @@ export default async function LocaleLayout({
             enableSystem
             disableTransitionOnChange
           >
+            <SessionProvider>
+              {children}
+              <Toaster richColors position="top-center" closeButton />
+            </SessionProvider>
             <Suspense fallback={null}>
               <NProgressHandler />
             </Suspense>
-            {children}
-            <Toaster richColors position="top-center" closeButton />
           </Providers>
         </NextIntlClientProvider>
       </body>

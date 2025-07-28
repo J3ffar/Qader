@@ -169,7 +169,7 @@ const LevelAssessmentPage = () => {
         <Alert variant="destructive">
           <AlertTitle>{t("errors.fetchFailedTitle")}</AlertTitle>
           <AlertDescription>
-            {t("errors.fetchFailedDescription")}
+            {getApiErrorMessage(error, t("errors.fetchFailedDescription"))}
           </AlertDescription>
         </Alert>
       </div>

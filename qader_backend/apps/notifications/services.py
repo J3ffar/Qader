@@ -7,6 +7,7 @@ from typing import Optional, Any, Dict
 import logging
 
 from apps.notifications.tasks import dispatch_notification_email_task
+from qader_project.settings.base import FRONTEND_BASE_URL
 
 from .models import Notification, NotificationTypeChoices
 
@@ -23,7 +24,7 @@ def create_notification(
     target: Optional[Any] = None,
     action_object: Optional[Any] = None,
     notification_type: str = NotificationTypeChoices.INFO,
-    url: Optional[str] = None,
+    url: Optional[str] = FRONTEND_BASE_URL,
     extra_data: Optional[Dict[str, Any]] = None,
     send_email: bool = False,
     email_subject: Optional[str] = None,

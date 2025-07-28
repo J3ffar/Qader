@@ -74,6 +74,7 @@ from .serializers import (
 from ..constants import (
     SUBSCRIPTION_PLANS_CONFIG,
     SubscriptionTypeChoices,
+    GradeChoices,
 )
 from ..models import (
     UserProfile,
@@ -229,6 +230,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 "serial_code_used",
                 "assigned_mentor__user",  # Add assigned_mentor related fields if needed
             ).get(user=user)
+
+            # Check and reset the user's streak if it's broken upon login.
+            profile.check_and_reset_streak()
+
             context = {
                 "request": request
             }  # Ensure request context is passed for URL building
@@ -1003,6 +1008,13 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
             profile = UserProfile.objects.select_related(
                 "user", "serial_code_used"
             ).get(user=user)
+
+            # ---> The key change is here <---
+            # Before returning the profile for serialization (on GET) or update (on PATCH),
+            # check if the streak needs to be reset. This ensures data is consistent.
+            if self.request.method == "GET":
+                profile.check_and_reset_streak()
+
             return profile
         except UserProfile.DoesNotExist:
             # This indicates a potential data integrity issue if user is authenticated
@@ -1673,6 +1685,36 @@ class UserRedeemedCodesListView(generics.ListAPIView):
         user = self.request.user
         # Filter codes where used_by is the current user and order by most recent
         return SerialCode.objects.filter(used_by=user).order_by("-used_at")
+
+
+@extend_schema(
+    tags=["User Profile"],
+    summary="List Available Educational Grades",
+    description="Provides a list of all available educational grades for user profiles.",
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response=inline_serializer(
+                name="GradeListResponse",
+                fields={
+                    "key": serializers.CharField(),
+                    "label": serializers.CharField(),
+                },
+                many=True,
+            ),
+            description="List of available grades.",
+        ),
+    },
+)
+class GradeListView(views.APIView):
+    """Lists available educational grades."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request: Request, *args, **kwargs) -> Response:
+        grades = [
+            {"key": choice[0], "label": choice[1]} for choice in GradeChoices.choices
+        ]
+        return Response(grades, status=status.HTTP_200_OK)
 
 
 @extend_schema(

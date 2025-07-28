@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-26 21:21+0300\n"
+"POT-Creation-Date: 2025-07-11 09:35+0300\n"
 "PO-Revision-Date: 2025-05-18 13:07+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
-#: .\apps\admin_panel\api\serializers\content_management.py:172
+#: .\apps\admin_panel\api\serializers\content_management.py:219
 msgid "Invalid status value."
 msgstr "قيمة حالة غير صالحة."
 
@@ -92,64 +92,66 @@ msgstr "هل هو نشط؟"
 msgid "Notes"
 msgstr "ملاحظات"
 
-#: .\apps\admin_panel\api\serializers\user_management.py:97
+#: .\apps\admin_panel\api\serializers\user_management.py:100
 msgid "Confirm Password"
 msgstr "تأكيد كلمة المرور"
 
-#: .\apps\admin_panel\api\serializers\user_management.py:158
+#: .\apps\admin_panel\api\serializers\user_management.py:161
+#: .\apps\admin_panel\api\serializers\user_management.py:448
 msgid "A user with that username already exists."
 msgstr "مستخدم بهذا الاسم موجود بالفعل."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:163
+#: .\apps\admin_panel\api\serializers\user_management.py:166
+#: .\apps\admin_panel\api\serializers\user_management.py:464
 msgid "A user with that email already exists."
 msgstr "مستخدم بهذا البريد الإلكتروني موجود بالفعل."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:169
+#: .\apps\admin_panel\api\serializers\user_management.py:172
 msgid "Password fields didn't match."
 msgstr "حقلي كلمة المرور غير متطابقين."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:184
-#: .\apps\admin_panel\api\serializers\user_management.py:450
+#: .\apps\admin_panel\api\serializers\user_management.py:187
+#: .\apps\admin_panel\api\serializers\user_management.py:489
 msgid "Mentees can only be assigned to Teachers or Trainers."
 msgstr "لا يمكن تعيين المتدربين إلا للمعلمين أو المدربين."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:190
+#: .\apps\admin_panel\api\serializers\user_management.py:193
 msgid "Permissions can only be assigned to Sub-Admins."
 msgstr "لا يمكن تعيين الصلاحيات إلا للمسؤولين الفرعيين."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:232
+#: .\apps\admin_panel\api\serializers\user_management.py:235
 msgid "Failed to create user due to a data conflict (e.g., username/email)."
 msgstr ""
 "فشل إنشاء المستخدم بسبب تعارض في البيانات (مثل اسم المستخدم/البريد "
 "الإلكتروني)."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:438
+#: .\apps\admin_panel\api\serializers\user_management.py:477
 msgid "Permissions can only be set for Sub-Admins."
 msgstr "لا يمكن تعيين الصلاحيات إلا للمسؤولين الفرعيين."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:461
+#: .\apps\admin_panel\api\serializers\user_management.py:500
 msgid "A mentor can only be assigned to Students."
 msgstr "لا يمكن تعيين المرشد إلا للطلاب."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:469
+#: .\apps\admin_panel\api\serializers\user_management.py:508
 msgid "User cannot be their own mentor."
 msgstr "لا يمكن للمستخدم أن يكون مرشد نفسه."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:574
+#: .\apps\admin_panel\api\serializers\user_management.py:613
 msgid "Username or Email of the user to reset password for."
 msgstr ""
 "اسم المستخدم أو البريد الإلكتروني للمستخدم المراد إعادة تعيين كلمة المرور له."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:586
+#: .\apps\admin_panel\api\serializers\user_management.py:625
 msgid "Number of points to add (positive) or subtract (negative)."
 msgstr "عدد النقاط المراد إضافتها (موجب) أو طرحها (سالب)."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:592
+#: .\apps\admin_panel\api\serializers\user_management.py:631
 msgid ""
 "Reason for the point adjustment (will be logged and may be shown to user)."
 msgstr "سبب تعديل النقاط (سيتم تسجيله وقد يظهر للمستخدم)."
 
-#: .\apps\admin_panel\api\serializers\user_management.py:602
+#: .\apps\admin_panel\api\serializers\user_management.py:641
 msgid "Points change cannot be zero."
 msgstr "تغيير النقاط لا يمكن أن يكون صفرًا."
 

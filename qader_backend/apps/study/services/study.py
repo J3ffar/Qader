@@ -17,7 +17,10 @@ from django.db.models import (
     FloatField,
 )
 from django.db.models.functions import Coalesce
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import (
+    gettext_lazy as _,
+    gettext,
+)  # Import gettext as well for immediate translation
 from django.conf import settings
 from django.core.exceptions import ValidationError as CoreValidationError
 from rest_framework.exceptions import (
@@ -1222,21 +1225,8 @@ def retake_test_attempt(
     Starts a new test attempt based on the configuration of a previous one.
     Handles limits, finding new questions, and creating the new attempt.
     """
-    # 1. Check for Existing Active Test
-    if UserTestAttempt.objects.filter(
-        user=user, status=UserTestAttempt.Status.STARTED
-    ).exists():
-        raise DRFValidationError(
-            {
-                "non_field_errors": [
-                    _(
-                        "Please complete or cancel your ongoing test before starting a new one."
-                    )
-                ]
-            }
-        )
 
-    # 2. Extract and Validate Original Config
+    # 1. Extract and Validate Original Config
     original_config_snapshot = original_attempt.test_configuration
     if not isinstance(original_config_snapshot, dict):
         logger.error(
@@ -1250,6 +1240,23 @@ def retake_test_attempt(
     original_attempt_type = (
         original_attempt.attempt_type
     )  # Use the reliable field from the model
+
+    # 2. Check for Existing Active Test
+    if UserTestAttempt.objects.filter(
+        user=user,
+        status=UserTestAttempt.Status.STARTED,
+        attempt_type=original_attempt_type,
+    ).exists():
+        raise DRFValidationError(
+            {
+                "non_field_errors": [
+                    _(
+                        "Please complete or cancel your ongoing test before starting a new one."
+                    )
+                ]
+            }
+        )
+
     num_questions = original_config_snapshot.get(
         "num_questions_selected"
     )  # Use actual selected number from original
@@ -1595,8 +1602,8 @@ def _generate_ai_emergency_tips(
         if (
             isinstance(generated_tips, list)
             and all(isinstance(tip, str) for tip in generated_tips)
-            and 1 < len(generated_tips) <= 3
-        ):  # Expect 2 or 3 tips
+            and 1 < len(generated_tips) <= 10
+        ):  # Expect 2 or 10 tips
             logger.info(
                 f"Successfully generated {len(generated_tips)} AI emergency tips for user {user.id}."
             )
@@ -1664,7 +1671,7 @@ def generate_emergency_plan(
             "target_skills": [],
             "recommended_question_count": 0,
             "quick_review_topics": [],
-            "motivational_tips": [_("Please log in to get a personalized plan.")],
+            "motivational_tips": [str(_("Please log in to get a personalized plan."))],
         }
 
     plan: Dict[str, Any] = {  # Type hint for plan
@@ -1767,12 +1774,16 @@ def generate_emergency_plan(
                     {
                         "slug": p.skill.slug,
                         "name": p.skill.name,
-                        "reason": _("Low score ({score}%)").format(
-                            score=round(p.proficiency_score * 100)
+                        "reason": str(
+                            _("Low score ({score}%)").format(
+                                score=round(p.proficiency_score * 100)
+                            )
                         ),
                         "current_proficiency": round(p.proficiency_score, 2),
                         "subsection_name": (
-                            p.skill.subsection.name if p.skill.subsection else _("N/A")
+                            p.skill.subsection.name
+                            if p.skill.subsection
+                            else str(_("N/A"))
                         ),
                     }
                 )
@@ -1780,17 +1791,13 @@ def generate_emergency_plan(
                 if p.skill.subsection_id:
                     subsection_ids_for_review.add(p.skill.subsection_id)
 
-        # 2. If needed, find other attempted skills (lowest proficiency first)
+        # 2. If needed, find other attempted skills
         needed = num_weak_skills - len(target_skills_data)
         if needed > 0:
             additional_candidates = list(
-                proficiency_qs.exclude(
-                    skill_id__in=target_skill_ids
-                ).order_by(  # Exclude already selected
+                proficiency_qs.exclude(skill_id__in=target_skill_ids).order_by(
                     "proficiency_score", "attempts_count"
-                )[
-                    :needed
-                ]
+                )[:needed]
             )
             for p in additional_candidates:
                 if p.skill and p.skill_id not in target_skill_ids:
@@ -1798,14 +1805,16 @@ def generate_emergency_plan(
                         {
                             "slug": p.skill.slug,
                             "name": p.skill.name,
-                            "reason": _("Area for improvement ({score}%)").format(
-                                score=round(p.proficiency_score * 100)
+                            "reason": str(
+                                _("Area for improvement ({score}%)").format(
+                                    score=round(p.proficiency_score * 100)
+                                )
                             ),
                             "current_proficiency": round(p.proficiency_score, 2),
                             "subsection_name": (
                                 p.skill.subsection.name
                                 if p.skill.subsection
-                                else _("N/A")
+                                else str(_("N/A"))
                             ),
                         }
                     )
@@ -1813,7 +1822,7 @@ def generate_emergency_plan(
                     if p.skill.subsection_id:
                         subsection_ids_for_review.add(p.skill.subsection_id)
 
-        # 3. If still needed, find unattempted skills in focus areas (or any if no focus)
+        # 3. If still needed, find unattempted skills
         needed = num_weak_skills - len(target_skills_data)
         if needed > 0:
             unattempted_skills_qs = (
@@ -1825,18 +1834,18 @@ def generate_emergency_plan(
                 unattempted_skills_qs = unattempted_skills_qs.filter(
                     subsection__section__slug__in=focus_areas
                 )
-
             unattempted_skills = list(unattempted_skills_qs.order_by("?")[:needed])
+
             for s in unattempted_skills:
-                if s and s.id not in target_skill_ids:  # Check 's' is not None
+                if s and s.id not in target_skill_ids:
                     target_skills_data.append(
                         {
                             "slug": s.slug,
                             "name": s.name,
-                            "reason": _("Not attempted yet"),
+                            "reason": str(_("Not attempted yet")),
                             "current_proficiency": None,
                             "subsection_name": (
-                                s.subsection.name if s.subsection else _("N/A")
+                                s.subsection.name if s.subsection else str(_("N/A"))
                             ),
                         }
                     )
@@ -1867,21 +1876,20 @@ def generate_emergency_plan(
             exc_info=True,
         )
         plan["motivational_tips"].append(
-            _(
-                "Could not generate personalized focus areas due to an error. Focusing on general review."
+            str(
+                _(
+                    "Could not generate personalized focus areas due to an error. Focusing on general review."
+                )
             )
         )
         core_plan_error_tip_added = True
 
     # --- Generate Motivational Tips (AI or Fallback) ---
-    # _generate_ai_emergency_tips itself has internal fallbacks and should always return a list.
     try:
-        # This call relies on _generate_ai_emergency_tips having its own robust fallbacks.
-        # The try-except here is for catastrophic failures of _generate_ai_emergency_tips itself (e.g., mock raising).
         ai_or_default_tips = _generate_ai_emergency_tips(
             user=user,
-            target_skills_data=plan.get("target_skills", []),  # Use .get with default
-            focus_area_names=plan.get("focus_area_names", []),  # Use .get with default
+            target_skills_data=plan.get("target_skills", []),
+            focus_area_names=plan.get("focus_area_names", []),
             available_time_hours=available_time_hours,
         )
     except Exception as ai_tip_error_call:
@@ -1892,28 +1900,27 @@ def generate_emergency_plan(
         # Fallback if the call to _generate_ai_emergency_tips itself fails
         num_tips_to_sample = min(len(DEFAULT_EMERGENCY_TIPS), 3)
         if not DEFAULT_EMERGENCY_TIPS or num_tips_to_sample == 0:
-            ai_or_default_tips = [_("Remember to stay calm and focused!")]
+            ai_or_default_tips = [str(_("Remember to stay calm and focused!"))]
         else:
             ai_or_default_tips = random.sample(
                 DEFAULT_EMERGENCY_TIPS, k=num_tips_to_sample
             )
 
-    if core_plan_error_tip_added:
-        plan["motivational_tips"].extend(
-            ai_or_default_tips
-        )  # Append to the existing error tip
-    else:
-        plan["motivational_tips"] = ai_or_default_tips  # Assign directly
+    # <<< FIX: Convert all tips (whether from AI or defaults) to strings.
+    # The AI returns strings, but the default list contains proxy objects.
+    # This ensures the final list is always JSON serializable.
+    final_tips = [str(tip) for tip in ai_or_default_tips]
 
-    # Final safety: ensure motivational_tips is never empty if it was meant to be populated
-    if not plan.get("motivational_tips"):  # Check if key exists or list is empty
-        logger.warning(
-            f"Motivational tips list is empty for user {user.id} after all generation attempts. Adding a default tip."
-        )
-        if DEFAULT_EMERGENCY_TIPS:
-            plan["motivational_tips"] = random.sample(DEFAULT_EMERGENCY_TIPS, k=1)
-        else:
-            plan["motivational_tips"] = [_("You've got this! Do your best.")]
+    if core_plan_error_tip_added:
+        plan["motivational_tips"].extend(final_tips)
+    else:
+        plan["motivational_tips"] = final_tips
+
+    # Final safety check
+    if not plan.get("motivational_tips"):
+        plan["motivational_tips"] = [
+            str(tip) for tip in random.sample(DEFAULT_EMERGENCY_TIPS, k=1)
+        ]
 
     logger.info(
         f"Generated emergency plan for user {user.id}. Focus Areas: {plan['focus_area_names']}, "

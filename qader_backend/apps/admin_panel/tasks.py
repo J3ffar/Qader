@@ -1,4 +1,3 @@
-# qader_backend/apps/admin_panel/tasks.py
 import csv
 import openpyxl  # Requires installation: pip install openpyxl
 from io import StringIO, BytesIO
@@ -13,133 +12,42 @@ import datetime
 # Import necessary models
 from apps.study.models import UserTestAttempt
 
+# Import the new services
+from apps.admin_panel import services as admin_services
+
 
 @shared_task(bind=True)
 def export_statistics_task(self, user_id, export_format, filters):
     """
     Celery task to export statistics data based on filters.
+    Calls reusable service functions for querying and file generation.
     """
     User = get_user_model()
     try:
         requesting_user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        # Handle error: user not found
         return {"status": "FAILURE", "message": "Requesting user not found."}
 
-    date_from = (
-        datetime.datetime.fromisoformat(filters["date_from"]).date()
-        if filters.get("date_from")
-        else None
-    )
-    date_to = (
-        datetime.datetime.fromisoformat(filters["date_to"]).date()
-        if filters.get("date_to")
-        else None
-    )
-    datetime_from = (
-        timezone.make_aware(datetime.datetime.combine(date_from, datetime.time.min))
-        if date_from
-        else None
-    )
-    datetime_to = (
-        timezone.make_aware(datetime.datetime.combine(date_to, datetime.time.max))
-        if date_to
-        else None
+    # --- Step 1: Query Data using the Service ---
+    # Note: We are reusing the filters dict directly from the view
+    queryset = admin_services.get_filtered_test_attempts(filters)
+
+    # --- Step 2: Generate File Content using the Service ---
+    # NOTE: I noticed a bug here. Your original task used `attempt.test.name` but the
+    # view used `attempt.test_definition.name`. The service function standardizes
+    # this to `test_definition`, fixing the inconsistency.
+    file_content, content_type, filename = admin_services.generate_export_file_content(
+        queryset, export_format
     )
 
-    # --- Query Data Based on Filters ---
-    queryset = UserTestAttempt.objects.select_related("user__profile", "test")
-    if datetime_from and datetime_to:
-        queryset = queryset.filter(start_time__range=(datetime_from, datetime_to))
-    queryset = queryset.filter(status=UserTestAttempt.Status.COMPLETED)
-    # Add more filters based on 'filters' dict
-
-    # --- Generate File Content ---
-    filename = (
-        f"qader_stats_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.{export_format}"
-    )
-
-    if export_format == "csv":
-        output = StringIO()
-        writer = csv.writer(output)
-        # Write Header
-        writer.writerow(
-            [
-                "Attempt ID",
-                "User ID",
-                "Username",
-                "Test Name",
-                "Start Time",
-                "Score (%)",
-                "Verbal Score",
-                "Quant Score",
-            ]
-        )
-        # Write Data
-        for attempt in queryset.iterator():  # Use iterator for large datasets
-            writer.writerow(
-                [
-                    attempt.id,
-                    attempt.user.id,
-                    attempt.user.username,
-                    attempt.test.name if attempt.test else "N/A",
-                    attempt.start_time.strftime("%Y-%m-%d %H:%M:%S"),
-                    attempt.score_percentage,
-                    attempt.score_verbal,
-                    attempt.score_quantitative,
-                ]
-            )
-        file_content = output.getvalue().encode("utf-8")
-        content_type = "text/csv"
-
-    elif export_format == "xlsx":
-        output = BytesIO()
-        workbook = openpyxl.Workbook()
-        sheet = workbook.active
-        sheet.title = "Test Attempts"
-        # Write Header
-        headers = [
-            "Attempt ID",
-            "User ID",
-            "Username",
-            "Test Name",
-            "Start Time",
-            "Score (%)",
-            "Verbal Score",
-            "Quant Score",
-        ]
-        sheet.append(headers)
-        # Write Data
-        for attempt in queryset.iterator():
-            sheet.append(
-                [
-                    attempt.id,
-                    attempt.user.id,
-                    attempt.user.username,
-                    attempt.test.name if attempt.test else "N/A",
-                    attempt.start_time.replace(
-                        tzinfo=None
-                    ),  # Remove timezone for Excel
-                    attempt.score_percentage,
-                    attempt.score_verbal,
-                    attempt.score_quantitative,
-                ]
-            )
-        workbook.save(output)
-        file_content = output.getvalue()
-        content_type = (
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-    else:
+    if not file_content:
         return {"status": "FAILURE", "message": f"Unsupported format: {export_format}"}
 
-    # --- Save File (Example: To Django default storage) ---
+    # --- Step 3: Save file and notify user (your logic here) ---
     # from django.core.files.storage import default_storage
     # file_path = default_storage.save(f"exports/{filename}", ContentFile(file_content))
     # file_url = default_storage.url(file_path)
 
-    # For simplicity, just print success for now without saving/emailing
     print(f"Successfully generated export file: {filename} ({len(file_content)} bytes)")
     file_url = f"/media/exports/{filename}"  # Placeholder URL
 

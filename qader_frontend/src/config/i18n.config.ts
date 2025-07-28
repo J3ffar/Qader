@@ -57,12 +57,29 @@ export default getRequestConfig(
         ...challengesMessages.default,
       };
 
-      const [dashboardPage] = await Promise.all([
+      const [
+        dashboardPage,
+        employeesPage,
+        studentsPage,
+        adminStatisticsPage,
+        supportMessages,
+        contentPages,
+      ] = await Promise.all([
         import(`@/locales/${resolvedLocale}/admin/dashboard.json`),
+        import(`@/locales/${resolvedLocale}/admin/employees.json`),
+        import(`@/locales/${resolvedLocale}/admin/students.json`),
+        import(`@/locales/${resolvedLocale}/admin/statistics.json`),
+        import(`@/locales/${resolvedLocale}/admin/support.json`),
+        import(`@/locales/${resolvedLocale}/admin/content.json`),
       ]);
 
       const adminNamespace = {
         ...dashboardPage.default,
+        ...employeesPage.default,
+        ...studentsPage.default,
+        AdminStatistics: adminStatisticsPage.default,
+        support: supportMessages.default,
+        ...contentPages.default,
       };
 
       // Load other top-level namespaces

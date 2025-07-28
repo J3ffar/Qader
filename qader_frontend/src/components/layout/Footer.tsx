@@ -1,90 +1,71 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { getFooterContent } from "@/services/content.service";
+import type { SocialLinkFooter } from "@/types/api/content.types";
 
-// Define nav data outside the component
+// Keep hardcoded nav links as requested
 const footerNavLinks = [
   { name: "الرئيسية", ref: "/" },
   { name: "قصتنا", ref: "/about" },
   { name: "شركاء النجاح", ref: "/partners" },
-  { name: "صفحة المذكرة", ref: "/notes" },
-  { name: "الأسئلة الشائعة", ref: "/faq" },
+  { name: "الأسئلة الشائعة", ref: "/questions" },
   { name: "تواصل معنا", ref: "/contact" },
 ];
 
-// Define social media links data
-const socialLinks = [
-  { name: "Telegram", icon: "/images/send-2.png", alt: "Telegram" },
-  {
-    name: "Social Media 1",
-    icon: "/images/SVG-2.png",
-    alt: "Social Media Icon 1",
-  },
-  {
-    name: "Social Media 2",
-    icon: "/images/SVG-1.png",
-    alt: "Social Media Icon 2",
-  },
-  {
-    name: "Social Media 3",
-    icon: "/images/SVG.png",
-    alt: "Social Media Icon 3",
-  },
-  {
-    name: "Social Media 4",
-    icon: "/images/SVG-4.png",
-    alt: "Social Media Icon 4",
-  },
-  {
-    name: "Social Media 5",
-    icon: "/images/SVG-5.png",
-    alt: "Social Media Icon 5",
-  },
-];
+const Footer = async () => {
+  const data = await getFooterContent();
+  const content = data?.content_structured_resolved;
 
-const Footer = () => {
+  // Define default values for all editable content
+  const aboutTitle = content?.about_title?.value ?? "نبذة بسيطة عن قادر";
+  const aboutText =
+    content?.about_text?.value ??
+    "منصة تعليمية رائدة لتمكين الطلاب في اختبارات القدرات.";
+  const followUsTitle = content?.follow_us_title?.value ?? "تابع منصتنا";
+  const socialLinks: SocialLinkFooter[] = content?.social_links?.value ?? [];
+  const copyrightText =
+    content?.copyright_text?.value ?? "© جميع الحقوق محفوظة {YEAR}";
+
+  // Replace {YEAR} placeholder with the current year
+  const finalCopyrightText = copyrightText.replace(
+    "{YEAR}",
+    new Date().getFullYear().toString()
+  );
+
   return (
-    <footer className="w-full flex flex-col ">
-      {" "}
-      {/* Use footer tag and let parent handle width */}
+    <footer className="w-full flex flex-col">
       {/* Main Footer Content */}
-      <div className="bg-[#074182] dark:bg-[#081028] border-t-[1px] border-[#7E89AC] p-6 flex justify-center max-md:flex-col gap-10 text-white w-full">
+      <div className="bg-[#074182] dark:bg-[#081028] border-t border-gray-600 p-6 md:p-10 flex justify-center max-md:flex-col gap-10 text-white w-full">
         {/* Left Section (Logo, About, Social) */}
         <div className="flex-1">
-          {" "}
-          {/* Use flex-1 for better distribution */}
           <div>
             <Image
               alt="Qader Logo"
-              src="/images/logo.png" // Ensure this path is correct
+              src="/images/logo.png" // This image remains hardcoded as requested
               width={100}
               height={100}
             />
           </div>
-          <h3 className="font-bold text-2xl mt-8">
-            نبذه بسيطه عن قادر وماذا تقدم
-          </h3>
+          <h3 className="font-bold text-2xl mt-8">{aboutTitle}</h3>
+          <p className="mt-2 text-gray-300 leading-relaxed">{aboutText}</p>
+
           <div className="flex gap-4 mt-8 items-center flex-wrap">
-            {" "}
-            {/* Added items-center and flex-wrap */}
-            <h3 className="font-bold text-xl">تابع منصتنا</h3>
-            {socialLinks.map((social) => (
+            <h3 className="font-bold text-xl">{followUsTitle}</h3>
+            {socialLinks.map((social, index) => (
               <a
-                key={social.name}
-                href="#"
+                key={index}
+                href={social.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={social.alt}
+                aria-label={`تابعنا على ${social.icon_slug}`}
               >
-                {" "}
-                {/* Use anchor tags for external links */}
-                <span className="">
+                <span className="flex items-center justify-center w-10 h-10 p-2 rounded-full bg-gray-200 dark:bg-gray-700 transition hover:bg-gray-300 dark:hover:bg-gray-600">
                   <Image
-                    src={social.icon}
-                    alt={social.alt}
-                    width={10} // Adjusted size slightly
-                    height={10}
-                    className='w-10 h-10 p-2 rounded-full bg-gray-200 transition delay-150 duration-300 ease-in-out hover:bg-gray-300'
+                    src={"/images/" + social.icon_slug + ".png"} // Uses dynamic URL with fallback
+                    alt={`ايقونة ${social.icon_slug}`}
+                    width={24}
+                    height={24}
                   />
                 </span>
               </a>
@@ -93,18 +74,16 @@ const Footer = () => {
         </div>
 
         {/* Right Section (Links) */}
-        <div className="flex-1 flex justify-center gap-7 max-md:justify-start max-md:mt-6">
+        <div className="flex-1 flex justify-center gap-10 max-md:justify-start max-md:mt-6">
           {/* Pages Links */}
           <div>
             <h3 className="font-bold text-xl">الصفحات</h3>
-            <ul className="flex flex-col mt-2 space-y-1">
-              {" "}
-              {/* Added margin and spacing */}
+            <ul className="flex flex-col mt-4 space-y-2">
               {footerNavLinks.map((item) => (
                 <li key={item.name}>
                   <Link
                     href={item.ref}
-                    className="font-bold transition-colors duration-300 hover:text-[#7ba3d8]"
+                    className="text-gray-300 transition-colors duration-300 hover:text-white"
                   >
                     {item.name}
                   </Link>
@@ -112,48 +91,42 @@ const Footer = () => {
               ))}
             </ul>
           </div>
-          {/* Terms Links */}
+          {/* Terms & Contact Links */}
           <div className="flex flex-col">
-            <h3 className="font-bold text-xl">الشروط والاحكام</h3>
-            <ul className="flex flex-col mt-2 space-y-1">
-              {" "}
-              {/* Added margin and spacing */}
+            <h3 className="font-bold text-xl">روابط مهمة</h3>
+            <ul className="flex flex-col mt-4 space-y-2">
               <li>
-                <Link href="/questions" className="hover:text-[#7ba3d8]">
-                  الأسئلة الشائعة
+                <Link
+                  href="/terms-and-conditions"
+                  className="text-gray-300 hover:text-white"
+                >
+                  الشروط والأحكام
                 </Link>
-              </li>{" "}
-              {/* Assuming /faq is the correct link */}
+              </li>
               <li>
-                <Link href="/conditions" className="hover:text-[#7ba3d8]">
-                  الشروط و الأحكام
+                <Link
+                  href="/privacy"
+                  className="text-gray-300 hover:text-white"
+                >
+                  سياسة الخصوصية
                 </Link>
-              </li>{" "}
-              {/* Assuming /terms is the correct link */}
-            </ul>
-          </div>
-          {/* Contact Links */}
-          <div className="flex flex-col">
-            <h3 className="font-bold text-xl">تواصل معنا</h3>
-            <ul className="flex flex-col mt-2 space-y-1">
-              {" "}
-              {/* Added margin and spacing */}
+              </li>
               <li>
-                <Link href="/contact" className="hover:text-[#7ba3d8]">
+                <Link
+                  href="/contact"
+                  className="text-gray-300 hover:text-white"
+                >
                   تواصل معنا
                 </Link>
-              </li>{" "}
-              {/* Assuming /contact is the correct link */}
+              </li>
             </ul>
           </div>
         </div>
       </div>
+
       {/* Copyright Bar */}
       <div className="bg-[#053061] dark:bg-[#031830] text-white font-medium text-center py-3 w-full">
-        {" "}
-        {/* Added padding */}
-        <p>© جميع الحقوق محفوظة {new Date().getFullYear()}</p>{" "}
-        {/* Dynamic year */}
+        <p>{finalCopyrightText}</p>
       </div>
     </footer>
   );

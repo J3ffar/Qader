@@ -222,6 +222,17 @@ class RewardStoreItem(models.Model):
 
     name = models.CharField(max_length=150, verbose_name=_("Name"))
     description = models.TextField(verbose_name=_("Description"))
+    code_name = models.SlugField(
+        max_length=50,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name=_("Code Name"),
+        help_text=_(
+            "A unique code name for the frontend to identify and unlock specific features. Leave blank if not applicable."
+        ),
+        db_index=True,
+    )
     item_type = models.CharField(
         max_length=20,
         choices=ItemType.choices,

@@ -2,11 +2,17 @@ import { ComponentType } from "react";
 import {
   LayoutDashboard,
   Users,
-  FolderKanban,
   BarChart3,
-  MessageSquareQuote,
   Settings,
   LucideProps,
+  UserCheck,
+  FileText,
+  PanelTop,
+  Handshake,
+  MessageCircleQuestion,
+  Mailbox,
+  MessagesSquareIcon,
+  BookOpenCheck,
 } from "lucide-react";
 
 import { PATHS } from "@/constants/paths";
@@ -43,7 +49,7 @@ export const ADMIN_SIDEBAR_HOME_ITEM: AdminSidebarNavItem = {
 // Define the main sections and their items
 export const ADMIN_SIDEBAR_SECTIONS: AdminSidebarNavSection[] = [
   {
-    titleKey: "AdminSidebar.sections.management",
+    titleKey: "AdminSidebar.sections.userManagement",
     items: [
       {
         labelKey: "AdminSidebar.items.employeesManagement",
@@ -52,13 +58,8 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminSidebarNavSection[] = [
       },
       {
         labelKey: "AdminSidebar.items.studentsManagement",
-        icon: Users,
+        icon: UserCheck,
         href: PATHS.ADMIN.STUDENTS_MANAGEMENT,
-      },
-      {
-        labelKey: "AdminSidebar.items.pageManagement",
-        icon: FolderKanban,
-        href: PATHS.ADMIN.PAGES_MANAGEMENT,
       },
     ],
   },
@@ -68,23 +69,58 @@ export const ADMIN_SIDEBAR_SECTIONS: AdminSidebarNavSection[] = [
       {
         labelKey: "AdminSidebar.items.statistics",
         icon: BarChart3,
-        href: PATHS.ADMIN.ANALYTICS,
+        href: PATHS.ADMIN.STATISTICS_OVERVIEW,
       },
       {
-        labelKey: "AdminSidebar.items.contentTickets",
-        icon: MessageSquareQuote,
+        labelKey: "AdminSidebar.items.supportTickets",
+        icon: MessagesSquareIcon,
         href: PATHS.ADMIN.SUPPORT_TICKETS,
       },
     ],
   },
-  //   {
-  //     titleKey: "AdminSidebar.sections.system",
-  //     items: [
-  //       {
-  //         labelKey: "AdminSidebar.items.settings",
-  //         icon: Settings,
-  //         href: PATHS.ADMIN.SETTINGS,
-  //       },
-  //     ],
-  //   },
+  {
+    titleKey: "AdminSidebar.sections.contentManagement",
+    items: [
+      {
+        labelKey: "AdminSidebar.items.learning", // Note: Add 'learning' to your locale files
+        icon: BookOpenCheck,
+        href: PATHS.ADMIN.LEARNING.QUESTIONS,
+      },
+      {
+        labelKey: "AdminSidebar.items.pages",
+        icon: FileText,
+        href: PATHS.ADMIN.CONTENT_PAGES_LIST,
+      },
+      {
+        labelKey: "AdminSidebar.items.homepage",
+        icon: PanelTop,
+        href: PATHS.ADMIN.CONTENT_HOMEPAGE,
+      },
+      {
+        labelKey: "AdminSidebar.items.partners",
+        icon: Handshake,
+        href: PATHS.ADMIN.CONTENT_PARTNERS,
+      },
+      {
+        labelKey: "AdminSidebar.items.faqs",
+        icon: MessageCircleQuestion,
+        href: PATHS.ADMIN.CONTENT_FAQS,
+      },
+      {
+        labelKey: "AdminSidebar.items.contactMessages",
+        icon: Mailbox,
+        href: PATHS.ADMIN.CONTENT_CONTACT_MESSAGES,
+      },
+    ],
+  },
+  // {
+  //   titleKey: "AdminSidebar.sections.system",
+  //   items: [
+  //     {
+  //       labelKey: "AdminSidebar.items.settings",
+  //       icon: Settings,
+  //       href: PATHS.ADMIN.SETTINGS,
+  //     },
+  //   ],
+  // },
 ];

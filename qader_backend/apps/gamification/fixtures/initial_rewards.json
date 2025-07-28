@@ -1,0 +1,152 @@
+[
+  {
+    "model": "gamification.rewardstoreitem",
+    "pk": 1,
+    "fields": {
+      "name": "إطار الصورة الرمزية الذهبي",
+      "description": "أظهر إنجازاتك بهذا الإطار الذهبي الحصري لصورتك الشخصية.",
+      "item_type": "avatar",
+      "cost_points": 500,
+      "image": null,
+      "asset_file": null,
+      "is_active": true,
+      "created_at": "2024-01-01T10:00:00Z",
+      "updated_at": "2024-01-01T10:00:00Z"
+    }
+  },
+  {
+    "model": "gamification.rewardstoreitem",
+    "pk": 2,
+    "fields": {
+      "name": "دليل دراسة الفيزياء 1",
+      "description": "دليل شامل بصيغة PDF من 20 صفحة يغطي المفاهيم الأساسية في الفيزياء التمهيدية. يتضمن مسائل تدريبية وحلولها.",
+      "item_type": "material",
+      "cost_points": 1200,
+      "image": null,
+      "asset_file": null,
+      "is_active": true,
+      "created_at": "2024-01-01T10:00:00Z",
+      "updated_at": "2024-01-01T10:00:00Z"
+    }
+  },
+  {
+    "model": "gamification.rewardstoreitem",
+    "pk": 3,
+    "fields": {
+      "name": "تذكرة دخول التحدي الأسبوعي",
+      "description": "اشترِ تذكرة للدخول في تحدي هذا الأسبوع الخاص. الجائزة الكبرى 5000 نقطة!",
+      "item_type": "competition_entry",
+      "cost_points": 250,
+      "image": null,
+      "asset_file": null,
+      "is_active": true,
+      "created_at": "2024-01-01T10:00:00Z",
+      "updated_at": "2024-01-01T10:00:00Z"
+    }
+  },
+  {
+    "model": "gamification.rewardstoreitem",
+    "pk": 4,
+    "fields": {
+      "name": "سمة ملف شخصي بلاتينية",
+      "description": "افتح سمة بلاتينية أنيقة وعصرية لملفك الشخصي بالكامل. رمز المكانة الأقصى.",
+      "item_type": "avatar",
+      "cost_points": 3000,
+      "image": null,
+      "asset_file": null,
+      "is_active": true,
+      "created_at": "2024-01-01T10:00:00Z",
+      "updated_at": "2024-01-01T10:00:00Z"
+    }
+  },
+  {
+    "model": "gamification.rewardstoreitem",
+    "pk": 5,
+    "fields": {
+      "name": "حزمة صور رمزية لعطلة 2023 (منتهية الصلاحية)",
+      "description": "حزمة صور رمزية خاصة من حدث عطلة 2023. لم تعد متاحة للشراء.",
+      "item_type": "avatar",
+      "cost_points": 400,
+      "image": null,
+      "asset_file": null,
+      "is_active": false,
+      "created_at": "2023-12-01T00:00:00Z",
+      "updated_at": "2024-01-15T00:00:00Z"
+    }
+  },
+  {
+    "model": "gamification.rewardstoreitem",
+    "pk": 6,
+    "fields": {
+      "name": "سمة الملف الشخصي الكونية",
+      "description": "قم بتحويل ملفك الشخصي إلى تحفة فنية سماوية باستخدام هذه السمة المميزة المستوحاة من الفضاء.",
+      "item_type": "avatar",
+      "cost_points": 2000,
+      "image": null,
+      "asset_file": null,
+      "is_active": true,
+      "created_at": "2024-02-01T11:00:00Z",
+      "updated_at": "2024-02-01T11:00:00Z"
+    }
+  },
+  {
+    "model": "gamification.rewardstoreitem",
+    "pk": 7,
+    "fields": {
+      "name": "ملاحظات كيمياء متقدمة (ملف PDF)",
+      "description": "ملخصات تفصيلية للمفاهيم الكيميائية المتقدمة، مثالية للمراجعة الشاملة.",
+      "item_type": "material",
+      "cost_points": 900,
+      "image": null,
+      "asset_file": null,
+      "is_active": true,
+      "created_at": "2024-02-01T11:30:00Z",
+      "updated_at": "2024-02-01T11:30:00Z"
+    }
+  },
+  {
+    "model": "gamification.rewardstoreitem",
+    "pk": 8,
+    "fields": {
+      "name": "بطاقة دخول التحدي النخبة",
+      "description": "تتيح لك المشاركة في تحديات النخبة الشهرية ذات الجوائز الأعلى. فرصتك للفوز بجوائز نادرة!",
+      "item_type": "competition_entry",
+      "cost_points": 750,
+      "image": null,
+      "asset_file": null,
+      "is_active": true,
+      "created_at": "2024-02-01T12:00:00Z",
+      "updated_at": "2024-02-01T12:00:00Z"
+    }
+  },
+  {
+    "model": "gamification.rewardstoreitem",
+    "pk": 9,
+    "fields": {
+      "name": "لقب ملف شخصي مخصص",
+      "description": "اختر لقبًا فريدًا يظهر بجانب اسمك في ملفك الشخصي. عبر عن نفسك!",
+      "item_type": "other",
+      "cost_points": 1500,
+      "image": null,
+      "asset_file": null,
+      "is_active": true,
+      "created_at": "2024-02-01T12:30:00Z",
+      "updated_at": "2024-02-01T12:30:00Z"
+    }
+  },
+  {
+    "model": "gamification.rewardstoreitem",
+    "pk": 10,
+    "fields": {
+      "name": "مجموعة أدوات الدراسة للمبتدئين",
+      "description": "مجموعة أساسية من الموارد لمساعدتك على البدء في رحلتك الدراسية، تشمل نصائح وأدوات بسيطة.",
+      "item_type": "material",
+      "cost_points": 300,
+      "image": null,
+      "asset_file": null,
+      "is_active": true,
+      "created_at": "2024-02-01T13:00:00Z",
+      "updated_at": "2024-02-01T13:00:00Z"
+    }
+  }
+]

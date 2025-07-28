@@ -24,6 +24,7 @@ from ..serializers.learning_management import (
 from ..permissions import (
     IsAdminUserOrSubAdminWithPermission,
 )  # Import the custom permission
+from django.db.models import Count
 
 ADMIN_TAG = "Admin Panel - Learning Management"  # Tag for OpenAPI docs
 
@@ -187,13 +188,7 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing Questions."""
 
     # Admin sees ALL questions, active or not
-    queryset = (
-        Question.objects.select_related(  # pylint: disable=no-member
-            "subsection", "skill"
-        )
-        .all()
-        .order_by("-created_at")
-    )
+    # queryset is now defined in get_queryset to handle annotations
     serializer_class = AdminQuestionSerializer
     permission_classes = [IsAdminUserOrSubAdminWithPermission]
     lookup_field = "pk"
@@ -203,12 +198,13 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         filters.OrderingFilter,
     ]
     filterset_fields = {
+        "subsection__section__id": ["exact", "in"],
         "subsection__slug": ["exact", "in"],
         "subsection__id": ["exact", "in"],
         "skill__slug": ["exact", "in"],
         "skill__id": ["exact", "in"],
         "difficulty": ["exact", "in", "gte", "lte"],
-        "is_active": ["exact"],  # Allow filtering by active status
+        "is_active": ["exact"],
         "correct_answer": ["exact"],
     }
     search_fields = [
@@ -220,7 +216,7 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         "explanation",
         "hint",
         "solution_method_summary",
-        "id",  # Allow searching by ID
+        "id",
     ]
     ordering_fields = [
         "id",
@@ -230,7 +226,25 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         "is_active",
         "subsection__name",
         "skill__name",
+        "total_usage_count",  # Allow ordering by the new annotated field
     ]
+
+    def get_queryset(self):
+        """
+        Overrides the default queryset to include prefetching and annotations
+        for performance.
+        """
+        # Start with the base queryset
+        queryset = Question.objects.all()  # pylint: disable=no-member
+
+        # Optimize by prefetching related data needed by the serializer
+        queryset = queryset.select_related("subsection__section", "skill")
+
+        # Annotate with the total number of times the question has been attempted.
+        # This is highly efficient as it's a single database operation.
+        queryset = queryset.annotate(total_usage_count=Count("user_attempts"))
+
+        return queryset.order_by("-created_at")
 
     def get_permissions(self):
         if self.action in ["list", "retrieve"]:

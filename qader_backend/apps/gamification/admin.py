@@ -72,7 +72,18 @@ class RewardStoreItemAdmin(admin.ModelAdmin):
     search_fields = ("name", "description")
     readonly_fields = ("image_preview",)
     fieldsets = (
-        (None, {"fields": ("name", "description", "item_type", "cost_points")}),
+        (
+            None,
+            {
+                "fields": (
+                    "name",
+                    "description",
+                    "item_type",
+                    "cost_points",
+                    "code_name",
+                )
+            },
+        ),
         (
             _("Visuals & Assets"),
             {"fields": ("image", "image_preview", "asset_file")},  # Include new fields

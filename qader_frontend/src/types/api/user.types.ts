@@ -5,6 +5,7 @@ export interface SimpleUser {
   username: string;
   preferred_name: string | null;
   full_name: string | null;
+  grade: string | null;
   profile_picture_url: string | null;
 }
 

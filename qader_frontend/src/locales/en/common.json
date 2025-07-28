@@ -62,5 +62,18 @@
     "nextPage": "Go to next page",
     "lastPage": "Go to last page",
     "pageInfo": "Page {currentPage} of {totalPages}"
+  },
+  "Challenges": {
+    "newChallengeInvite": "New Challenge Invitation",
+    "newChallengeInviteDesc": "You have been challenged by {user}.",
+    "challengeAccepted": "Challenge accepted successfully.",
+    "errorAcceptingChallenge": "Error accepting challenge.",
+    "challengeDeclined": "Challenge declined.",
+    "errorDecliningChallenge": "Error declining challenge.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "acceptingAndPreparing": "Accepting and preparing the challenge...",
+    "challengeAcceptedAndReady": "Challenge accepted and you are ready to start!",
+    "errorGeneric": "An error occurred. Please try again."
   }
 }

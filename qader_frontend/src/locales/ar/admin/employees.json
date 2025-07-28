@@ -1,0 +1,80 @@
+{
+  "EmployeeManagement": {
+    "title": "إدارة الموظفين",
+    "description": "عرض وإدارة جميع الموظفين على المنصة (المسؤولون، المسؤولون الفرعيون، المدربون، والمعلمون).",
+    "export": "تصدير",
+    "addUser": "إضافة موظف",
+    "employeeList": "قائمة الموظفين",
+    "employeeListDescription": "قائمة بجميع الموظفين في مؤسستك.",
+    "searchPlaceholder": "البحث بالاسم، البريد الإلكتروني...",
+    "filter": "تصفية",
+    "sort": "ترتيب",
+    "allStatuses": "جميع الحالات",
+    "table": {
+      "id": "المعرف",
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "role": "الدور",
+      "status": "الحالة",
+      "joinDate": "تاريخ الانضمام",
+      "actions": "الإجراءات"
+    },
+    "toggleMenu": "تبديل القائمة",
+    "actions": "الإجراءات",
+    "viewDetails": "عرض التفاصيل",
+    "editUser": "تعديل الموظف",
+    "deleteUser": "حذف الموظف",
+    "confirmDeleteTitle": "هل أنت متأكد؟",
+    "confirmDeleteDescription": "سيتم حذف هذا الموظف نهائيًا. لا يمكن التراجع عن هذا الإجراء.",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "statuses": {
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "roles": {
+      "student": "طالب",
+      "admin": "مسؤول",
+      "sub_admin": "مسؤول فرعي",
+      "teacher": "معلم",
+      "trainer": "مدرب"
+    },
+    "notifications": {
+      "createSuccess": "تم إنشاء الموظف بنجاح.",
+      "createError": "فشل إنشاء الموظف.",
+      "updateSuccess": "تم تحديث الموظف بنجاح.",
+      "updateError": "فشل تحديث الموظف.",
+      "deleteSuccess": "تم حذف الموظف بنجاح.",
+      "deleteError": "فشل حذف الموظف. الرجاء المحاولة مرة أخرى."
+    },
+    "form": {
+      "fullNameLabel": "الاسم الكامل",
+      "fullNamePlaceholder": "أدخل الاسم الكامل للموظف",
+      "usernameLabel": "اسم المستخدم",
+      "usernamePlaceholder": "أدخل اسم مستخدم فريد",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "employee@example.com",
+      "roleLabel": "الدور",
+      "rolePlaceholder": "اختر دورًا",
+      "passwordLabel": "كلمة المرور",
+      "passwordConfirmLabel": "تأكيد كلمة المرور",
+      "addDialogTitle": "إضافة موظف جديد",
+      "addDialogDescription": "املأ التفاصيل لإنشاء حساب موظف جديد.",
+      "editDialogTitle": "تعديل الموظف",
+      "editDialogDescription": "تحديث تفاصيل الموظف أدناه.",
+      "fullNameRequired": "الاسم الكامل مطلوب.",
+      "usernameRequired": "اسم المستخدم مطلوب.",
+      "emailInvalid": "البريد الإلكتروني غير صالح.",
+      "roleRequired": "الدور مطلوب.",
+      "passwordMinLength": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.",
+      "passwordConfirmMinLength": "يجب أن يتكون تأكيد كلمة المرور من 8 أحرف على الأقل.",
+      "passwordsMismatch": "كلمات المرور غير متطابقة."
+    },
+    "viewDetailsDescription": "تفاصيل لـ {fullName}.",
+    "loadingUserDetails": "جارٍ تحميل تفاصيل المستخدم...",
+    "points": "النقاط",
+    "subscribed": "مشترك",
+    "yes": "نعم",
+    "no": "لا"
+  }
+}

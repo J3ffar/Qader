@@ -22,13 +22,21 @@ from django.db.models import (
     Subquery,
     Value,
     DateTimeField,
-)  # Added Value, DateTimeField
+    Exists,  # <-- Import Exists
+)
 from django.db.models.functions import Coalesce  # To handle null from subquery
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from apps.api.permissions import IsSubscribed  # Use this where appropriate
 from apps.users.models import UserProfile
-from ..models import PointLog, Badge, StudyDayLog, UserBadge, RewardStoreItem
+from ..models import (
+    PointLog,
+    Badge,
+    StudyDayLog,
+    UserBadge,
+    RewardStoreItem,
+    UserRewardPurchase,
+)  # Added import
 from .serializers import (
     DailyPointSummarySerializer,
     GamificationSummarySerializer,
@@ -38,6 +46,7 @@ from .serializers import (
     RewardPurchaseResponseSerializer,
     StudyDayLogSerializer,
     UserEarnedBadgeSerializer,
+    UserPurchasedItemSerializer,  # Added import
 )
 from ..services import purchase_reward, PurchaseError  # Import error classes
 
@@ -159,24 +168,47 @@ class UserEarnedBadgesListView(generics.ListAPIView):
 @extend_schema_view(
     list=extend_schema(
         summary="List Reward Store Items",
-        description="Retrieve active items available for purchase with points.",
+        description="Retrieve active items available for purchase with points. Each item indicates if it has already been purchased by the user.",
         responses={200: RewardStoreItemSerializer(many=True)},
         tags=["Gamification"],
     ),
     retrieve=extend_schema(
         summary="Get Reward Store Item Detail",
-        description="Retrieve details of a specific active reward item.",
+        description="Retrieve details of a specific active reward item, indicating if it has already been purchased by the user.",
         responses={200: RewardStoreItemSerializer},
         tags=["Gamification"],  # Explicitly tag retrieve action
     ),
 )
 class RewardStoreItemViewSet(viewsets.ReadOnlyModelViewSet):
-    """Provides listing and retrieval of active reward store items."""
+    """
+    Provides listing and retrieval of active reward store items.
+    Each item is annotated with an `is_purchased` field for the current user.
+    """
 
     permission_classes = [IsAuthenticated]  # Any authenticated user can view store
     serializer_class = RewardStoreItemSerializer
-    queryset = RewardStoreItem.objects.filter(is_active=True)
     pagination_class = None  # Optional: Add pagination if store grows large
+
+    def get_queryset(self):
+        """
+        Annotates each item with an `is_purchased` boolean field indicating if
+        the current user has already bought the item. This is done efficiently
+        using a single database query.
+        """
+        user = self.request.user
+
+        # Create a subquery that checks if a UserRewardPurchase record exists
+        # for the current user and the 'outer' RewardStoreItem.
+        user_purchases_subquery = UserRewardPurchase.objects.filter(
+            user=user, item=OuterRef("pk")
+        )
+
+        # Annotate the main queryset with the result of the `Exists` check.
+        # This adds an `is_purchased` attribute (True/False) to each item instance.
+        queryset = RewardStoreItem.objects.filter(is_active=True).annotate(
+            is_purchased=Exists(user_purchases_subquery)
+        )
+        return queryset
 
 
 @extend_schema(  # Apply schema directly to the APIView class
@@ -246,6 +278,38 @@ class RewardPurchaseView(views.APIView):
                 {"detail": _("An unexpected error occurred.")},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="List My Purchased Reward Items",
+        description="Retrieve a list of all reward items purchased by the current authenticated user.",
+        responses={200: UserPurchasedItemSerializer(many=True)},
+        tags=["Gamification"],
+    )
+)
+class UserPurchasedItemsListView(generics.ListAPIView):
+    """
+    Lists all reward store items that the authenticated user has purchased.
+    The response includes details of eacf purchase.
+    Results are ordered by the most recent purchase first.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserPurchasedItemSerializer
+
+    def get_queryset(self):
+        """
+        Returns a queryset of UserRewardPurchase instances for the current
+        authenticated user. It pre-fetches related RewardStoreItem data
+        to optimize database queries.
+        """
+        user = self.request.user
+        return (
+            UserRewardPurchase.objects.filter(user=user)
+            .select_related("item")
+            .order_by("-purchased_at")
+        )
 
 
 @extend_schema_view(
@@ -356,9 +420,9 @@ class StudyDayLogListView(generics.ListAPIView):
 
 @extend_schema_view(
     get=extend_schema(
-        summary="Get Daily Points Summary",
+        summary="Get Points Summary",
         description=(
-            "Retrieve the total points earned/lost by the current user per day "
+            "Retrieve a summary of points earned/lost by the current user, aggregated by day, "
             "within a specified date range. Results are ordered by date ascending."
         ),
         parameters=[
@@ -389,7 +453,7 @@ class StudyDayLogListView(generics.ListAPIView):
 )
 class DailyPointSummaryView(generics.ListAPIView):
     """
-    Provides a daily summary of points earned/lost by the user within a given range.
+    Provides a summary of points earned/lost by the user, aggregated daily, within a given range.
     """
 
     permission_classes = [IsAuthenticated]

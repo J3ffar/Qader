@@ -62,11 +62,11 @@
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
   --ring: oklch(0.623 0.214 259.815);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --chart-1: oklch(0.7 0.11 255);
+  --chart-2: oklch(0.75 0.1 190);
+  --chart-3: oklch(0.75 0.12 150);
+  --chart-4: oklch(0.8 0.1 80);
+  --chart-5: oklch(0.75 0.13 25);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
   --sidebar-primary: oklch(0.623 0.214 259.815);
@@ -96,11 +96,11 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.488 0.243 264.376);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  --chart-1: oklch(0.7 0.14 255);
+  --chart-2: oklch(0.75 0.12 190);
+  --chart-3: oklch(0.75 0.15 150);
+  --chart-4: oklch(0.8 0.12 80);
+  --chart-5: oklch(0.75 0.16 25);
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.546 0.245 262.881);
@@ -118,40 +118,112 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-body {
-  font-family: var(--font-body);
-}
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-heading);
-}
-
-@keyframes fade-in-scale {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
+  body {
+    font-family: var(--font-body);
   }
-  to {
-    opacity: 1;
-    transform: scale(1);
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
   }
-}
-.animate-fade-in-scale {
-  animation: fade-in-scale 0.3s ease-out forwards;
-}
 
-.font-heading {
-  font-family: var(--font-heading);
-}
+  h1 {
+    font-size: xx-large;
+  }
+  h2 {
+    font-size: x-large;
+  }
+  h3 {
+    font-size: large;
+  }
+  h4 {
+    font-size: medium;
+  }
+  h5 {
+    font-size: small;
+  }
 
-.font-body {
-  font-family: var(--font-body);
+  @keyframes fade-in-scale {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .animate-fade-in-scale {
+    animation: fade-in-scale 0.3s ease-out forwards;
+  }
+
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+  }
+
+  .prose {
+    /* --- General Text Styles --- */
+    --tw-prose-body: theme(colors.gray.700);
+    --tw-prose-invert-body: theme(colors.gray.300);
+    line-height: 1.75; /* Increase line spacing for better readability */
+  }
+
+  .prose-lg {
+    /* --- Main Heading (H3 in our case) --- */
+    --tw-prose-headings: theme(colors.gray.900);
+    --tw-prose-invert-headings: theme(colors.white);
+
+    /* Make h3 headings larger and give them more space */
+    h3 {
+      @apply text-2xl md:text-3xl font-extrabold mb-4 mt-12 first:mt-0;
+      /* Adds a subtle bottom border for separation */
+      @apply border-b border-gray-200 dark:border-gray-700 pb-3;
+    }
+
+    /* --- Sub-headings (if you use them) --- */
+    h4 {
+      @apply text-xl md:text-2xl font-bold mb-3 mt-8;
+      color: var(--tw-prose-headings);
+    }
+
+    /* --- Paragraph Text --- */
+    p {
+      @apply text-base md:text-lg; /* Slightly larger base text */
+      text-align: justify; /* Justify text for a more formal, block-like appearance */
+    }
+
+    /* --- List Styles --- */
+    ul {
+      @apply list-disc pl-0 pr-6 space-y-2; /* More space between list items */
+    }
+
+    li {
+      @apply text-base md:text-lg;
+    }
+
+    /* --- Link Styles --- */
+    a {
+      --tw-prose-links: theme(colors.blue.600);
+      --tw-prose-invert-links: theme(colors.blue.400);
+      @apply font-semibold no-underline hover:underline;
+    }
+
+    /* --- Bold Text --- */
+    strong {
+      --tw-prose-bold: theme(colors.gray.900);
+      --tw-prose-invert-bold: theme(colors.white);
+      @apply font-bold;
+    }
+  }
 }
 
 #nprogress {
@@ -198,4 +270,14 @@ h6 {
   border-left-color: var(--primary) !important;
   border-radius: 50%;
   animation: nprogress-spinner 400ms linear infinite;
+}
+
+.katex-html {
+  position: absolute;
+  clip: rect(1px, 1px, 1px, 1px);
+  padding: 0;
+  border: 0;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
 }

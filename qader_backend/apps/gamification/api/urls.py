@@ -18,14 +18,19 @@ urlpatterns = [
         name="user-earned-badge-list",
     ),
     path(
+        "my-items/",
+        views.UserPurchasedItemsListView.as_view(),
+        name="user-purchased-item-list",
+    ),
+    path(
         "reward-store/purchase/<int:item_id>/",
         views.RewardPurchaseView.as_view(),
         name="reward-purchase",
     ),
     path("study-days/", views.StudyDayLogListView.as_view(), name="study-day-list"),
     path(
-        "points-summary/daily/",
+        "points-summary/",
         views.DailyPointSummaryView.as_view(),
-        name="points-summary-daily",
+        name="points-summary",
     ),
 ]

@@ -78,7 +78,7 @@ export default function SignupPage() {
         searchParams.get("redirect_to") ||
         (authUser.profile_complete
           ? authUser.is_super || authUser.is_staff
-            ? PATHS.ADMIN.DASHBOARD
+            ? PATHS.ADMIN.EMPLOYEES_MANAGEMENT
             : PATHS.STUDY.HOME
           : PATHS.COMPLETE_PROFILE);
       router.replace(redirectTo);

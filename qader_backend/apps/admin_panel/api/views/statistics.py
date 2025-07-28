@@ -29,6 +29,9 @@ from ..permissions import (
     IsAdminUserOrSubAdminWithPermission,
 )  # Import the custom permission
 
+# Import the new services
+from apps.admin_panel import services as admin_services
+
 # --- Helper Functions ---
 
 
@@ -114,7 +117,6 @@ class AdminStatisticsOverviewAPIView(APIView):
         tags=["Admin Panel - Statistics"],  # Correct tag
     )
     def get(self, request, *args, **kwargs):
-        # ... (Keep the implementation from the previous step) ...
         try:
             datetime_from, datetime_to, date_from, date_to = get_date_filters(request)
         except drf_serializers.ValidationError as e:
@@ -165,53 +167,78 @@ class AdminStatisticsOverviewAPIView(APIView):
                 }
             )
         min_attempts_threshold = 10
+
         most_attempted_q = (
             attempts_in_period.values("question_id")
-            .annotate(attempt_count=Count("id"))
+            .annotate(
+                attempt_count=Count("id"),
+                accuracy_rate=Avg(Cast("is_correct", FloatField())) * 100,
+            )
             .order_by("-attempt_count")[:5]
         )
         most_attempted_ids = [item["question_id"] for item in most_attempted_q]
         most_attempted_questions_details = Question.objects.filter(
             id__in=most_attempted_ids
         ).values("id", "question_text")
+
         most_attempted_map = {
-            item["question_id"]: item["attempt_count"] for item in most_attempted_q
+            item["question_id"]: {
+                "attempt_count": item["attempt_count"],
+                "accuracy_rate": item["accuracy_rate"],
+            }
+            for item in most_attempted_q
         }
+
         most_attempted_results = [
             {
                 "id": q["id"],
                 "question_text": q["question_text"],
-                "attempt_count": most_attempted_map.get(q["id"]),
+                "attempt_count": most_attempted_map.get(q["id"], {}).get(
+                    "attempt_count"
+                ),
+                "accuracy_rate": most_attempted_map.get(q["id"], {}).get(
+                    "accuracy_rate"
+                ),
             }
             for q in most_attempted_questions_details
         ]
+
         lowest_accuracy_q = (
             attempts_in_period.values("question_id")
             .annotate(
-                total_attempts=Count("id"),
-                correct_attempts=Count("id", filter=Q(is_correct=True)),
-                accuracy_rate=Cast(Count("id", filter=Q(is_correct=True)), FloatField())
-                / Cast(Count("id"), FloatField())
-                * 100,
+                attempt_count=Count("id"),
+                accuracy_rate=Avg(Cast("is_correct", FloatField())) * 100,
             )
-            .filter(total_attempts__gte=min_attempts_threshold)
+            .filter(attempt_count__gte=min_attempts_threshold)
             .order_by("accuracy_rate")[:5]
         )
         lowest_accuracy_ids = [item["question_id"] for item in lowest_accuracy_q]
         lowest_accuracy_questions_details = Question.objects.filter(
             id__in=lowest_accuracy_ids
         ).values("id", "question_text")
+
         lowest_accuracy_map = {
-            item["question_id"]: item["accuracy_rate"] for item in lowest_accuracy_q
+            item["question_id"]: {
+                "accuracy_rate": item["accuracy_rate"],
+                "attempt_count": item["attempt_count"],
+            }
+            for item in lowest_accuracy_q
         }
+
         lowest_accuracy_results = [
             {
                 "id": q["id"],
                 "question_text": q["question_text"],
-                "accuracy_rate": lowest_accuracy_map.get(q["id"]),
+                "accuracy_rate": lowest_accuracy_map.get(q["id"], {}).get(
+                    "accuracy_rate"
+                ),
+                "attempt_count": lowest_accuracy_map.get(q["id"], {}).get(
+                    "attempt_count"
+                ),
             }
             for q in lowest_accuracy_questions_details
         ]
+
         daily_activity_data = (
             attempts_in_period.annotate(date=TruncDate("attempted_at"))
             .values("date")
@@ -256,9 +283,7 @@ class AdminStatisticsOverviewAPIView(APIView):
             "daily_activity": final_daily_activity,
         }
 
-        serializer = self.serializer_class(
-            instance=data
-        )  # Use the imported Overview serializer
+        serializer = self.serializer_class(instance=data)
         return Response(serializer.data)
 
 
@@ -303,7 +328,7 @@ class AdminStatisticsExportAPIView(APIView):
                 description="Forbidden - User does not have permission"
             ),
         },
-        tags=["Admin Panel - Statistics"],  # Correct tag
+        tags=["Admin Panel - Statistics"],
     )
     def get(self, request, *args, **kwargs):
         export_format = request.query_params.get("format", "csv").lower()

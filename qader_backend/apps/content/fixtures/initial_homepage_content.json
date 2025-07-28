@@ -1,0 +1,906 @@
+[
+  {
+    "model": "content.page",
+    "pk": 1,
+    "fields": {
+      "slug": "homepage-intro",
+      "title": "قسم الرئيسي في الصفحة الرئيسية",
+      "content": null,
+      "content_structured": {
+        "hero_title": {
+          "admin_title": "العنوان الرئيسي في قسم الهيرو",
+          "type": "html",
+          "value": "عندك <span class='text-yellow-600'>اختبار قدرات؟</span> ومحتاج مساعدة!!"
+        },
+        "hero_subtitle": {
+          "admin_title": "النص الفرعي في قسم الهيرو",
+          "type": "textarea",
+          "value": "منصتنا مخصصة لك, انت فى الطريق الصحيح. اكتشف كيف يمكن لأدواتنا المبتكرة والمدعومة بالذكاء الاصطناعي أن تضعك على طريق النجاح."
+        },
+        "main_hero_image": {
+          "admin_title": "صورة الهيرو الرئيسية",
+          "type": "image",
+          "value": "homepage-hero-main"
+        },
+        "promo_icon": {
+          "admin_title": "أيقونة العرض بجانب العنوان",
+          "type": "image",
+          "value": "homepage-promo-icon"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.page",
+    "pk": 2,
+    "fields": {
+      "slug": "homepage-about-us",
+      "title": "قسم من نحن في الصفحة الرئيسية",
+      "content": null,
+      "content_structured": {
+        "section_title": {
+          "admin_title": "عنوان قسم 'من نحن'",
+          "type": "text",
+          "value": "من نحن؟"
+        },
+        "section_text": {
+          "admin_title": "نص قسم 'من نحن'",
+          "type": "textarea",
+          "value": "هنا يمكنك تقديم نفسك ومن أنت وما القصة التي تريد أن ترويها عن علامتك التجارية أو عملك. هذا النص قابل للتعديل بالكامل من لوحة التحكم."
+        },
+        "video_url": {
+          "admin_title": "رابط فيديو قسم 'من نحن' (يجب الحصول على رابط من Share وبعدها Embed من اجل مقاطع Youtbue)",
+          "type": "url",
+          "value": null
+        },
+        "button_text": {
+          "admin_title": "نص زر 'تعرف علينا'",
+          "type": "text",
+          "value": "تعرف علينا اكثر"
+        },
+        "video_placeholder_image": {
+          "admin_title": "الصورة البديلة للفيديو",
+          "type": "image",
+          "value": "homepage-about-us-placeholder"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.page",
+    "pk": 3,
+    "fields": {
+      "slug": "homepage-praise",
+      "title": "قسم ماذا قالوا عنا؟ في الصفحة الرئيسية",
+      "content": null,
+      "content_structured": {
+        "section_title": {
+          "admin_title": "عنوان قسم آراء الطلاب",
+          "type": "html",
+          "value": "ماذا قالوا <span class='text-[#074182] dark:text-[#3D93F5]'>عنا؟</span>"
+        },
+        "section_subtitle": {
+          "admin_title": "النص الفرعي لقسم آراء الطلاب",
+          "type": "textarea",
+          "value": "آراء طلابنا هي شهادة نجاحنا. انظر كيف ساعدناهم في تحقيق أهدافهم."
+        },
+        "reviews": {
+          "admin_title": "بطاقات آراء الطلاب (مكرر)",
+          "type": "repeater",
+          "value": [
+            {
+              "name": "أحمد عبدالله",
+              "title": "طالب",
+              "quote": "منصة قادر ساعدتني كثيراً في التحضير لاختبار القدرات، شرح واضح وتمارين مفيدة.",
+              "avatar_image_slug": null
+            },
+            {
+              "name": "فاطمة الزهراء",
+              "title": "طالبة",
+              "quote": "التنوع في الأسئلة والاختبارات التجريبية كان ممتازاً، وشعرت بالثقة يوم الاختبار.",
+              "avatar_image_slug": null
+            },
+            {
+              "name": "خالد الغامدي",
+              "title": "طالب ثانوي",
+              "quote": "درجتي ارتفعت 15 درجة بفضل الله ثم بفضل منصة قادر. التحليلات بعد كل اختبار كانت كنز!",
+              "avatar_image_slug": null
+            },
+            {
+              "name": "سارة المطيري",
+              "title": "طالبة",
+              "quote": "أفضل شيء هو التصميم البسيط والواضح. ما تضيع وقتك وأنت تدور على اللي تبغاه، كل شيء مرتب.",
+              "avatar_image_slug": null
+            },
+            {
+              "name": "عبدالرحمن الشهري",
+              "title": "طالب",
+              "quote": "شروحات الفيديو للأسئلة الصعبة فرقت معاي كثير. صرت أفهم الفكرة مو بس أحفظ الإجابة.",
+              "avatar_image_slug": null
+            },
+            {
+              "name": "ليلى القحطاني",
+              "title": "طالبة",
+              "quote": "قادر جعلتني أستمتع بدراسة القدرات! الأسئلة المتنوعة والشرح المبسط ساعداني أحقق درجة عالية.",
+              "avatar_image_slug": null
+            }
+          ]
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.page",
+    "pk": 4,
+    "fields": {
+      "slug": "homepage-why-partner",
+      "title": "قسم لماذا يجب على العملاء أن يختارونا؟ في الصفحة الرئيسية",
+      "content": null,
+      "content_structured": {
+        "section_title": {
+          "admin_title": "عنوان قسم 'لماذا نحن'",
+          "type": "text",
+          "value": "لماذا يجب على العملاء أن يختارونا؟"
+        },
+        "section_subtitle": {
+          "admin_title": "النص الفرعي لقسم 'لماذا نحن'",
+          "type": "textarea",
+          "value": "ما الذى يجعلنا نتميز عن المنافسين."
+        },
+        "main_image": {
+          "admin_title": "صورة قسم 'لماذا نحن'",
+          "type": "image",
+          "value": "homepage-advantage-section-image"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.page",
+    "pk": 5,
+    "fields": {
+      "slug": "homepage-cta",
+      "title": "قسم دعوة إلى الاشتراك في الصفحة الرئيسية",
+      "content": null,
+      "content_structured": {
+        "title": {
+          "admin_title": "عنوان الحث على اتخاذ إجراء",
+          "type": "text",
+          "value": "هل أنت مستعد للنجاح في اختبار القدرات؟"
+        },
+        "subtitle": {
+          "admin_title": "النص الفرعي للحث على اتخاذ إجراء",
+          "type": "textarea",
+          "value": "انضم لآلاف الطلاب الذين حققوا أهدافهم مع منصة قادر. ابدأ رحلتك الآن!"
+        },
+        "button_text": {
+          "admin_title": "نص زر الحث على اتخاذ إجراء",
+          "type": "text",
+          "value": "اشتراك"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 1,
+    "fields": {
+      "page": 1,
+      "slug": "homepage-hero-main",
+      "name": "الصورة الرئيسية للصفحة الرئيسية",
+      "image": null,
+      "alt_text": "طالب يدرس باجتهاد باستخدام منصة قادر لاختبار القدرات"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 2,
+    "fields": {
+      "page": 1,
+      "slug": "homepage-promo-icon",
+      "name": "أيقونة الترويج للصفحة الرئيسية",
+      "image": null,
+      "alt_text": "أيقونة منصة قادر"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 3,
+    "fields": {
+      "page": 3,
+      "slug": "homepage-advantage-section-image",
+      "name": "صورة قسم ميزة الصفحة الرئيسية",
+      "image": null,
+      "alt_text": "صورة توضيحية لمميزات منصة قادر"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 4,
+    "fields": {
+      "page": 2,
+      "slug": "homepage-about-us-placeholder",
+      "name": "الصفحة الرئيسية عنا الفيديو النائب للفيديو",
+      "image": null,
+      "alt_text": "عرض تقديمي عن منصة قادر"
+    }
+  },
+  {
+    "model": "content.homepagefeaturecard",
+    "pk": 1,
+    "fields": {
+      "title": "بنك أسئلة ضخم ومحدث",
+      "text": "آلاف الأسئلة التي تغطي جميع أقسام اختبار القدرات الكمي واللفظي.",
+      "svg_image": null,
+      "icon_class": "fas fa-database",
+      "order": 0,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagefeaturecard",
+    "pk": 2,
+    "fields": {
+      "title": "اختبارات تجريبية تحاكي الواقع",
+      "text": "جرّب بيئة الاختبار الحقيقية وتعرف على مستواك الفعلي قبل الاختبار الرسمي.",
+      "svg_image": null,
+      "icon_class": "fas fa-file-alt",
+      "order": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagefeaturecard",
+    "pk": 3,
+    "fields": {
+      "title": "تحليلات أداء ذكية",
+      "text": "احصل على تقارير مفصلة بعد كل اختبار لتحديد نقاط القوة والضعف لديك.",
+      "svg_image": null,
+      "icon_class": "fas fa-chart-line",
+      "order": 2,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagefeaturecard",
+    "pk": 4,
+    "fields": {
+      "title": "شروحات وحلول مفصلة",
+      "text": "لا تكتفِ بالإجابة الصحيحة، بل افهم طريقة الحل مع شروحات واضحة لكل سؤال.",
+      "svg_image": null,
+      "icon_class": "fas fa-video",
+      "order": 3,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagefeaturecard",
+    "pk": 5,
+    "fields": {
+      "title": "تحدى أقرانك",
+      "text": "تنافس مع زملائك في تحديات مباشرة وحماسية لزيادة الدافعية والمراجعة.",
+      "svg_image": null,
+      "icon_class": "fas fa-users",
+      "order": 4,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagefeaturecard",
+    "pk": 6,
+    "fields": {
+      "title": "مدربك الذكي",
+      "text": "تعلم عبر المحادثة مع مدربنا الذكي الذي يساعدك في التركيز على نقاط ضعفك.",
+      "svg_image": null,
+      "icon_class": "fas fa-robot",
+      "order": 5,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagestatistic",
+    "pk": 1,
+    "fields": {
+      "label": "سؤال تدريبي",
+      "value": "3,000+",
+      "icon_class": "fas fa-question-circle",
+      "order": 0,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagestatistic",
+    "pk": 2,
+    "fields": {
+      "label": "طالب مسجل",
+      "value": "5,000+",
+      "icon_class": "fas fa-user-graduate",
+      "order": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagestatistic",
+    "pk": 3,
+    "fields": {
+      "label": "اختبار تجريبي مكتمل",
+      "value": "10,000+",
+      "icon_class": "fas fa-check-double",
+      "order": 2,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagestatistic",
+    "pk": 4,
+    "fields": {
+      "label": "ساعة من شروحات",
+      "value": "300+",
+      "icon_class": "fas fa-play-circle",
+      "order": 3,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.homepagestatistic",
+    "pk": 5,
+    "fields": {
+      "label": "نسبة رضا الطلاب",
+      "value": "97%",
+      "icon_class": "fas fa-smile-beam",
+      "order": 4,
+      "is_active": true
+    }
+  },
+
+  {
+    "model": "content.page",
+    "pk": 6,
+    "fields": {
+      "slug": "our-story-page",
+      "title": "محتوى صفحة قصتنا",
+      "content": null,
+      "content_structured": {
+        "hero_title": {
+          "admin_title": "العنوان الرئيسي",
+          "type": "html",
+          "value": "البداية من حلم... <span class='text-yellow-600'>والتحقيق معك</span>"
+        },
+        "hero_subtitle": {
+          "admin_title": "النص الفرعي للعنوان الرئيسي",
+          "type": "html",
+          "value": "فى عالم تتسارع فيه التحديات وتتشابه فيه المنصات, كنا نبحث عن شئ واحد فقط أن نكون <span class='text-yellow-600'>مختلفين بحق</span> "
+        },
+        "story_cards": {
+          "admin_title": "بطاقات القصة (3 بطاقات)",
+          "type": "repeater",
+          "value": [
+            {
+              "icon_type": "image",
+              "icon_value": "our-story-storytelling-icon",
+              "text": "بدأت <span class='text-yellow-600'>\"قادر\"</span> من إيمان بسيط و عميق فى نفس الوقت: أن كل طالب قادر على الإنجاز...إذا وجد البيئة الصحيحة والدعم المناسب"
+            },
+            {
+              "icon_type": "heroicon",
+              "icon_value": "UsersIcon",
+              "text": "لم نرد ان نقدم مجرد منصة تعليميةأخرى, بل أردنا أن نبنى مجتمعا <span class='text-yellow-600'> يتعلم, يشارك, ويكبر سويا.</span>"
+            },
+            {
+              "icon_type": "image",
+              "icon_value": "our-story-greeting-icon",
+              "text": "جمعنا بين البساطة و التقنية, بين المناهج الدقيقة و الاختبارات الذكية <span class='text-yellow-600'>من أجلك أنت.</span> "
+            }
+          ]
+        },
+        "main_promo_image": {
+          "admin_title": "صورة الهاتف الترويجية الكبيرة",
+          "type": "image",
+          "value": "our-story-phone-promo"
+        },
+        "why_different_title": {
+          "admin_title": "عنوان قسم 'لماذا نحن مختلفون'",
+          "type": "text",
+          "value": "لماذا نحن مختلفون؟"
+        },
+        "why_different_points": {
+          "admin_title": "نقاط قسم 'لماذا نحن مختلفون'",
+          "type": "repeater",
+          "value": [
+            { "point": "لأننا نراك قبل أن نرى درجاتك." },
+            { "point": "لأننا نفهم أن التعليم ليس بالحفظ, بل فهم وتجربة." },
+            { "point": "لأننا نطور المنصة كل يوم بناء على صوتك." },
+            { "point": "لأننا لا نبيع المحتوى...بل نبنى ثقة." }
+          ]
+        },
+        "why_different_image": {
+          "admin_title": "صورة قسم 'لماذا نحن مختلفون'",
+          "type": "image",
+          "value": "our-story-laptop-1"
+        },
+        "mission_title": {
+          "admin_title": "عنوان قسم 'رسالتنا'",
+          "type": "text",
+          "value": "رسالتنا"
+        },
+        "mission_text": {
+          "admin_title": "نص قسم 'رسالتنا'",
+          "type": "html",
+          "value": "أن نكون دليلك الذكى فى رحلة التعليم, وأن نمنحك الأدوات لتكون دائما...قادر على الفهم, على التقدم, وعلى التميز."
+        },
+        "mission_image": {
+          "admin_title": "صورة قسم 'رسالتنا'",
+          "type": "image",
+          "value": "our-story-laptop-2"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 5,
+    "fields": {
+      "page": 6,
+      "slug": "our-story-storytelling-icon",
+      "name": "عنا أيقونة لرواية القصص",
+      "image": null,
+      "alt_text": "أيقونة القصة"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 6,
+    "fields": {
+      "page": 6,
+      "slug": "our-story-greeting-icon",
+      "name": "عنا أيقونة تحية",
+      "image": null,
+      "alt_text": "أيقونة الترحيب"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 7,
+    "fields": {
+      "page": 6,
+      "slug": "our-story-phone-promo",
+      "name": "حولنا الترويجي للهاتف",
+      "image": null,
+      "alt_text": "عرض تطبيق قادر على الهاتف"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 8,
+    "fields": {
+      "page": 6,
+      "slug": "our-story-laptop-1",
+      "name": "عنا الكمبيوتر المحمول 1",
+      "image": null,
+      "alt_text": "عرض منصة قادر على اللابتوب"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 9,
+    "fields": {
+      "page": 6,
+      "slug": "our-story-laptop-2",
+      "name": "عنا الكمبيوتر المحمول 2",
+      "image": null,
+      "alt_text": "عرض آخر لمنصة قادر على اللابتوب"
+    }
+  },
+
+  {
+    "model": "content.page",
+    "pk": 7,
+    "fields": {
+      "slug": "partners-page",
+      "title": "محتوى صفحة شركاء النجاح",
+      "content": null,
+      "content_structured": {
+        "hero_title": {
+          "admin_title": "العنوان الرئيسي للصفحة",
+          "type": "text",
+          "value": "شركاء النجاح"
+        },
+        "hero_subtitle": {
+          "admin_title": "النص الفرعي للعنوان الرئيسي",
+          "type": "textarea",
+          "value": "نحن نؤمن بقوة التعاون لتحقيق أهداف أكبر. انضم إلينا في رحلتنا لتمكين الطلاب والمبدعين."
+        },
+        "why_partner_title": {
+          "admin_title": "عنوان قسم 'لماذا الشراكة معنا'",
+          "type": "text",
+          "value": "لماذا الشراكة معنا؟"
+        },
+        "why_partner_text": {
+          "admin_title": "نص قسم 'لماذا الشراكة معنا'",
+          "type": "textarea",
+          "value": "نقدم تصميماً جميلاً وتجربة فريدة لدعم طلابك وتحقيق أفضل النتائج. شراكتك معنا تعني الوصول إلى أدوات تحليلية متقدمة ومحتوى تعليمي مبتكر يضمن التفوق والنجاح."
+        },
+        "why_partner_image": {
+          "admin_title": "صورة قسم 'لماذا الشراكة معنا'",
+          "type": "image",
+          "value": "partners-page-logo"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.PartnerCategory",
+    "pk": 1,
+    "fields": {
+      "name": "شراكة المدارس",
+      "description": "نساعد المدارس في تقديم دعم مخصص لطلابهم وتتبع أدائهم بكفاءة.",
+      "icon_image": null,
+      "google_form_link": "https://forms.gle/your-school-form-link",
+      "order": 0,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.PartnerCategory",
+    "pk": 2,
+    "fields": {
+      "name": "شراكة المدربين",
+      "description": "قم بدمج منصة قادر في برامجك التدريبية وقدم قيمة مضافة لمتدربيك.",
+      "icon_image": null,
+      "google_form_link": "https://forms.gle/your-trainer-form-link",
+      "order": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.PartnerCategory",
+    "pk": 3,
+    "fields": {
+      "name": "شراكة سفراء الطلاب",
+      "description": "كن سفيراً لمنصة قادر في مجتمعك واحصل على مزايا حصرية.",
+      "icon_image": null,
+      "google_form_link": "https://forms.gle/your-student-form-link",
+      "order": 2,
+      "is_active": true
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 10,
+    "fields": {
+      "page": 7,
+      "slug": "partners-page-logo",
+      "name": "صورة شعار صفحة الشركاء",
+      "image": null,
+      "alt_text": "شعار منصة قادر"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 11,
+    "fields": {
+      "page": null,
+      "slug": "partners-icon-school",
+      "name": "مدرسة الشركاء أيقونة",
+      "image": null,
+      "alt_text": "أيقونة شراكة المدارس"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 12,
+    "fields": {
+      "page": null,
+      "slug": "partners-icon-trainer",
+      "name": "شركاء أيقونة مدرب",
+      "image": null,
+      "alt_text": "أيقونة شراكة المدربين"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 13,
+    "fields": {
+      "page": null,
+      "slug": "partners-icon-student",
+      "name": "شركاء أيقونة الطالب",
+      "image": null,
+      "alt_text": "أيقونة شراكة الطلاب"
+    }
+  },
+
+  {
+    "model": "content.page",
+    "pk": 8,
+    "fields": {
+      "slug": "faq-page",
+      "title": "محتوى صفحة الأسئلة الشائعة",
+      "content": null,
+      "content_structured": {
+        "hero_title": {
+          "admin_title": "العنوان الرئيسي للصفحة",
+          "type": "text",
+          "value": "الأسئلة الشائعة"
+        },
+        "hero_subtitle": {
+          "admin_title": "النص الفرعي للعنوان الرئيسي",
+          "type": "textarea",
+          "value": "لديك سؤال؟ لدينا الإجابة. ابحث عن سؤالك هنا أو تصفح التصنيفات."
+        },
+        "cta_title": {
+          "admin_title": "عنوان قسم 'هل تحتاج مساعدة؟'",
+          "type": "text",
+          "value": "هل ما زلت تحتاج مساعدة؟"
+        },
+        "cta_button_text": {
+          "admin_title": "نص زر 'تواصل معنا'",
+          "type": "text",
+          "value": "تواصل معنا"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.faqcategory",
+    "pk": 1,
+    "fields": { "name": "الطلاب", "order": 0 }
+  },
+  {
+    "model": "content.faqcategory",
+    "pk": 2,
+    "fields": { "name": "الشراكة", "order": 1 }
+  },
+  {
+    "model": "content.faqcategory",
+    "pk": 3,
+    "fields": { "name": "التحديات", "order": 2 }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 1,
+    "fields": {
+      "category": 1,
+      "question": "ما هو اختبار القدرات؟",
+      "answer": "هو اختبار موحد لجميع خريجي المرحلة الثانوية ليكون معياراً عادلاً ودقيقاً للجميع، مما يساعد الجهات التعليمية فيما بعد الثانوية العامة على اختيار الطلاب الأكثر قدرة على متابعة وتلبية متطلبات الدراسة في تلك الجهات.",
+      "is_active": true,
+      "order": 0
+    }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 2,
+    "fields": {
+      "category": 1,
+      "question": "كيف أستعد للاختبار عبر منصة قادر؟",
+      "answer": "توفر منصة قادر بنك أسئلة ضخم، اختبارات تجريبية تحاكي الواقع، تحليلات أداء ذكية، وشروحات فيديو مفصلة لمساعدتك على الاستعداد الأمثل.",
+      "is_active": true,
+      "order": 1
+    }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 3,
+    "fields": {
+      "category": 1,
+      "question": "هل يمكنني تتبع تقدمي في الدراسة؟",
+      "answer": "نعم، توفر المنصة لوحة إحصائيات شخصية توضح أدائك في الأقسام المختلفة، متوسط درجاتك، والوقت المستغرق، مما يساعدك على تحديد نقاط القوة والضعف.",
+      "is_active": true,
+      "order": 2
+    }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 4,
+    "fields": {
+      "category": 2,
+      "question": "ما هي أنواع الشراكات المتاحة؟",
+      "answer": "نقدم شراكات متنوعة تشمل المدارس، المدربين المستقلين، وسفراء الطلاب. كل نوع من الشراكة له مزايا وبرامج دعم مصممة خصيصاً له.",
+      "is_active": true,
+      "order": 0
+    }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 5,
+    "fields": {
+      "category": 2,
+      "question": "كيف يمكنني تقديم طلب شراكة؟",
+      "answer": "يمكنك تقديم طلب شراكة بسهولة عبر زيارة صفحة 'شركاء النجاح' واختيار نوع الشراكة المناسب لك وملء النموذج المخصص.",
+      "is_active": true,
+      "order": 1
+    }
+  },
+  {
+    "model": "content.faqitem",
+    "pk": 6,
+    "fields": {
+      "category": 3,
+      "question": "ما هي ميزة 'تحدي الأقران'؟",
+      "answer": "'تحدي الأقران' هي ميزة تفاعلية تتيح لك التنافس مع طلاب آخرين في اختبارات قصيرة وممتعة، مما يضيف عنصراً من الحماس والمنافسة لرحلتك التعليمية.",
+      "is_active": true,
+      "order": 0
+    }
+  },
+  {
+    "model": "content.page",
+    "pk": 9,
+    "fields": {
+      "slug": "contact-page",
+      "title": "محتوى صفحة تواصل معنا",
+      "content": null,
+      "content_structured": {
+        "main_image": {
+          "admin_title": "الصورة الرئيسية",
+          "type": "image",
+          "value": "contact-page-main-image"
+        },
+        "title": {
+          "admin_title": "العنوان الرئيسي",
+          "type": "html",
+          "value": "لنبق على اتصال, <span class='text-[#074182]'>نحن هنا لمساعدتك!</span>"
+        },
+        "description": {
+          "admin_title": "الوصف التفصيلي",
+          "type": "textarea",
+          "value": "إذا كنت تود الاتصال من أجل مشكلة أو استفسار حول متجرك، يُنصح باستعمال منطقة الدعم داخل لوحة التحكم للحصول على دعم سريع وسري. أو يمكنك الاستفسار عن أمور عامة من خلال إرسال رسالة من هنا."
+        },
+        "socials_title": {
+          "admin_title": "عنوان 'أو تواصل معنا'",
+          "type": "text",
+          "value": "أو تواصل معنا"
+        },
+        "social_links": {
+          "admin_title": "روابط التواصل (مكرر)",
+          "type": "repeater",
+          "value": [
+            { "icon_name": "EnvelopeIcon", "url": "mailto:info@qader.vip" },
+            {
+              "icon_name": "PaperAirplaneIcon",
+              "url": "https://t.me/qader_support"
+            },
+            { "icon_name": "PhoneIcon", "url": "tel:+966000000000" }
+          ]
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 14,
+    "fields": {
+      "page": 9,
+      "slug": "contact-page-main-image",
+      "name": "Contact Page Main Image",
+      "image": null,
+      "alt_text": "فريق الدعم"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 15,
+    "fields": {
+      "page": null,
+      "slug": "contact-icon-gmail",
+      "name": "Contact Icon Gmail",
+      "image": null,
+      "alt_text": "ايقونة جيميل"
+    }
+  },
+  {
+    "model": "content.contentimage",
+    "pk": 16,
+    "fields": {
+      "page": null,
+      "slug": "contact-icon-telegram",
+      "name": "Contact Icon Telegram",
+      "image": null,
+      "alt_text": "ايقونة تيليجرام"
+    }
+  },
+
+  {
+    "model": "content.page",
+    "pk": 10,
+    "fields": {
+      "slug": "terms-and-conditions",
+      "title": "الشروط والأحكام",
+      "content": "<h3 id='agreement'>1. الموافقة على الشروط</h3><p>باستخدامك لموقع \"قادر\"، فإنك توافق على الالتزام الكامل بهذه الشروط والأحكام. إذا كنت لا توافق على أي جزء من هذه الشروط، فيجب عليك عدم استخدام المنصة.</p><h3 id='about'>2. نبذة عن موقع \"قادر\"</h3><p>\"قادر\" هي منصة تعليمية إلكترونية تهدف إلى مساعدة الطلاب على الاستعداد لاختبارات القدرات العامة في المملكة العربية السعودية من خلال توفير محتوى تفاعلي، اختبارات تجريبية، وتحليلات أداء ذكية.</p><h3 id='eligibility'>3. أهلية الاستخدام</h3><ul><li>لا يُسمح لمن هم دون سن 13 عامًا باستخدام الموقع.</li><li>يجب على المستخدمين الذين تتراوح أعمارهم بين 13 و 18 عامًا استخدام الموقع تحت إشراف ولي أمر أو وصي قانوني يوافق على هذه الشروط.</li></ul><h3 id='account'>4. إنشاء الحساب</h3><ul><li>قد يتطلب الوصول إلى بعض ميزات المنصة إنشاء حساب شخصي.</li><li>أنت توافق على تقديم معلومات دقيقة وكاملة عند إنشاء حسابك وتحديثها باستمرار.</li><li>أنت المسؤول الوحيد عن الحفاظ على سرية كلمة المرور الخاصة بك وعن جميع الأنشطة التي تحدث تحت حسابك.</li></ul><h3 id='subscriptions'>5. الاشتراكات والخطط المدفوعة</h3><ul><li>بعض المحتوى والخدمات على المنصة قد تكون متاحة فقط من خلال الاشتراكات المدفوعة.</li><li>تكون الاشتراكات صالحة للفترة المحددة فقط ولا يتم تجديدها تلقائيًا ما لم يُذكر خلاف ذلك.</li><li>جميع المدفوعات نهائية وغير قابلة للاسترداد، باستثناء ما يقتضيه القانون.</li><li>نحتفظ بالحق في تغيير أسعار خطط الاشتراك في أي وقت.</li></ul><h3 id='ownership'>6. المحتوى وحقوق الملكية الفكرية</h3><p>جميع المحتويات المتوفرة على منصة \"قادر\"، بما في ذلك النصوص، الرسومات، الشعارات، الصور، مقاطع الفيديو، والبرمجيات، هي ملك حصري لمنصة \"قادر\" ومحمية بموجب قوانين حقوق النشر والعلامات التجارية الدولية.</p><h3 id='license'>7. استخدام المحتوى</h3><p>يتم منحك ترخيصًا محدودًا، غير حصري، وغير قابل للتحويل للوصول إلى المحتوى واستخدامه لأغراضك الشخصية وغير التجارية فقط. يُمنع منعًا باتًا نسخ أو تعديل أو توزيع أو بيع أو تأجير أي جزء من محتوانا.</p>",
+      "content_structured": null,
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+  {
+    "model": "content.page",
+    "pk": 11,
+    "fields": {
+      "slug": "privacy-policy",
+      "title": "سياسة الخصوصية",
+      "content": "<h3 id='policy'>1. سياسة الخصوصية</h3><p>نحن في \"قادر\" نحترم خصوصيتك ونتعهد بحماية بياناتك الشخصية. توضح هذه السياسة كيفية جمعنا واستخدامنا وحمايتنا لمعلوماتك عند استخدامك لمنصتنا.</p><h4>البيانات التي نجمعها:</h4><ul><li><strong>معلومات شخصية:</strong> مثل الاسم، البريد الإلكتروني، ورقم الهاتف عند التسجيل.</li><li><strong>بيانات الاستخدام:</strong> معلومات حول كيفية تفاعلك مع المنصة، مثل الاختبارات التي تجريها، والوقت الذي تقضيه، وأدائك.</li><li><strong>بيانات تقنية:</strong> مثل عنوان IP، نوع المتصفح، ونظام التشغيل.</li></ul><h4>كيف نستخدم بياناتك:</h4><ul><li>لتخصيص تجربتك التعليمية وتحسين خدماتنا.</li><li>لإرسال تحديثات مهمة حول حسابك والمنصة.</li><li>لتحليل الاستخدام وتطوير ميزات جديدة.</li></ul><h3 id='cookies'>2. ملفات تعريف الارتباط (Cookies)</h3><p>نستخدم ملفات تعريف الارتباط لتخزين تفضيلاتك وتحسين تجربة التصفح. يمكنك التحكم في ملفات تعريف الارتباط من خلال إعدادات متصفحك، ولكن هذا قد يؤثر على وظائف المنصة.</p><h3 id='disclaimer'>3. التنصل من الضمانات</h3><p>يتم تقديم الخدمات على منصة \"قادر\" \"كما هي\" و \"كما هي متاحة\" دون أي ضمانات صريحة أو ضمنية. نحن لا نضمن أن المنصة ستكون خالية من الأخطاء أو الانقطاعات.</p><h3 id='liability'>4. تحديد المسؤولية</h3><p>لن تكون منصة \"قادر\" مسؤولة عن أي أضرار مباشرة أو غير مباشرة أو عرضية تنشأ عن استخدامك أو عدم قدرتك على استخدام المنصة. مسؤوليتنا القصوى تجاهك لن تتجاوز المبلغ الذي دفعته لنا خلال الأشهر الثلاثة الماضية.</p><h3 id='links'>5. الروابط الخارجية</h3><p>قد تحتوي منصتنا على روابط لمواقع خارجية. نحن لسنا مسؤولين عن ممارسات الخصوصية أو محتوى تلك المواقع.</p><h3 id='termination'>6. إنهاء الخدمة</h3><p>نحتفظ بالحق في تعليق أو إنهاء حسابك في أي وقت، دون إشعار مسبق، إذا انتهكت هذه الشروط. يمكنك إغلاق حسابك في أي وقت من إعدادات حسابك.</p><h3 id='law'>7. القانون المعمول به</h3><p>تخضع هذه الشروط وتُفسر وفقًا لقوانين المملكة العربية السعودية.</p>",
+      "content_structured": null,
+      "icon_class": null,
+      "is_published": true
+    }
+  },
+
+  {
+    "model": "content.page",
+    "pk": 12,
+    "fields": {
+      "slug": "footer-content",
+      "title": "محتوى تذييل الصفحة (Footer)",
+      "content": null,
+      "content_structured": {
+        "about_title": {
+          "admin_title": "عنوان 'نبذة بسيطة'",
+          "type": "text",
+          "value": "نبذة بسيطة عن قادر وماذا تقدم"
+        },
+        "about_text": {
+          "admin_title": "نص 'نبذة بسيطة'",
+          "type": "textarea",
+          "value": "قادر هي منصة تعليمية رائدة تهدف إلى تمكين الطلاب من تحقيق أقصى إمكاناتهم في اختبارات القدرات من خلال أدوات مبتكرة ومحتوى عالي الجودة."
+        },
+        "follow_us_title": {
+          "admin_title": "عنوان 'تابع منصتنا'",
+          "type": "text",
+          "value": "تابع منصتنا"
+        },
+        "social_links": {
+          "admin_title": "روابط التواصل الاجتماعي (مكرر)",
+          "type": "repeater",
+          "value": [
+            {
+              "icon_slug": "footer-icon-telegram",
+              "url": "https://t.me/qader_example"
+            },
+            {
+              "icon_slug": "footer-icon-x",
+              "url": "https://x.com/qader_example"
+            },
+            {
+              "icon_slug": "footer-icon-youtube",
+              "url": "https://youtube.com/qader_example"
+            },
+            {
+              "icon_slug": "footer-icon-instagram",
+              "url": "https://instagram.com/qader_example"
+            },
+            {
+              "icon_slug": "footer-icon-facebook",
+              "url": "https://facebook.com/qader_example"
+            },
+            {
+              "icon_slug": "footer-icon-linkedin",
+              "url": "https://linkedin.com/qader_example"
+            }
+          ]
+        },
+        "copyright_text": {
+          "admin_title": "نص حقوق النشر",
+          "type": "text",
+          "value": " جميع الحقوق محفوظة ©{YEAR}"
+        }
+      },
+      "icon_class": null,
+      "is_published": true
+    }
+  }
+]

@@ -134,12 +134,13 @@
       "comingSoonSuffix": "قريباً"
     }
   },
-
   "AdminSidebar": {
     "sidebarNavigationLabel": "التنقل في لوحة التحكم",
+    "toggleClose": "إغلاق القائمة",
     "logoAlt": "شعار قادر",
     "sections": {
-      "management": "إدارة المنصة",
+      "userManagement": "إدارة المستخدمين",
+      "contentManagement": "إدارة المحتوى",
       "monitoring": "تتبع المنصة",
       "system": "التحكم بالنظام"
     },
@@ -147,8 +148,13 @@
       "dashboard": "لوحة التحكم",
       "employeesManagement": "الموظفين",
       "studentsManagement": "الطلاب",
-      "pageManagement": "إدارة صفحات الموقع",
-      "contentTickets": "تواصل معنا",
+      "pages": "الصفحات العامة",
+      "learning": "محتوى التعليمي",
+      "homepage": "محتوى الرئيسية",
+      "partners": "شركاء النجاح",
+      "faqs": "الأسئلة الشائعة",
+      "contactMessages": "رسائل التواصل",
+      "supportTickets": "إدارة الدعم الاداري",
       "statistics": "الاحصائيات العامة",
       "settings": "اعدادات النظام"
     }
@@ -159,6 +165,8 @@
     "myAccount": "حسابي",
     "profile": "الملف الشخصي",
     "settings": "الإعدادات",
-    "logout": "تسجيل الخروج"
+    "logout": "تسجيل الخروج",
+    "logoutSuccess": "تم تسجيل الخروج بنجاح!",
+    "logoutError": "فشل تسجيل الخروج. حاول مرة أخرى."
   }
 }
