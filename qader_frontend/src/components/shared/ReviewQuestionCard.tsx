@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   CheckCircle,
   XCircle,
@@ -44,6 +44,7 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   totalQuestionsInFilter,
 }) => {
   const t = useTranslations("Study.review");
+  const locale = useLocale();
 
   const {
     question_text,
@@ -101,7 +102,8 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
 
   return (
     <Card
-      className="w-full shadow-lg"
+      dir={locale==="en"?"ltr":"rtl"}
+      className="w-full shadow-lg dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]"
       data-testid={`question-card-${questionData.id}`}
     >
       <CardHeader>
@@ -129,7 +131,7 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
             <div
               key={key}
               className={cn(
-                "flex items-start space-x-3 rounded-md border p-3.5 transition-all rtl:space-x-reverse",
+                "flex items-start space-x-3 rounded-md border p-3.5 transition-all",
                 getOptionStyle(key)
               )}
             >

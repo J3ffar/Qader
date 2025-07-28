@@ -173,7 +173,7 @@ const LevelAssessmentReviewPage = () => {
   return (
     <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
       {/* Header Card */}
-      <Card className="overflow-hidden shadow-md">
+      <Card dir={locale==="en"?"ltr":"rtl"} className="overflow-hidden shadow-md dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             {/* --- MODIFIED HEADER SECTION --- */}
@@ -253,7 +253,7 @@ const LevelAssessmentReviewPage = () => {
       </Card>
 
       {/* Filter Controls Card */}
-      <Card>
+      <Card dir={locale==="en"?"ltr":"rtl"} className="dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]">
         <CardContent>
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center text-sm font-medium text-muted-foreground">
@@ -308,7 +308,7 @@ const LevelAssessmentReviewPage = () => {
             totalQuestionsInFilter={filteredQuestions.length}
           />
           {filteredQuestions.length > 1 && (
-            <div className="mt-6 flex items-center justify-between rounded-lg border bg-card p-2.5 shadow-sm sm:p-3">
+            <div className="mt-6 flex items-center justify-between rounded-lg bg-card p-2.5 shadow-sm sm:p-3 dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]">
               <Button
                 onClick={handlePreviousQuestion}
                 disabled={currentQuestionIndex === 0}

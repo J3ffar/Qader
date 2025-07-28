@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { queryKeys } from "@/constants/queryKeys";
+import { useParams } from "next/navigation";
 
 const notificationsSchema = z.object({
   notify_reminders_enabled: z.boolean(),
@@ -95,15 +96,17 @@ export default function NotificationsSettingsForm({
     mutation.mutate(data);
   }
 
+  const {locale} = useParams();
+
   return (
-    <Card>
-      <CardHeader>
+    <Card className="w-full max-w-6xl mx-auto mt-8 dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]">
+      <CardHeader dir={locale === "en" ? "ltr" : "rtl"} className="flex flex-col">
         <CardTitle>{t("title")}</CardTitle>
         <CardDescription>{t("description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form dir={locale === "en" ? "ltr" : "rtl"} onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {/* Study Reminders */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">{t("reminders.title")}</h3>

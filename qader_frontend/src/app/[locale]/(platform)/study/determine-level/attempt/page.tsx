@@ -92,7 +92,7 @@ const TraditionalEdu = () => {
         <p className="font-bold text-xl">اختر الأقسام التي تريد التدريب عليها</p>
         <p className="text-gray-600 mt-2">اختر من بين الأقسام الأساسية والفرعية</p>
       </div>
-
+ 
       <div className="flex gap-6">
         {/* القسم الكمي */}
         <div
