@@ -13,7 +13,7 @@ export default function UserLayout({
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="flex min-h-screen dark:bg-[#081029] bg-background">
+    <div className="flex min-h-screen dark:bg-[#081028] bg-background">
       {/* Sidebar */}
       <PlatformSidebar isOpen={isOpen} setIsOpen={setIsOpen} />
 

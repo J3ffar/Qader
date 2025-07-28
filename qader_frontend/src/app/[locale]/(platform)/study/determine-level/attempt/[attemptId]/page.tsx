@@ -322,8 +322,8 @@ const LevelAssessmentAttemptPage = () => {
 
   return (
     <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
-      <Card className="w-full max-w-3xl shadow-xl">
-        <CardHeader className="pb-4">
+      <Card className="w-full max-w-3xl shadow-xl dark:bg-[#0B1739]">
+        <CardHeader dir={locale==="en"?"ltr":"rtl"} className="pb-4">
           <div className="mb-3 flex items-center justify-between">
             <CardTitle className="text-xl md:text-2xl">{t("title")}</CardTitle>
             <ConfirmationDialog
@@ -408,7 +408,7 @@ const LevelAssessmentAttemptPage = () => {
           )}
         </CardContent>
 
-        <CardFooter className="flex flex-col items-center justify-between gap-3 pt-6 sm:flex-row">
+        <CardFooter dir={locale==="en"?"ltr":"rtl"} className="flex flex-col items-center justify-between gap-3 pt-6 sm:flex-row">
           <Button
             variant="outline"
             onClick={handlePrevious}

@@ -94,6 +94,7 @@ export function ReplyCard({ reply, isPostClosed }: ReplyCardProps) {
                 رد
               </button>
             )}
+            {" "}
             <span
               className="text-muted-foreground"
               title={new Date(reply.created_at).toLocaleString()}

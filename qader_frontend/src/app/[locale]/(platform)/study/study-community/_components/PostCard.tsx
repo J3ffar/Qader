@@ -46,7 +46,7 @@ export function PostCard({ post: initialPost, listQueryKey }: PostCardProps) {
     staleTime: 5 * 60 * 1000,
   });
 
-  const post = detailedPost || initialPost;
+  const post = {...detailedPost, ...initialPost,};
   const imageUrl = post.image ?? initialPost.image;
 
   const canShowReadMore =
@@ -207,7 +207,7 @@ export function PostCard({ post: initialPost, listQueryKey }: PostCardProps) {
           >
             <Heart
               className={cn("me-2 h-4 w-4", {
-                "fill-red-500 text-red-500": post.is_liked_by_user,
+                "fill-red-500 text-red-500": post.is_liked_by_user ,
               })}
             />
             إعجاب
