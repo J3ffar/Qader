@@ -129,12 +129,10 @@ def get_filtered_questions(
     if limit <= 0:
         return Question.objects.none()
 
-    # Base queryset - only active questions, prefetch related data for efficiency
-    queryset = Question.objects.filter(is_active=True).select_related(
-        "subsection",
-        "subsection__section",
-        "skill",  # Select related for common access patterns
-    )
+    # Use the custom manager to annotate every question with user-specific data.
+    # We pass the user object, which can be an authenticated user or anonymous.
+    queryset = Question.objects.with_user_annotations(user=user).filter(is_active=True)
+
     filters = Q()
     exclude_ids_set = (
         set(int(id) for id in exclude_ids if isinstance(id, int))
@@ -148,57 +146,49 @@ def get_filtered_questions(
     if skills:
         filters &= Q(skill__slug__in=skills)
 
-    # Authentication-dependent filters
-    if starred or not_mastered:
+    if starred:
+        if not user or not user.is_authenticated:
+            logger.warning(
+                f"get_filtered_questions: 'starred=True' filter requested for anonymous user. Returning no questions."
+            )
+            return Question.objects.none()
+
+        filters &= Q(user_has_starred=True)
+
+    if not_mastered:
         if not user or not user.is_authenticated:
             logger.warning(
                 f"get_filtered_questions: 'starred' or 'not_mastered' filter requested for anonymous user. Ignoring filter."
             )
         else:
-            if starred:
-                # Use Exists for efficient subquery checking
-                starred_subquery = UserStarredQuestion.objects.filter(
-                    user=user, question=OuterRef("pk")
+            try:
+                # (your existing try/except block for not_mastered)
+                low_prof_skill_ids = set(
+                    UserSkillProficiency.objects.filter(
+                        user=user, proficiency_score__lt=proficiency_threshold
+                    ).values_list("skill_id", flat=True)
                 )
-                filters &= Q(Exists(starred_subquery))
-
-            if not_mastered:
-                try:
-                    # Skills user has attempted and proficiency is below threshold
-                    low_prof_skill_ids = set(
-                        UserSkillProficiency.objects.filter(
-                            user=user, proficiency_score__lt=proficiency_threshold
-                        ).values_list("skill_id", flat=True)
+                # All skills user has ever attempted (has a proficiency record for)
+                attempted_skill_ids = set(
+                    UserSkillProficiency.objects.filter(user=user).values_list(
+                        "skill_id", flat=True
                     )
-                    # All skills user has ever attempted (has a proficiency record for)
-                    attempted_skill_ids = set(
-                        UserSkillProficiency.objects.filter(user=user).values_list(
-                            "skill_id", flat=True
-                        )
-                    )
-
-                    # Logic: Include questions if:
-                    # 1. Skill is known to be low proficiency OR
-                    # 2. Question has a skill, and that skill has never been attempted by the user
-                    not_mastered_filter = Q(skill_id__in=low_prof_skill_ids) | (
-                        Q(skill__isnull=False) & ~Q(skill_id__in=attempted_skill_ids)
-                    )
-                    filters &= not_mastered_filter
-                    logger.info(
-                        f"Applied 'not_mastered' filter for user {user.id}. Low prof skills: {len(low_prof_skill_ids)}, Attempted skills: {len(attempted_skill_ids)}"
-                    )
-
-                except Exception as e:
-                    logger.error(
-                        f"get_filtered_questions: Error applying 'not_mastered' filter for user {user.id}: {e}",
-                        exc_info=True,
-                    )
-                    # Decide behavior: either fail safely (return none) or continue without the filter
-                    # return Question.objects.none() # Safer option
-                    # Continuing without filter:
-                    logger.warning(
-                        f"Could not apply 'not_mastered' filter for user {user.id} due to error. Proceeding without it."
-                    )
+                )
+                not_mastered_filter = Q(skill_id__in=low_prof_skill_ids) | (
+                    Q(skill__isnull=False) & ~Q(skill_id__in=attempted_skill_ids)
+                )
+                filters &= not_mastered_filter
+                logger.info(
+                    f"Applied 'not_mastered' filter for user {user.id}. Low prof skills: {len(low_prof_skill_ids)}, Attempted skills: {len(attempted_skill_ids)}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"get_filtered_questions: Error applying 'not_mastered' filter for user {user.id}: {e}",
+                    exc_info=True,
+                )
+                logger.warning(
+                    f"Could not apply 'not_mastered' filter for user {user.id} due to error. Proceeding without it."
+                )
 
     # Apply collected filters
     if filters:
@@ -209,7 +199,6 @@ def get_filtered_questions(
         queryset = queryset.exclude(id__in=exclude_ids_set)
 
     if min_required > 0:
-        # Use count() which is efficient after filtering
         pool_count = queryset.count()
         if pool_count < min_required:
             logger.warning(
@@ -226,7 +215,6 @@ def get_filtered_questions(
     # 1. Get all potential IDs matching the criteria
     all_matching_ids = list(queryset.values_list("id", flat=True))
     count = len(all_matching_ids)
-
     if count == 0:
         logger.debug(
             f"get_filtered_questions: No questions found matching criteria for user {user.id if user else 'Anonymous'}."
@@ -251,17 +239,17 @@ def get_filtered_questions(
         output_field=IntegerField(),
     )
 
-    # Final query retrieving only the randomly selected questions in the specific random order
+    # Re-build the final queryset using the annotated manager to guarantee
+    # the final objects have the `user_has_starred` attribute.
     final_queryset = (
-        Question.objects.filter(id__in=random_ids)
-        .select_related(
-            "subsection", "subsection__section", "skill"
-        )  # Re-apply select_related
+        Question.objects.with_user_annotations(user=user)
+        .filter(id__in=random_ids)
+        .select_related("subsection", "subsection__section", "skill")
         .order_by(preserved_order)
     )
 
     logger.info(
-        f"get_filtered_questions: Returning {len(random_ids)} questions for user {user.id if user else 'Anonymous'}."
+        f"get_filtered_questions: Returning {len(random_ids)} annotated questions for user {user.id if user and user.is_authenticated else 'Anonymous'}."
     )
     return final_queryset
 
