@@ -109,7 +109,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="notifications">
-          <NotificationsSettingsForm user={userProfile} />
+          <NotificationsSettingsForm user={{...userProfile, locale}} />
         </TabsContent>
       </Tabs>
     </div>
