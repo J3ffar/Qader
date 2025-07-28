@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect } from "react";
 import { useForm, Controller, FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -38,6 +38,7 @@ import type {
   PaginatedLearningSections,
 } from "@/types/api/learning.types";
 import { queryKeys } from "@/constants/queryKeys";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FormValues {
   selectedSubsections: Record<string, boolean>;
@@ -46,13 +47,53 @@ interface FormValues {
   not_mastered: boolean;
 }
 
+const FormSkeleton = () => {
+  const t = useTranslations("Common");
+  return (
+    <div className="mx-auto max-w-4xl space-y-8 animate-pulse">
+      <Card className="overflow-hidden w-full max-w-none border-2">
+        <CardHeader>
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-4 w-2/3" />
+        </CardHeader>
+        <CardContent className="space-y-3 p-6">
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+        </CardContent>
+      </Card>
+      <Card className="overflow-hidden w-full max-w-none border-2">
+        <CardHeader>
+          <Skeleton className="h-8 w-1/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </CardContent>
+      </Card>
+      <div className="flex justify-center">
+        <Button disabled size="lg" className="w-full max-w-md">
+          <Loader2 className="me-2 h-5 w-5 animate-spin" />
+          {t("loading")}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const TraditionalLearningConfigForm: React.FC = () => {
   const t = useTranslations("Study.traditionalLearning.config");
   const commonT = useTranslations("Common");
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data: learningSectionsData, error: sectionsError } = useQuery({
+  const {
+    data: learningSectionsData,
+    error: sectionsError,
+    isLoading: isSectionsLoading,
+  } = useQuery({
     queryKey: queryKeys.learning.sections({}),
     queryFn: () => getLearningSections(),
     staleTime: 5 * 60 * 1000,
@@ -91,7 +132,6 @@ const TraditionalLearningConfigForm: React.FC = () => {
       not_mastered: false,
     },
   });
-
   const selectedSubsectionsWatched = watch("selectedSubsections");
 
   const handleMainSectionChange = (
@@ -129,6 +169,10 @@ const TraditionalLearningConfigForm: React.FC = () => {
     };
     startPracticeMutation.mutate(payload);
   };
+
+  if (isSectionsLoading) {
+    return <FormSkeleton />;
+  }
 
   if (sectionsError) {
     return (
@@ -237,7 +281,6 @@ const TraditionalLearningConfigForm: React.FC = () => {
               );
             })}
           </Accordion>
-
         </CardContent>
       </Card>
 
@@ -248,92 +291,97 @@ const TraditionalLearningConfigForm: React.FC = () => {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className=" flex flex-col items-center justify-between p-7 rounded-lg border">
-            <Label htmlFor="num_questions" className="text-base font-medium justify-center">
+            <Label
+              htmlFor="num_questions"
+              className="text-base font-medium justify-center"
+            >
               {t("numQuestionsLabel")}
             </Label>
             <Controller // make a custom number input with increment/decrement buttons
-                name="num_questions"
-                control={control}
-                render={({ field }) => (
-                  <div className="mt-2 flex justify-center items-center gap-4">
-                      <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => field.onChange(Math.max((field.value || 0) - 1, 0))}
-                      className="w-10 h-10 p-0 text-xl cursor-pointer"
-                      >
-                        –
-                      </Button>
-                              
-                      <input
-                      type="text"
-                      value={field.value || ''}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value, 10);
-                        field.onChange(isNaN(value) ? '' : Math.max(value, 0)); // prevent negative
-                      }}
-                      className="w-16 text-center text-lg font-semibold border rounded px-2 py-1"
-                      />
-                      <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => field.onChange((field.value || 0) + 1)}
-                      className="w-10 h-10 p-0 text-xl cursor-pointer"
-                      >
-                        +
-                      </Button>
-                  </div>
-                )}
+              name="num_questions"
+              control={control}
+              render={({ field }) => (
+                <div className="mt-2 flex justify-center items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      field.onChange(Math.max((field.value || 0) - 1, 0))
+                    }
+                    className="w-10 h-10 p-0 text-xl cursor-pointer"
+                  >
+                    –
+                  </Button>
+
+                  <input
+                    type="text"
+                    value={field.value || ""}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      field.onChange(isNaN(value) ? "" : Math.max(value, 0)); // prevent negative
+                    }}
+                    className="w-16 text-center text-lg font-semibold border rounded px-2 py-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => field.onChange((field.value || 0) + 1)}
+                    className="w-10 h-10 p-0 text-xl cursor-pointer"
+                  >
+                    +
+                  </Button>
+                </div>
+              )}
             />
-            
+
             {errors.num_questions && (
               <p className="mt-1 text-sm font-medium text-destructive">
                 {errors.num_questions.message}
               </p>
             )}
           </div>
-            <Controller
-              name="starred"
-              control={control}
-              render={({ field }) => (
-                <div className="flex items-center justify-between md:space-x-8 rounded-lg border p-7 rtl:space-x-reverse">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="starred" className="text-base">
-                      {t("starredLabel")}
-                    </Label>
-                    <p className="text-[0.8rem] text-muted-foreground">
-                      {t("starredDescription")}
-                    </p>
-                  </div>
-                  <Switch
-                    id="starred"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
+          <Controller
+            name="starred"
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-center justify-between md:space-x-8 rounded-lg border p-7 rtl:space-x-reverse">
+                <div className="space-y-0.5">
+                  <Label htmlFor="starred" className="text-base">
+                    {t("starredLabel")}
+                  </Label>
+                  <p className="text-[0.8rem] text-muted-foreground">
+                    {t("starredDescription")}
+                  </p>
                 </div>
-              )}
-            />
-            <Controller
-              name="not_mastered"
-              control={control}
-              render={({ field }) => (
-                <div className="flex items-center justify-between md:space-x-8 rounded-lg border p-7 rtl:space-x-reverse">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="not_mastered" className="text-base">
-                      {t("notMasteredLabel")}
-                    </Label>
-                    <p className="text-[0.8rem] text-muted-foreground">
-                      {t("notMasteredDescription")}
-                    </p>
-                  </div>
-                  <Switch
-                    id="not_mastered"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
+                <Switch
+                  id="starred"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </div>
+            )}
+          />
+          <Controller
+            name="not_mastered"
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-center justify-between md:space-x-8 rounded-lg border p-7 rtl:space-x-reverse">
+                <div className="space-y-0.5">
+                  <Label htmlFor="not_mastered" className="text-base">
+                    {t("notMasteredLabel")}
+                  </Label>
+                  <p className="text-[0.8rem] text-muted-foreground">
+                    {t("notMasteredDescription")}
+                  </p>
                 </div>
-              )}
-            />
+                <Switch
+                  id="not_mastered"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </div>
+            )}
+          />
         </CardContent>
       </Card>
 
