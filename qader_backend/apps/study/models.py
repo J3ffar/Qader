@@ -259,7 +259,7 @@ class UserTestAttempt(models.Model):
         return 0
 
     def get_questions_queryset(self) -> QuerySet[Question]:
-        """Returns an ordered queryset for the questions associated with this attempt."""
+        """Returns an ANNOTATED and ordered queryset for the questions associated with this attempt."""
         if not self.question_ids or not isinstance(self.question_ids, list):
             return Question.objects.none()
 
@@ -280,9 +280,12 @@ class UserTestAttempt(models.Model):
             *[When(pk=pk, then=pos) for pos, pk in enumerate(valid_question_ids)],
             output_field=IntegerField(),
         )
-        # Eager load common related fields used in serializers/views
+
+        # We use self.user, which is available on the attempt instance,
+        # to provide the context for the annotation.
         return (
-            Question.objects.filter(pk__in=valid_question_ids)
+            Question.objects.with_user_annotations(self.user)
+            .filter(pk__in=valid_question_ids)
             .select_related("subsection", "subsection__section", "skill")
             .order_by(preserved_order)
         )
