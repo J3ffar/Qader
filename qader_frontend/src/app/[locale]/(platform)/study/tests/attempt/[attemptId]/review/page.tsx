@@ -219,6 +219,7 @@ const TestReviewPage = () => {
             questionData={currentQuestionData}
             questionNumber={currentQuestionIndex + 1}
             totalQuestionsInFilter={filteredQuestions.length}
+            attemptId={attemptId}
           />
           {filteredQuestions.length > 1 && (
             <div className="mt-6 flex items-center justify-between rounded-lg border bg-card p-2.5 shadow-sm">

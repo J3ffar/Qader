@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { CheckCircle, Info, Lightbulb, XCircle } from "lucide-react";
 
@@ -15,6 +15,7 @@ import type { UnifiedQuestion } from "@/types/api/study.types";
 import { QuestionState } from "./TraditionalLearningSession";
 import { QuestionRenderer } from "@/components/shared/QuestionRenderer";
 import { RichContentViewer } from "@/components/shared/RichContentViewer";
+import { StarButton } from "@/components/shared/StarButton";
 
 type OptionKey = "A" | "B" | "C" | "D";
 
@@ -30,6 +31,7 @@ interface Props {
   questionState?: QuestionState;
   onSelectAnswer: (selectedAnswer: OptionKey) => void;
   direction: "ltr" | "rtl";
+  attemptId: string;
 }
 
 export const QuestionDisplay: React.FC<Props> = ({
@@ -37,8 +39,15 @@ export const QuestionDisplay: React.FC<Props> = ({
   questionState,
   onSelectAnswer,
   direction,
+  attemptId,
 }) => {
   const t = useTranslations("Study.traditionalLearning.session");
+  const [localStarred, setLocalStarred] = useState(question.is_starred);
+
+  // Update localStarred when question changes
+  useEffect(() => {
+    setLocalStarred(question.is_starred);
+  }, [question.id, question.is_starred]);
 
   const isAnswered =
     questionState?.status === "correct" ||
@@ -46,11 +55,22 @@ export const QuestionDisplay: React.FC<Props> = ({
 
   return (
     <Card className="shadow-lg">
-      <CardHeader>
-        <QuestionRenderer
-          questionText={question.question_text}
-          imageUrl={question.image}
-        />
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+        <div className="flex-1">
+          <QuestionRenderer
+            questionText={question.question_text}
+            imageUrl={question.image}
+          />
+        </div>
+        <div className="flex-shrink-0">
+          <StarButton
+            questionId={question.id}
+            isStarred={localStarred}
+            onStarChange={(newState) => setLocalStarred(newState)}
+            disabled={isAnswered}
+            attemptId={attemptId}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <RadioGroup

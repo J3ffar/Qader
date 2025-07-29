@@ -30,6 +30,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { queryKeys } from "@/constants/queryKeys";
+import { StarButton } from "@/components/shared/StarButton";
 
 type AnswerOption = "A" | "B" | "C" | "D";
 
@@ -54,12 +55,14 @@ export function QuestionDisplayEmergency({
   const [feedback, setFeedback] = useState<EmergencyModeAnswerResponse | null>(
     null
   );
+  const [localStarred, setLocalStarred] = useState(question.is_starred);
 
   // Reset component state when a new question is passed in
   useEffect(() => {
     setSelectedAnswer(null);
     setIsAnswered(false);
     setFeedback(null);
+    setLocalStarred(question.is_starred);
   }, [question.id]);
 
   const { mutate: submitAnswer, isPending } = useMutation({
@@ -98,13 +101,24 @@ export function QuestionDisplayEmergency({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("title")}</CardTitle>
-        <CardDescription>
-          {t("progress", {
-            current: currentQuestionNumber,
-            total: totalQuestions,
-          })}
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>{t("title")}</CardTitle>
+            <CardDescription>
+              {t("progress", {
+                current: currentQuestionNumber,
+                total: totalQuestions,
+              })}
+            </CardDescription>
+          </div>
+          <StarButton
+            questionId={question.id}
+            isStarred={localStarred}
+            onStarChange={setLocalStarred}
+            disabled={isAnswered || isPending}
+            attemptId={sessionId?.toString() || ""}
+          />
+        </div>
         <p className="pt-4 text-base font-semibold text-foreground">
           {question.question_text}
         </p>
@@ -142,7 +156,7 @@ export function QuestionDisplayEmergency({
                 <RadioGroupItem value={key} id={`option-${key}`} />
                 <Label
                   htmlFor={`option-${key}`}
-                  className="w-full cursor-pointer"
+                  className="w-full cursor-pointer mx-2"
                 >
                   {value}
                 </Label>

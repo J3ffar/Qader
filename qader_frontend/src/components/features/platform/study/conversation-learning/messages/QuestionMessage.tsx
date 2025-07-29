@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { QuestionRenderer } from "@/components/shared/QuestionRenderer";
 import { RichContentViewer } from "@/components/shared/RichContentViewer";
+import { StarButton } from "@/components/shared/StarButton";
+import { useConversationStore } from "@/store/conversation.store";
 
 type OptionKey = "A" | "B" | "C" | "D";
 
@@ -34,12 +36,22 @@ export const QuestionMessage: React.FC<Props> = ({
   isSubmitting,
 }) => {
   const t = useTranslations("Study.conversationalLearning.session");
+  const { sessionId } = useConversationStore();
   const [selectedAnswer, setSelectedAnswer] = useState<OptionKey | null>(null);
   const [direction, setDirection] = useState<"ltr" | "rtl">("rtl");
+  const [localStarred, setLocalStarred] = useState(content.question.is_starred);
 
   React.useEffect(() => {
     setDirection(document.documentElement.dir as "ltr" | "rtl");
   }, []);
+
+  // Debug: Log question data and sessionId
+  console.log("QuestionMessage - AI Chat:", {
+    questionId: content.question.id,
+    is_starred: content.question.is_starred,
+    sessionId,
+    questionText: content.question.question_text.substring(0, 50) + "...",
+  });
 
   const handleSubmit = () => {
     if (selectedAnswer) {
@@ -59,10 +71,25 @@ export const QuestionMessage: React.FC<Props> = ({
           <ReactMarkdown>{content.ai_message}</ReactMarkdown>
         </div>
 
-        <QuestionRenderer
-          questionText={content.question.question_text}
-          imageUrl={content.question.image}
-        />
+        {/* Question Container with Star Button positioned outside */}
+        <div className="flex items-start gap-3">
+          {/* Question Container */}
+          <div className="flex items-start justify-between w-full border rounded-lg p-4 bg-muted/30">
+            <div className="flex-1">
+              <QuestionRenderer
+                questionText={content.question.question_text}
+                imageUrl={content.question.image}
+              />
+            </div>
+              <StarButton
+                questionId={content.question.id}
+                isStarred={localStarred}
+                onStarChange={(newState) => setLocalStarred(newState)}
+                disabled={false}
+                attemptId={sessionId?.toString() || ""}
+              />
+          </div>
+        </div>
 
         <RadioGroup
           value={selectedAnswer || ""}
