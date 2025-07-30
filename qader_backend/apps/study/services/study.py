@@ -48,6 +48,7 @@ from apps.study.models import (
     UserSkillProficiency,
     UserTestAttempt,
     UserQuestionAttempt,
+    EmergencyModeSession,
 )
 from django.contrib.auth import get_user_model
 
@@ -1924,3 +1925,267 @@ def generate_emergency_plan(
         f"Review Topics: {len(plan['quick_review_topics'])}, Tips: {len(plan['motivational_tips'])}"
     )
     return plan
+
+
+def _generate_ai_emergency_session_feedback(
+    user: User,
+    session: EmergencyModeSession,
+    overall_score: float,
+    results_summary: Dict[str, Any],
+) -> str:
+    """
+    Generates tailored AI feedback for a completed Emergency Mode session.
+    """
+    ai_manager = get_ai_manager()
+    fallback_message = _(
+        "Great job completing your emergency session! Review your results to see where you excelled and what you can focus on next."
+    )
+    if not ai_manager.is_available():
+        logger.warning(
+            f"AI manager not available for emergency session feedback (User: {user.id}, Session: {session.id}). Reason: {ai_manager.init_error}"
+        )
+        return fallback_message
+
+    # Format data for the AI prompt
+    overall_score_str = f"{overall_score:.1f}%"
+    results_summary_str = _format_results_summary_for_ai(results_summary)
+
+    context_params = {
+        "overall_score_str": overall_score_str,
+        "results_summary_str": results_summary_str,
+        "focus_areas_str": ", ".join(
+            session.suggested_plan.get("focus_area_names", [])
+        ),
+    }
+
+    system_prompt = ai_manager._construct_system_prompt(
+        ai_tone_value="encouraging_analytic",
+        context_key="generate_emergency_session_feedback",
+        context_params=context_params,
+    )
+
+    trigger_message = _(
+        "Please provide a performance analysis for the emergency study session I just completed."
+    )
+
+    ai_response_content, error_msg = ai_manager.get_chat_completion(
+        system_prompt_content=system_prompt,
+        messages_for_api=[{"role": "user", "content": trigger_message}],
+        temperature=0.6,
+        max_tokens=300,
+        response_format=None,
+        user_id_for_tracking=str(user.id),
+    )
+
+    if (
+        error_msg
+        or not isinstance(ai_response_content, str)
+        or not ai_response_content.strip()
+    ):
+        logger.error(
+            f"AI emergency session feedback generation failed for User: {user.id}, Session: {session.id}. Error: {error_msg or 'Empty response'}."
+        )
+        return fallback_message
+
+    logger.info(
+        f"Successfully generated AI feedback for emergency session {session.id} for user {user.id}."
+    )
+    return ai_response_content.strip()
+
+
+@transaction.atomic
+def complete_emergency_session(session: EmergencyModeSession) -> Dict[str, Any]:
+    """
+    Completes an emergency session, calculates scores, generates AI feedback,
+    and saves the results with a structured, nested summary.
+
+    Args:
+        session: The EmergencyModeSession instance to complete.
+
+    Returns:
+        A dictionary containing the final results and feedback.
+
+    Raises:
+        DRFValidationError: If the session is already completed.
+    """
+    if session.end_time:
+        raise DRFValidationError(
+            _("This emergency session has already been completed.")
+        )
+
+    user = session.user
+    question_attempts_qs = UserQuestionAttempt.objects.filter(
+        emergency_session=session
+    ).select_related(
+        "question__subsection__section",
+        "question__subsection",
+    )  # Ensure related models are fetched efficiently
+
+    if not question_attempts_qs.exists():
+        # Handle case with no answers submitted
+        session.end_time = timezone.now()
+        session.overall_score = 0.0
+        session.verbal_score = 0.0
+        session.quantitative_score = 0.0
+        session.results_summary = {"verbal": {}, "quantitative": {}}
+        session.ai_feedback = _(
+            "You completed the session without answering any questions. Try a few next time!"
+        )
+        session.save(
+            update_fields=[
+                "end_time",
+                "overall_score",
+                "verbal_score",
+                "quantitative_score",
+                "results_summary",
+                "ai_feedback",
+                "updated_at",
+            ]
+        )
+
+        return {
+            "session_id": session.id,
+            "overall_score": 0.0,
+            "verbal_score": 0.0,
+            "quantitative_score": 0.0,
+            "results_summary": session.results_summary,
+            "ai_feedback": session.ai_feedback,
+            "answered_question_count": 0,
+            "correct_answers_count": 0,
+        }
+
+    # --- 1. Calculate Scores with Nested Structure ---
+    # Structure for calculation: { 'section_slug': { 'name': str, 'total': int, 'correct': int, 'subsections': { 'sub_slug': ... } } }
+    results_calc: Dict[str, Dict[str, Any]] = {}
+    total_questions = 0
+    correct_questions = 0
+
+    for qa in question_attempts_qs:
+        total_questions += 1
+        if qa.is_correct:
+            correct_questions += 1
+
+        section = qa.question.subsection.section
+        subsection = qa.question.subsection
+
+        # Initialize section if not present
+        if section.slug not in results_calc:
+            results_calc[section.slug] = {
+                "name": section.name,
+                "total": 0,
+                "correct": 0,
+                "subsections": {},
+            }
+
+        # Initialize subsection if not present
+        if subsection.slug not in results_calc[section.slug]["subsections"]:
+            results_calc[section.slug]["subsections"][subsection.slug] = {
+                "name": subsection.name,
+                "total": 0,
+                "correct": 0,
+            }
+
+        # Increment counts
+        results_calc[section.slug]["total"] += 1
+        results_calc[section.slug]["subsections"][subsection.slug]["total"] += 1
+        if qa.is_correct:
+            results_calc[section.slug]["correct"] += 1
+            results_calc[section.slug]["subsections"][subsection.slug]["correct"] += 1
+
+    # --- 2. Format Final Results JSON and Calculate Scores ---
+    results_summary_final: Dict[str, Dict[str, Any]] = {}
+
+    # Ensure both 'verbal' and 'quantitative' keys exist even if no questions were from that section
+    for slug in ["verbal", "quantitative"]:
+        if slug in results_calc:
+            section_data = results_calc[slug]
+            section_total = section_data["total"]
+            section_correct = section_data["correct"]
+
+            subsections_final = {}
+            for sub_slug, sub_data in section_data["subsections"].items():
+                sub_total = sub_data["total"]
+                sub_correct = sub_data["correct"]
+                subsections_final[sub_slug] = {
+                    "name": sub_data["name"],
+                    "score": (sub_correct / sub_total * 100) if sub_total > 0 else 0.0,
+                }
+
+            results_summary_final[slug] = {
+                "name": section_data["name"],
+                "score": (
+                    (section_correct / section_total * 100)
+                    if section_total > 0
+                    else 0.0
+                ),
+                "subsections": subsections_final,
+            }
+        else:
+            # Get section name from DB if no questions were attempted in it
+            try:
+                section_obj = LearningSection.objects.get(slug=slug)
+                results_summary_final[slug] = {
+                    "name": section_obj.name,
+                    "score": 0.0,
+                    "subsections": {},
+                }
+            except LearningSection.DoesNotExist:
+                results_summary_final[slug] = {
+                    "name": slug.capitalize(),
+                    "score": 0.0,
+                    "subsections": {},
+                }
+
+    overall_score = (
+        (correct_questions / total_questions * 100) if total_questions > 0 else 0.0
+    )
+    verbal_score = results_summary_final.get("verbal", {}).get("score", 0.0)
+    quantitative_score = results_summary_final.get("quantitative", {}).get("score", 0.0)
+
+    # --- 3. Generate AI Feedback ---
+    # We pass the flattened summary to the existing AI helper for simplicity
+    flat_summary_for_ai = {}
+    for section in results_summary_final.values():
+        if "subsections" in section:
+            flat_summary_for_ai.update(section["subsections"])
+
+    ai_feedback = _generate_ai_emergency_session_feedback(
+        user=user,
+        session=session,
+        overall_score=overall_score,
+        results_summary=flat_summary_for_ai,
+    )
+
+    # --- 4. Save Results to Session Model ---
+    session.end_time = timezone.now()
+    session.overall_score = round(overall_score, 2)
+    session.verbal_score = round(verbal_score, 2)
+    session.quantitative_score = round(quantitative_score, 2)
+    session.results_summary = results_summary_final
+    session.ai_feedback = ai_feedback
+    session.save(
+        update_fields=[
+            "end_time",
+            "overall_score",
+            "verbal_score",
+            "quantitative_score",
+            "results_summary",
+            "ai_feedback",
+            "updated_at",
+        ]
+    )
+    logger.info(
+        f"Completed emergency session {session.id} for user {user.id}. Score: {session.overall_score}%"
+    )
+
+    # --- 5. Prepare Response Data ---
+    return {
+        "session_id": session.id,
+        "overall_score": session.overall_score,
+        "verbal_score": session.verbal_score,
+        "quantitative_score": session.quantitative_score,
+        "results_summary": session.results_summary,
+        "ai_feedback": session.ai_feedback,
+        "answered_question_count": total_questions,
+        "correct_answers_count": correct_questions,
+    }

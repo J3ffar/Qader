@@ -17,6 +17,7 @@ from apps.study.api.serializers.emergency import (
     EmergencyModeUpdateSerializer,
     EmergencyModeAnswerSerializer,
     EmergencyModeAnswerResponseSerializer,
+    EmergencyModeCompleteResponseSerializer,
 )
 
 
@@ -91,8 +92,11 @@ class EmergencyModeStartView(APIView):
             output_serializer = EmergencyModeStartResponseSerializer(response_data)
             return Response(output_serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
+            # It's better to log the full exception for debugging
+            # logger.exception(f"Error starting emergency mode for user {request.user.id}: {e}")
             return Response(
-                {"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"detail": _("An internal error occurred while generating the plan.")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
@@ -299,3 +303,62 @@ class EmergencyModeAnswerView(APIView):
         }
         output_serializer = EmergencyModeAnswerResponseSerializer(response_data)
         return Response(output_serializer.data, status=status.HTTP_200_OK)
+
+
+# <<< --- NEW VIEW --- >>>
+@extend_schema(tags=["Study - Emergency Mode"])
+class EmergencyModeCompleteView(APIView):
+    """
+    Completes an active Emergency Mode session.
+
+    This endpoint finalizes the session, calculates the user's performance scores
+    (overall, verbal, quantitative, and by subsection), generates AI-powered
+    feedback, and saves these results. It returns a summary of the session's
+    performance.
+
+    **Endpoint:** `POST /api/v1/study/emergency/sessions/{session_id}/complete/`
+    """
+
+    permission_classes = [IsAuthenticated, IsSubscribed]
+
+    @extend_schema(
+        summary="Complete an Emergency Session",
+        description="Finalizes the session, calculates scores, and returns a results summary with AI feedback.",
+        responses={
+            200: EmergencyModeCompleteResponseSerializer,
+            400: {
+                "description": "Session has already been completed or other validation error."
+            },
+            404: {"description": "Session not found for this user."},
+            500: {
+                "description": "An internal error occurred during result calculation."
+            },
+        },
+    )
+    def post(self, request, session_id, *args, **kwargs):
+        """
+        Handles the completion of an emergency mode session.
+
+        **Path Parameters:**
+        - `session_id` (int): The ID of the emergency session to complete.
+
+        **Success Response (200 OK):**
+        - A detailed results object (see `EmergencyModeCompleteResponseSerializer`).
+        """
+        session = get_object_or_404(
+            EmergencyModeSession, pk=session_id, user=request.user
+        )
+
+        try:
+            results_data = study_services.complete_emergency_session(session)
+            serializer = EmergencyModeCompleteResponseSerializer(results_data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except serializers.ValidationError as e:
+            # This will catch the "already completed" validation error from the service
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            # logger.exception(f"Error completing emergency session {session_id} for user {request.user.id}: {e}")
+            return Response(
+                {"detail": _("An error occurred while finalizing your session.")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

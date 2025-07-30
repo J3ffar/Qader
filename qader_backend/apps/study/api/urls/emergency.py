@@ -1,17 +1,15 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-# Creating a router for sessions to handle standard viewset actions cleanly
-# For this specific case, we'll define paths manually for clarity.
-
 from apps.study.api.views.emergency import (
     EmergencyModeStartView,
     EmergencyModeSessionUpdateView,
     EmergencyModeQuestionsView,
     EmergencyModeAnswerView,
+    EmergencyModeCompleteView,
 )
 
-# URLs related to the management of emergency sessions
+# URLs related to the management of an ongoing emergency session
 session_patterns = [
     path("", EmergencyModeSessionUpdateView.as_view(), name="emergency-session-update"),
     path(
@@ -20,6 +18,11 @@ session_patterns = [
         name="emergency-session-questions",
     ),
     path("answer/", EmergencyModeAnswerView.as_view(), name="emergency-session-answer"),
+    path(
+        "complete/",
+        EmergencyModeCompleteView.as_view(),
+        name="emergency-session-complete",
+    ),
 ]
 
 urlpatterns = [

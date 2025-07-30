@@ -172,6 +172,28 @@ Generate a brief (target 2-4 sentences, max 5) analysis in Arabic.
 
 Output ONLY the generated text analysis as a single string. Do not use markdown or JSON.
     """,
+    "generate_emergency_session_feedback": """
+You are Qader AI, an encouraging assistant analyzing a student's performance in a focused, high-pressure 'Emergency Mode' study session.
+Your output language MUST be in Arabic.
+
+Session Performance Details:
+- Overall Score: {overall_score_str}
+- Focus Areas for this Session: {focus_areas_str}
+- Performance by Topic/Subsection (Name: Score%):
+{results_summary_str}
+
+Task:
+Generate a concise (2-3 sentences), encouraging, and actionable summary in Arabic.
+1.  Start by congratulating the user for completing the focused session. Example: "أحسنت في إتمام جلسة الطوارئ المركزة!"
+2.  Briefly comment on the overall performance based on the score.
+3.  Using the "Performance by Topic/Subsection", identify ONE key area of strength (highest score) and ONE key area for improvement (lowest score) from this specific session.
+    Example Strength: "لقد أظهرت أداءً قوياً في [اسم الموضوع القوي]."
+    Example Improvement: "لتحسين أدائك في المرة القادمة، استمر في المراجعة والتدريب على [اسم الموضوع الأضعف]."
+4.  End with a positive and forward-looking statement. Example: "استمر في هذا الجهد، فكل تدريب يقربك من هدفك!"
+5.  Keep the tone very encouraging and direct, suitable for someone studying under pressure.
+
+Output ONLY the generated text analysis as a single string. Do not use markdown or JSON.
+    """,
 }
 
 

@@ -74,7 +74,7 @@ class EmergencyModeAnswerSerializer(serializers.Serializer):
     )
 
 
-# --- Other serializers can remain as they are, they are well-designed ---
+# --- Session and Completion Serializers ---
 
 
 class EmergencyModeUpdateSerializer(serializers.ModelSerializer):
@@ -86,12 +86,12 @@ class EmergencyModeUpdateSerializer(serializers.ModelSerializer):
 
 
 class EmergencyModeSessionSerializer(serializers.ModelSerializer):
-    """Serializer for representing the Emergency Mode Session details."""
+    """
+    Serializer for representing the Emergency Mode Session details.
+    """
 
     user = serializers.StringRelatedField()
-    suggested_plan = SuggestedPlanSerializer(
-        read_only=True
-    )  # Use the structured serializer
+    suggested_plan = SuggestedPlanSerializer(read_only=True)
 
     class Meta:
         model = EmergencyModeSession
@@ -104,10 +104,15 @@ class EmergencyModeSessionSerializer(serializers.ModelSerializer):
             "start_time",
             "end_time",
             "shared_with_admin",
+            "overall_score",
+            "verbal_score",
+            "quantitative_score",
+            "results_summary",
+            "ai_feedback",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = fields  # All fields are read-only in this context
+        read_only_fields = fields
 
 
 class EmergencyModeAnswerResponseSerializer(serializers.Serializer):
@@ -120,3 +125,19 @@ class EmergencyModeAnswerResponseSerializer(serializers.Serializer):
     )
     explanation = serializers.CharField(allow_blank=True, allow_null=True)
     feedback = serializers.CharField()  # Simple text feedback is enough for calm mode
+
+
+class EmergencyModeCompleteResponseSerializer(serializers.Serializer):
+    """
+    Serializer for the detailed response after completing an emergency session.
+    This provides the frontend with all necessary data for the results screen.
+    """
+
+    session_id = serializers.IntegerField()
+    overall_score = serializers.FloatField()
+    verbal_score = serializers.FloatField()
+    quantitative_score = serializers.FloatField()
+    results_summary = serializers.JSONField()
+    ai_feedback = serializers.CharField()
+    answered_question_count = serializers.IntegerField()
+    correct_answers_count = serializers.IntegerField()
