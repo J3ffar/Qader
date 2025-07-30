@@ -1,5 +1,4 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
 
 from apps.study.api.views.emergency import (
     EmergencyModeStartView,
@@ -7,6 +6,7 @@ from apps.study.api.views.emergency import (
     EmergencyModeQuestionsView,
     EmergencyModeAnswerView,
     EmergencyModeCompleteView,
+    EmergencySupportRequestCreateView,  # <<<--- ADD IMPORT
 )
 
 # URLs related to the management of an ongoing emergency session
@@ -22,6 +22,12 @@ session_patterns = [
         "complete/",
         EmergencyModeCompleteView.as_view(),
         name="emergency-session-complete",
+    ),
+    # <<<--- NEW URL PATTERN --- >>>
+    path(
+        "request-support/",
+        EmergencySupportRequestCreateView.as_view(),
+        name="emergency-session-support",
     ),
 ]
 

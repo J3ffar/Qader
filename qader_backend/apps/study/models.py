@@ -869,12 +869,21 @@ class EmergencyModeSession(models.Model):
     calm_mode_active = models.BooleanField(_("calm mode active"), default=False)
     start_time = models.DateTimeField(_("start time"), auto_now_add=True, db_index=True)
     end_time = models.DateTimeField(_("end time"), null=True, blank=True)
-    overall_score = models.FloatField(null=True, blank=True, help_text="Overall score percentage.")
-    verbal_score = models.FloatField(null=True, blank=True, help_text="Verbal section score percentage.")
-    quantitative_score = models.FloatField(null=True, blank=True, help_text="Quantitative section score percentage.")
-    results_summary = models.JSONField(null=True, blank=True, help_text="Detailed breakdown of scores by subsection.")
-    ai_feedback = models.TextField(blank=True, help_text="AI-generated feedback on session performance.")
-    shared_with_admin = models.BooleanField(_("shared with admin"), default=False)
+    overall_score = models.FloatField(
+        null=True, blank=True, help_text="Overall score percentage."
+    )
+    verbal_score = models.FloatField(
+        null=True, blank=True, help_text="Verbal section score percentage."
+    )
+    quantitative_score = models.FloatField(
+        null=True, blank=True, help_text="Quantitative section score percentage."
+    )
+    results_summary = models.JSONField(
+        null=True, blank=True, help_text="Detailed breakdown of scores by subsection."
+    )
+    ai_feedback = models.TextField(
+        blank=True, help_text="AI-generated feedback on session performance."
+    )
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
     updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
@@ -896,6 +905,65 @@ class EmergencyModeSession(models.Model):
         if not self.end_time:
             self.end_time = timezone.now()
             self.save(update_fields=["end_time", "updated_at"])
+
+
+class EmergencySupportRequest(models.Model):
+    """
+    Stores a specific support request submitted by a user during an emergency session.
+    """
+
+    class ProblemType(models.TextChoices):
+        TECHNICAL = "technical", _("Technical Issue")
+        ACADEMIC = "academic", _("Academic Question")
+        CONTENT = "content", _("Problem with a Question")
+        OTHER = "other", _("Other")
+
+    class RequestStatus(models.TextChoices):
+        OPEN = "open", _("Open")
+        IN_PROGRESS = "in_progress", _("In Progress")
+        RESOLVED = "resolved", _("Resolved")
+        CLOSED = "closed", _("Closed")
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="support_requests",
+    )
+    session = models.ForeignKey(
+        EmergencyModeSession,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="support_requests",
+        help_text=_("The emergency session during which the request was made."),
+    )
+    problem_type = models.CharField(
+        _("Problem Type"),
+        max_length=20,
+        choices=ProblemType.choices,
+        default=ProblemType.OTHER,
+    )
+    description = models.TextField(
+        _("Description"),
+        help_text=_("Detailed description of the problem or question from the user."),
+    )
+    status = models.CharField(
+        _("Status"),
+        max_length=20,
+        choices=RequestStatus.choices,
+        default=RequestStatus.OPEN,
+        db_index=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Support Request #{self.id} from {self.user} ({self.get_problem_type_display()})"
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = _("Emergency Support Request")
+        verbose_name_plural = _("Emergency Support Requests")
 
 
 # --- Conversation Session Model ---

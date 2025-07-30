@@ -8,7 +8,12 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema
 
 from apps.api.permissions import IsSubscribed
-from apps.study.models import EmergencyModeSession, Question, UserQuestionAttempt
+from apps.study.models import (
+    EmergencyModeSession,
+    EmergencySupportRequest,
+    Question,
+    UserQuestionAttempt,
+)
 from apps.study.services import study as study_services
 from apps.learning.api.serializers import UnifiedQuestionSerializer
 from apps.study.api.serializers.emergency import (
@@ -18,6 +23,7 @@ from apps.study.api.serializers.emergency import (
     EmergencyModeAnswerSerializer,
     EmergencyModeAnswerResponseSerializer,
     EmergencyModeCompleteResponseSerializer,
+    EmergencySupportRequestSerializer,
 )
 
 
@@ -163,7 +169,7 @@ class EmergencyModeQuestionsView(APIView):
                 user=request.user,
                 limit=question_limit,
                 skills=target_skill_slugs,
-                not_mastered=True,
+                not_mastered=False,
                 min_required=1,
             )
             serializer = UnifiedQuestionSerializer(
@@ -362,3 +368,38 @@ class EmergencyModeCompleteView(APIView):
                 {"detail": _("An error occurred while finalizing your session.")},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+# <<< --- NEW VIEW --- >>>
+@extend_schema(tags=["Study - Emergency Mode"])
+class EmergencySupportRequestCreateView(generics.CreateAPIView):
+    """
+    Creates a new support request for a specific emergency session.
+
+    This endpoint allows a user to submit a detailed help request, including the
+    type of problem and a description. This is used for the "Share my status with admin" feature.
+
+    **Endpoint:** `POST /api/v1/study/emergency/sessions/{session_id}/request-support/`
+    """
+
+    permission_classes = [IsAuthenticated, IsSubscribed]
+    serializer_class = EmergencySupportRequestSerializer
+    queryset = EmergencySupportRequest.objects.all()
+
+    @extend_schema(
+        summary="Request Support During Session",
+        description="Submits a form to request help from an administrator.",
+        responses={
+            201: EmergencySupportRequestSerializer,
+            400: {"description": "Invalid data provided in the form."},
+            404: {"description": "The specified emergency session was not found."},
+        },
+    )
+    def perform_create(self, serializer):
+        """
+        Associates the support request with the current user and the session from the URL.
+        """
+        session = get_object_or_404(
+            EmergencyModeSession, pk=self.kwargs["session_id"], user=self.request.user
+        )
+        serializer.save(user=self.request.user, session=session)
