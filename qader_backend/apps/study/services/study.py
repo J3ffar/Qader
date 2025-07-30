@@ -1516,6 +1516,7 @@ def _generate_ai_emergency_tips(
     target_skills_data: List[Dict[str, Any]],
     focus_area_names: List[str],
     available_time_hours: Optional[float] = None,
+    days_until_test: Optional[int] = None,  # <<<--- ADD NEW PARAMETER
 ) -> List[str]:
     ai_manager = get_ai_manager()
     # Define fallback tips here, ensuring it's always a list of 2-3 strings
@@ -1561,11 +1562,20 @@ def _generate_ai_emergency_tips(
         else "Time is limited."
     )
 
+    days_context = "The user has not specified when their test is."
+    if days_until_test is not None:
+        if days_until_test == 0:
+            days_context = "The user's test is TODAY. The situation is critical."
+        elif days_until_test == 1:
+            days_context = "The user's test is TOMORROW."
+        else:
+            days_context = f"The user's test is in {days_until_test} days."
+
     context_params_for_tips = {
         "focus_areas_str": focus_areas_str,
         "weak_skills_summary_str": weak_skills_summary_str,
         "time_context": time_context,
-        # "weak_skill_example" is used in the template's example, not a direct param here
+        "days_context": days_context,
     }
 
     # Emergency tips usually have a specific, direct tone.
@@ -1621,6 +1631,7 @@ def _generate_ai_emergency_tips(
 def generate_emergency_plan(
     user: User,
     available_time_hours: Optional[float] = None,
+    days_until_test: Optional[int] = None,
     focus_areas: Optional[List[str]] = None,  # List of section slugs
     proficiency_threshold: float = DEFAULT_PROFICIENCY_THRESHOLD,
     num_weak_skills: int = EMERGENCY_MODE_WEAK_SKILL_COUNT,
@@ -1634,6 +1645,7 @@ def generate_emergency_plan(
     Args:
         user: The user requesting the plan.
         available_time_hours: Optional estimated time available for study.
+        days_until_test: Optional number of days until the test.
         focus_areas: Optional list of section slugs ('verbal', 'quantitative') to focus on.
         proficiency_threshold: Score below which a skill is considered weak.
         num_weak_skills: The number of weakest skills to target.
@@ -1888,6 +1900,7 @@ def generate_emergency_plan(
             target_skills_data=plan.get("target_skills", []),
             focus_area_names=plan.get("focus_area_names", []),
             available_time_hours=available_time_hours,
+            days_until_test=days_until_test,  # <<<--- PASS PARAMETER TO AI HELPER
         )
     except Exception as ai_tip_error_call:
         logger.error(

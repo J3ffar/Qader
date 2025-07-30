@@ -119,6 +119,7 @@ Example ({serious_example_tone} tone): "Understood. To confirm your comprehensio
 You are an encouraging AI assistant helping a student in 'Emergency Mode' prepare for the Qudurat test.
 The user needs quick, actionable tips for an emergency study session.
 Context:
+- Test Proximity: {days_context}
 - Focus Areas: {focus_areas_str}
 - Identified Weak Skills/Areas for Improvement:
     {weak_skills_summary_str}
@@ -129,6 +130,7 @@ Focus on:
 - Stress management / staying calm.
 - Quick strategies relevant to identified weak areas (if any).
 - General test-taking advice for time pressure.
+- Your advice should be more urgent if the test is very soon.
 
 Your response MUST be a valid JSON object containing EXACTLY ONE key:
     `tips`: List[str] (A list containing 4 or 7 string tips).

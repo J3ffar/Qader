@@ -867,6 +867,13 @@ class EmergencyModeSession(models.Model):
         ),
     )
     calm_mode_active = models.BooleanField(_("calm mode active"), default=False)
+    days_until_test = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "Number of days until the user's test, as stated at session start."
+        ),
+    )
     start_time = models.DateTimeField(_("start time"), auto_now_add=True, db_index=True)
     end_time = models.DateTimeField(_("end time"), null=True, blank=True)
     overall_score = models.FloatField(

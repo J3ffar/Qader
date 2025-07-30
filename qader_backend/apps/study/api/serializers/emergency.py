@@ -1,6 +1,10 @@
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
-from apps.study.models import EmergencyModeSession, UserQuestionAttempt, EmergencySupportRequest
+from apps.study.models import (
+    EmergencyModeSession,
+    UserQuestionAttempt,
+    EmergencySupportRequest,
+)
 from apps.learning.api.serializers import UnifiedQuestionSerializer  # Assumed location
 
 # --- NEW: Nested Serializers for a Detailed Plan ---
@@ -40,6 +44,13 @@ class SuggestedPlanSerializer(serializers.Serializer):
 
 class EmergencyModeStartSerializer(serializers.Serializer):
     """Serializer for validating input when starting emergency mode."""
+
+    days_until_test = serializers.IntegerField(
+        required=True,
+        min_value=0,
+        max_value=365,
+        help_text=_("How many days are left until the test."),
+    )
 
     reason = serializers.CharField(required=False, allow_blank=True, max_length=500)
     available_time_hours = serializers.IntegerField(
@@ -101,6 +112,7 @@ class EmergencyModeSessionSerializer(serializers.ModelSerializer):
             "reason",
             "suggested_plan",
             "calm_mode_active",
+            "days_until_test",
             "start_time",
             "end_time",
             "overall_score",
@@ -142,12 +154,12 @@ class EmergencyModeCompleteResponseSerializer(serializers.Serializer):
     correct_answers_count = serializers.IntegerField()
 
 
-# <<< --- NEW SERIALIZER --- >>>
 class EmergencySupportRequestSerializer(serializers.ModelSerializer):
     """
     Serializer for creating and validating a new EmergencySupportRequest.
     The `user` and `session` fields will be populated from the view context.
     """
+
     class Meta:
         model = EmergencySupportRequest
         fields = [

@@ -69,6 +69,7 @@ class EmergencyModeStartView(APIView):
         Handles the creation of a new emergency mode session.
 
         **Request Body:**
+        - `days_until_test` (int): Days left for the user's test.
         - `reason` (str, optional): The user's reason for starting the session.
         - `available_time_hours` (int, optional): Hours the user can study now.
         - `focus_areas` (list[str], optional): e.g., `["verbal", "quantitative"]`.
@@ -86,19 +87,21 @@ class EmergencyModeStartView(APIView):
                 plan = study_services.generate_emergency_plan(
                     user=request.user,
                     available_time_hours=data.get("available_time_hours"),
+                    days_until_test=data.get("days_until_test"),
                     focus_areas=data.get("focus_areas"),
                 )
+
                 session = EmergencyModeSession.objects.create(
                     user=request.user,
                     reason=data.get("reason"),
                     suggested_plan=plan,
+                    days_until_test=data.get("days_until_test"),
                 )
 
             response_data = {"session_id": session.id, "suggested_plan": plan}
             output_serializer = EmergencyModeStartResponseSerializer(response_data)
             return Response(output_serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
-            # It's better to log the full exception for debugging
             # logger.exception(f"Error starting emergency mode for user {request.user.id}: {e}")
             return Response(
                 {"detail": _("An internal error occurred while generating the plan.")},
