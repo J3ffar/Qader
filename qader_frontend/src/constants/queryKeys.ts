@@ -195,6 +195,8 @@ export const queryKeys = {
         "answer",
         questionId,
       ] as const,
+    support: (sessionId: number) =>
+      [...queryKeys.emergencyMode.session(sessionId), "support"] as const,
   },
 
   // --- LEARNING SECTIONS ---

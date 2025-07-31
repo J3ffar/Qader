@@ -53,9 +53,15 @@
       }
     },
     "plan": {
+      "planOverviewTitle": "نظرة عامة على الخطة",
+      "focusAreasTitle": "أقسام التركيز",
+      "estimatedDuration": "الوقت المقدر",
+      "minutes": "{count} دقيقة",
+      "recommendedQuestions": "عدد الأسئلة الموصى به",
       "targetSkillsTitle": "المهارات المستهدفة",
       "reviewTopicsTitle": "مواضيع للمراجعة السريعة",
-      "tipsTitle": "نصائح تحفيزية"
+      "tipsTitle": "نصائح تحفيزية",
+      "proficiencyLabel": "مستوى الإتقان"
     },
     "results": {
       "calculating": "جاري حساب النتائج...",

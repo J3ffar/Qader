@@ -37,12 +37,16 @@ interface QuestionDisplayEmergencyProps {
   question: UnifiedQuestion;
   currentQuestionNumber: number;
   totalQuestions: number;
+  isLastQuestion: boolean;
+  onLastAnswered: () => void;
 }
 
 export function QuestionDisplayEmergency({
   question,
   currentQuestionNumber,
   totalQuestions,
+  isLastQuestion,
+  onLastAnswered,
 }: QuestionDisplayEmergencyProps) {
   const t = useTranslations("Study.emergencyMode.session.question");
   const { sessionId, goToNextQuestion } = useEmergencyModeStore();
@@ -89,8 +93,13 @@ export function QuestionDisplayEmergency({
     }
   };
 
-  const handleNextQuestion = () => {
-    goToNextQuestion();
+  const handleNext = () => {
+    // UPDATED LOGIC HERE
+    if (isLastQuestion) {
+      onLastAnswered();
+    } else {
+      goToNextQuestion();
+    }
   };
 
   const options = Object.entries(question.options) as [AnswerOption, string][];
@@ -189,7 +198,7 @@ export function QuestionDisplayEmergency({
             {t("submitButton")}
           </Button>
         ) : (
-          <Button onClick={handleNextQuestion} className="w-full">
+          <Button onClick={handleNext} className="w-full">
             {t("nextButton")}
           </Button>
         )}

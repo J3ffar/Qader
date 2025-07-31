@@ -56,7 +56,7 @@ export function EmergencyModeSetup() {
   };
 
   return (
-    <Card className="max-w-6xl mx-auto shadow-none bg-transparent">
+    <Card className="max-w-6xl mx-auto shadow-none">
       <CardHeader className="text-center">
         <CardTitle className="text-3xl font-bold">{t("title")}</CardTitle>
         <CardDescription className="text-lg text-muted-foreground">

@@ -1,7 +1,22 @@
 "use client";
 
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations } from "next-intl";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Loader2, Send } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -10,86 +25,102 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Send } from "lucide-react";
-import { useTranslations } from "next-intl";
-import * as z from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 
-const schema = z.object({
-  issueType: z.string().min(1, { message: "Please select an issue type" }),
-  description: z.string().min(1, { message: "Please describe your issue" }),
-});
+import { queryKeys } from "@/constants/queryKeys";
+import { requestEmergencySupport } from "@/services/study.service";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
-export default function ReportProblemForm() {
-  const t = useTranslations("Study.emergencyMode.session");
+const problemTypes = ["technical", "academic", "content", "other"] as const;
 
-  const form = useForm<z.infer<typeof schema>>({
-    resolver: zodResolver(schema),
-    mode: "onChange",
+const createReportSchema = (t: (key: string) => string) =>
+  z.object({
+    problem_type: z.enum(problemTypes, {
+      required_error: t("problemTypePlaceholder"),
+    }),
+    description: z.string().min(10, {
+      message: t("descriptionLabel"), // A generic message, specific length validation is less common here
+    }),
+  });
+
+interface ReportProblemFormProps {
+  sessionId: number;
+  onSuccess?: () => void;
+}
+
+export default function ReportProblemForm({
+  sessionId,
+  onSuccess,
+}: ReportProblemFormProps) {
+  const t = useTranslations("Study.emergencyMode.session.requestSupport");
+  const formSchema = createReportSchema(t);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      issueType: "",
       description: "",
     },
   });
 
-  const {
-    control,
-    handleSubmit,
-    formState: { isValid },
-  } = form;
-
-  // TODO: Replace with actual submission logic
-  const onSubmit = (data: z.infer<typeof schema>) => {
-    console.log("Report submitted:", data);
-  };
+  const { mutate, isPending } = useMutation({
+    mutationKey: queryKeys.emergencyMode.support(sessionId),
+    mutationFn: (payload: z.infer<typeof formSchema>) =>
+      requestEmergencySupport({ sessionId, payload }),
+    onSuccess: () => {
+      toast.success(t("successToast"));
+      form.reset();
+      onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(t("errorToast"), {
+        description: getApiErrorMessage(error, "لقد حدث خطأ في الارسال"),
+      });
+    },
+  });
 
   return (
     <Form {...form}>
       <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="space-y-4 p-4 rounded-2xl shadow-sm"
+        onSubmit={form.handleSubmit((data) => mutate(data))}
+        className="space-y-6"
       >
-        {/* Issue Type */}
+        <p className="text-sm text-muted-foreground">{t("description")}</p>
         <FormField
-          control={control}
-          name="issueType"
+          control={form.control}
+          name="problem_type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="font-semibold text-gray-700">
-                {t("issueTypeLabel")}
-              </FormLabel>
-              <FormControl>
-                <select
-                  {...field}
-                  className="w-full border rounded px-3 py-2 focus:outline-none"
-                >
-                  <option value="" disabled>
-                    {t("selectIssueTypeLabel")}
-                  </option>
-                  <option value="technical">{t("issueTypeTechnical")}</option>
-                  <option value="other">{t("issueTypeOther")}</option>
-                </select>
-              </FormControl>
+              <FormLabel>{t("problemTypeLabel")}</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("problemTypePlaceholder")} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {problemTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {t(type)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        {/* Description */}
         <FormField
-          control={control}
+          control={form.control}
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="font-semibold text-gray-700">
-                {t("requestDescriptionLabel")}
-              </FormLabel>
+              <FormLabel>{t("descriptionLabel")}</FormLabel>
               <FormControl>
                 <Textarea
+                  placeholder={t("descriptionPlaceholder")}
+                  className="resize-none"
+                  rows={5}
                   {...field}
-                  className="w-full border h-36 resize-none rounded px-3 py-2 focus:outline-none"
-                  placeholder={t("requestDescriptionPlaceholder")}
                 />
               </FormControl>
               <FormMessage />
@@ -97,14 +128,13 @@ export default function ReportProblemForm() {
           )}
         />
 
-        {/* Submit Button */}
-        <Button
-          type="submit"
-          className="w-full font-bold py-2 rounded flex items-center justify-center gap-2"
-          disabled={!isValid}
-        >
-          {t("send")}
-          <Send className="h-4 w-4" />
+        <Button type="submit" disabled={isPending} className="w-full">
+          {isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin rtl:ml-2" />
+          ) : (
+            <Send className="mr-2 h-4 w-4 rtl:ml-2" />
+          )}
+          {t("sendButton")}
         </Button>
       </form>
     </Form>
