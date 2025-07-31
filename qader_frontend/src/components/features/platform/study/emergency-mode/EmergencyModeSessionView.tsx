@@ -11,6 +11,7 @@ import { useEmergencyModeStore } from "@/store/emergency.store";
 import {
   getEmergencyQuestions,
   updateEmergencySession,
+  completeEmergencySession,
 } from "@/services/study.service";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { queryKeys } from "@/constants/queryKeys";
@@ -34,6 +35,7 @@ import ReportProblemForm from "./ReportProblemForm";
 
 export function EmergencyModeSessionView() {
   const t = useTranslations("Study.emergencyMode.session");
+  const tResults = useTranslations("Study.emergencyMode.results");
   const {
     sessionId,
     suggestedPlan,
@@ -43,6 +45,7 @@ export function EmergencyModeSessionView() {
     setQuestions,
     setCalmMode,
     setCompleting,
+    completeSession, // Get the function to update the store with results
     endSession,
   } = useEmergencyModeStore();
 
@@ -68,6 +71,27 @@ export function EmergencyModeSessionView() {
     onError: (err) =>
       toast.error(getApiErrorMessage(err, t("settingsUpdateErrorToast"))),
   });
+
+  const { mutate: finalizeSession } = useMutation({
+    mutationKey: queryKeys.emergencyMode.complete(sessionId!),
+    mutationFn: () => completeEmergencySession(sessionId!),
+    onSuccess: (data) => {
+      toast.success(tResults("successToast"));
+      completeSession(data); // Update the store with results and set status to 'completed'
+    },
+    onError: (err) => {
+      toast.error(tResults("errorToast"), {
+        description: getApiErrorMessage(err, "حدث خطا في انهاء الجلسة!"),
+      });
+      // If completion fails, send the user back to the setup screen
+      endSession();
+    },
+  });
+
+  const handleSessionCompletion = () => {
+    setCompleting(); // First, set status to 'completing' to show the loader
+    finalizeSession(); // Then, trigger the API call
+  };
 
   useEffect(() => {
     if (fetchedQuestions) {
@@ -133,7 +157,7 @@ export function EmergencyModeSessionView() {
                 currentQuestionNumber={currentQuestionIndex + 1}
                 totalQuestions={questions.length}
                 isLastQuestion={isLastQuestion}
-                onLastAnswered={setCompleting}
+                onLastAnswered={handleSessionCompletion}
               />
             </motion.div>
           ) : (

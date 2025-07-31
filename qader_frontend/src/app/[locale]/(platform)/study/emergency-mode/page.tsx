@@ -4,7 +4,7 @@ import React from "react";
 import { useEmergencyModeStore } from "@/store/emergency.store";
 import { EmergencyModeSetup } from "@/components/features/platform/study/emergency-mode/EmergencyModeSetup";
 import { EmergencyModeSessionView } from "@/components/features/platform/study/emergency-mode/EmergencyModeSessionView";
-// import { EmergencyModeResults } from "@/components/features/platform/study/emergency-mode/EmergencyModeResults";
+import { EmergencyModeResults } from "@/components/features/platform/study/emergency-mode/EmergencyModeResults";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -45,7 +45,7 @@ export default function EmergencyModePage() {
       case "completed":
         return (
           <motion.div key="results" {...pageTransition}>
-            {/* <EmergencyModeResults /> */}
+            <EmergencyModeResults />
           </motion.div>
         );
       case "setup":
