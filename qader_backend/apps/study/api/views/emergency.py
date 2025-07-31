@@ -163,16 +163,39 @@ class EmergencyModeQuestionsView(APIView):
             )
 
         try:
+            target_subsection_slugs = [
+                topic["slug"] for topic in plan.get("quick_review_topics", [])
+            ]
+
+            question_limit = plan.get("recommended_question_count", 10)
+
+            # If for some reason the plan has no review topics, we can fall back to skills
+            # to prevent returning no questions at all.
             target_skill_slugs = [
                 skill["slug"] for skill in plan.get("target_skills", [])
             ]
-            question_limit = plan.get("recommended_question_count", 10)
 
+            if not target_subsection_slugs and not target_skill_slugs:
+                return Response(
+                    {
+                        "detail": _(
+                            "The study plan does not contain any target areas to fetch questions from."
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Call the service with the broader subsection filter.
+            # The 'not_mastered' flag is set to False to ensure we get questions from the
+            # target areas, even if the user's score is decent but still needs practice.
             questions = study_services.get_filtered_questions(
                 user=request.user,
                 limit=question_limit,
-                skills=target_skill_slugs,
-                not_mastered=False,
+                subsections=target_subsection_slugs,
+                skills=(
+                    target_skill_slugs if not target_subsection_slugs else None
+                ),  # Use skills only as a fallback
+                not_mastered=False,  # Set to False to widen the pool as requested
                 min_required=1,
             )
             serializer = UnifiedQuestionSerializer(

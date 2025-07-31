@@ -74,7 +74,7 @@ EMERGENCY_MODE_DEFAULT_QUESTIONS = getattr(
     settings, "EMERGENCY_MODE_DEFAULT_QUESTIONS", 15
 )
 EMERGENCY_MODE_WEAK_SKILL_COUNT = getattr(
-    settings, "EMERGENCY_MODE_WEAK_SKILL_COUNT", 3
+    settings, "EMERGENCY_MODE_WEAK_SKILL_COUNT", 7
 )
 EMERGENCY_MODE_MIN_QUESTIONS = getattr(settings, "EMERGENCY_MODE_MIN_QUESTIONS", 5)
 EMERGENCY_MODE_ESTIMATED_MINS_PER_Q = getattr(
@@ -1738,18 +1738,19 @@ def generate_emergency_plan(
     target_skills_data: List[Dict[str, Any]] = []
     target_skill_ids: Set[int] = set()
     subsection_ids_for_review: Set[int] = set()
+    review_topics_data: Dict[str, Dict[str, Any]] = {}
     core_plan_error_tip_added = False
 
     try:
+        # Fetch user's proficiency data for all attempted skills
         proficiency_qs = UserSkillProficiency.objects.filter(user=user).select_related(
             "skill__subsection__section",
             "skill__subsection",
-            "skill",  # Ensure all are selected
+            "skill",
         )
 
-        if (
-            focus_areas
-        ):  # focus_areas is list of section slugs like ["verbal", "quantitative"]
+        # Apply focus area filter if provided
+        if focus_areas:
             focus_sections_qs = LearningSection.objects.filter(slug__in=focus_areas)
             proficiency_qs = proficiency_qs.filter(
                 skill__subsection__section__slug__in=focus_areas
@@ -1770,6 +1771,56 @@ def generate_emergency_plan(
                 if all_user_section_names
                 else [_("Verbal"), _("Quantitative")]
             )
+
+        # --- Aggregate proficiency at the subsection level ---
+        for p in proficiency_qs:
+            if not p.skill or not p.skill.subsection:
+                continue
+
+            sub = p.skill.subsection
+            if sub.id not in review_topics_data:
+                review_topics_data[sub.id] = {
+                    "slug": sub.slug,
+                    "name": sub.name,
+                    "description": sub.description,
+                    "total_attempts": 0,
+                    "correct_attempts": 0,
+                    "proficiency_sum": 0.0,
+                    "skill_count": 0,
+                }
+
+            # Aggregate data for calculating average subsection proficiency
+            review_topics_data[sub.id]["total_attempts"] += p.attempts_count
+            review_topics_data[sub.id]["correct_attempts"] += p.correct_count
+            review_topics_data[sub.id]["proficiency_sum"] += p.proficiency_score
+            review_topics_data[sub.id]["skill_count"] += 1
+
+        # --- Calculate final average proficiency for each subsection ---
+        final_review_topics_list = []
+        for sub_id, data in review_topics_data.items():
+            avg_proficiency = (
+                (data["proficiency_sum"] / data["skill_count"])
+                if data["skill_count"] > 0
+                else 0.0
+            )
+            data["current_proficiency"] = round(avg_proficiency, 2)
+            if avg_proficiency < proficiency_threshold:
+                data["reason"] = str(_("Needs improvement"))
+            else:
+                data["reason"] = str(_("Area of strength"))
+
+            # Clean up intermediate calculation fields
+            del data["total_attempts"]
+            del data["correct_attempts"]
+            del data["proficiency_sum"]
+            del data["skill_count"]
+            final_review_topics_list.append(data)
+
+        # Sort topics by proficiency (weakest first)
+        final_review_topics_list.sort(key=lambda x: x["current_proficiency"])
+        plan["quick_review_topics"] = final_review_topics_list[
+            :num_weak_skills
+        ]  # Show top N weak topics
 
         # 1. Skills strictly below the threshold
         weakest_proficiencies = list(
@@ -1797,10 +1848,8 @@ def generate_emergency_plan(
                     }
                 )
                 target_skill_ids.add(p.skill_id)
-                if p.skill.subsection_id:
-                    subsection_ids_for_review.add(p.skill.subsection_id)
 
-        # 2. If needed, find other attempted skills
+        # 2. If needed, find other attempted skills to reach the target count
         needed = num_weak_skills - len(target_skills_data)
         if needed > 0:
             additional_candidates = list(
@@ -1828,8 +1877,6 @@ def generate_emergency_plan(
                         }
                     )
                     target_skill_ids.add(p.skill_id)
-                    if p.skill.subsection_id:
-                        subsection_ids_for_review.add(p.skill.subsection_id)
 
         # 3. If still needed, find unattempted skills
         needed = num_weak_skills - len(target_skills_data)
@@ -1859,25 +1906,8 @@ def generate_emergency_plan(
                         }
                     )
                     target_skill_ids.add(s.id)
-                    if s.subsection_id:
-                        subsection_ids_for_review.add(s.subsection_id)
 
         plan["target_skills"] = target_skills_data
-
-        if subsection_ids_for_review:
-            review_topics_qs = LearningSubSection.objects.filter(
-                id__in=list(subsection_ids_for_review), is_active=True
-            ).exclude(Q(description__isnull=True) | Q(description__exact=""))[
-                :num_weak_skills
-            ]
-            plan["quick_review_topics"] = [
-                {
-                    "slug": topic.slug,
-                    "name": topic.name,
-                    "description": topic.description,
-                }
-                for topic in review_topics_qs
-            ]
 
     except Exception as e:
         logger.error(

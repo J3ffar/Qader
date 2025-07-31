@@ -26,6 +26,8 @@ class QuickReviewTopicSerializer(serializers.Serializer):
     slug = serializers.CharField()
     name = serializers.CharField()
     description = serializers.CharField(allow_null=True)
+    reason = serializers.CharField()
+    current_proficiency = serializers.FloatField(allow_null=True)
 
 
 class SuggestedPlanSerializer(serializers.Serializer):
