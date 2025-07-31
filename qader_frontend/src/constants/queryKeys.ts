@@ -27,8 +27,10 @@ export const queryKeys = {
       list: (filters: object = {}) =>
         [...queryKeys.user.support.lists(), filters] as const,
       details: () => [...queryKeys.user.support.all(), "details"] as const,
-      detail: (id: number | string) => [...queryKeys.user.support.details(), id] as const,
-      issueTypes: () => [...queryKeys.user.support.all(), "issueTypes"] as const, // <-- ADD THIS
+      detail: (id: number | string) =>
+        [...queryKeys.user.support.details(), id] as const,
+      issueTypes: () =>
+        [...queryKeys.user.support.all(), "issueTypes"] as const,
     },
   },
 
@@ -182,6 +184,7 @@ export const queryKeys = {
   // --- EMERGENCY MODE ---
   emergencyMode: {
     all: ["emergencyMode"] as const,
+    start: () => [...queryKeys.emergencyMode.all, "start"] as const,
     session: (sessionId: number) =>
       [...queryKeys.emergencyMode.all, "session", sessionId] as const,
     questions: (sessionId: number) =>

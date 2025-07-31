@@ -111,6 +111,10 @@ export const API_ENDPOINTS = {
         `/study/emergency-mode/sessions/${sessionId}/questions/`,
       ANSWER: (sessionId: number | string) =>
         `/study/emergency-mode/sessions/${sessionId}/answer/`,
+      COMPLETE: (sessionId: number | string) =>
+        `/study/emergency-mode/sessions/${sessionId}/complete/`,
+      REQUEST_SUPPORT: (sessionId: number | string) =>
+        `/study/emergency-mode/sessions/${sessionId}/request-support/`,
     },
     ATTEMPTS: {
       LIST: "/study/attempts/",

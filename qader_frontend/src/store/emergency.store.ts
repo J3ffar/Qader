@@ -1,60 +1,74 @@
 import { create } from "zustand";
-import { SuggestedPlan, UnifiedQuestion } from "@/types/api/study.types";
+import {
+  SuggestedPlan,
+  UnifiedQuestion,
+  EmergencyModeCompleteResponse,
+} from "@/types/api/study.types";
+
+type SessionStatus = "setup" | "active" | "completing" | "completed";
 
 interface EmergencyModeState {
+  sessionStatus: SessionStatus;
   sessionId: number | null;
   suggestedPlan: SuggestedPlan | null;
   questions: UnifiedQuestion[];
   currentQuestionIndex: number;
-  isSessionActive: boolean;
   isCalmModeActive: boolean;
-  isSharedWithAdmin: boolean;
+  sessionResults: EmergencyModeCompleteResponse | null;
 
   startNewSession: (sessionId: number, plan: SuggestedPlan) => void;
   setQuestions: (questions: UnifiedQuestion[]) => void;
   goToNextQuestion: () => void;
+  setCompleting: () => void;
+  completeSession: (results: EmergencyModeCompleteResponse) => void;
   endSession: () => void;
   setCalmMode: (isActive: boolean) => void;
-  setSharedWithAdmin: (isShared: boolean) => void;
 }
 
 const initialState = {
+  sessionStatus: "setup" as SessionStatus,
   sessionId: null,
   suggestedPlan: null,
   questions: [],
   currentQuestionIndex: 0,
-  isSessionActive: false,
   isCalmModeActive: false,
-  isSharedWithAdmin: false,
+  sessionResults: null,
 };
 
-export const useEmergencyModeStore = create<EmergencyModeState>((set, get) => ({
+export const useEmergencyModeStore = create<EmergencyModeState>((set) => ({
   ...initialState,
 
   startNewSession: (sessionId, plan) =>
     set({
+      sessionStatus: "active",
       sessionId,
       suggestedPlan: plan,
-      isSessionActive: true,
+      questions: [],
       currentQuestionIndex: 0,
-      questions: [], // Reset questions for the new session
+      sessionResults: null,
     }),
 
   setQuestions: (questions) => set({ questions }),
 
   goToNextQuestion: () => {
-    if (get().currentQuestionIndex < get().questions.length - 1) {
-      set((state) => ({
-        currentQuestionIndex: state.currentQuestionIndex + 1,
-      }));
-    } else {
-      // Handle end of quiz by resetting state but keeping plan for review
-      set({ isSessionActive: false, questions: [], currentQuestionIndex: 0 });
-    }
+    set((state) => ({
+      currentQuestionIndex: state.currentQuestionIndex + 1,
+    }));
   },
 
+  setCompleting: () => set({ sessionStatus: "completing" }),
+
+  completeSession: (results) => {
+    set({
+      sessionStatus: "completed",
+      sessionResults: results,
+      questions: [],
+      currentQuestionIndex: 0,
+    });
+  },
+
+  // endSession now resets everything back to the setup screen
   endSession: () => set(initialState),
 
   setCalmMode: (isActive) => set({ isCalmModeActive: isActive }),
-  setSharedWithAdmin: (isShared) => set({ isSharedWithAdmin: isShared }),
 }));
