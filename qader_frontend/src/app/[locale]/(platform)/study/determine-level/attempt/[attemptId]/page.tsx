@@ -32,6 +32,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
+import { StarButton } from "@/components/shared/StarButton";
 
 import {
   getTestAttemptDetails,
@@ -73,6 +74,7 @@ const LevelAssessmentAttemptPage = () => {
   const [timeLeft, setTimeLeft] = useState(TEST_DURATION_SECONDS);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
+  const [localStarred, setLocalStarred] = useState(false);
 
   useEffect(() => {
     setDirection(document.documentElement.dir as "ltr" | "rtl");
@@ -116,6 +118,13 @@ const LevelAssessmentAttemptPage = () => {
 
   const currentQuestion: UnifiedQuestion | undefined =
     questions[currentQuestionIndex];
+
+  // Update localStarred when current question changes
+  useEffect(() => {
+    if (currentQuestion) {
+      setLocalStarred(currentQuestion.is_starred);
+    }
+  }, [currentQuestion?.id, currentQuestion?.is_starred]);
 
   useEffect(() => {
     if (
@@ -323,7 +332,7 @@ const LevelAssessmentAttemptPage = () => {
   return (
     <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
       <Card className="w-full max-w-3xl shadow-xl dark:bg-[#0B1739]">
-        <CardHeader dir={locale==="en"?"ltr":"rtl"} className="pb-4">
+        <CardHeader dir={locale === "en" ? "ltr" : "rtl"} className="pb-4">
           <div className="mb-3 flex items-center justify-between">
             <CardTitle className="text-xl md:text-2xl">{t("title")}</CardTitle>
             <ConfirmationDialog
@@ -360,10 +369,23 @@ const LevelAssessmentAttemptPage = () => {
         </CardHeader>
 
         <CardContent className="min-h-[250px] py-6">
-          <QuestionRenderer
-            questionText={currentQuestion.question_text}
-            imageUrl={currentQuestion.image}
-          />
+          <div className="flex items-start gap-4 mb-6">
+            <div className="flex-1">
+              <QuestionRenderer
+                questionText={currentQuestion.question_text}
+                imageUrl={currentQuestion.image}
+              />
+            </div>
+            <div className="flex-shrink-0 pt-2">
+              <StarButton
+                questionId={currentQuestion.id}
+                isStarred={localStarred}
+                onStarChange={(newState) => setLocalStarred(newState)}
+                disabled={false}
+                attemptId={attemptId}
+              />
+            </div>
+          </div>
 
           {currentQuestion.options ? (
             <RadioGroup
@@ -408,7 +430,10 @@ const LevelAssessmentAttemptPage = () => {
           )}
         </CardContent>
 
-        <CardFooter dir={locale==="en"?"ltr":"rtl"} className="flex flex-col items-center justify-between gap-3 pt-6 sm:flex-row">
+        <CardFooter
+          dir={locale === "en" ? "ltr" : "rtl"}
+          className="flex flex-col items-center justify-between gap-3 pt-6 sm:flex-row"
+        >
           <Button
             variant="outline"
             onClick={handlePrevious}

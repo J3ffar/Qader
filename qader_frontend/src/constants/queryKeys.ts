@@ -247,6 +247,8 @@ export const queryKeys = {
       [...queryKeys.learning.all, "sections", filters] as const,
     sectionDetail: (slug: string) =>
       [...queryKeys.learning.all, "section", slug] as const,
+    questions: (filters: object = {}) =>
+      [...queryKeys.learning.all, "questions", filters] as const,
   },
   challenges: {
     all: ["challenges"] as const,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import {
   CheckCircle,
@@ -22,11 +23,13 @@ import { cn } from "@/lib/utils";
 import type { UnifiedQuestion } from "@/types/api/study.types";
 import { RichContentViewer } from "./RichContentViewer";
 import { QuestionRenderer } from "./QuestionRenderer";
+import { StarButton } from "./StarButton";
 
 interface ReviewQuestionCardProps {
   questionData: UnifiedQuestion;
   questionNumber: number;
   totalQuestionsInFilter: number;
+  attemptId: string;
 }
 
 type OptionKey = "A" | "B" | "C" | "D";
@@ -42,9 +45,16 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   questionData,
   questionNumber,
   totalQuestionsInFilter,
+  attemptId,
 }) => {
   const t = useTranslations("Study.review");
   const locale = useLocale();
+  const [localStarred, setLocalStarred] = useState(questionData.is_starred);
+
+  // Update localStarred when question changes
+  useEffect(() => {
+    setLocalStarred(questionData.is_starred);
+  }, [questionData.id, questionData.is_starred]);
 
   const {
     question_text,
@@ -102,7 +112,7 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
 
   return (
     <Card
-      dir={locale==="en"?"ltr":"rtl"}
+      dir={locale === "en" ? "ltr" : "rtl"}
       className="w-full shadow-lg dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]"
       data-testid={`question-card-${questionData.id}`}
     >
@@ -122,7 +132,20 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
             {statusInfo.text}
           </Badge>
         </div>
-        <QuestionRenderer questionText={question_text} imageUrl={image} />
+        <div className="flex items-start gap-4">
+          <div className="flex-1">
+            <QuestionRenderer questionText={question_text} imageUrl={image} />
+          </div>
+          <div className="flex-shrink-0 pt-2">
+            <StarButton
+              questionId={questionData.id}
+              isStarred={localStarred}
+              onStarChange={(newState) => setLocalStarred(newState)}
+              disabled={false}
+              attemptId={attemptId}
+            />
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <Separator />

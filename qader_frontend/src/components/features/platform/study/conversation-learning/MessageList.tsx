@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useConversationStore } from "@/store/conversation.store";
 import { submitConversationTestAnswer } from "@/services/conversation.service";
 import { CustomMessageType } from "@/types/api/conversation.types";
@@ -15,6 +15,7 @@ export const MessageList = () => {
   const t = useTranslations("Study.conversationalLearning");
   const { messages, sessionId, addMessage, setIsSending, isSending } =
     useConversationStore();
+  const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -81,8 +82,8 @@ export const MessageList = () => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <div className="mx-auto max-w-3xl space-y-6">
+    <div className="flex-1 overflow-y-auto max-md:px-0 p-6">
+      <div className="mx-auto max-w-4xl space-y-6">
         {messages.map(renderMessage)}
         {isSending && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -240,6 +240,7 @@ export default function TraditionalLearningSession({
                     handleSelectAnswer(currentQuestion.id, answer)
                   }
                   direction={direction}
+                  attemptId={attemptId}
                 />
                 <div className="flex items-center justify-between">
                   <Button

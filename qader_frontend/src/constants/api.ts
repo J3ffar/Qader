@@ -183,6 +183,12 @@ export const API_ENDPOINTS = {
       LIST: "/learning/sections/",
       DETAIL: (slug: string) => `/learning/sections/${slug}/`,
     },
+    QUESTIONS: {
+      LIST: "/learning/questions/",
+      DETAIL: (id: number | string) => `/learning/questions/${id}/`,
+      STAR: (id: number | string) => `/learning/questions/${id}/star/`,
+      UNSTAR: (id: number | string) => `/learning/questions/${id}/unstar/`,
+    },
   },
   NOTIFICATIONS: {
     LIST: "/notifications/",
