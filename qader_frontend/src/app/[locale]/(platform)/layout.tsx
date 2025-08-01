@@ -13,15 +13,15 @@ export default function UserLayout({
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="flex min-h-screen dark:bg-[#081028] bg-background">
+    <div className="flex h-screen bg-muted/40">
       {/* Sidebar */}
       <PlatformSidebar isOpen={isOpen} setIsOpen={setIsOpen} />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col">
         {/* Navbar */}
         <PlatformHeader isSidebarOpen={isOpen} />
 
-        <div className="sm:p-4 overflow-hidden">{children}</div>
+        <main className="flex-1 overflow-y-auto p-4">{children}</main>
         <WebSocketNotificationHandler />
       </div>
     </div>

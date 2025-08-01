@@ -23,6 +23,9 @@ import {
   SubmitEmergencyAnswerPayload,
   EmergencyModeAnswerResponse,
   StartEmergencyModeResponse,
+  EmergencyModeCompleteResponse,
+  RequestSupportPayload,
+  EmergencySupportRequest,
 } from "@/types/api/study.types";
 import { API_ENDPOINTS } from "@/constants/api";
 
@@ -255,6 +258,35 @@ export const submitEmergencyAnswer = ({
 }): Promise<EmergencyModeAnswerResponse> => {
   return apiClient<EmergencyModeAnswerResponse>(
     API_ENDPOINTS.STUDY.EMERGENCY_MODE.ANSWER(sessionId),
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+};
+
+// NEW: Function to complete the session and get results
+export const completeEmergencySession = (
+  sessionId: number
+): Promise<EmergencyModeCompleteResponse> => {
+  return apiClient<EmergencyModeCompleteResponse>(
+    API_ENDPOINTS.STUDY.EMERGENCY_MODE.COMPLETE(sessionId),
+    {
+      method: "POST",
+    }
+  );
+};
+
+// NEW: Function to request support during a session
+export const requestEmergencySupport = ({
+  sessionId,
+  payload,
+}: {
+  sessionId: number;
+  payload: RequestSupportPayload;
+}): Promise<EmergencySupportRequest> => {
+  return apiClient<EmergencySupportRequest>(
+    API_ENDPOINTS.STUDY.EMERGENCY_MODE.REQUEST_SUPPORT(sessionId),
     {
       method: "POST",
       body: JSON.stringify(payload),

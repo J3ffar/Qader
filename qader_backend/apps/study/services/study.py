@@ -48,6 +48,7 @@ from apps.study.models import (
     UserSkillProficiency,
     UserTestAttempt,
     UserQuestionAttempt,
+    EmergencyModeSession,
 )
 from django.contrib.auth import get_user_model
 
@@ -73,7 +74,7 @@ EMERGENCY_MODE_DEFAULT_QUESTIONS = getattr(
     settings, "EMERGENCY_MODE_DEFAULT_QUESTIONS", 15
 )
 EMERGENCY_MODE_WEAK_SKILL_COUNT = getattr(
-    settings, "EMERGENCY_MODE_WEAK_SKILL_COUNT", 3
+    settings, "EMERGENCY_MODE_WEAK_SKILL_COUNT", 7
 )
 EMERGENCY_MODE_MIN_QUESTIONS = getattr(settings, "EMERGENCY_MODE_MIN_QUESTIONS", 5)
 EMERGENCY_MODE_ESTIMATED_MINS_PER_Q = getattr(
@@ -1507,6 +1508,7 @@ def _generate_ai_emergency_tips(
     target_skills_data: List[Dict[str, Any]],
     focus_area_names: List[str],
     available_time_hours: Optional[float] = None,
+    days_until_test: Optional[int] = None,  # <<<--- ADD NEW PARAMETER
 ) -> List[str]:
     ai_manager = get_ai_manager()
     # Define fallback tips here, ensuring it's always a list of 2-3 strings
@@ -1552,11 +1554,20 @@ def _generate_ai_emergency_tips(
         else "Time is limited."
     )
 
+    days_context = "The user has not specified when their test is."
+    if days_until_test is not None:
+        if days_until_test == 0:
+            days_context = "The user's test is TODAY. The situation is critical."
+        elif days_until_test == 1:
+            days_context = "The user's test is TOMORROW."
+        else:
+            days_context = f"The user's test is in {days_until_test} days."
+
     context_params_for_tips = {
         "focus_areas_str": focus_areas_str,
         "weak_skills_summary_str": weak_skills_summary_str,
         "time_context": time_context,
-        # "weak_skill_example" is used in the template's example, not a direct param here
+        "days_context": days_context,
     }
 
     # Emergency tips usually have a specific, direct tone.
@@ -1612,6 +1623,7 @@ def _generate_ai_emergency_tips(
 def generate_emergency_plan(
     user: User,
     available_time_hours: Optional[float] = None,
+    days_until_test: Optional[int] = None,
     focus_areas: Optional[List[str]] = None,  # List of section slugs
     proficiency_threshold: float = DEFAULT_PROFICIENCY_THRESHOLD,
     num_weak_skills: int = EMERGENCY_MODE_WEAK_SKILL_COUNT,
@@ -1625,6 +1637,7 @@ def generate_emergency_plan(
     Args:
         user: The user requesting the plan.
         available_time_hours: Optional estimated time available for study.
+        days_until_test: Optional number of days until the test.
         focus_areas: Optional list of section slugs ('verbal', 'quantitative') to focus on.
         proficiency_threshold: Score below which a skill is considered weak.
         num_weak_skills: The number of weakest skills to target.
@@ -1717,18 +1730,19 @@ def generate_emergency_plan(
     target_skills_data: List[Dict[str, Any]] = []
     target_skill_ids: Set[int] = set()
     subsection_ids_for_review: Set[int] = set()
+    review_topics_data: Dict[str, Dict[str, Any]] = {}
     core_plan_error_tip_added = False
 
     try:
+        # Fetch user's proficiency data for all attempted skills
         proficiency_qs = UserSkillProficiency.objects.filter(user=user).select_related(
             "skill__subsection__section",
             "skill__subsection",
-            "skill",  # Ensure all are selected
+            "skill",
         )
 
-        if (
-            focus_areas
-        ):  # focus_areas is list of section slugs like ["verbal", "quantitative"]
+        # Apply focus area filter if provided
+        if focus_areas:
             focus_sections_qs = LearningSection.objects.filter(slug__in=focus_areas)
             proficiency_qs = proficiency_qs.filter(
                 skill__subsection__section__slug__in=focus_areas
@@ -1749,6 +1763,56 @@ def generate_emergency_plan(
                 if all_user_section_names
                 else [_("Verbal"), _("Quantitative")]
             )
+
+        # --- Aggregate proficiency at the subsection level ---
+        for p in proficiency_qs:
+            if not p.skill or not p.skill.subsection:
+                continue
+
+            sub = p.skill.subsection
+            if sub.id not in review_topics_data:
+                review_topics_data[sub.id] = {
+                    "slug": sub.slug,
+                    "name": sub.name,
+                    "description": sub.description,
+                    "total_attempts": 0,
+                    "correct_attempts": 0,
+                    "proficiency_sum": 0.0,
+                    "skill_count": 0,
+                }
+
+            # Aggregate data for calculating average subsection proficiency
+            review_topics_data[sub.id]["total_attempts"] += p.attempts_count
+            review_topics_data[sub.id]["correct_attempts"] += p.correct_count
+            review_topics_data[sub.id]["proficiency_sum"] += p.proficiency_score
+            review_topics_data[sub.id]["skill_count"] += 1
+
+        # --- Calculate final average proficiency for each subsection ---
+        final_review_topics_list = []
+        for sub_id, data in review_topics_data.items():
+            avg_proficiency = (
+                (data["proficiency_sum"] / data["skill_count"])
+                if data["skill_count"] > 0
+                else 0.0
+            )
+            data["current_proficiency"] = round(avg_proficiency, 2)
+            if avg_proficiency < proficiency_threshold:
+                data["reason"] = str(_("Needs improvement"))
+            else:
+                data["reason"] = str(_("Area of strength"))
+
+            # Clean up intermediate calculation fields
+            del data["total_attempts"]
+            del data["correct_attempts"]
+            del data["proficiency_sum"]
+            del data["skill_count"]
+            final_review_topics_list.append(data)
+
+        # Sort topics by proficiency (weakest first)
+        final_review_topics_list.sort(key=lambda x: x["current_proficiency"])
+        plan["quick_review_topics"] = final_review_topics_list[
+            :num_weak_skills
+        ]  # Show top N weak topics
 
         # 1. Skills strictly below the threshold
         weakest_proficiencies = list(
@@ -1776,10 +1840,8 @@ def generate_emergency_plan(
                     }
                 )
                 target_skill_ids.add(p.skill_id)
-                if p.skill.subsection_id:
-                    subsection_ids_for_review.add(p.skill.subsection_id)
 
-        # 2. If needed, find other attempted skills
+        # 2. If needed, find other attempted skills to reach the target count
         needed = num_weak_skills - len(target_skills_data)
         if needed > 0:
             additional_candidates = list(
@@ -1807,8 +1869,6 @@ def generate_emergency_plan(
                         }
                     )
                     target_skill_ids.add(p.skill_id)
-                    if p.skill.subsection_id:
-                        subsection_ids_for_review.add(p.skill.subsection_id)
 
         # 3. If still needed, find unattempted skills
         needed = num_weak_skills - len(target_skills_data)
@@ -1838,25 +1898,8 @@ def generate_emergency_plan(
                         }
                     )
                     target_skill_ids.add(s.id)
-                    if s.subsection_id:
-                        subsection_ids_for_review.add(s.subsection_id)
 
         plan["target_skills"] = target_skills_data
-
-        if subsection_ids_for_review:
-            review_topics_qs = LearningSubSection.objects.filter(
-                id__in=list(subsection_ids_for_review), is_active=True
-            ).exclude(Q(description__isnull=True) | Q(description__exact=""))[
-                :num_weak_skills
-            ]
-            plan["quick_review_topics"] = [
-                {
-                    "slug": topic.slug,
-                    "name": topic.name,
-                    "description": topic.description,
-                }
-                for topic in review_topics_qs
-            ]
 
     except Exception as e:
         logger.error(
@@ -1879,6 +1922,7 @@ def generate_emergency_plan(
             target_skills_data=plan.get("target_skills", []),
             focus_area_names=plan.get("focus_area_names", []),
             available_time_hours=available_time_hours,
+            days_until_test=days_until_test,  # <<<--- PASS PARAMETER TO AI HELPER
         )
     except Exception as ai_tip_error_call:
         logger.error(
@@ -1916,3 +1960,267 @@ def generate_emergency_plan(
         f"Review Topics: {len(plan['quick_review_topics'])}, Tips: {len(plan['motivational_tips'])}"
     )
     return plan
+
+
+def _generate_ai_emergency_session_feedback(
+    user: User,
+    session: EmergencyModeSession,
+    overall_score: float,
+    results_summary: Dict[str, Any],
+) -> str:
+    """
+    Generates tailored AI feedback for a completed Emergency Mode session.
+    """
+    ai_manager = get_ai_manager()
+    fallback_message = _(
+        "Great job completing your emergency session! Review your results to see where you excelled and what you can focus on next."
+    )
+    if not ai_manager.is_available():
+        logger.warning(
+            f"AI manager not available for emergency session feedback (User: {user.id}, Session: {session.id}). Reason: {ai_manager.init_error}"
+        )
+        return fallback_message
+
+    # Format data for the AI prompt
+    overall_score_str = f"{overall_score:.1f}%"
+    results_summary_str = _format_results_summary_for_ai(results_summary)
+
+    context_params = {
+        "overall_score_str": overall_score_str,
+        "results_summary_str": results_summary_str,
+        "focus_areas_str": ", ".join(
+            session.suggested_plan.get("focus_area_names", [])
+        ),
+    }
+
+    system_prompt = ai_manager._construct_system_prompt(
+        ai_tone_value="encouraging_analytic",
+        context_key="generate_emergency_session_feedback",
+        context_params=context_params,
+    )
+
+    trigger_message = _(
+        "Please provide a performance analysis for the emergency study session I just completed."
+    )
+
+    ai_response_content, error_msg = ai_manager.get_chat_completion(
+        system_prompt_content=system_prompt,
+        messages_for_api=[{"role": "user", "content": trigger_message}],
+        temperature=0.6,
+        max_tokens=300,
+        response_format=None,
+        user_id_for_tracking=str(user.id),
+    )
+
+    if (
+        error_msg
+        or not isinstance(ai_response_content, str)
+        or not ai_response_content.strip()
+    ):
+        logger.error(
+            f"AI emergency session feedback generation failed for User: {user.id}, Session: {session.id}. Error: {error_msg or 'Empty response'}."
+        )
+        return fallback_message
+
+    logger.info(
+        f"Successfully generated AI feedback for emergency session {session.id} for user {user.id}."
+    )
+    return ai_response_content.strip()
+
+
+@transaction.atomic
+def complete_emergency_session(session: EmergencyModeSession) -> Dict[str, Any]:
+    """
+    Completes an emergency session, calculates scores, generates AI feedback,
+    and saves the results with a structured, nested summary.
+
+    Args:
+        session: The EmergencyModeSession instance to complete.
+
+    Returns:
+        A dictionary containing the final results and feedback.
+
+    Raises:
+        DRFValidationError: If the session is already completed.
+    """
+    if session.end_time:
+        raise DRFValidationError(
+            _("This emergency session has already been completed.")
+        )
+
+    user = session.user
+    question_attempts_qs = UserQuestionAttempt.objects.filter(
+        emergency_session=session
+    ).select_related(
+        "question__subsection__section",
+        "question__subsection",
+    )  # Ensure related models are fetched efficiently
+
+    if not question_attempts_qs.exists():
+        # Handle case with no answers submitted
+        session.end_time = timezone.now()
+        session.overall_score = 0.0
+        session.verbal_score = 0.0
+        session.quantitative_score = 0.0
+        session.results_summary = {"verbal": {}, "quantitative": {}}
+        session.ai_feedback = _(
+            "You completed the session without answering any questions. Try a few next time!"
+        )
+        session.save(
+            update_fields=[
+                "end_time",
+                "overall_score",
+                "verbal_score",
+                "quantitative_score",
+                "results_summary",
+                "ai_feedback",
+                "updated_at",
+            ]
+        )
+
+        return {
+            "session_id": session.id,
+            "overall_score": 0.0,
+            "verbal_score": 0.0,
+            "quantitative_score": 0.0,
+            "results_summary": session.results_summary,
+            "ai_feedback": session.ai_feedback,
+            "answered_question_count": 0,
+            "correct_answers_count": 0,
+        }
+
+    # --- 1. Calculate Scores with Nested Structure ---
+    # Structure for calculation: { 'section_slug': { 'name': str, 'total': int, 'correct': int, 'subsections': { 'sub_slug': ... } } }
+    results_calc: Dict[str, Dict[str, Any]] = {}
+    total_questions = 0
+    correct_questions = 0
+
+    for qa in question_attempts_qs:
+        total_questions += 1
+        if qa.is_correct:
+            correct_questions += 1
+
+        section = qa.question.subsection.section
+        subsection = qa.question.subsection
+
+        # Initialize section if not present
+        if section.slug not in results_calc:
+            results_calc[section.slug] = {
+                "name": section.name,
+                "total": 0,
+                "correct": 0,
+                "subsections": {},
+            }
+
+        # Initialize subsection if not present
+        if subsection.slug not in results_calc[section.slug]["subsections"]:
+            results_calc[section.slug]["subsections"][subsection.slug] = {
+                "name": subsection.name,
+                "total": 0,
+                "correct": 0,
+            }
+
+        # Increment counts
+        results_calc[section.slug]["total"] += 1
+        results_calc[section.slug]["subsections"][subsection.slug]["total"] += 1
+        if qa.is_correct:
+            results_calc[section.slug]["correct"] += 1
+            results_calc[section.slug]["subsections"][subsection.slug]["correct"] += 1
+
+    # --- 2. Format Final Results JSON and Calculate Scores ---
+    results_summary_final: Dict[str, Dict[str, Any]] = {}
+
+    # Ensure both 'verbal' and 'quantitative' keys exist even if no questions were from that section
+    for slug in ["verbal", "quantitative"]:
+        if slug in results_calc:
+            section_data = results_calc[slug]
+            section_total = section_data["total"]
+            section_correct = section_data["correct"]
+
+            subsections_final = {}
+            for sub_slug, sub_data in section_data["subsections"].items():
+                sub_total = sub_data["total"]
+                sub_correct = sub_data["correct"]
+                subsections_final[sub_slug] = {
+                    "name": sub_data["name"],
+                    "score": (sub_correct / sub_total * 100) if sub_total > 0 else 0.0,
+                }
+
+            results_summary_final[slug] = {
+                "name": section_data["name"],
+                "score": (
+                    (section_correct / section_total * 100)
+                    if section_total > 0
+                    else 0.0
+                ),
+                "subsections": subsections_final,
+            }
+        else:
+            # Get section name from DB if no questions were attempted in it
+            try:
+                section_obj = LearningSection.objects.get(slug=slug)
+                results_summary_final[slug] = {
+                    "name": section_obj.name,
+                    "score": 0.0,
+                    "subsections": {},
+                }
+            except LearningSection.DoesNotExist:
+                results_summary_final[slug] = {
+                    "name": slug.capitalize(),
+                    "score": 0.0,
+                    "subsections": {},
+                }
+
+    overall_score = (
+        (correct_questions / total_questions * 100) if total_questions > 0 else 0.0
+    )
+    verbal_score = results_summary_final.get("verbal", {}).get("score", 0.0)
+    quantitative_score = results_summary_final.get("quantitative", {}).get("score", 0.0)
+
+    # --- 3. Generate AI Feedback ---
+    # We pass the flattened summary to the existing AI helper for simplicity
+    flat_summary_for_ai = {}
+    for section in results_summary_final.values():
+        if "subsections" in section:
+            flat_summary_for_ai.update(section["subsections"])
+
+    ai_feedback = _generate_ai_emergency_session_feedback(
+        user=user,
+        session=session,
+        overall_score=overall_score,
+        results_summary=flat_summary_for_ai,
+    )
+
+    # --- 4. Save Results to Session Model ---
+    session.end_time = timezone.now()
+    session.overall_score = round(overall_score, 2)
+    session.verbal_score = round(verbal_score, 2)
+    session.quantitative_score = round(quantitative_score, 2)
+    session.results_summary = results_summary_final
+    session.ai_feedback = ai_feedback
+    session.save(
+        update_fields=[
+            "end_time",
+            "overall_score",
+            "verbal_score",
+            "quantitative_score",
+            "results_summary",
+            "ai_feedback",
+            "updated_at",
+        ]
+    )
+    logger.info(
+        f"Completed emergency session {session.id} for user {user.id}. Score: {session.overall_score}%"
+    )
+
+    # --- 5. Prepare Response Data ---
+    return {
+        "session_id": session.id,
+        "overall_score": session.overall_score,
+        "verbal_score": session.verbal_score,
+        "quantitative_score": session.quantitative_score,
+        "results_summary": session.results_summary,
+        "ai_feedback": session.ai_feedback,
+        "answered_question_count": total_questions,
+        "correct_answers_count": correct_questions,
+    }

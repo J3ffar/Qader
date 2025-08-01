@@ -223,16 +223,21 @@ export const queryKeys = {
   // --- EMERGENCY MODE ---
   emergencyMode: {
     all: ["emergencyMode"] as const,
+    start: () => [...queryKeys.emergencyMode.all, "start"] as const,
     session: (sessionId: number) =>
       [...queryKeys.emergencyMode.all, "session", sessionId] as const,
     questions: (sessionId: number) =>
       [...queryKeys.emergencyMode.session(sessionId), "questions"] as const,
+    complete: (sessionId: number) =>
+      [...queryKeys.emergencyMode.session(sessionId), "complete"] as const,
     submitAnswer: (sessionId: number, questionId: number) =>
       [
         ...queryKeys.emergencyMode.questions(sessionId),
         "answer",
         questionId,
       ] as const,
+    support: (sessionId: number) =>
+      [...queryKeys.emergencyMode.session(sessionId), "support"] as const,
   },
 
   // --- LEARNING SECTIONS ---

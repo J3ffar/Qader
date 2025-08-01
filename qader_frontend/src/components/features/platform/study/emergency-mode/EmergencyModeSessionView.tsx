@@ -1,41 +1,52 @@
 "use client";
 
 import React, { useEffect, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
+import { AlertCircle, HelpCircle, MessageSquareWarning } from "lucide-react";
+
 import { useEmergencyModeStore } from "@/store/emergency.store";
 import {
   getEmergencyQuestions,
   updateEmergencySession,
+  completeEmergencySession,
 } from "@/services/study.service";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { queryKeys } from "@/constants/queryKeys";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AnimatePresence, motion } from "framer-motion";
-import { toast } from "sonner";
-import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 import { QuestionDisplayEmergency } from "./QuestionDisplayEmergency";
 import { SessionPlanDetails } from "./SessionPlanDetails";
-import { queryKeys } from "@/constants/queryKeys";
+import ReportProblemForm from "./ReportProblemForm";
 
 export function EmergencyModeSessionView() {
   const t = useTranslations("Study.emergencyMode.session");
-  const queryClient = useQueryClient();
+  const tResults = useTranslations("Study.emergencyMode.results");
   const {
     sessionId,
     suggestedPlan,
     questions,
     currentQuestionIndex,
     isCalmModeActive,
-    isSharedWithAdmin,
     setQuestions,
-    endSession,
     setCalmMode,
-    setSharedWithAdmin,
+    setCompleting,
+    completeSession, // Get the function to update the store with results
+    endSession,
   } = useEmergencyModeStore();
 
   const {
@@ -44,51 +55,63 @@ export function EmergencyModeSessionView() {
     isError,
     error,
   } = useQuery({
-    queryKey: queryKeys.emergencyMode.questions(sessionId as number),
+    queryKey: queryKeys.emergencyMode.questions(sessionId!),
     queryFn: () => getEmergencyQuestions(sessionId!),
     enabled: !!sessionId && questions.length === 0,
     staleTime: Infinity,
   });
 
   const { mutate: updateSettings } = useMutation({
-    mutationKey: queryKeys.emergencyMode.session(sessionId as number),
-    mutationFn: (payload: {
-      calm_mode_active?: boolean;
-      shared_with_admin?: boolean;
-    }) => updateEmergencySession({ sessionId: sessionId!, payload }),
+    mutationFn: (payload: { calm_mode_active: boolean }) =>
+      updateEmergencySession({ sessionId: sessionId!, payload }),
     onSuccess: (data) => {
       toast.success(t("settingsUpdatedToast"));
-      // Sync local store state with the response from the server
       setCalmMode(data.calm_mode_active);
-      setSharedWithAdmin(data.shared_with_admin);
     },
-    onError: (error) =>
-      toast.error(t("settingsUpdateErrorToast"), {
-        description: getApiErrorMessage(error, t("settingsUpdateErrorToast")),
-      }),
+    onError: (err) =>
+      toast.error(getApiErrorMessage(err, t("settingsUpdateErrorToast"))),
   });
 
-  useEffect(() => {
-    if (fetchedQuestions) setQuestions(fetchedQuestions);
-  }, [fetchedQuestions, setQuestions]);
+  const { mutate: finalizeSession } = useMutation({
+    mutationKey: queryKeys.emergencyMode.complete(sessionId!),
+    mutationFn: () => completeEmergencySession(sessionId!),
+    onSuccess: (data) => {
+      toast.success(tResults("successToast"));
+      completeSession(data); // Update the store with results and set status to 'completed'
+    },
+    onError: (err) => {
+      toast.error(tResults("errorToast"), {
+        description: getApiErrorMessage(err, "حدث خطا في انهاء الجلسة!"),
+      });
+      // If completion fails, send the user back to the setup screen
+      endSession();
+    },
+  });
 
-  const currentQuestion = useMemo(
-    () => questions[currentQuestionIndex] || null,
-    [questions, currentQuestionIndex]
-  );
+  const handleSessionCompletion = () => {
+    setCompleting(); // First, set status to 'completing' to show the loader
+    finalizeSession(); // Then, trigger the API call
+  };
+
+  useEffect(() => {
+    if (fetchedQuestions) {
+      setQuestions(fetchedQuestions);
+    }
+  }, [fetchedQuestions, setQuestions]);
 
   const handleCalmModeToggle = (checked: boolean) => {
     setCalmMode(checked); // Optimistic UI update
     updateSettings({ calm_mode_active: checked });
   };
 
-  const handleShareToggle = (checked: boolean) => {
-    setSharedWithAdmin(checked); // Optimistic UI update
-    updateSettings({ shared_with_admin: checked });
-  };
+  const currentQuestion = useMemo(
+    () => questions[currentQuestionIndex] || null,
+    [questions, currentQuestionIndex]
+  );
+  const isLastQuestion =
+    currentQuestionIndex === questions.length - 1 && questions.length > 0;
 
   if (!sessionId || !suggestedPlan) {
-    // This case handles returning to the page after closing the tab
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
@@ -98,7 +121,7 @@ export function EmergencyModeSessionView() {
           <Button
             variant="link"
             onClick={endSession}
-            className="ml-1 h-auto p-0"
+            className="p-0 h-auto rtl:mr-1 ltr:ml-1"
           >
             {t("startNewOneLink")}
           </Button>
@@ -107,52 +130,19 @@ export function EmergencyModeSessionView() {
     );
   }
 
-  if (isLoading && questions.length === 0) return <SessionLoadingSkeleton />;
-  if (isError) return <Alert variant="destructive">...</Alert>;
-
-  if (currentQuestionIndex >= questions.length && questions.length > 0) {
+  if (isLoading) return <SessionLoadingSkeleton />;
+  if (isError)
     return (
-      <Card className="text-center">
-        <CardHeader>
-          <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-          <CardTitle>{t("sessionCompleteTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>{t("sessionCompleteMessage")}</p>
-          <Button onClick={endSession} className="mt-4">
-            {t("returnToSetupButton")}
-          </Button>
-        </CardContent>
-      </Card>
+      <Alert variant="destructive">
+        {getApiErrorMessage(error, t("settingsUpdateErrorToast"))}
+      </Alert>
     );
-  }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
+      {/* Main Content - REORDERED */}
       <div className="space-y-6 lg:col-span-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("settingsTitle")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="calm-mode">{t("calmModeLabel")}</Label>
-              <Switch
-                id="calm-mode"
-                checked={isCalmModeActive}
-                onCheckedChange={handleCalmModeToggle}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="share-admin">{t("shareWithAdminLabel")}</Label>
-              <Switch
-                id="share-admin"
-                checked={isSharedWithAdmin}
-                onCheckedChange={handleShareToggle}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Question Display is now on top */}
         <AnimatePresence mode="wait">
           {currentQuestion ? (
             <motion.div
@@ -162,35 +152,76 @@ export function EmergencyModeSessionView() {
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
             >
-              {/* THIS IS THE UPDATED PART */}
               <QuestionDisplayEmergency
                 question={currentQuestion}
                 currentQuestionNumber={currentQuestionIndex + 1}
                 totalQuestions={questions.length}
+                isLastQuestion={isLastQuestion}
+                onLastAnswered={handleSessionCompletion}
               />
             </motion.div>
-          ) : isLoading ? (
-            <Skeleton className="h-96 w-full" />
-          ) : null}
+          ) : (
+            // Skeleton for question if needed while other data loads
+            <Skeleton className="h-[400px] w-full" />
+          )}
         </AnimatePresence>
+
+        {/* Controls are now below the question */}
+        <div className="space-y-4">
+          <Card>
+            <CardContent className="p-4 flex items-center justify-between">
+              <Label
+                htmlFor="calm-mode"
+                className="flex items-center gap-2 cursor-pointer font-semibold"
+              >
+                <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                {t("calmModeLabel")}
+              </Label>
+              <Switch
+                id="calm-mode"
+                checked={isCalmModeActive}
+                onCheckedChange={handleCalmModeToggle}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquareWarning className="h-5 w-5 text-muted-foreground" />
+                {t("requestSupport.title")}
+              </CardTitle>
+              {/* <CardDescription>
+                {t("requestSupport.description")}
+              </CardDescription> */}
+            </CardHeader>
+            <CardContent>
+              <ReportProblemForm sessionId={sessionId} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
-      <div>
+
+      {/* Sidebar */}
+      <div className="lg:sticky lg:top-24">
         <SessionPlanDetails plan={suggestedPlan} />
       </div>
     </div>
   );
 }
 
+// SessionLoadingSkeleton remains the same
 const SessionLoadingSkeleton = () => (
-  <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-    <div className="space-y-4 lg:col-span-2">
-      <Skeleton className="h-48 w-full" />
-      <Skeleton className="h-12 w-full" />
-      <Skeleton className="h-12 w-full" />
+  <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
+    <div className="space-y-6 lg:col-span-2">
+      <Skeleton className="h-[400px] w-full" />
+      <Skeleton className="h-[100px] w-full" />
+      <Skeleton className="h-[250px] w-full" />
     </div>
     <div className="space-y-6">
-      <Skeleton className="h-40 w-full" />
-      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-[200px] w-full" />
+      <Skeleton className="h-[150px] w-full" />
+      <Skeleton className="h-[180px] w-full" />
     </div>
   </div>
 );

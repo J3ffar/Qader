@@ -355,6 +355,7 @@ export interface UserStatistics {
  * API: POST /study/emergency/start/
  */
 export interface StartEmergencyModePayload {
+  days_until_test: number;
   reason?: string;
   available_time_hours?: number;
   focus_areas?: Array<"verbal" | "quantitative">;
@@ -372,12 +373,14 @@ export interface TargetSkill {
 }
 
 /**
- * A topic for quick review in the emergency plan.
+ * UPDATED: A topic for quick review in the emergency plan.
  */
 export interface QuickReviewTopic {
   slug: string;
   name: string;
   description: string;
+  reason: string;
+  current_proficiency: number;
 }
 
 /**
@@ -443,4 +446,41 @@ export interface EmergencyModeAnswerResponse {
   correct_answer: "A" | "B" | "C" | "D";
   explanation: string | null;
   feedback: string; // Renamed from feedback_message
+}
+
+// API: POST /study/emergency/sessions/{session_id}/complete/
+export interface EmergencyModeCompleteResponse {
+  session_id: number;
+  overall_score: number;
+  verbal_score: number | null;
+  quantitative_score: number | null;
+  results_summary: {
+    [key: string]: {
+      name: string;
+      score: number;
+      subsections: {
+        [key: string]: {
+          name: string;
+          score: number;
+        };
+      };
+    };
+  };
+  ai_feedback: string;
+  answered_question_count: number;
+  correct_answers_count: number;
+}
+
+// API: POST /study/emergency/sessions/{session_id}/request-support/
+export interface RequestSupportPayload {
+  problem_type: "technical" | "academic" | "content" | "other";
+  description: string;
+}
+
+export interface EmergencySupportRequest {
+  id: number;
+  problem_type: string;
+  description: string;
+  status: string;
+  created_at: string;
 }

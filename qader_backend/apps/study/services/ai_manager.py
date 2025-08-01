@@ -119,6 +119,7 @@ Example ({serious_example_tone} tone): "Understood. To confirm your comprehensio
 You are an encouraging AI assistant helping a student in 'Emergency Mode' prepare for the Qudurat test.
 The user needs quick, actionable tips for an emergency study session.
 Context:
+- Test Proximity: {days_context}
 - Focus Areas: {focus_areas_str}
 - Identified Weak Skills/Areas for Improvement:
     {weak_skills_summary_str}
@@ -129,6 +130,7 @@ Focus on:
 - Stress management / staying calm.
 - Quick strategies relevant to identified weak areas (if any).
 - General test-taking advice for time pressure.
+- Your advice should be more urgent if the test is very soon.
 
 Your response MUST be a valid JSON object containing EXACTLY ONE key:
     `tips`: List[str] (A list containing 4 or 7 string tips).
@@ -169,6 +171,28 @@ Generate a brief (target 2-4 sentences, max 5) analysis in Arabic.
 5. Maintain an encouraging and constructive tone. Avoid overly negative language.
 6. If scores are generally high (e.g., overall > 85%), congratulate the user. If scores are low, focus on improvement steps.
 7. If the results_summary or answer details are sparse or not very informative, provide a general encouraging message about completing the test and suggest reviewing the material broadly.
+
+Output ONLY the generated text analysis as a single string. Do not use markdown or JSON.
+    """,
+    "generate_emergency_session_feedback": """
+You are Qader AI, an encouraging assistant analyzing a student's performance in a focused, high-pressure 'Emergency Mode' study session.
+Your output language MUST be in Arabic.
+
+Session Performance Details:
+- Overall Score: {overall_score_str}
+- Focus Areas for this Session: {focus_areas_str}
+- Performance by Topic/Subsection (Name: Score%):
+{results_summary_str}
+
+Task:
+Generate a concise (2-3 sentences), encouraging, and actionable summary in Arabic.
+1.  Start by congratulating the user for completing the focused session. Example: "أحسنت في إتمام جلسة الطوارئ المركزة!"
+2.  Briefly comment on the overall performance based on the score.
+3.  Using the "Performance by Topic/Subsection", identify ONE key area of strength (highest score) and ONE key area for improvement (lowest score) from this specific session.
+    Example Strength: "لقد أظهرت أداءً قوياً في [اسم الموضوع القوي]."
+    Example Improvement: "لتحسين أدائك في المرة القادمة، استمر في المراجعة والتدريب على [اسم الموضوع الأضعف]."
+4.  End with a positive and forward-looking statement. Example: "استمر في هذا الجهد، فكل تدريب يقربك من هدفك!"
+5.  Keep the tone very encouraging and direct, suitable for someone studying under pressure.
 
 Output ONLY the generated text analysis as a single string. Do not use markdown or JSON.
     """,

@@ -30,7 +30,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { queryKeys } from "@/constants/queryKeys";
-import { StarButton } from "@/components/shared/StarButton";
 
 type AnswerOption = "A" | "B" | "C" | "D";
 
@@ -38,12 +37,16 @@ interface QuestionDisplayEmergencyProps {
   question: UnifiedQuestion;
   currentQuestionNumber: number;
   totalQuestions: number;
+  isLastQuestion: boolean;
+  onLastAnswered: () => void;
 }
 
 export function QuestionDisplayEmergency({
   question,
   currentQuestionNumber,
   totalQuestions,
+  isLastQuestion,
+  onLastAnswered,
 }: QuestionDisplayEmergencyProps) {
   const t = useTranslations("Study.emergencyMode.session.question");
   const { sessionId, goToNextQuestion } = useEmergencyModeStore();
@@ -55,14 +58,12 @@ export function QuestionDisplayEmergency({
   const [feedback, setFeedback] = useState<EmergencyModeAnswerResponse | null>(
     null
   );
-  const [localStarred, setLocalStarred] = useState(question.is_starred);
 
   // Reset component state when a new question is passed in
   useEffect(() => {
     setSelectedAnswer(null);
     setIsAnswered(false);
     setFeedback(null);
-    setLocalStarred(question.is_starred);
   }, [question.id]);
 
   const { mutate: submitAnswer, isPending } = useMutation({
@@ -92,8 +93,13 @@ export function QuestionDisplayEmergency({
     }
   };
 
-  const handleNextQuestion = () => {
-    goToNextQuestion();
+  const handleNext = () => {
+    // UPDATED LOGIC HERE
+    if (isLastQuestion) {
+      onLastAnswered();
+    } else {
+      goToNextQuestion();
+    }
   };
 
   const options = Object.entries(question.options) as [AnswerOption, string][];
@@ -101,24 +107,13 @@ export function QuestionDisplayEmergency({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>{t("title")}</CardTitle>
-            <CardDescription>
-              {t("progress", {
-                current: currentQuestionNumber,
-                total: totalQuestions,
-              })}
-            </CardDescription>
-          </div>
-          <StarButton
-            questionId={question.id}
-            isStarred={localStarred}
-            onStarChange={setLocalStarred}
-            disabled={isAnswered || isPending}
-            attemptId={sessionId?.toString() || ""}
-          />
-        </div>
+        <CardTitle>{t("title")}</CardTitle>
+        <CardDescription>
+          {t("progress", {
+            current: currentQuestionNumber,
+            total: totalQuestions,
+          })}
+        </CardDescription>
         <p className="pt-4 text-base font-semibold text-foreground">
           {question.question_text}
         </p>
@@ -156,7 +151,7 @@ export function QuestionDisplayEmergency({
                 <RadioGroupItem value={key} id={`option-${key}`} />
                 <Label
                   htmlFor={`option-${key}`}
-                  className="w-full cursor-pointer mx-2"
+                  className="w-full cursor-pointer"
                 >
                   {value}
                 </Label>
@@ -203,7 +198,7 @@ export function QuestionDisplayEmergency({
             {t("submitButton")}
           </Button>
         ) : (
-          <Button onClick={handleNextQuestion} className="w-full">
+          <Button onClick={handleNext} className="w-full">
             {t("nextButton")}
           </Button>
         )}

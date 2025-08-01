@@ -1,6 +1,10 @@
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
-from apps.study.models import EmergencyModeSession, UserQuestionAttempt
+from apps.study.models import (
+    EmergencyModeSession,
+    UserQuestionAttempt,
+    EmergencySupportRequest,
+)
 from apps.learning.api.serializers import UnifiedQuestionSerializer  # Assumed location
 
 # --- NEW: Nested Serializers for a Detailed Plan ---
@@ -22,6 +26,8 @@ class QuickReviewTopicSerializer(serializers.Serializer):
     slug = serializers.CharField()
     name = serializers.CharField()
     description = serializers.CharField(allow_null=True)
+    reason = serializers.CharField()
+    current_proficiency = serializers.FloatField(allow_null=True)
 
 
 class SuggestedPlanSerializer(serializers.Serializer):
@@ -40,6 +46,13 @@ class SuggestedPlanSerializer(serializers.Serializer):
 
 class EmergencyModeStartSerializer(serializers.Serializer):
     """Serializer for validating input when starting emergency mode."""
+
+    days_until_test = serializers.IntegerField(
+        required=True,
+        min_value=0,
+        max_value=365,
+        help_text=_("How many days are left until the test."),
+    )
 
     reason = serializers.CharField(required=False, allow_blank=True, max_length=500)
     available_time_hours = serializers.IntegerField(
@@ -74,24 +87,24 @@ class EmergencyModeAnswerSerializer(serializers.Serializer):
     )
 
 
-# --- Other serializers can remain as they are, they are well-designed ---
+# --- Session and Completion Serializers ---
 
 
 class EmergencyModeUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating calm mode or sharing status."""
+    """Serializer for updating calm mode status."""
 
     class Meta:
         model = EmergencyModeSession
-        fields = ["calm_mode_active", "shared_with_admin"]
+        fields = ["calm_mode_active"]
 
 
 class EmergencyModeSessionSerializer(serializers.ModelSerializer):
-    """Serializer for representing the Emergency Mode Session details."""
+    """
+    Serializer for representing the Emergency Mode Session details.
+    """
 
     user = serializers.StringRelatedField()
-    suggested_plan = SuggestedPlanSerializer(
-        read_only=True
-    )  # Use the structured serializer
+    suggested_plan = SuggestedPlanSerializer(read_only=True)
 
     class Meta:
         model = EmergencyModeSession
@@ -101,13 +114,18 @@ class EmergencyModeSessionSerializer(serializers.ModelSerializer):
             "reason",
             "suggested_plan",
             "calm_mode_active",
+            "days_until_test",
             "start_time",
             "end_time",
-            "shared_with_admin",
+            "overall_score",
+            "verbal_score",
+            "quantitative_score",
+            "results_summary",
+            "ai_feedback",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = fields  # All fields are read-only in this context
+        read_only_fields = fields
 
 
 class EmergencyModeAnswerResponseSerializer(serializers.Serializer):
@@ -120,3 +138,37 @@ class EmergencyModeAnswerResponseSerializer(serializers.Serializer):
     )
     explanation = serializers.CharField(allow_blank=True, allow_null=True)
     feedback = serializers.CharField()  # Simple text feedback is enough for calm mode
+
+
+class EmergencyModeCompleteResponseSerializer(serializers.Serializer):
+    """
+    Serializer for the detailed response after completing an emergency session.
+    This provides the frontend with all necessary data for the results screen.
+    """
+
+    session_id = serializers.IntegerField()
+    overall_score = serializers.FloatField()
+    verbal_score = serializers.FloatField()
+    quantitative_score = serializers.FloatField()
+    results_summary = serializers.JSONField()
+    ai_feedback = serializers.CharField()
+    answered_question_count = serializers.IntegerField()
+    correct_answers_count = serializers.IntegerField()
+
+
+class EmergencySupportRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating and validating a new EmergencySupportRequest.
+    The `user` and `session` fields will be populated from the view context.
+    """
+
+    class Meta:
+        model = EmergencySupportRequest
+        fields = [
+            "id",
+            "problem_type",
+            "description",
+            "status",
+            "created_at",
+        ]
+        read_only_fields = ["id", "status", "created_at"]
