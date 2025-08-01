@@ -62,18 +62,19 @@ const StartTestForm: React.FC = () => {
   const commonT = useTranslations("Common");
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [mutationErrorMsg, setMutationErrorMsg] = useState<string | null>(null);
 
   const formSchema = createFormSchema(t);
   type FormValues = z.infer<typeof formSchema>;
 
-  const { data: learningSectionsData, isLoading: isLoadingSections } = useQuery(
-    {
-      queryKey: queryKeys.learning.sections({}),
-      queryFn: () => getLearningSections(),
-      staleTime: 10 * 60 * 1000,
-    }
-  );
+  const {
+    data: learningSectionsData,
+    isLoading: isLoadingSections,
+    error: sectionsError,
+  } = useQuery({
+    queryKey: queryKeys.learning.sections({}),
+    queryFn: () => getLearningSections(),
+    staleTime: 10 * 60 * 1000,
+  });
   const sections = learningSectionsData?.results || [];
 
   const { control, handleSubmit, setValue, watch } = useForm<FormValues>({
@@ -108,12 +109,14 @@ const StartTestForm: React.FC = () => {
     onSuccess: (data) => {
       toast.success(t("api.startSuccess"));
       queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
-
       router.push(PATHS.STUDY.TESTS.ATTEMPT(data.attempt_id));
     },
-    onError: (error: any) => {
+    onError: (error) => {
       const errorMessage = getApiErrorMessage(error, commonT("errors.generic"));
-      setMutationErrorMsg(errorMessage);
+
+      toast.error(errorMessage, {
+        duration: 8000, // Longer duration for reading complex messages
+      });
     },
   });
 
@@ -134,10 +137,12 @@ const StartTestForm: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-      {mutationErrorMsg && (
+      {sectionsError && (
         <Alert variant="destructive">
           <AlertTitle>{commonT("errors.requestFailed")}</AlertTitle>
-          <AlertDescription>{mutationErrorMsg}</AlertDescription>
+          <AlertDescription>
+            {getApiErrorMessage(sectionsError, commonT("errors.generic"))}
+          </AlertDescription>
         </Alert>
       )}
 

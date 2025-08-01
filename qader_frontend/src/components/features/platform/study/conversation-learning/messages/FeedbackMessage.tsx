@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { useTranslations } from "next-intl";
 import { Bot, CheckCircle, Info, XCircle } from "lucide-react";
@@ -13,6 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { RichContentViewer } from "@/components/shared/RichContentViewer";
 
 export const FeedbackMessage = ({
   result,
@@ -53,16 +56,26 @@ export const FeedbackMessage = ({
             </div>
           </div>
 
-          <div className="text-sm">
-            <p>
-              <strong className="font-medium">{t("yourAnswer")}:</strong>{" "}
-              {question.options[selected_answer]}
-            </p>
+          <div className="text-sm space-y-1">
+            <div className="flex items-start gap-2">
+              <strong className="font-medium shrink-0">
+                {t("yourAnswer")}:
+              </strong>{" "}
+              <RichContentViewer
+                htmlContent={question.options[selected_answer]}
+                className="prose prose-sm dark:prose-invert max-w-none"
+              />
+            </div>
             {!is_correct && (
-              <p>
-                <strong className="font-medium">{t("correctAnswer")}:</strong>{" "}
-                {question.options[question.correct_answer]}
-              </p>
+              <div className="flex items-start gap-2">
+                <strong className="font-medium shrink-0">
+                  {t("correctAnswer")}:
+                </strong>{" "}
+                <RichContentViewer
+                  htmlContent={question.options[question.correct_answer]}
+                  className="prose prose-sm dark:prose-invert max-w-none"
+                />
+              </div>
             )}
           </div>
 
@@ -74,8 +87,11 @@ export const FeedbackMessage = ({
                     <Info className="me-2 h-4 w-4" /> {t("explanation")}
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="prose prose-sm dark:prose-invert max-w-none pt-2 text-muted-foreground">
-                  <ReactMarkdown>{question.explanation}</ReactMarkdown>
+                <AccordionContent className="pt-2">
+                  <RichContentViewer
+                    htmlContent={question.explanation}
+                    className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground"
+                  />
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

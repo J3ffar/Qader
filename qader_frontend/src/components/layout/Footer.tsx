@@ -97,7 +97,7 @@ const Footer = async () => {
             <ul className="flex flex-col mt-4 space-y-2">
               <li>
                 <Link
-                  href="/conditions"
+                  href="/terms-and-conditions"
                   className="text-gray-300 hover:text-white"
                 >
                   الشروط والأحكام
@@ -105,7 +105,7 @@ const Footer = async () => {
               </li>
               <li>
                 <Link
-                  href="/conditions"
+                  href="/privacy"
                   className="text-gray-300 hover:text-white"
                 >
                   سياسة الخصوصية

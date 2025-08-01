@@ -35,7 +35,6 @@ from apps.api.exceptions import UsageLimitExceeded
 logger = logging.getLogger(__name__)
 
 # --- Unified Test Attempt Views ---
-# ... (UserTestAttemptListView, UserTestAttemptDetailView, UserTestAttemptAnswerView, UserTestAttemptCompleteView, UserTestAttemptCancelView remain unchanged) ...
 
 
 @extend_schema(
@@ -216,22 +215,30 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
         test_attempt = self.get_object()
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        question = serializer.validated_data["question_id"]
+        validated_data = serializer.validated_data
+        question_id = validated_data["question_id"].pk
 
         try:
+            annotated_question = Question.objects.with_user_annotations(
+                user=request.user
+            ).get(pk=question_id)
+
+            # Use this annotated_question object from here on
             result_data = study_services.record_single_answer(
                 test_attempt=test_attempt,
-                question=question,
+                question=annotated_question,  # Pass the annotated object
                 answer_data=serializer.validated_data,
             )
             user_attempt_for_question = UserQuestionAttempt.objects.get(
-                test_attempt=test_attempt, question=question
+                test_attempt=test_attempt, question=annotated_question
             )
-            context = {"user_attempts_map": {question.id: user_attempt_for_question}}
+            context = {
+                "user_attempts_map": {annotated_question.id: user_attempt_for_question}
+            }
 
             # Prepare the final payload for the serializer
             response_payload = {
-                "question": question,
+                "question": annotated_question,
                 "feedback_message": result_data.get("feedback_message"),
             }
 

@@ -4,7 +4,8 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { BotMessageSquare } from "lucide-react";
+import { BotMessageSquare, SquarePen } from "lucide-react";
+import Image from "next/image";
 
 import { useConversationStore } from "@/store/conversation.store";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
@@ -17,12 +18,14 @@ import {
 import { ConversationSidebar } from "./ConversationSidebar";
 import { ConversationInput } from "./ConversationInput";
 import { MessageList } from "./MessageList";
+import { Button } from "@/components/ui/button";
 
 export const ConversationLearningClient = () => {
   const t = useTranslations("Study.conversationalLearning");
   const {
     sessionId,
     addMessage,
+    messages,
     isSending,
     setIsSending,
     setActiveTestQuestion,
@@ -95,34 +98,60 @@ export const ConversationLearningClient = () => {
     sendMessageMutation.mutate(message);
   };
 
-  if (!sessionId) {
-    return (
-      <div className="flex h-[calc(100vh-8rem)]">
-        <ConversationSidebar />
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <BotMessageSquare className="h-16 w-16 text-muted-foreground" />
-          <h2 className="mt-4 text-2xl font-semibold">
-            {t("emptyStateTitle")}
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            {t("emptyStateDescription")}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-[calc(100vh-8rem)]">
-      <ConversationSidebar />
-      <div className="flex flex-1 flex-col">
-        <MessageList />
-        <ConversationInput
+    <div className="flex flex-col md:h-screen max-h-full">
+      <div className="flex flex-col p-4 m-4">
+        <p className="text-center text-xl font-semibold sm:self-start">
+          {t("title")}
+        </p>
+        <p className="text-center text-muted-foreground sm:self-start">
+          {t("description")}
+        </p>
+      </div>
+      <div className="flex flex-1 flex-col md:flex-row-reverse w-full min-w-0 mb-8">
+        <ConversationSidebar
           isSending={isSending}
           onSendMessage={handleSendMessage}
           onAskForQuestion={() => askQuestionMutation.mutate()}
           onConfirmUnderstanding={() => confirmUnderstandingMutation.mutate()}
         />
+
+        <div className="w-full md:w-full min-w-2/5 border rounded-2xl h-full flex flex-col dark:bg-[#0B1739]">
+          <div className="flex-1 px-4 pb-2 overflow-y-auto">
+            <div className="max-h-[calc(100vh-14rem)] overflow-y-auto ">
+              {messages.length === 0 ? (
+                <div className="flex flex-col min-w-fit items-center my-32">
+                  <Image
+                    src="/images/chat.svg"
+                    alt="Chat image"
+                    width={250}
+                    height={250}
+                    className="object-contain"
+                  />
+                  <h2 className="mt-4 text-2xl font-semibold">
+                    {t("emptyStateTitle")}
+                  </h2>
+                  <p className="mt-2 text-muted-foreground">
+                    {t("emptyStateDescription")}
+                  </p>
+                </div>
+              ) : (
+                <MessageList />
+              )}
+            </div>
+          </div>
+
+          <div className="border-sm">
+            <ConversationInput
+              isSending={isSending}
+              onSendMessage={handleSendMessage}
+              onAskForQuestion={() => askQuestionMutation.mutate()}
+              onConfirmUnderstanding={() =>
+                confirmUnderstandingMutation.mutate()
+              }
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

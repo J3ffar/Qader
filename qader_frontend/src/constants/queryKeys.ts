@@ -127,6 +127,45 @@ export const queryKeys = {
       },
       // Other content types can be added here following the same pattern
     },
+    learning: {
+      all: () => [...queryKeys.admin.all, "learning"] as const,
+
+      sections: {
+        all: () => [...queryKeys.admin.learning.all(), "sections"] as const,
+        lists: () =>
+          [...queryKeys.admin.learning.sections.all(), "lists"] as const,
+        list: (params: object) =>
+          [...queryKeys.admin.learning.sections.lists(), params] as const,
+      },
+
+      subsections: {
+        all: () => [...queryKeys.admin.learning.all(), "subsections"] as const,
+        lists: () =>
+          [...queryKeys.admin.learning.subsections.all(), "lists"] as const,
+        list: (params: object) =>
+          [...queryKeys.admin.learning.subsections.lists(), params] as const,
+      },
+
+      skills: {
+        all: () => [...queryKeys.admin.learning.all(), "skills"] as const,
+        lists: () =>
+          [...queryKeys.admin.learning.skills.all(), "lists"] as const,
+        list: (params: object) =>
+          [...queryKeys.admin.learning.skills.lists(), params] as const,
+      },
+
+      questions: {
+        all: () => [...queryKeys.admin.learning.all(), "questions"] as const,
+        lists: () =>
+          [...queryKeys.admin.learning.questions.all(), "lists"] as const,
+        list: (params: object) =>
+          [...queryKeys.admin.learning.questions.lists(), params] as const,
+        details: () =>
+          [...queryKeys.admin.learning.questions.all(), "details"] as const,
+        detail: (id: number | string) =>
+          [...queryKeys.admin.learning.questions.details(), id] as const,
+      },
+    },
   },
 
   // --- NOTIFICATIONS ---

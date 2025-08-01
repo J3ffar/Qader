@@ -97,9 +97,9 @@ const AdminHeader = () => {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b border-border bg-background px-6">
+    <header className="sticky top-0 z-30 flex w-full items-center justify-between max-md:flex-col-reverse h-fit border-b border-border bg-background px-6 py-3 gap-3">
       {/* Center - Search Bar */}
-      <div className="relative w-full max-w-sm">
+      <div className="relative w-full max-w-sm mx-4 min-w-[200px]">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:right-3 rtl:left-auto" />
         <Input
           type="search"

@@ -34,7 +34,7 @@ export function EmergencyModeSetup() {
     mutationFn: (payload: StartEmergencyModePayload) =>
       startEmergencyMode(payload),
     onSuccess: (data) => {
-      toast.success(tSession("sessionStartedToast"));
+      toast.success(t("sessionStartedToast"));
       startNewSession(data.session_id, data.suggested_plan);
     },
     onError: (error) => {

@@ -38,6 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { queryKeys } from "@/constants/queryKeys";
+import { cn } from "@/lib/utils";
 
 interface SubscriptionDetailsProps {
   currentSubscription: SubscriptionDetailResponse;
@@ -61,6 +62,7 @@ const PlanCardSkeleton = () => (
     </CardFooter>
   </Card>
 );
+
 
 export default function SubscriptionDetails({
   currentSubscription,
@@ -105,19 +107,19 @@ export default function SubscriptionDetails({
   });
 
   return (
-    <div className="space-y-8">
+    <div className="flex space-y-8 max-w-7xl justify-center items-center flex-col mx-auto mt-8">
       {/* Current Subscription Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="overflow-hidden w-full border-2 dark:bg-[#0B1739] dark:border-[#7E89AC]">
+        <CardHeader dir={locale==="en"?"ltr":"rtl"} className="flex flex-col">
+          <CardTitle dir={locale==="en"?"ltr":"rtl"} className="flex items-center gap-2">
             <Crown className="h-6 w-6 text-yellow-500" />
-            {t("current.title")}
+            <span>{t("current.title")}</span>
           </CardTitle>
-          <CardDescription>{t("current.description")}</CardDescription>
+          <CardDescription className={locale === "ar" ? "text-right" : "text-left"}>{t("current.description")}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-1">
+        <CardContent className="space-y-4 flex flex-col items-center">
+          <div dir={locale ==="en"?"ltr":"rtl"} className="flex items-center justify-between rounded-lg border p-4 w-full">
+            <div>
               <p className="font-semibold">{t("current.planName")}</p>
               <p className="text-lg font-bold">
                 {currentSubscription.plan_name || t("current.noPlan")}
@@ -127,20 +129,21 @@ export default function SubscriptionDetails({
               variant={
                 currentSubscription.is_active ? "default" : "destructive"
               }
+              className="flex items-center text-center w-24 h-7 justify-center text-md"
             >
               {currentSubscription.is_active
                 ? t("current.statusActive")
                 : t("current.statusInactive")}
             </Badge>
           </div>
-          {currentSubscription.is_active && currentSubscription.expires_at && (
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-1">
-                <p className="font-semibold">{t("current.expiresAt")}</p>
+         {currentSubscription.is_active && currentSubscription.expires_at && ( 
+            <div dir={locale ==="en"?"ltr":"rtl"} className="flex justify-between items-center rounded-lg border p-4 w-full">
+              <div>
+                <p className= "font-semibold">{t("current.expiresAt")}</p>
                 <p className="text-lg font-bold">
-                  {format(new Date(currentSubscription.expires_at), "PPP", {
+                  {/* {format(new Date(currentSubscription.expires_at), "PPP", {
                     locale: dateLocale,
-                  })}
+                  })} */}
                 </p>
               </div>
 
@@ -150,28 +153,28 @@ export default function SubscriptionDetails({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
+                    className="cursor-pointer text-destructive hover:text-destructive dar:border-2 hover:border-destructive/90 dark:border-[#7E89AC]"
                   >
                     {t("current.cancelButton")}
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
+                <AlertDialogContent  className="flex flex-col">
+                  <AlertDialogHeader dir={locale ==="en"?"ltr":"rtl"}>
+                    <AlertDialogTitle className={locale === "ar" ? "text-right" : "text-left"}>
                       {t("cancelDialog.title")}
                     </AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogDescription className={locale === "ar" ? "text-right" : "text-left"}>
                       {t("cancelDialog.description")}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>
+                    <AlertDialogCancel className="cursor-pointer">
                       {t("cancelDialog.cancelButton")}
                     </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => cancelMutation.mutate()}
                       disabled={cancelMutation.isPending}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className="bg-destructive text-destructive-foreground text-white hover:bg-destructive/90 cursor-pointer"
                     >
                       {cancelMutation.isPending
                         ? t("cancelDialog.confirmButtonLoading")
@@ -181,7 +184,7 @@ export default function SubscriptionDetails({
                 </AlertDialogContent>
               </AlertDialog>
             </div>
-          )}
+          )} 
         </CardContent>
       </Card>
 
@@ -189,9 +192,9 @@ export default function SubscriptionDetails({
       <Separator />
 
       {/* Available Plans */}
-      <div>
-        <h3 className="mb-4 text-xl font-bold">{t("available.title")}</h3>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="space-y-4 flex flex-col w-full">
+        <h3 dir={locale ==="en"?"ltr":"rtl"} className="mb-4 text-xl font-bold">{t("available.title")}</h3>
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3 w-11/12 mx-auto">
           {arePlansLoading ? (
             <>
               <PlanCardSkeleton />
@@ -201,23 +204,25 @@ export default function SubscriptionDetails({
           ) : (
             // FIX: Use optional chaining or a fallback to ensure we map over an array.
             // (plans || []).map(...) is a safe and common pattern.
-            (plans || []).map((plan) => (
-              <Card key={plan.id} className="flex flex-col">
-                <CardHeader>
+            (plans || []).map((plan, index) => (
+              <Card key={plan.id} className={`flex flex-col transition-all duration-300 ease-in-out transform hover:scale-105 hover:translate-y-[-10px] ${
+              index === 1 ? "shadow-lg dark:hover:bg-[#074182] dark:bg-[#0B1739] dark:border-[#7E89AC]" : " dark:border-[#7E89AC] dark:hover:bg-[#074182] dark:bg-[#0B1739] z-10 hover:shadow-xl rounded-lg p-4"}`}>
+                <CardHeader dir={locale ==="en"?"ltr":"rtl"}>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-6 w-6 text-primary" />
                     {plan.name}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-sm text-gray-400">
+
                     {t("available.duration", { days: plan.duration_days })}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-grow">
-                  <p>{plan.description}</p>
+                <CardContent dir={locale ==="en"?"ltr":"rtl"} className="flex-grow">
+                  <p className="text-gray-300 mt-4">{plan.description}</p>
                 </CardContent>
                 <CardFooter>
                   <Button
-                    className="w-full"
+                    className="w-full mt-4 cursor-pointer"
                     onClick={() => handlePurchase(plan.id)}
                   >
                     {t("available.purchaseButton")}

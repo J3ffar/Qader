@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+from django.db.models import Exists, OuterRef
 
 # --- Abstract Base Models ---
 
@@ -215,6 +216,20 @@ class Skill(TimeStampedModel):
 
 # --- Question Model ---
 
+class QuestionQuerySet(models.QuerySet):
+    """Custom QuerySet for the Question model."""
+
+    def with_user_annotations(self, user):
+        """Annotates the queryset with data specific to a given user."""
+        if not user or not user.is_authenticated:
+            return self.annotate(user_has_starred=models.Value(False, output_field=models.BooleanField()))
+
+        starred_subquery = UserStarredQuestion.objects.filter(
+            user=user,
+            question_id=OuterRef('pk')
+        )
+        return self.annotate(user_has_starred=Exists(starred_subquery))
+
 
 class Question(TimeStampedModel):
     """
@@ -256,6 +271,13 @@ class Question(TimeStampedModel):
     question_text: str = models.TextField(
         _("Question Text"),
         help_text=_("The main text or problem statement of the question."),
+    )
+    image: models.ImageField = models.ImageField(
+        _("Image"),
+        upload_to="questions/images/",  # Organizes uploaded images in MEDIA_ROOT/questions/images/
+        null=True,  # Allows the database field to be NULL
+        blank=True,  # Allows the field to be blank in forms/admin
+        help_text=_("Optional image to accompany the question text."),
     )
     option_a: str = models.TextField(_("Option A"))
     option_b: str = models.TextField(_("Option B"))
@@ -314,6 +336,8 @@ class Question(TimeStampedModel):
         verbose_name=_("Starred By Users"),
         blank=True,
     )
+
+    objects = QuestionQuerySet.as_manager()
 
     class Meta:
         verbose_name = _("Question")

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect } from "react";
 import { useForm, Controller, FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -38,6 +38,7 @@ import type {
   PaginatedLearningSections,
 } from "@/types/api/learning.types";
 import { queryKeys } from "@/constants/queryKeys";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FormValues {
   selectedSubsections: Record<string, boolean>;
@@ -46,13 +47,53 @@ interface FormValues {
   not_mastered: boolean;
 }
 
+const FormSkeleton = () => {
+  const t = useTranslations("Common");
+  return (
+    <div className="mx-auto max-w-4xl space-y-8 animate-pulse">
+      <Card className="overflow-hidden w-full max-w-none border-2">
+        <CardHeader>
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-4 w-2/3" />
+        </CardHeader>
+        <CardContent className="space-y-3 p-6">
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+        </CardContent>
+      </Card>
+      <Card className="overflow-hidden w-full max-w-none border-2">
+        <CardHeader>
+          <Skeleton className="h-8 w-1/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </CardContent>
+      </Card>
+      <div className="flex justify-center">
+        <Button disabled size="lg" className="w-full max-w-md">
+          <Loader2 className="me-2 h-5 w-5 animate-spin" />
+          {t("loading")}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const TraditionalLearningConfigForm: React.FC = () => {
   const t = useTranslations("Study.traditionalLearning.config");
   const commonT = useTranslations("Common");
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data: learningSectionsData, error: sectionsError } = useQuery({
+  const {
+    data: learningSectionsData,
+    error: sectionsError,
+    isLoading: isSectionsLoading,
+  } = useQuery({
     queryKey: queryKeys.learning.sections({}),
     queryFn: () => getLearningSections(),
     staleTime: 5 * 60 * 1000,
@@ -91,7 +132,6 @@ const TraditionalLearningConfigForm: React.FC = () => {
       not_mastered: false,
     },
   });
-
   const selectedSubsectionsWatched = watch("selectedSubsections");
 
   const handleMainSectionChange = (
@@ -130,6 +170,10 @@ const TraditionalLearningConfigForm: React.FC = () => {
     startPracticeMutation.mutate(payload);
   };
 
+  if (isSectionsLoading) {
+    return <FormSkeleton />;
+  }
+
   if (sectionsError) {
     return (
       <Alert variant="destructive">
@@ -146,7 +190,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
       onSubmit={handleSubmit(onSubmit)}
       className="mx-auto max-w-4xl space-y-8"
     >
-      <Card>
+      <Card className="overflow-hidden w-full max-w-none border-2 dark:bg-[#0B1739] dark:border-[#7E89AC]">
         <CardHeader>
           <CardTitle>{t("sectionsTitle")}</CardTitle>
           <CardDescription>{t("sectionsDescription")}</CardDescription>
@@ -209,31 +253,28 @@ const TraditionalLearningConfigForm: React.FC = () => {
                       </label>
                     </div>
                   </AccordionTrigger>
+
                   <AccordionContent className="grid grid-cols-2 gap-x-8 gap-y-3 p-4 pt-0">
                     {section.subsections.map((sub) => (
-                      <div
+                      <Controller
                         key={sub.slug}
-                        className="flex items-center space-x-3 ps-4 rtl:space-x-reverse"
-                      >
-                        <Controller
-                          name={`selectedSubsections.${sub.slug}`}
-                          control={control}
-                          defaultValue={false}
-                          render={({ field }) => (
-                            <Checkbox
-                              id={sub.slug}
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          )}
-                        />
-                        <Label
-                          htmlFor={sub.slug}
-                          className="cursor-pointer text-sm text-muted-foreground"
-                        >
-                          {sub.name}
-                        </Label>
-                      </div>
+                        name={`selectedSubsections.${sub.slug}`}
+                        control={control}
+                        defaultValue={false}
+                        render={({ field }) => (
+                          <button
+                            type="button"
+                            onClick={() => field.onChange(!field.value)}
+                            className={`px-4 py-2 rounded-lg border text-sm font-medium transition cursor-pointer ${
+                              field.value
+                                ? "bg-primary text-white border-primary"
+                                : "border border-gray-300 hover:border-primary font-normal"
+                            }`}
+                          >
+                            {sub.name}
+                          </button>
+                        )}
+                      />
                     ))}
                   </AccordionContent>
                 </AccordionItem>
@@ -243,87 +284,113 @@ const TraditionalLearningConfigForm: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="overflow-hidden w-full max-w-none border-2 dark:bg-[#0B1739] dark:border-[#7E89AC]">
         <CardHeader>
           <CardTitle>{t("advancedOptionsTitle")}</CardTitle>
           <CardDescription>{t("advancedOptionsDescription")}</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-8 md:grid-cols-2">
-          <div>
-            <Label htmlFor="num_questions" className="font-medium">
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className=" flex flex-col items-center justify-between p-7 rounded-lg border">
+            <Label
+              htmlFor="num_questions"
+              className="text-base font-medium justify-center"
+            >
               {t("numQuestionsLabel")}
             </Label>
-            <Controller
+            <Controller // make a custom number input with increment/decrement buttons
               name="num_questions"
               control={control}
               render={({ field }) => (
-                <Input
-                  id="num_questions"
-                  type="number"
-                  {...field}
-                  className="mt-2"
-                  placeholder={t("numQuestionsPlaceholder")}
-                />
+                <div className="mt-2 flex justify-center items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      field.onChange(Math.max((field.value || 0) - 1, 0))
+                    }
+                    className="w-10 h-10 p-0 text-xl cursor-pointer"
+                  >
+                    –
+                  </Button>
+
+                  <input
+                    type="text"
+                    value={field.value || ""}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      field.onChange(isNaN(value) ? "" : Math.max(value, 0)); // prevent negative
+                    }}
+                    className="w-16 text-center text-lg font-semibold border rounded px-2 py-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => field.onChange((field.value || 0) + 1)}
+                    className="w-10 h-10 p-0 text-xl cursor-pointer"
+                  >
+                    +
+                  </Button>
+                </div>
               )}
             />
+
             {errors.num_questions && (
               <p className="mt-1 text-sm font-medium text-destructive">
                 {errors.num_questions.message}
               </p>
             )}
           </div>
-          <div className="space-y-6">
-            <Controller
-              name="starred"
-              control={control}
-              render={({ field }) => (
-                <div className="flex items-center justify-between space-x-4 rounded-lg border p-4 rtl:space-x-reverse">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="starred" className="text-base">
-                      {t("starredLabel")}
-                    </Label>
-                    <p className="text-[0.8rem] text-muted-foreground">
-                      {t("starredDescription")}
-                    </p>
-                  </div>
-                  <Switch
-                    id="starred"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
+          <Controller
+            name="starred"
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-center justify-between md:space-x-8 rounded-lg border p-7 rtl:space-x-reverse">
+                <div className="space-y-0.5">
+                  <Label htmlFor="starred" className="text-base">
+                    {t("starredLabel")}
+                  </Label>
+                  <p className="text-[0.8rem] text-muted-foreground">
+                    {t("starredDescription")}
+                  </p>
                 </div>
-              )}
-            />
-            <Controller
-              name="not_mastered"
-              control={control}
-              render={({ field }) => (
-                <div className="flex items-center justify-between space-x-4 rounded-lg border p-4 rtl:space-x-reverse">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="not_mastered" className="text-base">
-                      {t("notMasteredLabel")}
-                    </Label>
-                    <p className="text-[0.8rem] text-muted-foreground">
-                      {t("notMasteredDescription")}
-                    </p>
-                  </div>
-                  <Switch
-                    id="not_mastered"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
+                <Switch
+                  id="starred"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </div>
+            )}
+          />
+          <Controller
+            name="not_mastered"
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-center justify-between md:space-x-8 rounded-lg border p-7 rtl:space-x-reverse">
+                <div className="space-y-0.5">
+                  <Label htmlFor="not_mastered" className="text-base">
+                    {t("notMasteredLabel")}
+                  </Label>
+                  <p className="text-[0.8rem] text-muted-foreground">
+                    {t("notMasteredDescription")}
+                  </p>
                 </div>
-              )}
-            />
-          </div>
+                <Switch
+                  id="not_mastered"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </div>
+            )}
+          />
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
+      <div className="flex justify-center">
         <Button
           type="submit"
           disabled={startPracticeMutation.isPending || !isValid}
           size="lg"
+          className="w-full max-w-md"
         >
           {startPracticeMutation.isPending && (
             <Loader2 className="me-2 h-5 w-5 animate-spin" />

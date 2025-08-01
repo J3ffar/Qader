@@ -49,6 +49,8 @@ import type {
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { cn } from "@/lib/utils";
 import { queryKeys } from "@/constants/queryKeys";
+import { RichContentViewer } from "@/components/shared/RichContentViewer";
+import { QuestionRenderer } from "@/components/shared/QuestionRenderer";
 
 type OptionKey = "A" | "B" | "C" | "D";
 interface UserSelections {
@@ -327,12 +329,10 @@ const TestAttemptPage = () => {
         </CardHeader>
 
         <CardContent className="min-h-[300px] py-6">
-          <h2
-            className="mb-6 text-right text-lg font-semibold leading-relaxed rtl:text-right md:text-xl"
-            dir="auto"
-          >
-            {currentQuestion.question_text}
-          </h2>
+          <QuestionRenderer
+            questionText={currentQuestion.question_text}
+            imageUrl={currentQuestion.image}
+          />
 
           {currentQuestion.options ? (
             <RadioGroup
@@ -340,28 +340,29 @@ const TestAttemptPage = () => {
               onValueChange={(value: string) =>
                 handleSelectAnswer(value as OptionKey)
               }
-              className="space-y-3"
-              dir="ltr" // Keep radio group LTR for consistency, label text will still follow page direction
+              className="space-y-3 mt-8"
+              dir={"rtl"}
             >
-              {Object.entries(currentQuestion.options).map(([key, text]) => (
-                <Label
-                  key={key}
-                  htmlFor={`${currentQuestion.id}-${key}`}
-                  className={cn(
-                    "flex cursor-pointer items-center space-x-3 rounded-md border p-4 text-base transition-colors hover:bg-accent rtl:space-x-reverse",
-                    "has-[input:checked]:border-primary has-[input:checked]:bg-primary/10 has-[input:checked]:ring-2 has-[input:checked]:ring-primary"
-                  )}
-                >
-                  <RadioGroupItem
-                    value={key}
-                    id={`${currentQuestion.id}-${key}`}
-                    className="border-muted-foreground"
-                  />
-                  <span className="flex-1" dir="auto">
-                    {text}
-                  </span>
-                </Label>
-              ))}
+              {Object.entries(currentQuestion.options).map(([key, text]) => {
+                const optionKey = key as OptionKey;
+                return (
+                  <Label
+                    key={optionKey}
+                    htmlFor={`${currentQuestion.id}-${optionKey}`}
+                    className="has-[input:checked]:border-primary has-[input:checked]:bg-primary has-[input-checked]:text-primary-foreground flex cursor-pointer items-center space-x-3 rounded-md border p-3 text-base transition-colors hover:bg-accent rtl:space-x-reverse"
+                  >
+                    <RadioGroupItem
+                      value={optionKey}
+                      id={`${currentQuestion.id}-${optionKey}`}
+                      className="border-primary text-primary"
+                    />
+                    <RichContentViewer
+                      htmlContent={text}
+                      className="prose dark:prose-invert max-w-none flex-1"
+                    />
+                  </Label>
+                );
+              })}
             </RadioGroup>
           ) : (
             <Alert variant="destructive">

@@ -244,7 +244,7 @@ const TestsPage = () => {
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-6 text-center">
               <ListXIcon size={48} className="text-primary" />
               <h3 className="mt-4 text-xl font-semibold">
-                {t("list.noAttemptsTitle")}
+                {t("noAttemptsTitle")}
               </h3>
               <p className="mt-1 text-muted-foreground">
                 {t("noAttemptsDescription")}
