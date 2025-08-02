@@ -24,9 +24,7 @@ import {
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 
 import { PATHS } from "@/constants/paths";
-import {
-  UserTestAttemptList,
-} from "@/types/api/study.types";
+import { UserTestAttemptList } from "@/types/api/study.types";
 
 type TestAttemptActionsProps = {
   attempt: UserTestAttemptList;
@@ -61,25 +59,13 @@ const TestAttemptActions = ({
           case "started":
             return (
               <div className="flex flex-col justify-center gap-2 sm:flex-row">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    {/* The disabled button is wrapped in a span for the tooltip to work correctly */}
-                    <span tabIndex={0}>
-                      <Button asChild size="sm" disabled>
-                        {/* We use a Link so it's ready once enabled */}
-                        <Link
-                          href={PATHS.STUDY.TESTS.ATTEMPT(attempt.attempt_id)}
-                        >
-                          <PlayCircle className="me-2 h-4 w-4" />
-                          {t("continueTest")}
-                        </Link>
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{t("continueTestTooltip")}</p>
-                  </TooltipContent>
-                </Tooltip>
+                <Button asChild size="sm" disabled>
+                  {/* We use a Link so it's ready once enabled */}
+                  <Link href={PATHS.STUDY.TESTS.ATTEMPT(attempt.attempt_id)}>
+                    <PlayCircle className="me-2 h-4 w-4" />
+                    {t("continueTest")}
+                  </Link>
+                </Button>
 
                 <ConfirmationDialog
                   triggerButton={
