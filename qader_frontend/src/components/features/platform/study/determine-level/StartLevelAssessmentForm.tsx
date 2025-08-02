@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useForm, Controller, useWatch } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Check, ChevronDown, ChevronUp, Loader2, Minus } from "lucide-react";
+import { Info, Loader2, Check } from "lucide-react"; // REMOVED: Minus icon
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,7 +26,6 @@ import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger,
 } from "@/components/ui/accordion";
 
 import { getLearningSections } from "@/services/learning.service";
@@ -38,14 +36,14 @@ import type { StartLevelAssessmentPayload } from "@/types/api/study.types";
 import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { queryKeys } from "@/constants/queryKeys";
+import { useAuthCore } from "@/store/auth.store";
 
 interface StartLevelAssessmentFormValues {
   selectedSections: Record<
     string,
     {
-      // Keyed by main section slug
-      allSelected: boolean; // Main section checkbox state
-      subsections: Record<string, boolean>; // Keyed by subsection slug
+      allSelected: boolean;
+      subsections: Record<string, boolean>;
     }
   >;
   num_questions: number;
@@ -67,7 +65,7 @@ const createInitialFormValues = (
   });
   return {
     selectedSections: initialSelectedSections,
-    num_questions: 30, // Default number of questions
+    num_questions: 30,
   };
 };
 
@@ -78,15 +76,16 @@ const StartLevelAssessmentForm: React.FC = () => {
   const queryClient = useQueryClient();
   const [mutationErrorMsg, setMutationErrorMsg] = useState<string | null>(null);
 
-  const {
-    data: learningSectionsData,
-    isLoading: isLoadingSections,
-    error: sectionsError,
-  } = useQuery({
-    queryKey: queryKeys.learning.sections({}),
-    queryFn: () => getLearningSections(),
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
+  const { user } = useAuthCore();
+  const isFirstTimeAssessment = user?.level_determined === false;
+
+  const { data: learningSectionsData, isLoading: isLoadingSections } = useQuery(
+    {
+      queryKey: queryKeys.learning.sections({}),
+      queryFn: () => getLearningSections(),
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 
   const sections = learningSectionsData?.results || [];
 
@@ -95,11 +94,8 @@ const StartLevelAssessmentForm: React.FC = () => {
       .custom<StartLevelAssessmentFormValues["selectedSections"]>()
       .refine(
         (val) => {
-          // At least one main section (derived from selected subsections) must be chosen
-          return Object.values(val).some((mainSection) =>
-            Object.values(mainSection.subsections).some(
-              (isSelected) => isSelected
-            )
+          return Object.values(val).some(
+            (mainSection) => mainSection.allSelected
           );
         },
         { message: t("validation.atLeastOneSection") }
@@ -118,23 +114,23 @@ const StartLevelAssessmentForm: React.FC = () => {
     formState: { errors, isValid },
   } = useForm<StartLevelAssessmentFormValues>({
     resolver: zodResolver(formSchema),
-    mode: "onChange", // Validate on change for better UX
+    mode: "onChange",
     defaultValues: createInitialFormValues(sections),
   });
 
-  // Update defaultValues when sections are loaded
   useEffect(() => {
     if (sections.length > 0) {
       setValue(
         "selectedSections",
         createInitialFormValues(sections).selectedSections
       );
-      setValue("num_questions", 30); // Reset num_questions as well
+      setValue("num_questions", 30);
     }
   }, [sections, setValue]);
 
   const selectedSectionsWatched = watch("selectedSections");
 
+  // SIMPLIFIED: This is now the only function needed to change selections.
   const handleMainSectionChange = (sectionSlug: string, isChecked: boolean) => {
     const currentMainSection = selectedSectionsWatched[sectionSlug];
     const updatedSubsections: Record<string, boolean> = {};
@@ -148,79 +144,30 @@ const StartLevelAssessmentForm: React.FC = () => {
     );
   };
 
-  const handleSubSectionChange = (
-    mainSectionSlug: string,
-    subSectionSlug: string,
-    isChecked: boolean
-  ) => {
-    const currentMainSection = selectedSectionsWatched[mainSectionSlug];
-    const updatedSubsections = {
-      ...currentMainSection.subsections,
-      [subSectionSlug]: isChecked,
-    };
-
-    const allSubSelected = Object.values(updatedSubsections).every(
-      (val) => val
-    );
-    const someSubSelected = Object.values(updatedSubsections).some(
-      (val) => val
-    );
-
-    let newAllSelectedState: boolean;
-    if (allSubSelected) newAllSelectedState = true;
-    else if (someSubSelected) newAllSelectedState = false;
-    // Treat as indeterminate, effectively false for "allSelected"
-    else newAllSelectedState = false;
-
-    setValue(
-      `selectedSections.${mainSectionSlug}`,
-      {
-        allSelected: newAllSelectedState, // This will control the main checkbox state (true if all sub are true)
-        subsections: updatedSubsections,
-      },
-      { shouldValidate: true }
-    );
-  };
+  // REMOVED: handleSubSectionChange is no longer needed.
 
   const startAssessmentMutation = useMutation({
     mutationFn: startLevelAssessmentTest,
     onSuccess: (data) => {
       setMutationErrorMsg(null);
       toast.success(t("api.startSuccess"));
-      // The API response `data` includes `attempt_id` and `questions`.
-      // We need to pass this to the quiz page.
-      // For client components, query params or client-side state (like Zustand/Context) are options.
-      // Simplest for now is query params if question data isn't too large.
-      // Backend should ideally store questions against attempt_id, so quiz page just needs attempt_id.
-      // Based on API doc UserTestAttemptStartResponse, it returns questions.
-      // Storing in localStorage temporarily is also an option but less ideal.
-      // Let's assume the quiz page will re-fetch attempt details including questions using the attempt_id.
       queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
       router.push(PATHS.STUDY.DETERMINE_LEVEL.ATTEMPT(data.attempt_id));
     },
     onError: (error: any) => {
       const errorMessage = getApiErrorMessage(error, t("api.startError"));
-      setMutationErrorMsg(errorMessage); // Set error for on-page Alert
+      setMutationErrorMsg(errorMessage);
       toast.error(errorMessage);
     },
   });
 
   const onSubmit = (formData: StartLevelAssessmentFormValues) => {
-    const payloadSections: string[] = [];
-    for (const mainSlug in formData.selectedSections) {
-      if (
-        Object.values(formData.selectedSections[mainSlug].subsections).some(
-          (isSelected) => isSelected
-        )
-      ) {
-        if (!payloadSections.includes(mainSlug)) {
-          payloadSections.push(mainSlug);
-        }
-      }
-    }
+    // SIMPLIFIED: Submission logic is clearer now.
+    const payloadSections: string[] = Object.entries(formData.selectedSections)
+      .filter(([_, sectionData]) => sectionData.allSelected)
+      .map(([mainSlug, _]) => mainSlug);
 
     if (payloadSections.length === 0) {
-      // This should be caught by Zod validation, but as a fallback
       toast.error(t("validation.atLeastOneSection"));
       return;
     }
@@ -259,15 +206,30 @@ const StartLevelAssessmentForm: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 w-full">
-      <Card className="overflow-hidden w-full max-w-none dark:bg-[#0B1739] dark:border-[#7E89AC]" >
+      {isFirstTimeAssessment && (
+        <Alert className="dark:bg-[#074182]/20 dark:border-[#7E89AC]">
+          <Info className="h-4 w-4" />
+          <AlertTitle>{t("firstTime.title")}</AlertTitle>
+          <AlertDescription>{t("firstTime.description")}</AlertDescription>
+        </Alert>
+      )}
+
+      {mutationErrorMsg && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>{t("api.startError")}</AlertTitle>
+          <AlertDescription>{mutationErrorMsg}</AlertDescription>
+        </Alert>
+      )}
+
+      <Card className="overflow-hidden w-full max-w-none dark:bg-[#0B1739] dark:border-[#7E89AC]">
         <CardHeader>
           <CardTitle>{t("selectSectionsAndCount")}</CardTitle>
-          <CardDescription>{t("selectSectionsDescription")}</CardDescription>
+          {/* UPDATED: New description reflects simplified interaction */}
+          <CardDescription>{t("selectSectionsDescriptionNew")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {errors.selectedSections && (
             <p className="text-sm font-medium text-destructive">
-              {/* Ensure this message comes from Zod and is a string */}
               {typeof errors.selectedSections.message === "string"
                 ? errors.selectedSections.message
                 : t("validation.selectAtLeastOneSubsection")}
@@ -275,50 +237,30 @@ const StartLevelAssessmentForm: React.FC = () => {
           )}
           <Accordion
             type="multiple"
-            value={sections.map((s) => s.slug)}
+            defaultValue={sections.map((s) => s.slug)}
             className="w-full grid grid-cols-1 md:grid-cols-2 gap-6"
           >
             {sections.map((section) => {
-              const mainSectionState = selectedSectionsWatched?.[section.slug];
-              const allSubsectionsSelected =
-                mainSectionState && Object.values(mainSectionState.subsections).every(Boolean);
-              const someSubsectionsSelected =
-                mainSectionState && Object.values(mainSectionState.subsections).some(Boolean);
-
-              const mainCheckboxState: "checked" | "unchecked" | "indeterminate" =
-                allSubsectionsSelected
-                  ? "checked"
-                  : someSubsectionsSelected
-                  ? "indeterminate"
-                  : "unchecked";
+              // SIMPLIFIED: Main checkbox is either checked or not. No indeterminate state.
+              const isSectionSelected =
+                selectedSectionsWatched?.[section.slug]?.allSelected || false;
 
               return (
                 <AccordionItem
                   value={section.slug}
                   key={section.slug}
-                  className="w-full max-w-full rounded-2xl border-2 p-6 shadow-md"
+                  className="w-full max-w-full rounded-2xl border-2 p-6 shadow-md dark:border-gray-700"
                 >
-                  {/* Main Section Checkbox + Label */}
                   <div className="flex items-center space-x-3 rtl:space-x-reverse mb-4">
                     <Checkbox
                       id={`section-${section.slug}`}
-                      checked={mainCheckboxState === "checked"}
-                      data-state={mainCheckboxState}
+                      checked={isSectionSelected}
                       onCheckedChange={(checked) =>
                         handleMainSectionChange(section.slug, checked === true)
                       }
-                      className={cn(
-                        "cursor-pointer",
-                        mainCheckboxState === "indeterminate" &&
-                          "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:text-primary-foreground"
-                      )}
+                      className="cursor-pointer"
                       aria-label={`Select all in ${section.name}`}
-                    >
-                      {mainCheckboxState === "indeterminate" && (
-                        <Minus className="h-4 w-4" />
-                      )}
-                    </Checkbox>
-
+                    />
                     <label
                       htmlFor={`section-${section.slug}`}
                       className="cursor-pointer font-semibold text-lg sm:text-xl rtl:mr-3"
@@ -327,38 +269,33 @@ const StartLevelAssessmentForm: React.FC = () => {
                     </label>
                   </div>
 
-                  {/* Subsection Clickable Boxes */}
                   <AccordionContent className="grid grid-cols-1 gap-3 p-4 pt-0 sm:grid-cols-3">
-                    {section.subsections.map((subsection) => {
-                      const isSelected =
-                        selectedSectionsWatched?.[section.slug]?.subsections?.[subsection.slug] ||
-                        false;
-
-                      return (
-                        <div
-                          key={subsection.slug}
-                          onClick={() =>
-                            handleSubSectionChange(section.slug, subsection.slug, !isSelected)
-                          }
-                          className={cn(
-                            "cursor-pointer rounded-lg p-4 text-center text-sm transition select-none border",
-                            isSelected
-                              ? "border-2 border-primary dark:bg-[#074182] font-semibold"
-                              : "border border-gray-300 hover:border-primary font-normal"
-                          )}
-                        >
-                          {subsection.name}
-                        </div>
-                      );
-                    })}
+                    {section.subsections.map((subsection) => (
+                      // CHANGED: Subsections are now purely informational.
+                      // No onClick, no complex styling.
+                      <div
+                        key={subsection.slug}
+                        className={cn(
+                          "rounded-lg p-4 text-center text-sm select-none border",
+                          isSectionSelected
+                            ? "border-primary/50 bg-primary/10 dark:bg-[#074182]/50 font-medium"
+                            : "border-gray-300 dark:border-gray-600 bg-muted/50 text-muted-foreground"
+                        )}
+                      >
+                        {subsection.name}
+                      </div>
+                    ))}
                   </AccordionContent>
                 </AccordionItem>
               );
             })}
           </Accordion>
-          
+
           <div className="w-full">
-            <Label htmlFor="num_questions" className="text-base font-medium justify-center">
+            <Label
+              htmlFor="num_questions"
+              className="text-base font-medium justify-center"
+            >
               {t("numQuestions")}
             </Label>
             <Controller // make a custom number input with increment/decrement buttons
@@ -369,18 +306,20 @@ const StartLevelAssessmentForm: React.FC = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => field.onChange(Math.max((field.value || 0) - 1, 0))}
+                    onClick={() =>
+                      field.onChange(Math.max((field.value || 0) - 1, 0))
+                    }
                     className="w-10 h-10 p-0 text-xl cursor-pointer"
                   >
                     –
                   </Button>
-                  
+
                   <input
                     type="text"
-                    value={field.value || ''}
+                    value={field.value || ""}
                     onChange={(e) => {
                       const value = parseInt(e.target.value, 10);
-                      field.onChange(isNaN(value) ? '' : Math.max(value, 0)); // prevent negative
+                      field.onChange(isNaN(value) ? "" : Math.max(value, 0)); // prevent negative
                     }}
                     className="w-16 text-center text-lg font-semibold border rounded px-2 py-1"
                   />
