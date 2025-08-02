@@ -16,6 +16,9 @@ from drf_spectacular.utils import (
     OpenApiTypes,
     OpenApiResponse,
 )
+from rest_framework import viewsets, mixins
+from rest_framework.reverse import reverse
+
 
 from apps.users.models import UserProfile
 from apps.study.models import UserQuestionAttempt, UserTestAttempt
@@ -31,6 +34,10 @@ from ..permissions import (
 
 # Import the new services
 from apps.admin_panel import services as admin_services
+
+# Import the new models and tasks
+from apps.admin_panel.models import ExportJob
+from apps.admin_panel.tasks import export_statistics_task
 
 # --- Helper Functions ---
 
@@ -287,187 +294,115 @@ class AdminStatisticsOverviewAPIView(APIView):
         return Response(serializer.data)
 
 
-class AdminStatisticsExportAPIView(APIView):
+# --- REFACTORED EXPORT VIEW ---
+class ExportJobViewSet(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet,
+):
     """
-    Generates and returns a statistics data export file (CSV or XLSX) synchronously.
-    Supports filtering by date range and export format.
-    **Note:** May time out for very large datasets. Consider async implementation for production.
+    ViewSet to manage data export jobs.
+
+    - `POST /api/v1/admin/statistics/export-jobs/`: Triggers a new export job.
+    - `GET /api/v1/admin/statistics/export-jobs/`: Lists all historical export jobs for the user.
+    - `GET /api/v1/admin/statistics/export-jobs/{id}/`: Retrieves the status and details of a specific job.
     """
 
     permission_classes = [IsAdminUserOrSubAdminWithPermission]
     required_permissions = ["export_data"]
-    # No serializer_class needed here for the response itself
+
+    def get_queryset(self):
+        """
+        Users should only see their own export jobs, unless they are superadmins.
+        """
+        user = self.request.user
+        if user.is_superuser:
+            return ExportJob.objects.all()
+        return ExportJob.objects.filter(requesting_user=user)
+
+    def get_serializer_class(self):
+        """Return different serializers for create vs. list/retrieve actions."""
+        if self.action == "create":
+            return stats_serializers.AdminStatisticsExportSerializer
+        return stats_serializers.ExportJobSerializer
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "format",
-                OpenApiTypes.STR,
-                OpenApiParameter.QUERY,
-                description="Export format ('csv' or 'xlsx'). Default: 'csv'.",
-            ),
-            OpenApiParameter(
-                "date_from",
-                OpenApiTypes.DATE,
-                OpenApiParameter.QUERY,
-                description="Start date for filtering (YYYY-MM-DD). Defaults to 30 days ago.",
-            ),
-            OpenApiParameter(
-                "date_to",
-                OpenApiTypes.DATE,
-                OpenApiParameter.QUERY,
-                description="End date for filtering (YYYY-MM-DD). Defaults to today.",
-            ),
-            # Add other filters mirroring the overview endpoint if needed
-        ],
-        request=None,  # No request body for GET
+        summary="Create/Trigger a Data Export",
+        request=stats_serializers.AdminStatisticsExportSerializer,
         responses={
             202: stats_serializers.ExportTaskResponseSerializer,
             400: OpenApiResponse(description="Bad Request - Invalid parameters"),
-            403: OpenApiResponse(
-                description="Forbidden - User does not have permission"
-            ),
         },
         tags=["Admin Panel - Statistics"],
     )
-    def get(self, request, *args, **kwargs):
-        export_format = request.query_params.get("format", "csv").lower()
-        if export_format not in ["csv", "xlsx"]:
-            return Response(
-                {"format": "Invalid format. Choose 'csv' or 'xlsx'."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    def create(self, request, *args, **kwargs):
+        """
+        Accepts export parameters, creates an ExportJob record,
+        and triggers a background task.
+        """
+        # 1. Validate the incoming request data
+        validation_serializer = self.get_serializer(data=request.data)
+        validation_serializer.is_valid(raise_exception=True)
+        validated_data = validation_serializer.validated_data
 
-        try:
-            datetime_from, datetime_to, date_from, date_to = get_date_filters(
-                request
-            )  # Reuse helper
-        except drf_serializers.ValidationError as e:
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
-
-        # --- Query Data Based on Filters ---
-        # Example: Exporting completed test attempts data
-        queryset = UserTestAttempt.objects.select_related(  # pylint: disable=no-member
-            "user__profile", "test_definition"
+        # 2. Extract date filters for the task
+        # Note: We pass dates as strings to Celery to avoid timezone issues.
+        date_from, date_to = validated_data.get("date_from"), validated_data.get(
+            "date_to"
         )
-        if datetime_from and datetime_to:
-            queryset = queryset.filter(start_time__range=(datetime_from, datetime_to))
-        queryset = queryset.filter(status=UserTestAttempt.Status.COMPLETED).order_by(
-            "start_time"
+        filters_for_task = {
+            "datetime_from": date_from.isoformat() if date_from else None,
+            "datetime_to": date_to.isoformat() if date_to else None,
+        }
+
+        # 3. Create the ExportJob record in the database
+        job = ExportJob.objects.create(
+            requesting_user=request.user,
+            file_format=validated_data["format"],
+            status=ExportJob.Status.PENDING,
+            filters=filters_for_task,
         )
-        # Add more complex filtering based on query params if needed
 
-        # --- Generate File Content ---
-        filename = f"qader_stats_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.{export_format}"
-        content_type = None
-        file_content = None
+        # 4. Trigger the Celery task
+        task = export_statistics_task.delay(job_id=job.id)
 
-        try:
-            # Example assuming you have a Celery task defined
-            # task = export_statistics_task.delay(
-            #     user_id=request.user.id, # ID of admin requesting
-            #     export_format=export_format,
-            #     filters={
-            #         'date_from': date_from.isoformat(),
-            #         'date_to': date_to.isoformat(),
-            #         # Pass other filters here
-            #     }
-            # )
-            if export_format == "csv":
-                output = StringIO()
-                writer = csv.writer(output)
-                # Write Header
-                headers = [
-                    "Attempt ID",
-                    "User ID",
-                    "Username",
-                    "Test Name",
-                    "Start Time",
-                    "Score (%)",
-                    "Verbal Score",
-                    "Quant Score",
-                    "Status",
-                ]
-                writer.writerow(headers)
-                # Write Data
-                for (
-                    attempt
-                ) in queryset.iterator():  # Use iterator for potentially large datasets
-                    writer.writerow(
-                        [
-                            attempt.id,
-                            attempt.user.id,
-                            attempt.user.username,
-                            (
-                                attempt.test_definition.name
-                                if attempt.test_definition
-                                else "N/A (e.g., Level Assessment)"
-                            ),
-                            attempt.start_time.strftime("%Y-%m-%d %H:%M:%S"),
-                            attempt.score_percentage,
-                            attempt.score_verbal,
-                            attempt.score_quantitative,
-                            attempt.get_status_display(),  # Get human-readable status
-                        ]
-                    )
-                file_content = output.getvalue().encode("utf-8")
-                content_type = "text/csv"
+        # 5. Save the Celery task ID to our job record for tracking
+        job.task_id = task.id
+        job.save(update_fields=["task_id"])
 
-            elif export_format == "xlsx":
-                output = BytesIO()
-                workbook = openpyxl.Workbook()
-                sheet = workbook.active
-                sheet.title = "Test Attempts"
-                # Write Header
-                headers = [
-                    "Attempt ID",
-                    "User ID",
-                    "Username",
-                    "Test Name",
-                    "Start Time",
-                    "Score (%)",
-                    "Verbal Score",
-                    "Quant Score",
-                    "Status",
-                ]
-                sheet.append(headers)
-                # Write Data
-                for attempt in queryset.iterator():
-                    sheet.append(
-                        [
-                            attempt.id,
-                            attempt.user.id,
-                            attempt.user.username,
-                            (
-                                attempt.test_definition.name
-                                if attempt.test_definition
-                                else "N/A (e.g., Level Assessment)"
-                            ),
-                            attempt.start_time.replace(
-                                tzinfo=None
-                            ),  # Remove timezone for Excel
-                            attempt.score_percentage,
-                            attempt.score_verbal,
-                            attempt.score_quantitative,
-                            attempt.get_status_display(),
-                        ]
-                    )
-                workbook.save(output)
-                file_content = output.getvalue()
-                content_type = (
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+        # 6. Prepare and send the response to the user
+        status_check_url = reverse(
+            "api:v1:admin_panel:export-job-detail",
+            kwargs={"pk": job.id},
+            request=request,
+        )
+        response_data = {
+            "job_id": job.id,
+            "message": "Your export request has been received and is being processed. "
+            "You can check the status at the provided URL.",
+            "status_check_url": status_check_url,
+        }
 
-            # --- Create and Return HttpResponse ---
-            response = HttpResponse(file_content, content_type=content_type)
-            response["Content-Disposition"] = f'attachment; filename="{filename}"'
-            return response
+        response_serializer = stats_serializers.ExportTaskResponseSerializer(
+            data=response_data
+        )
+        response_serializer.is_valid(raise_exception=True)
 
-        except Exception as e:
-            # Log the error properly in a real application
-            print(f"Error generating export file: {e}")
-            # Return a standard DRF error response instead of generic HTTP 500
-            return Response(
-                {"detail": "An error occurred while generating the export file."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        return Response(response_serializer.data, status=status.HTTP_202_ACCEPTED)
+
+    @extend_schema(
+        summary="List Data Export Jobs",
+        responses={200: stats_serializers.ExportJobSerializer(many=True)},
+        tags=["Admin Panel - Statistics"],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Retrieve a Data Export Job",
+        responses={200: stats_serializers.ExportJobSerializer},
+        tags=["Admin Panel - Statistics"],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)

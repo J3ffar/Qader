@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-11 09:35+0300\n"
+"POT-Creation-Date: 2025-08-02 20:05+0300\n"
 "PO-Revision-Date: 2025-05-18 13:10+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -18,82 +18,82 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
-#: .\apps\community\api\filters.py:24 .\apps\community\models.py:35
+#: .\apps\community\api\filters.py:25 .\apps\community\models.py:35
 msgid "Post Type"
 msgstr "نوع المنشور"
 
-#: .\apps\community\api\filters.py:30
+#: .\apps\community\api\filters.py:31
 msgid "Section Slug"
 msgstr "سلاغ القسم"
 
-#: .\apps\community\api\filters.py:34
+#: .\apps\community\api\filters.py:35
 msgid "Tags (comma-separated names/slugs)"
 msgstr "الوسوم (أسماء/سلاغات مفصولة بفواصل)"
 
-#: .\apps\community\api\filters.py:36
+#: .\apps\community\api\filters.py:37
 msgid "Is Pinned?"
 msgstr "هل هو مثبت؟"
 
-#: .\apps\community\api\filters.py:70
+#: .\apps\community\api\filters.py:71
 msgid "User's Name or Username"
 msgstr "اسم المستخدم أو اسم المستخدم"
 
-#: .\apps\community\api\filters.py:73
-msgid "Grade/Level"
-msgstr "الدرجة/المستوى"
+#: .\apps\community\api\filters.py:75
+msgid "Grade(s) (comma-separated keys, e.g., high_1,high_2)"
+msgstr ""
 
-#: .\apps\community\api\filters.py:79
+#: .\apps\community\api\filters.py:81
 #, fuzzy
 #| msgid "Section Slug"
 msgid "Learning Section Slug"
 msgstr "سلاغ القسم"
 
-#: .\apps\community\api\serializers.py:72
-#: .\apps\community\api\serializers.py:78
+#: .\apps\community\api\serializers.py:74
+#: .\apps\community\api\serializers.py:80
 msgid "ID of the parent reply being responded to (for threading)."
 msgstr "معرف الرد الأصلي الذي يتم الرد عليه (للترابط)."
 
-#: .\apps\community\api\serializers.py:131
+#: .\apps\community\api\serializers.py:133
 msgid "Parent reply not found."
 msgstr "لم يتم العثور على الرد الأصلي."
 
-#: .\apps\community\api\serializers.py:202
+#: .\apps\community\api\serializers.py:204
 msgid "Slug of the learning section to associate this post with (optional)."
 msgstr "سلاغ قسم التعلم لربط هذا المنشور به (اختياري)."
 
-#: .\apps\community\api\serializers.py:235
+#: .\apps\community\api\serializers.py:237
 msgid "Invalid post type selected."
 msgstr "تم تحديد نوع منشور غير صالح."
 
-#: .\apps\community\api\serializers.py:251
+#: .\apps\community\api\serializers.py:253
 msgid "A title is required for this post type."
 msgstr "العنوان مطلوب لهذا النوع من المنشورات."
 
-#: .\apps\community\api\serializers.py:300
+#: .\apps\community\api\serializers.py:302
 msgid "Recipient User ID"
 msgstr "معرف المستخدم المستلم"
 
-#: .\apps\community\api\serializers.py:329
+#: .\apps\community\api\serializers.py:331
 msgid "You cannot send a partner request to yourself."
 msgstr "لا يمكنك إرسال طلب شراكة لنفسك."
 
-#: .\apps\community\api\serializers.py:339
+#: .\apps\community\api\serializers.py:341
 msgid "You already have a pending request with this user."
 msgstr "لديك بالفعل طلب معلق مع هذا المستخدم."
 
-#: .\apps\community\api\serializers.py:351
+#: .\apps\community\api\serializers.py:353
 msgid "You are already partners with this user."
 msgstr "أنت بالفعل شريك مع هذا المستخدم."
 
-#: .\apps\community\api\views.py:481
+#: .\apps\community\api\views.py:483
 msgid "Parent reply does not belong to this post."
 msgstr "الرد الأصلي لا ينتمي إلى هذا المنشور."
 
-#: .\apps\community\api\views.py:586
+#: .\apps\community\api\views.py:588
 msgid "sent you a study partner request"
 msgstr "أرسل لك طلب شراكة دراسية"
 
-#: .\apps\community\api\views.py:618
+#: .\apps\community\api\views.py:620
 msgid "accepted your study partner request"
 msgstr "قبل طلب شراكتك الدراسية"
 
@@ -284,3 +284,6 @@ msgstr "طلب شراكة"
 #: .\apps\community\models.py:242
 msgid "Partner Requests"
 msgstr "طلبات الشراكة"
+
+#~ msgid "Grade/Level"
+#~ msgstr "الدرجة/المستوى"

@@ -1,63 +1,61 @@
-import csv
-import openpyxl  # Requires installation: pip install openpyxl
-from io import StringIO, BytesIO
 from celery import shared_task
 from django.core.files.base import ContentFile
-from django.core.mail import send_mail
-from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.utils import timezone
-import datetime
+import logging
 
-# Import necessary models
-from apps.study.models import UserTestAttempt
-
-# Import the new services
+# Import the new model
+from apps.admin_panel.models import ExportJob
 from apps.admin_panel import services as admin_services
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True)
-def export_statistics_task(self, user_id, export_format, filters):
+def export_statistics_task(self, job_id):
     """
-    Celery task to export statistics data based on filters.
-    Calls reusable service functions for querying and file generation.
+    Celery task to generate a statistics file and save it to an ExportJob record.
     """
-    User = get_user_model()
     try:
-        requesting_user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        return {"status": "FAILURE", "message": "Requesting user not found."}
+        job = ExportJob.objects.get(id=job_id)
+    except ExportJob.DoesNotExist:
+        logger.error(f"ExportJob with id={job_id} not found.")
+        return {"status": "FAILURE", "message": "Job record not found."}
 
-    # --- Step 1: Query Data using the Service ---
-    # Note: We are reusing the filters dict directly from the view
-    queryset = admin_services.get_filtered_test_attempts(filters)
+    # --- Step 1: Update Job Status ---
+    job.status = ExportJob.Status.IN_PROGRESS
+    job.save(update_fields=["status"])
 
-    # --- Step 2: Generate File Content using the Service ---
-    # NOTE: I noticed a bug here. Your original task used `attempt.test.name` but the
-    # view used `attempt.test_definition.name`. The service function standardizes
-    # this to `test_definition`, fixing the inconsistency.
-    file_content, content_type, filename = admin_services.generate_export_file_content(
-        queryset, export_format
-    )
+    try:
+        # --- Step 2: Query Data using the Service ---
+        # Filters are now stored on the job model
+        queryset = admin_services.get_filtered_test_attempts(job.filters)
 
-    if not file_content:
-        return {"status": "FAILURE", "message": f"Unsupported format: {export_format}"}
+        # --- Step 3: Generate File Content using the Service ---
+        file_content, content_type, filename = (
+            admin_services.generate_export_file_content(queryset, job.file_format)
+        )
 
-    # --- Step 3: Save file and notify user (your logic here) ---
-    # from django.core.files.storage import default_storage
-    # file_path = default_storage.save(f"exports/{filename}", ContentFile(file_content))
-    # file_url = default_storage.url(file_path)
+        if not file_content:
+            raise ValueError(
+                f"Unsupported or empty file content for format: {job.file_format}"
+            )
 
-    print(f"Successfully generated export file: {filename} ({len(file_content)} bytes)")
-    file_url = f"/media/exports/{filename}"  # Placeholder URL
+        # --- Step 4: Save file to the model's FileField ---
+        job.file.save(filename, ContentFile(file_content))
 
-    # --- Notify User (Example: Email) ---
-    # send_mail(
-    #     'Your Qader Statistics Export is Ready',
-    #     f'Hello {requesting_user.username},\n\nYour requested data export is complete.\n\nYou can download it here: {file_url}\n\nRegards,\nThe Qader Team',
-    #     settings.DEFAULT_FROM_EMAIL,
-    #     [requesting_user.email],
-    #     fail_silently=False,
-    # )
+        # --- Step 5: Finalize Job as Success ---
+        job.status = ExportJob.Status.SUCCESS
+        job.completed_at = timezone.now()
+        job.save(update_fields=["status", "file", "completed_at"])
 
-    return {"status": "SUCCESS", "filename": filename, "file_url": file_url}
+        logger.info(f"Successfully completed ExportJob {job_id}. File: {job.file.name}")
+        return {"status": "SUCCESS", "file_path": job.file.path}
+
+    except Exception as e:
+        logger.exception(f"Failed to process ExportJob {job_id}. Error: {e}")
+        # --- Handle Failure ---
+        job.status = ExportJob.Status.FAILURE
+        job.error_message = str(e)
+        job.completed_at = timezone.now()
+        job.save(update_fields=["status", "error_message", "completed_at"])
+        return {"status": "FAILURE", "message": str(e)}

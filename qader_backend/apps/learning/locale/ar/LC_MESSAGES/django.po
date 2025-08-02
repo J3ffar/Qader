@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-18 15:00+0300\n"
+"POT-Creation-Date: 2025-08-02 20:05+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -19,81 +19,81 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
-#: .\apps\learning\models.py:30 .\apps\learning\models.py:87
-#: .\apps\learning\models.py:164
+#: .\apps\learning\models.py:31 .\apps\learning\models.py:88
+#: .\apps\learning\models.py:165
 msgid "Name"
 msgstr "الاسم"
 
-#: .\apps\learning\models.py:33
+#: .\apps\learning\models.py:34
 msgid "The primary name of the learning section (e.g., Verbal Section)."
 msgstr "الاسم الأساسي لقسم التعلم (على سبيل المثال، قسم اللفظي)."
 
-#: .\apps\learning\models.py:36 .\apps\learning\models.py:92
-#: .\apps\learning\models.py:169
+#: .\apps\learning\models.py:37 .\apps\learning\models.py:93
+#: .\apps\learning\models.py:170
 msgid "Slug"
 msgstr "الاسم اللطيف (Slug)"
 
-#: .\apps\learning\models.py:41
+#: .\apps\learning\models.py:42
 msgid "URL-friendly identifier (leave blank to auto-generate from name)."
 msgstr "معرف صديق لعنوان URL (اتركه فارغًا ليتم إنشاؤه تلقائيًا من الاسم)."
 
-#: .\apps\learning\models.py:45 .\apps\learning\models.py:101
-#: .\apps\learning\models.py:178
+#: .\apps\learning\models.py:46 .\apps\learning\models.py:102
+#: .\apps\learning\models.py:179
 msgid "Description"
 msgstr "الوصف"
 
-#: .\apps\learning\models.py:48
+#: .\apps\learning\models.py:49
 msgid "Optional description of the learning section."
 msgstr "وصف اختياري لقسم التعلم."
 
-#: .\apps\learning\models.py:51 .\apps\learning\models.py:107
+#: .\apps\learning\models.py:52 .\apps\learning\models.py:108
 msgid "Order"
 msgstr "الترتيب"
 
-#: .\apps\learning\models.py:54
+#: .\apps\learning\models.py:55
 msgid "Determines the display order in lists (lower numbers appear first)."
 msgstr "يحدد ترتيب العرض في القوائم (الأرقام الأقل تظهر أولاً)."
 
-#: .\apps\learning\models.py:59
+#: .\apps\learning\models.py:60
 msgid "Learning Section"
 msgstr "قسم التعلم"
 
-#: .\apps\learning\models.py:60
+#: .\apps\learning\models.py:61
 msgid "Learning Sections"
 msgstr "أقسام التعلم"
 
-#: .\apps\learning\models.py:83
+#: .\apps\learning\models.py:84
 msgid "Section"
 msgstr "القسم"
 
-#: .\apps\learning\models.py:84
+#: .\apps\learning\models.py:85
 msgid "The parent Learning Section this sub-section belongs to."
 msgstr "قسم التعلم الرئيسي الذي ينتمي إليه هذا القسم الفرعي."
 
-#: .\apps\learning\models.py:89
+#: .\apps\learning\models.py:90
 msgid "The name of the sub-section (e.g., Reading Comprehension)."
 msgstr "اسم القسم الفرعي (على سبيل المثال، فهم المقروء)."
 
-#: .\apps\learning\models.py:97
+#: .\apps\learning\models.py:98
 msgid ""
 "URL-friendly identifier (leave blank to auto-generate from section and name)."
 msgstr ""
 "معرف صديق لعنوان URL (اتركه فارغًا ليتم إنشاؤه تلقائيًا من القسم والاسم)."
 
-#: .\apps\learning\models.py:104
+#: .\apps\learning\models.py:105
 msgid "Optional description of the learning sub-section."
 msgstr "وصف اختياري للقسم الفرعي للتعلم."
 
-#: .\apps\learning\models.py:110
+#: .\apps\learning\models.py:111
 msgid ""
 "Determines the display order within its parent section (lower numbers first)."
 msgstr "يحدد ترتيب العرض داخل القسم الرئيسي (الأرقام الأقل أولاً)."
 
-#: .\apps\learning\models.py:114 .\apps\learning\models.py:185
+#: .\apps\learning\models.py:115 .\apps\learning\models.py:186
 msgid "Active Status"
 msgstr "الحالة النشطة"
 
-#: .\apps\learning\models.py:118
+#: .\apps\learning\models.py:119
 msgid ""
 "Designates whether this sub-section is active and should be used in question "
 "selections, filters, etc."
@@ -101,27 +101,27 @@ msgstr ""
 "يحدد ما إذا كان هذا القسم الفرعي نشطًا ويجب استخدامه في اختيارات الأسئلة، "
 "عوامل التصفية، إلخ."
 
-#: .\apps\learning\models.py:123
+#: .\apps\learning\models.py:124
 msgid "Learning Sub-Section"
 msgstr "قسم فرعي للتعلم"
 
-#: .\apps\learning\models.py:124
+#: .\apps\learning\models.py:125
 msgid "Learning Sub-Sections"
 msgstr "أقسام فرعية للتعلم"
 
-#: .\apps\learning\models.py:160 .\apps\learning\models.py:242
+#: .\apps\learning\models.py:161 .\apps\learning\models.py:257
 msgid "Sub-Section"
 msgstr "قسم فرعي"
 
-#: .\apps\learning\models.py:161
+#: .\apps\learning\models.py:162
 msgid "The parent Learning Sub-Section this skill belongs to."
 msgstr "القسم الفرعي للتعلم الرئيسي الذي تنتمي إليه هذه المهارة."
 
-#: .\apps\learning\models.py:166
+#: .\apps\learning\models.py:167
 msgid "The name of the specific skill (e.g., Solving Linear Equations)."
 msgstr "اسم المهارة المحددة (على سبيل المثال، حل المعادلات الخطية)."
 
-#: .\apps\learning\models.py:174
+#: .\apps\learning\models.py:175
 msgid ""
 "URL-friendly identifier (leave blank to auto-generate from subsection and "
 "name)."
@@ -129,11 +129,11 @@ msgstr ""
 "معرف صديق لعنوان URL (اتركه فارغًا ليتم إنشاؤه تلقائيًا من القسم الفرعي "
 "والاسم)."
 
-#: .\apps\learning\models.py:181
+#: .\apps\learning\models.py:182
 msgid "Optional description of the skill."
 msgstr "وصف اختياري للمهارة."
 
-#: .\apps\learning\models.py:189
+#: .\apps\learning\models.py:190
 msgid ""
 "Designates whether this skill is active and should be used in question "
 "selections, filters, etc."
@@ -141,140 +141,148 @@ msgstr ""
 "يحدد ما إذا كانت هذه المهارة نشطة ويجب استخدامه في اختيارات الأسئلة، عوامل "
 "التصفية، إلخ."
 
-#: .\apps\learning\models.py:194
+#: .\apps\learning\models.py:195
 msgid "Skill"
 msgstr "المهارة"
 
-#: .\apps\learning\models.py:195
+#: .\apps\learning\models.py:196
 msgid "Skills"
 msgstr "المهارات"
 
-#: .\apps\learning\models.py:226
+#: .\apps\learning\models.py:241
 msgid "Very Easy"
 msgstr "سهل جداً"
 
-#: .\apps\learning\models.py:227
+#: .\apps\learning\models.py:242
 msgid "Easy"
 msgstr "سهل"
 
-#: .\apps\learning\models.py:228
+#: .\apps\learning\models.py:243
 msgid "Medium"
 msgstr "متوسط"
 
-#: .\apps\learning\models.py:229
+#: .\apps\learning\models.py:244
 msgid "Hard"
 msgstr "صعب"
 
-#: .\apps\learning\models.py:230
+#: .\apps\learning\models.py:245
 msgid "Very Hard"
 msgstr "صعب جداً"
 
-#: .\apps\learning\models.py:244
+#: .\apps\learning\models.py:259
 msgid "The primary sub-section this question belongs to."
 msgstr "القسم الفرعي الرئيسي الذي ينتمي إليه هذا السؤال."
 
-#: .\apps\learning\models.py:252
+#: .\apps\learning\models.py:267
 msgid "Primary Skill"
 msgstr "المهارة الأساسية"
 
-#: .\apps\learning\models.py:254
+#: .\apps\learning\models.py:269
 msgid "The main skill tested by this question (optional)."
 msgstr "المهارة الرئيسية التي يختبرها هذا السؤال (اختياري)."
 
-#: .\apps\learning\models.py:257
+#: .\apps\learning\models.py:272
 msgid "Question Text"
 msgstr "نص السؤال"
 
-#: .\apps\learning\models.py:258
+#: .\apps\learning\models.py:273
 msgid "The main text or problem statement of the question."
 msgstr "النص الرئيسي أو بيان المشكلة للسؤال."
 
-#: .\apps\learning\models.py:260
+#: .\apps\learning\models.py:276
+msgid "Image"
+msgstr ""
+
+#: .\apps\learning\models.py:280
+msgid "Optional image to accompany the question text."
+msgstr ""
+
+#: .\apps\learning\models.py:282
 msgid "Option A"
 msgstr "الخيار أ"
 
-#: .\apps\learning\models.py:261
+#: .\apps\learning\models.py:283
 msgid "Option B"
 msgstr "الخيار ب"
 
-#: .\apps\learning\models.py:262
+#: .\apps\learning\models.py:284
 msgid "Option C"
 msgstr "الخيار ج"
 
-#: .\apps\learning\models.py:263
+#: .\apps\learning\models.py:285
 msgid "Option D"
 msgstr "الخيار د"
 
-#: .\apps\learning\models.py:265
+#: .\apps\learning\models.py:287
 msgid "Correct Answer"
 msgstr "الإجابة الصحيحة"
 
-#: .\apps\learning\models.py:268
+#: .\apps\learning\models.py:290
 msgid "The letter corresponding to the correct option."
 msgstr "الحرف المقابل للخيار الصحيح."
 
-#: .\apps\learning\models.py:271
+#: .\apps\learning\models.py:293
 msgid "Explanation"
 msgstr "الشرح"
 
-#: .\apps\learning\models.py:275
+#: .\apps\learning\models.py:297
 msgid ""
 "Detailed step-by-step explanation for the solution (supports Markdown/HTML)."
 msgstr "شرح تفصيلي خطوة بخطوة للحل (يدعم Markdown/HTML)."
 
-#: .\apps\learning\models.py:279
+#: .\apps\learning\models.py:301
 msgid "Hint"
 msgstr "تلميح"
 
-#: .\apps\learning\models.py:283
+#: .\apps\learning\models.py:305
 msgid "A small hint to guide the student without giving away the answer."
 msgstr "تلميح صغير لتوجيه الطالب دون الكشف عن الإجابة."
 
-#: .\apps\learning\models.py:287
+#: .\apps\learning\models.py:309
 msgid "Solution Method Summary"
 msgstr "ملخص طريقة الحل"
 
-#: .\apps\learning\models.py:291
+#: .\apps\learning\models.py:313
 msgid ""
 "A brief summary of the general strategy or method to solve the question."
 msgstr "ملخص موجز للاستراتيجية العامة أو الطريقة لحل السؤال."
 
-#: .\apps\learning\models.py:295
+#: .\apps\learning\models.py:317
 msgid "Difficulty"
 msgstr "الصعوبة"
 
-#: .\apps\learning\models.py:299
+#: .\apps\learning\models.py:321
 msgid "Estimated difficulty level of the question."
 msgstr "مستوى الصعوبة المقدر للسؤال."
 
-#: .\apps\learning\models.py:302
+#: .\apps\learning\models.py:324
 msgid "Is Active"
 msgstr "نشط"
 
-#: .\apps\learning\models.py:306
+#: .\apps\learning\models.py:328
 msgid "Uncheck this to hide the question from students without deleting it."
 msgstr "قم بإلغاء تحديد هذا لإخفاء السؤال عن الطلاب دون حذفه."
 
-#: .\apps\learning\models.py:314
+#: .\apps\learning\models.py:336
 msgid "Starred By Users"
 msgstr "مميز بنجمة من قبل المستخدمين"
 
-#: .\apps\learning\models.py:319
+#: .\apps\learning\models.py:343
 msgid "Question"
 msgstr "سؤال"
 
-#: .\apps\learning\models.py:320
+#: .\apps\learning\models.py:344
 msgid "Questions"
 msgstr "أسئلة"
 
-#: .\apps\learning\models.py:351
+#: .\apps\learning\models.py:375
 msgid "Starred At"
 msgstr "تاريخ التمييز بنجمة"
 
-#: .\apps\learning\models.py:355
+#: .\apps\learning\models.py:379
 msgid "User Starred Question"
 msgstr "سؤال مميز بنجمة من قبل المستخدم"
 
-#: .\apps\learning\models.py:356
+#: .\apps\learning\models.py:380
 msgid "User Starred Questions"
 msgstr "أسئلة مميزة بنجمة من قبل المستخدمين"

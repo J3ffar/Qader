@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from apps.admin_panel.models import ExportJob
 
 # --- Overview Serializers ---
 
@@ -62,25 +63,64 @@ class AdminStatisticsOverviewSerializer(serializers.Serializer):
         raise NotImplementedError()
 
 
-# --- Export Serializers (Optional) ---
+# --- Export Serializers ---
 class AdminStatisticsExportSerializer(serializers.Serializer):
-    """Serializer for validating export request parameters"""
+    """Serializer for validating export request parameters (the 'create' payload)"""
 
-    format = serializers.ChoiceField(choices=["csv", "xlsx"], default="csv")
-    date_from = serializers.DateField(required=False)
-    date_to = serializers.DateField(required=False)
-    # Add other filter fields if complex validation is needed
+    format = serializers.ChoiceField(
+        choices=ExportJob.Format.choices, default=ExportJob.Format.CSV
+    )
+    date_from = serializers.DateField(required=False, write_only=True)
+    date_to = serializers.DateField(required=False, write_only=True)
+    # This serializer is now for input validation, not output representation.
+    # The 'create' and 'update' methods are correctly not implemented.
 
-    def create(self, validated_data):
-        raise NotImplementedError()
 
-    def update(self, instance, validated_data):
-        raise NotImplementedError()
+class ExportJobSerializer(serializers.ModelSerializer):
+    """Serializer for representing an ExportJob instance (for list/retrieve)"""
+
+    status = serializers.CharField(source="get_status_display", read_only=True)
+    requesting_user = serializers.StringRelatedField(read_only=True)
+
+    # --- MODIFIED FIELD to generate absolute URL ---
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ExportJob
+        fields = [
+            "id",
+            "requesting_user",
+            "status",
+            "file_format",
+            "file_url",  # Use our new method field
+            "filters",
+            "error_message",
+            "created_at",
+            "completed_at",
+        ]
+        read_only_fields = fields
+
+    def get_file_url(self, obj: ExportJob) -> str | None:
+        """
+        Generate a full, absolute URL for the exported file.
+        Returns None if the file doesn't exist yet.
+        """
+        # Check if the file field has a file associated with it
+        if not obj.file:
+            return None
+
+        request = self.context.get("request")
+        if request is None:
+            # Fallback for contexts without a request (e.g., shell)
+            return obj.file.url
+
+        # Use the request to build the complete URI, including scheme and domain
+        return request.build_absolute_uri(obj.file.url)
 
 
 class ExportTaskResponseSerializer(serializers.Serializer):
-    """Response after triggering an export task"""
+    """Response after successfully triggering an export task"""
 
-    task_id = serializers.CharField()
+    job_id = serializers.UUIDField()
     message = serializers.CharField()
-    status_check_url = serializers.URLField(required=False, allow_null=True)
+    status_check_url = serializers.URLField()
