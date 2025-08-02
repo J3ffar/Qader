@@ -4,8 +4,10 @@ import {
   AdminStatisticsOverview,
   StatisticsOverviewParams,
   StatisticsExportParams,
-  ExportTaskResponse,
+  CreateExportJobResponse,
+  ExportJob,
 } from "@/types/api/admin/statistics.types";
+import { PaginatedResponse } from "@/types/api";
 
 export const getStatisticsOverview = async (
   params: StatisticsOverviewParams
@@ -19,11 +21,31 @@ export const getStatisticsOverview = async (
   );
 };
 
-export const exportStatistics = async (
-  params: StatisticsExportParams
-): Promise<ExportTaskResponse> => {
-  return apiClient<ExportTaskResponse>(API_ENDPOINTS.ADMIN.STATISTICS.EXPORT, {
-    method: "GET",
-    params,
-  });
+// CORRECTED: This should be a POST request to create a job.
+export const createExportJob = async (
+  payload: StatisticsExportParams
+): Promise<CreateExportJobResponse> => {
+  return apiClient<CreateExportJobResponse>(
+    API_ENDPOINTS.ADMIN.STATISTICS.EXPORT_JOBS,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+};
+
+export const getExportJobs = async (
+  page: number = 1
+): Promise<PaginatedResponse<ExportJob>> => {
+  return apiClient<PaginatedResponse<ExportJob>>(
+    API_ENDPOINTS.ADMIN.STATISTICS.EXPORT_JOBS,
+    {
+      method: "GET",
+      params: {
+        ordering: "-created_at",
+        page,
+        job_type: "TEST_ATTEMPTS",
+      },
+    }
+  );
 };

@@ -53,10 +53,10 @@ class ExportJob(models.Model):
     """
 
     class Status(models.TextChoices):
-        PENDING = "PENDING", _("Pending")
-        IN_PROGRESS = "IN_PROGRESS", _("In Progress")
-        SUCCESS = "SUCCESS", _("Success")
-        FAILURE = "FAILURE", _("Failure")
+        PENDING = "PENDING", "Pending"
+        IN_PROGRESS = "IN_PROGRESS", "In Progress"
+        SUCCESS = "SUCCESS", "Success"
+        FAILURE = "FAILURE", "Failure"
 
     class Format(models.TextChoices):
         CSV = "csv", _("CSV")
@@ -78,7 +78,7 @@ class ExportJob(models.Model):
         _("Job Type"),
         max_length=20,
         choices=JobType.choices,
-        default=JobType.TEST_ATTEMPTS, # Or make it required
+        default=JobType.TEST_ATTEMPTS,  # Or make it required
     )
     status = models.CharField(
         _("Status"),

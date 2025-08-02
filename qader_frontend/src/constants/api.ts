@@ -46,7 +46,7 @@ export const API_ENDPOINTS = {
     STATISTICS: {
       // NEW SECTION
       OVERVIEW: "/admin/statistics/overview/",
-      EXPORT: "/admin/statistics/export/",
+      EXPORT_JOBS: "/admin/statistics/export-jobs/",
     },
     PERMISSIONS: "/admin/permissions/",
     SUPPORT: {

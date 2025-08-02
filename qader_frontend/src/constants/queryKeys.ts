@@ -61,6 +61,11 @@ export const queryKeys = {
       overview: (filters: object) =>
         [...queryKeys.admin.statistics.overviews(), filters] as const,
     },
+    exportJobs: {
+      all: ["adminExportJobs"] as const,
+      list: (page: number) =>
+        [...queryKeys.admin.exportJobs.all, page] as const,
+    },
     support: {
       all: () => [...queryKeys.admin.all, "support"] as const,
       lists: () => [...queryKeys.admin.support.all(), "lists"] as const,

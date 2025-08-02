@@ -84,6 +84,17 @@ export const apiClient = async <T = any>(
 
   const config: RequestInit = { ...options, headers: finalHeaders };
 
+  if (
+    config.body &&
+    typeof config.body === "object" &&
+    !(config.body instanceof FormData)
+  ) {
+    config.body = JSON.stringify(config.body);
+    finalHeaders.set("Content-Type", "application/json"); // Ensure content-type is correct
+  }
+
+  config.headers = finalHeaders;
+
   try {
     const response = await fetch(baseUrl, config);
 

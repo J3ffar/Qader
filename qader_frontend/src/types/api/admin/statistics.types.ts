@@ -31,10 +31,26 @@ export interface AdminStatisticsOverview {
   daily_activity: DailyActivity[];
 }
 
-export interface ExportTaskResponse {
-  task_id: string;
+export interface ExportJob {
+  id: string;
+  requesting_user: string;
+  status: "Pending" | "In Progress" | "Success" | "Failure";
+  file_format: string; // "CSV" or "Excel (XLSX)"
+  file_url: string | null;
+  filters: {
+    datetime_from?: string;
+    datetime_to?: string;
+  };
+  error_message: string | null;
+  created_at: string; // ISO 8601 timestamp
+  completed_at: string | null; // ISO 8601 timestamp
+}
+
+// Renamed from ExportTaskResponse for clarity
+export interface CreateExportJobResponse {
+  job_id: string;
   message: string;
-  status_check_url: string | null;
+  status_check_url: string;
 }
 
 export interface StatisticsOverviewParams {
@@ -42,6 +58,8 @@ export interface StatisticsOverviewParams {
   date_to?: string; // "YYYY-MM-DD"
 }
 
-export interface StatisticsExportParams extends StatisticsOverviewParams {
-  format?: "csv" | "xlsx";
+export interface StatisticsExportParams {
+  format: "csv" | "xlsx";
+  date_from?: string; // "YYYY-MM-DD"
+  date_to?: string; // "YYYY-MM-DD"
 }
