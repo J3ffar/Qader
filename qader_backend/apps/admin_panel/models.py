@@ -62,6 +62,10 @@ class ExportJob(models.Model):
         CSV = "csv", _("CSV")
         XLSX = "xlsx", _("Excel (XLSX)")
 
+    class JobType(models.TextChoices):
+        TEST_ATTEMPTS = "TEST_ATTEMPTS", _("Test Attempts Export")
+        USERS = "USERS", _("User Data Export")
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     requesting_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -69,6 +73,12 @@ class ExportJob(models.Model):
         null=True,
         related_name="export_jobs",
         verbose_name=_("Requesting User"),
+    )
+    job_type = models.CharField(
+        _("Job Type"),
+        max_length=20,
+        choices=JobType.choices,
+        default=JobType.TEST_ATTEMPTS, # Or make it required
     )
     status = models.CharField(
         _("Status"),

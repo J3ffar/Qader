@@ -1,5 +1,6 @@
 import datetime
 import csv
+import django_filters
 import openpyxl
 from io import StringIO, BytesIO
 from django.utils import timezone
@@ -17,7 +18,10 @@ from drf_spectacular.utils import (
     OpenApiResponse,
 )
 from rest_framework import viewsets, mixins
+from rest_framework.decorators import action
 from rest_framework.reverse import reverse
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import OrderingFilter
 
 
 from apps.users.models import UserProfile
@@ -37,7 +41,7 @@ from apps.admin_panel import services as admin_services
 
 # Import the new models and tasks
 from apps.admin_panel.models import ExportJob
-from apps.admin_panel.tasks import export_statistics_task
+from apps.admin_panel.tasks import process_export_job
 
 # --- Helper Functions ---
 
@@ -294,6 +298,44 @@ class AdminStatisticsOverviewAPIView(APIView):
         return Response(serializer.data)
 
 
+class ExportJobFilter(django_filters.FilterSet):
+    """
+    FilterSet for the ExportJob model.
+
+    Allows filtering by status, job type, format, and creation date range.
+    Superusers can also filter by the requesting user's username.
+    """
+
+    # Allow filtering by one or more statuses (e.g., ?status=SUCCESS&status=FAILURE)
+    status = django_filters.MultipleChoiceFilter(choices=ExportJob.Status.choices)
+
+    # Allow filtering by one or more job types
+    job_type = django_filters.MultipleChoiceFilter(choices=ExportJob.JobType.choices)
+
+    # Filter by a date range for when the job was created
+    created_at = django_filters.DateFromToRangeFilter()
+
+    # Define a custom filter for username lookup, which is more user-friendly than ID.
+    # We will add this field dynamically for superusers only.
+
+    def __init__(self, *args, **kwargs):
+        """Dynamically add a username filter if the request is from a superuser."""
+        super().__init__(*args, **kwargs)
+        request = kwargs.get("request")
+        if request and request.user.is_superuser:
+            self.filters["requesting_user__username"] = django_filters.CharFilter(
+                lookup_expr="icontains",
+                label="Requesting User's Username (Superuser only)",
+            )
+
+    class Meta:
+        model = ExportJob
+        fields = {
+            "file_format": ["exact"],  # Simple exact match for format
+            "created_at": [],  # Base field for the DateFromToRangeFilter
+        }
+
+
 # --- REFACTORED EXPORT VIEW ---
 class ExportJobViewSet(
     mixins.CreateModelMixin,
@@ -304,12 +346,16 @@ class ExportJobViewSet(
     """
     ViewSet to manage data export jobs.
 
-    - `POST /api/v1/admin/statistics/export-jobs/`: Triggers a new export job.
+    - `POST /api/v1/admin/statistics/export-jobs/`: Triggers a new export job for Test Attempts.
+    - `POST /api/v1/admin/statistics/export-jobs/users/`: Triggers a new export job for Users.
     - `GET /api/v1/admin/statistics/export-jobs/`: Lists all historical export jobs for the user.
     - `GET /api/v1/admin/statistics/export-jobs/{id}/`: Retrieves the status and details of a specific job.
     """
 
     permission_classes = [IsAdminUserOrSubAdminWithPermission]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = ExportJobFilter
+    ordering_fields = ["created_at", "completed_at", "job_type", "status"]
     required_permissions = ["export_data"]
 
     def get_queryset(self):
@@ -323,55 +369,29 @@ class ExportJobViewSet(
 
     def get_serializer_class(self):
         """Return different serializers for create vs. list/retrieve actions."""
-        if self.action == "create":
+        if self.action == "create" or self.action == "export_users":
             return stats_serializers.AdminStatisticsExportSerializer
         return stats_serializers.ExportJobSerializer
 
-    @extend_schema(
-        summary="Create/Trigger a Data Export",
-        request=stats_serializers.AdminStatisticsExportSerializer,
-        responses={
-            202: stats_serializers.ExportTaskResponseSerializer,
-            400: OpenApiResponse(description="Bad Request - Invalid parameters"),
-        },
-        tags=["Admin Panel - Statistics"],
-    )
-    def create(self, request, *args, **kwargs):
-        """
-        Accepts export parameters, creates an ExportJob record,
-        and triggers a background task.
-        """
-        # 1. Validate the incoming request data
-        validation_serializer = self.get_serializer(data=request.data)
+    # --- HELPER METHOD TO REDUCE DUPLICATION ---
+    def _trigger_job(
+        self, request, job_type, validation_serializer_class, filters_data
+    ):
+        validation_serializer = validation_serializer_class(data=request.data)
         validation_serializer.is_valid(raise_exception=True)
         validated_data = validation_serializer.validated_data
 
-        # 2. Extract date filters for the task
-        # Note: We pass dates as strings to Celery to avoid timezone issues.
-        date_from, date_to = validated_data.get("date_from"), validated_data.get(
-            "date_to"
-        )
-        filters_for_task = {
-            "datetime_from": date_from.isoformat() if date_from else None,
-            "datetime_to": date_to.isoformat() if date_to else None,
-        }
-
-        # 3. Create the ExportJob record in the database
         job = ExportJob.objects.create(
             requesting_user=request.user,
+            job_type=job_type,
             file_format=validated_data["format"],
             status=ExportJob.Status.PENDING,
-            filters=filters_for_task,
+            filters=filters_data,
         )
 
-        # 4. Trigger the Celery task
-        task = export_statistics_task.delay(job_id=job.id)
+        # Trigger the generic Celery task
+        process_export_job.delay(job_id=job.id)
 
-        # 5. Save the Celery task ID to our job record for tracking
-        job.task_id = task.id
-        job.save(update_fields=["task_id"])
-
-        # 6. Prepare and send the response to the user
         status_check_url = reverse(
             "api:v1:admin_panel:export-job-detail",
             kwargs={"pk": job.id},
@@ -379,8 +399,7 @@ class ExportJobViewSet(
         )
         response_data = {
             "job_id": job.id,
-            "message": "Your export request has been received and is being processed. "
-            "You can check the status at the provided URL.",
+            "message": "Your export request has been received and is being processed. You can check the status at the provided URL.",
             "status_check_url": status_check_url,
         }
 
@@ -388,13 +407,62 @@ class ExportJobViewSet(
             data=response_data
         )
         response_serializer.is_valid(raise_exception=True)
-
         return Response(response_serializer.data, status=status.HTTP_202_ACCEPTED)
+
+    @extend_schema(
+        summary="Trigger a Test Attempts Data Export",
+        request=stats_serializers.AdminStatisticsExportSerializer,
+        responses={202: stats_serializers.ExportTaskResponseSerializer},
+        tags=["Admin Panel - Exports"],
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        Accepts export parameters, creates an ExportJob record for TEST ATTEMPTS,
+        and triggers a background task.
+        """
+        validation_serializer = self.get_serializer(data=request.data)
+        validation_serializer.is_valid(raise_exception=True)
+        validated_data = validation_serializer.validated_data
+
+        date_from = validated_data.get("date_from")
+        date_to = validated_data.get("date_to")
+
+        filters_for_task = {
+            "datetime_from": date_from.isoformat() if date_from else None,
+            "datetime_to": date_to.isoformat() if date_to else None,
+        }
+        return self._trigger_job(
+            request,
+            ExportJob.JobType.TEST_ATTEMPTS,
+            stats_serializers.AdminStatisticsExportSerializer,
+            filters_for_task,
+        )
+
+    # --- NEW ACTION FOR USER EXPORT ---
+    @extend_schema(
+        summary="Trigger a User Data Export",
+        request=stats_serializers.AdminStatisticsExportSerializer,
+        responses={202: stats_serializers.ExportTaskResponseSerializer},
+        tags=["Admin Panel - Exports"],
+    )
+    @action(detail=False, methods=["post"], url_path="users")
+    def export_users(self, request, *args, **kwargs):
+        """
+        Creates an ExportJob record for USER DATA and triggers a background task.
+        """
+        # For now, user export takes no filters, but this is where you'd extract them
+        filters_for_task = {}
+        return self._trigger_job(
+            request,
+            ExportJob.JobType.USERS,
+            stats_serializers.AdminStatisticsExportSerializer,  # Re-use the format validation serializer
+            filters_for_task,
+        )
 
     @extend_schema(
         summary="List Data Export Jobs",
         responses={200: stats_serializers.ExportJobSerializer(many=True)},
-        tags=["Admin Panel - Statistics"],
+        tags=["Admin Panel - Exports"],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -402,7 +470,7 @@ class ExportJobViewSet(
     @extend_schema(
         summary="Retrieve a Data Export Job",
         responses={200: stats_serializers.ExportJobSerializer},
-        tags=["Admin Panel - Statistics"],
+        tags=["Admin Panel - Exports"],
     )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)

@@ -3,7 +3,6 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 import logging
 
-# Import the new model
 from apps.admin_panel.models import ExportJob
 from apps.admin_panel import services as admin_services
 
@@ -11,9 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True)
-def export_statistics_task(self, job_id):
+def process_export_job(self, job_id):
     """
-    Celery task to generate a statistics file and save it to an ExportJob record.
+    Generic Celery task to process an export job.
+    It inspects the job's `job_type` and delegates to the appropriate logic.
     """
     try:
         job = ExportJob.objects.get(id=job_id)
@@ -21,39 +21,43 @@ def export_statistics_task(self, job_id):
         logger.error(f"ExportJob with id={job_id} not found.")
         return {"status": "FAILURE", "message": "Job record not found."}
 
-    # --- Step 1: Update Job Status ---
     job.status = ExportJob.Status.IN_PROGRESS
-    job.save(update_fields=["status"])
+    job.task_id = self.request.id  # Save celery task ID
+    job.save(update_fields=["status", "task_id"])
 
     try:
-        # --- Step 2: Query Data using the Service ---
-        # Filters are now stored on the job model
-        queryset = admin_services.get_filtered_test_attempts(job.filters)
-
-        # --- Step 3: Generate File Content using the Service ---
-        file_content, content_type, filename = (
-            admin_services.generate_export_file_content(queryset, job.file_format)
-        )
-
-        if not file_content:
-            raise ValueError(
-                f"Unsupported or empty file content for format: {job.file_format}"
+        # --- DELEGATION LOGIC ---
+        if job.job_type == ExportJob.JobType.TEST_ATTEMPTS:
+            queryset = admin_services.get_filtered_test_attempts(job.filters)
+            file_content, _, filename = admin_services.generate_export_file_content(
+                queryset, job.file_format
             )
+        elif job.job_type == ExportJob.JobType.USERS:
+            queryset = admin_services.get_filtered_users(job.filters)
+            file_content, _, filename = (
+                admin_services.generate_user_export_file_content(
+                    queryset, job.file_format
+                )
+            )
+        else:
+            raise ValueError(f"Unknown job type: {job.job_type}")
 
-        # --- Step 4: Save file to the model's FileField ---
+        # --- Common success logic ---
+        if not file_content:
+            raise ValueError(f"Generated file content is empty for job {job_id}.")
+
         job.file.save(filename, ContentFile(file_content))
-
-        # --- Step 5: Finalize Job as Success ---
         job.status = ExportJob.Status.SUCCESS
         job.completed_at = timezone.now()
         job.save(update_fields=["status", "file", "completed_at"])
 
-        logger.info(f"Successfully completed ExportJob {job_id}. File: {job.file.name}")
+        logger.info(
+            f"Successfully completed ExportJob {job_id} of type {job.job_type}. File: {job.file.name}"
+        )
         return {"status": "SUCCESS", "file_path": job.file.path}
 
     except Exception as e:
         logger.exception(f"Failed to process ExportJob {job_id}. Error: {e}")
-        # --- Handle Failure ---
         job.status = ExportJob.Status.FAILURE
         job.error_message = str(e)
         job.completed_at = timezone.now()
