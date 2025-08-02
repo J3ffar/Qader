@@ -95,26 +95,24 @@ export const QuestionDisplay: React.FC<Props> = ({
               else if (isSelected) variant = "incorrect";
             }
 
+            const uniqueId = `${question.id}-${optionKey}`;
+
             return (
               <Label
-                key={`${question.id}-${optionKey}`}
-                htmlFor={`${question.id}-${optionKey}`}
+                key={uniqueId} // Using uniqueId for key is also good practice
+                htmlFor={uniqueId} // FIX: Use the unique ID
                 className={cn(
                   "flex items-center space-x-3 rtl:space-x-reverse rounded-md border p-4 transition-all",
-                  // Base styles for interactivity
+                  // ... rest of the classes are correct
                   isAnswered || isEliminated
                     ? "cursor-not-allowed opacity-60"
                     : "cursor-pointer hover:bg-accent",
-                  // Style for eliminated option
                   isEliminated && "bg-muted line-through",
-                  // Style for selected but not-yet-graded option
                   isSelected && !isAnswered && "border-primary bg-accent",
-                  // Graded styles
                   variant === "correct" &&
                     "border-green-500 bg-green-500/10 opacity-100",
                   variant === "incorrect" &&
                     "border-red-500 bg-red-500/10 opacity-100",
-                  // Style for revealed correct answer (before answering)
                   isRevealedAnswer &&
                     !isAnswered &&
                     "border-blue-500 ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-background"
@@ -122,7 +120,7 @@ export const QuestionDisplay: React.FC<Props> = ({
               >
                 <RadioGroupItem
                   value={optionKey}
-                  id={optionKey}
+                  id={uniqueId} // FIX: Use the unique ID
                   disabled={isEliminated}
                   className="hidden"
                 />

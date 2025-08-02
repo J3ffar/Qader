@@ -1,3 +1,4 @@
+// qader_frontend/src/components/features/platform/study/traditional-learning/TraditionalLearningSession.tsx
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -13,8 +14,9 @@ import {
   XCircle,
 } from "lucide-react";
 
+// MODIFIED: Use resumeTestAttempt
 import {
-  getTestAttemptDetails,
+  resumeTestAttempt,
   completeTestAttempt,
   submitAnswer,
 } from "@/services/study.service";
@@ -22,6 +24,8 @@ import { PATHS } from "@/constants/paths";
 import type {
   UnifiedQuestion,
   UserTestAttemptCompletionResponse,
+  UserTestAttemptResume, // NEW
+  SubmitAnswerResponse, // NEW
 } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Button } from "@/components/ui/button";
@@ -31,9 +35,10 @@ import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 import { QuestionDisplay } from "./QuestionDisplay";
 import { PracticeControls } from "./PracticeControls";
 import { AnswerFeedbackDialog, FeedbackData } from "./AnswerFeedbackDialog";
-import { SessionStats } from "./SessionStats"; // NEW
+import { SessionStats } from "./SessionStats";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { queryKeys } from "@/constants/queryKeys";
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
 
 type OptionKey = "A" | "B" | "C" | "D";
 export interface QuestionState {
@@ -60,7 +65,6 @@ export default function TraditionalLearningSession({
   const [questionStates, setQuestionStates] = useState<
     Record<number, QuestionState>
   >({});
-  // NEW: State for session-wide statistics
   const [sessionStats, setSessionStats] = useState({
     correct: 0,
     incorrect: 0,
@@ -68,45 +72,93 @@ export default function TraditionalLearningSession({
   const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
   const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null);
 
+  // NEW: State for time tracking per question
+  const [questionStartTime, setQuestionStartTime] = useState<number>(0);
+
   useEffect(() => {
     setDirection(document.documentElement.dir as "ltr" | "rtl");
   }, []);
 
-  const { data: attemptDetails, error } = useQuery({
-    queryKey: queryKeys.tests.detail(attemptId),
-    queryFn: () => getTestAttemptDetails(attemptId),
+  // MODIFIED: Use resumeTestAttempt and handle its state here
+  const {
+    data: attemptData,
+    isLoading,
+    error,
+  } = useQuery<UserTestAttemptResume, Error>({
+    queryKey: queryKeys.tests.resume(attemptId),
+    queryFn: () => resumeTestAttempt(attemptId),
     refetchOnWindowFocus: false,
+    enabled: !!attemptId,
   });
 
   const questions: UnifiedQuestion[] = useMemo(
-    () => attemptDetails?.included_questions || [],
-    [attemptDetails]
+    () => attemptData?.questions || [],
+    [attemptData]
   );
   const currentQuestion = questions[currentQuestionIndex];
   const currentQuestionState = currentQuestion
     ? questionStates[currentQuestion.id]
     : undefined;
 
+  // NEW: Effect to initialize state from fetched resume data
+  useEffect(() => {
+    if (attemptData) {
+      const initialStates: Record<number, QuestionState> = {};
+      let correctCount = 0;
+      let incorrectCount = 0;
+
+      attemptData.questions.forEach((q) => {
+        if (q.user_answer_details) {
+          initialStates[q.id] = {
+            status: q.user_answer_details.is_correct ? "correct" : "incorrect",
+            selectedAnswer: q.user_answer_details.selected_choice,
+            // You can extend this to include hints, explanations if they are part of resume data
+          };
+          if (q.user_answer_details.is_correct) {
+            correctCount++;
+          } else {
+            incorrectCount++;
+          }
+        }
+      });
+      setQuestionStates(initialStates);
+      setSessionStats({ correct: correctCount, incorrect: incorrectCount });
+    }
+  }, [attemptData]);
+
+  // NEW: Effect to start timer when question changes
+  useEffect(() => {
+    if (currentQuestion) {
+      setQuestionStartTime(Date.now());
+    }
+  }, [currentQuestionIndex]);
+
+  // MODIFIED: Updated mutation with time tracking and optimistic updates
   const submitAnswerMutation = useMutation({
-    mutationFn: (payload: { questionId: number; selectedAnswer: OptionKey }) =>
+    mutationFn: (payload: {
+      questionId: number;
+      selectedAnswer: OptionKey;
+      timeTaken: number;
+    }) =>
       submitAnswer(attemptId, {
         question_id: payload.questionId,
         selected_answer: payload.selectedAnswer,
+        time_taken_seconds: payload.timeTaken,
       }),
-    onSuccess: (data, variables) => {
+    onSuccess: (data: SubmitAnswerResponse, variables) => {
       const apiQuestion = data.question;
       const isCorrect = apiQuestion.user_answer_details?.is_correct ?? false;
       const correctAnswerKey = apiQuestion.correct_answer;
 
+      // Update local component state for immediate feedback
       setQuestionStates((prev) => ({
         ...prev,
         [variables.questionId]: {
-          ...prev[variables.questionId],
+          ...(prev[variables.questionId] || { selectedAnswer: null }),
           status: isCorrect ? "correct" : "incorrect",
         },
       }));
 
-      // NEW: Update session stats
       setSessionStats((prev) => ({
         ...prev,
         correct: isCorrect ? prev.correct + 1 : prev.correct,
@@ -118,6 +170,18 @@ export default function TraditionalLearningSession({
         correctAnswerText: apiQuestion.options[correctAnswerKey],
         explanation: apiQuestion.explanation,
       });
+
+      // KEY FIX: Manually update the React Query cache
+      queryClient.setQueryData<UserTestAttemptResume>(
+        queryKeys.tests.resume(attemptId),
+        (oldData) => {
+          if (!oldData) return undefined;
+          const newQuestions = oldData.questions.map((q) =>
+            q.id === apiQuestion.id ? apiQuestion : q
+          );
+          return { ...oldData, questions: newQuestions };
+        }
+      );
     },
     onError: (err) => {
       toast.error(getApiErrorMessage(err, commonT("errors.generic")));
@@ -160,6 +224,7 @@ export default function TraditionalLearningSession({
   ) => {
     const currentState = questionStates[questionId]?.status;
     if (currentState === "correct" || currentState === "incorrect") return;
+
     setQuestionStates((prev) => ({
       ...prev,
       [questionId]: {
@@ -167,7 +232,8 @@ export default function TraditionalLearningSession({
         selectedAnswer,
       },
     }));
-    submitAnswerMutation.mutate({ questionId, selectedAnswer });
+    const timeTaken = Math.round((Date.now() - questionStartTime) / 1000);
+    submitAnswerMutation.mutate({ questionId, selectedAnswer, timeTaken });
   };
 
   const handleNext = () => {
@@ -185,6 +251,7 @@ export default function TraditionalLearningSession({
     setFeedbackData(null);
   };
 
+  if (isLoading) return <LoadingSkeleton />; // Use a dedicated skeleton
   if (error) {
     return (
       <div className="container p-6">
@@ -336,3 +403,35 @@ export default function TraditionalLearningSession({
     </>
   );
 }
+
+// NEW: Loading Skeleton component defined within the same file for simplicity
+const LoadingSkeleton = () => {
+  return (
+    <div className="container mx-auto max-w-7xl animate-pulse p-4 md:p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <Skeleton className="h-8 w-48 rounded-md" />
+        <Skeleton className="h-9 w-32 rounded-md" />
+      </div>
+
+      <Skeleton className="mx-auto mb-6 h-2 max-w-3xl rounded-full" />
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {/* Main Question Area Skeleton */}
+        <div className="space-y-6 lg:col-span-2">
+          <Skeleton className="h-96 w-full rounded-xl" />
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-10 w-32 rounded-md" />
+            <Skeleton className="h-10 w-32 rounded-md" />
+          </div>
+        </div>
+
+        {/* Sidebar Skeleton */}
+        <div className="space-y-6 lg:col-span-1">
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-56 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+};
