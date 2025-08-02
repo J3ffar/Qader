@@ -43,19 +43,16 @@ export const AttemptActionButtons = ({
           case "started":
             return (
               <div className="flex flex-col justify-center gap-2 sm:flex-row">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span tabIndex={-1}>
-                      <Button size="sm" disabled>
-                        <PlayCircle className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
-                        {t("continueTest")}
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{t("continueTestTooltip")}</p>
-                  </TooltipContent>
-                </Tooltip>
+                <Button size="sm" asChild>
+                  <Link
+                    href={PATHS.STUDY.DETERMINE_LEVEL.ATTEMPT(
+                      attempt.attempt_id
+                    )}
+                  >
+                    <PlayCircle className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
+                    {t("continueTest")}
+                  </Link>
+                </Button>
 
                 <ConfirmationDialog
                   triggerButton={

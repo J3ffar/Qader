@@ -132,6 +132,7 @@ export const API_ENDPOINTS = {
     ATTEMPTS: {
       LIST: "/study/attempts/",
       DETAIL: (attemptId: number | string) => `/study/attempts/${attemptId}/`,
+      RESUME: (id: number | string) => `/study/attempts/${id}/resume/`, // NEW
       ANSWER: (attemptId: number | string) =>
         `/study/attempts/${attemptId}/answer/`,
       CANCEL: (attemptId: number | string) =>

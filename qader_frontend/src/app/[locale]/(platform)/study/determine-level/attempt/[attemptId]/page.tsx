@@ -35,21 +35,21 @@ import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 import { StarButton } from "@/components/shared/StarButton";
 
 import {
-  getTestAttemptDetails,
+  resumeTestAttempt, // MODIFIED
   submitAnswer,
   completeTestAttempt,
   cancelTestAttempt,
 } from "@/services/study.service";
 import { PATHS } from "@/constants/paths";
 import type {
-  UserTestAttemptDetail,
+  UserTestAttemptResume, // MODIFIED
   UnifiedQuestion,
   SubmitAnswerPayload,
   UserTestAttemptCompletionResponse,
+  SubmitAnswerResponse,
 } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { queryKeys } from "@/constants/queryKeys";
-import Image from "next/image";
 import { QuestionRenderer } from "@/components/shared/QuestionRenderer";
 import { RichContentViewer } from "@/components/shared/RichContentViewer";
 
@@ -75,66 +75,76 @@ const LevelAssessmentAttemptPage = () => {
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
   const [localStarred, setLocalStarred] = useState(false);
+  const [isReady, setIsReady] = useState(false); // NEW: State to prevent premature rendering
+
+  // NEW: State for time tracking per question
+  const [questionStartTime, setQuestionStartTime] = useState<number>(0);
 
   useEffect(() => {
     setDirection(document.documentElement.dir as "ltr" | "rtl");
   }, []);
 
+  // MODIFIED: Use the new `resumeTestAttempt` service function
   const {
-    data: attemptDetails,
+    data: attemptData,
     isLoading: isLoadingAttempt,
     error: attemptError,
     isSuccess,
-  } = useQuery<UserTestAttemptDetail, Error>({
-    queryKey: queryKeys.tests.detail(attemptId),
-    queryFn: () => getTestAttemptDetails(attemptId),
+  } = useQuery<UserTestAttemptResume, Error>({
+    queryKey: queryKeys.tests.resume(attemptId),
+    queryFn: () => resumeTestAttempt(attemptId),
     enabled: !!attemptId,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  useEffect(() => {
-    if (attemptDetails && attemptDetails.status !== "started") {
-      router.replace(PATHS.STUDY.DETERMINE_LEVEL.SCORE(attemptId));
-    }
-  }, [attemptDetails, router, attemptId]);
+  const questions: UnifiedQuestion[] = useMemo(
+    () => attemptData?.questions || [],
+    [attemptData]
+  );
 
+  // MODIFIED: Enhanced useEffect to handle resume logic
   useEffect(() => {
-    if (isSuccess && attemptDetails) {
+    if (isSuccess && attemptData) {
+      if (attemptData.total_questions === attemptData.answered_question_count) {
+        // All questions answered, but not completed. Force completion.
+        handleCompleteTest(false, true);
+        return;
+      }
+
       const initialSelections: UserSelections = {};
-      attemptDetails.attempted_questions?.forEach((aq) => {
-        if (aq.selected_answer) {
-          initialSelections[aq.question_id] = aq.selected_answer;
+      let firstUnansweredIndex = -1;
+
+      attemptData.questions.forEach((q, index) => {
+        if (q.user_answer_details?.selected_choice) {
+          initialSelections[q.id] = q.user_answer_details.selected_choice;
+        } else if (firstUnansweredIndex === -1) {
+          firstUnansweredIndex = index;
         }
       });
-      setUserSelections(initialSelections);
-    }
-  }, [isSuccess, attemptDetails]);
 
-  const questions: UnifiedQuestion[] = useMemo(
-    () => attemptDetails?.included_questions || [],
-    [attemptDetails]
-  );
+      setUserSelections(initialSelections);
+      setCurrentQuestionIndex(
+        firstUnansweredIndex !== -1 ? firstUnansweredIndex : 0
+      );
+      setIsReady(true); // Mark component as ready to render
+    }
+  }, [isSuccess, attemptData]);
 
   const currentQuestion: UnifiedQuestion | undefined =
     questions[currentQuestionIndex];
 
-  // Update localStarred when current question changes
+  // NEW: useEffect to start the timer for a new question
   useEffect(() => {
-    if (currentQuestion) {
+    if (isReady && currentQuestion) {
+      setQuestionStartTime(Date.now());
       setLocalStarred(currentQuestion.is_starred);
     }
-  }, [currentQuestion?.id, currentQuestion?.is_starred]);
+  }, [currentQuestionIndex, isReady, currentQuestion]);
 
+  // Timer logic remains the same...
   useEffect(() => {
-    if (
-      isLoadingAttempt ||
-      !attemptDetails ||
-      attemptDetails.status === "completed" ||
-      isTimeUp
-    ) {
-      return;
-    }
+    if (!isReady || isLoadingAttempt || isTimeUp) return;
     if (timeLeft <= 0) {
       setIsTimeUp(true);
       toast.warning(t("timeOver"), { duration: 5000 });
@@ -143,7 +153,7 @@ const LevelAssessmentAttemptPage = () => {
     }
     const timerId = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timerId);
-  }, [timeLeft, isLoadingAttempt, attemptDetails, isTimeUp]);
+  }, [timeLeft, isLoadingAttempt, isReady, isTimeUp]);
 
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -159,7 +169,43 @@ const LevelAssessmentAttemptPage = () => {
       submitAnswer(payload.attemptId, {
         question_id: payload.question_id,
         selected_answer: payload.selected_answer,
+        time_taken_seconds: payload.time_taken_seconds,
       }),
+    onSuccess: (data: SubmitAnswerResponse, variables) => {
+      // `data` is the response from the API, which includes the updated question object.
+      // `variables` is what we sent to the mutation.
+      const queryKey = queryKeys.tests.resume(variables.attemptId);
+
+      // Use setQueryData to update the cache for the resume endpoint
+      queryClient.setQueryData<UserTestAttemptResume>(queryKey, (oldData) => {
+        // If for some reason the cache is empty, do nothing.
+        if (!oldData) {
+          return undefined;
+        }
+
+        // Check if this question was already answered before this submission.
+        const wasAlreadyAnswered =
+          oldData.questions.find((q) => q.id === data.question.id)
+            ?.user_answer_details !== null;
+
+        // Create a new array of questions, replacing the one we just answered
+        // with the updated version from the API response.
+        const newQuestions = oldData.questions.map((q) =>
+          q.id === data.question.id ? data.question : q
+        );
+
+        // Return the new state for the cache.
+        // It's crucial to return a new object to trigger a re-render.
+        return {
+          ...oldData,
+          questions: newQuestions,
+          // Increment the answered count only if it was a new answer.
+          answered_question_count: wasAlreadyAnswered
+            ? oldData.answered_question_count
+            : oldData.answered_question_count + 1,
+        };
+      });
+    },
     onError: (error: any, variables) => {
       const errorMsg = getApiErrorMessage(error, tCommon("errors.generic"));
       toast.error(
@@ -209,6 +255,7 @@ const LevelAssessmentAttemptPage = () => {
       toast.error(t("api.testCancelError", { error: errorMsg }));
     },
   });
+
   const handleSelectAnswer = (selectedOption: OptionKey) => {
     if (currentQuestion) {
       setUserSelections((prev) => ({
@@ -218,15 +265,20 @@ const LevelAssessmentAttemptPage = () => {
     }
   };
 
+  // MODIFIED: Function to handle answer submission with timing
   const submitCurrentAnswer = async (
     questionId: number,
     selectedAnswer: OptionKey | undefined
   ) => {
-    if (selectedAnswer && attemptDetails?.status === "started") {
+    if (selectedAnswer) {
+      const timeTakenSeconds = Math.round(
+        (Date.now() - questionStartTime) / 1000
+      );
       await submitAnswerMutation.mutateAsync({
         attemptId,
         question_id: questionId,
         selected_answer: selectedAnswer,
+        time_taken_seconds: timeTakenSeconds,
       });
     }
   };
@@ -241,6 +293,7 @@ const LevelAssessmentAttemptPage = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     } else {
+      // User is on the last question, clicking Next should trigger completion flow
       handleCompleteTest();
     }
   };
@@ -251,13 +304,15 @@ const LevelAssessmentAttemptPage = () => {
     }
   };
 
-  const handleCompleteTest = async (autoSubmittedDueToTimeUp = false) => {
-    if (attemptDetails?.status !== "started") return;
-
+  const handleCompleteTest = async (
+    autoSubmittedDueToTimeUp = false,
+    forceComplete = false
+  ) => {
     if (
       currentQuestion &&
       userSelections[currentQuestion.id] &&
-      !autoSubmittedDueToTimeUp
+      !autoSubmittedDueToTimeUp &&
+      !forceComplete
     ) {
       await submitCurrentAnswer(
         currentQuestion.id,
@@ -271,9 +326,9 @@ const LevelAssessmentAttemptPage = () => {
     cancelTestMutation.mutate(attemptId);
   };
 
-  if (isLoadingAttempt) return <QuizPageSkeleton />;
-
-  if (attemptError || !attemptDetails) {
+  // RENDER LOGIC
+  if (isLoadingAttempt || !isReady) return <QuizPageSkeleton />;
+  if (attemptError || !attemptData) {
     return (
       <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
         <Alert variant="destructive" className="max-w-md">
@@ -297,10 +352,6 @@ const LevelAssessmentAttemptPage = () => {
         </Button>
       </div>
     );
-  }
-
-  if (attemptDetails.status !== "started") {
-    return <QuizPageSkeleton message={t("testAlreadyCompletedRedirecting")} />;
   }
 
   if (!currentQuestion) {
@@ -327,7 +378,7 @@ const LevelAssessmentAttemptPage = () => {
     );
   }
 
-  const progressValue = (currentQuestionIndex / questions.length) * 100;
+  const progressValue = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   return (
     <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">

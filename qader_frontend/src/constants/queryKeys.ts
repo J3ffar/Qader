@@ -205,6 +205,8 @@ export const queryKeys = {
     details: () => [...queryKeys.tests.all, "details"] as const,
     detail: (attemptId: number | string) =>
       [...queryKeys.tests.details(), attemptId] as const,
+    resume: (attemptId: number | string) =>
+      [...queryKeys.tests.detail(attemptId), "resume"] as const,
     review: (attemptId: number | string) =>
       [...queryKeys.tests.detail(attemptId), "review"] as const,
     completionResult: (attemptId: number | string) =>

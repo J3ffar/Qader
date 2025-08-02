@@ -2,6 +2,7 @@ import { apiClient } from "./apiClient";
 import {
   PaginatedUserTestAttempts,
   UserTestAttemptDetail,
+  UserTestAttemptResume, // NEW
   UserTestAttemptStartResponse,
   StartLevelAssessmentPayload,
   SubmitAnswerPayload,
@@ -53,6 +54,15 @@ export const getTestAttemptDetails = async (
   );
 };
 
+// NEW: Service function to resume a test
+export const resumeTestAttempt = async (
+  attemptId: number | string
+): Promise<UserTestAttemptResume> => {
+  return apiClient<UserTestAttemptResume>(
+    API_ENDPOINTS.STUDY.ATTEMPTS.RESUME(attemptId)
+  );
+};
+
 export const startLevelAssessmentTest = async (
   payload: StartLevelAssessmentPayload
 ): Promise<UserTestAttemptStartResponse> => {
@@ -67,6 +77,7 @@ export const startLevelAssessmentTest = async (
 
 export const submitAnswer = async (
   attemptId: number | string,
+  // MODIFIED: Payload now matches the updated type
   payload: SubmitAnswerPayload
 ): Promise<SubmitAnswerResponse> => {
   return apiClient<SubmitAnswerResponse>(
