@@ -161,6 +161,30 @@ class UserTestAttemptStartResponseSerializer(serializers.Serializer):
     questions = UnifiedQuestionSerializer(many=True, read_only=True)
 
 
+class UserTestAttemptResumeSerializer(serializers.Serializer):
+    """
+    Standard response structure after successfully requesting to resume an ongoing test attempt.
+    Provides all necessary data for the frontend to reconstruct the test state.
+    """
+    attempt_id = serializers.IntegerField(read_only=True)
+    answered_question_count = serializers.IntegerField(read_only=True)
+    total_questions = serializers.IntegerField(read_only=True)
+    questions = UnifiedQuestionSerializer(
+        many=True,
+        read_only=True,
+        help_text=_(
+            "The full list of questions for this attempt. Questions that have been answered "
+            "will have the 'user_answer_details' field populated."
+        )
+    )
+
+    def create(self, validated_data):
+        raise NotImplementedError("This serializer cannot create data.")
+
+    def update(self, instance, validated_data):
+        raise NotImplementedError("This serializer cannot update data.")
+
+
 class UserQuestionAttemptSerializer(serializers.Serializer):
     """Serializer for submitting a single answer during ANY ongoing test attempt."""
 

@@ -142,6 +142,109 @@ class UserTestAttemptDetailView(generics.RetrieveAPIView):
 
 @extend_schema(
     tags=["Study - Test Attempts (Core Actions)"],
+    summary="Resume a Specific Test Attempt",
+    description=(
+        "Retrieves the state of a specific ongoing test attempt (`status='started'`) for the authenticated user. "
+        "This allows a user to continue exactly where they left off. The response includes the full list of questions, "
+        "with details of any answers already submitted (`user_answer_details`), and a count of answered questions. "
+        "If the attempt is not 'started' or doesn't belong to the user, it returns an error."
+    ),
+    responses={
+        200: attempt_serializers.UserTestAttemptResumeSerializer,
+        400: OpenApiResponse(
+            description="Bad Request: The test attempt is not in a resumable state (e.g., already completed)."
+        ),
+        401: OpenApiResponse(description="Authentication required."),
+        403: OpenApiResponse(
+            description="Permission Denied (e.g., not the owner or subscription required)."
+        ),
+        404: OpenApiResponse(description="The specified test attempt was not found."),
+    },
+)
+class UserTestAttemptResumeView(generics.GenericAPIView):
+    """
+    Handles resuming a specific, ongoing test attempt.
+    """
+
+    permission_classes = [IsAuthenticated, IsSubscribed]
+    serializer_class = attempt_serializers.UserTestAttemptResumeSerializer
+
+    def get_object(self) -> UserTestAttempt:
+        """
+        Safely retrieves the test attempt, ensuring it belongs to the user and is 'STARTED'.
+        """
+        attempt_id = self.kwargs.get("attempt_id")
+        user = self.request.user
+        queryset = UserTestAttempt.objects.select_related("user")
+
+        try:
+            # First, find the attempt ensuring it belongs to the user.
+            attempt = get_object_or_404(queryset, pk=attempt_id, user=user)
+        except Http404:
+            logger.warning(
+                f"User {user.id} tried to resume non-existent or inaccessible attempt {attempt_id}."
+            )
+            raise NotFound(
+                _(
+                    "The specified test attempt does not exist or you do not have permission to view it."
+                )
+            )
+
+        # Now, check if the attempt is in a resumable state.
+        if attempt.status != UserTestAttempt.Status.STARTED:
+            logger.warning(
+                f"User {user.id} tried to resume attempt {attempt_id}, but its status is '{attempt.status}'."
+            )
+            raise DRFValidationError(
+                {
+                    "detail": _(
+                        "This test cannot be resumed because it is not currently in progress."
+                    )
+                },
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return attempt
+
+    def get(self, request, attempt_id, *args, **kwargs):
+        """
+        Prepares and returns the data needed to continue the test.
+        """
+        test_attempt = self.get_object()
+
+        # Fetch all answers submitted for this attempt to populate the response
+        user_question_attempts = test_attempt.question_attempts.all()
+
+        # Create a map of {question_id: attempt_object} for efficient lookup
+        # This map will be passed via context to the UnifiedQuestionSerializer
+        user_attempts_map = {
+            attempt.question_id: attempt for attempt in user_question_attempts
+        }
+
+        # Get the full, ordered list of questions for the test
+        questions_queryset = test_attempt.get_questions_queryset()
+
+        # Prepare the data for our new serializer
+        response_data = {
+            "attempt_id": test_attempt.id,
+            "answered_question_count": len(user_attempts_map),
+            "total_questions": test_attempt.num_questions,
+            "questions": questions_queryset,
+        }
+
+        # The context provides the `user_attempts_map` to the `UnifiedQuestionSerializer`
+        # so it can correctly populate the `user_answer_details` for each question.
+        context = {
+            "request": request,
+            "user_attempts_map": user_attempts_map,
+        }
+
+        serializer = self.get_serializer(response_data, context=context)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=["Study - Test Attempts (Core Actions)"],
     summary="Submit Single Answer",
     description=(
         "Submits an answer for a *single question* within an *ongoing* (`status=started`) test attempt (`{attempt_id}`). "

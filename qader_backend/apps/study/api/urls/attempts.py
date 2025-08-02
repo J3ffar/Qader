@@ -9,28 +9,33 @@ urlpatterns = [
         name="attempt-detail",
     ),
     path(
+        "<int:attempt_id>/resume/",
+        attempt_views.UserTestAttemptResumeView.as_view(),
+        name="attempt-resume",
+    ),
+    path(
         "<int:attempt_id>/answer/",
         attempt_views.UserTestAttemptAnswerView.as_view(),
-        name="attempt-answer",  # Unified answer endpoint
+        name="attempt-answer",
     ),
     path(
         "<int:attempt_id>/complete/",
         attempt_views.UserTestAttemptCompleteView.as_view(),
-        name="attempt-complete",  # Unified complete endpoint (excludes traditional)
+        name="attempt-complete",
     ),
     path(
         "<int:attempt_id>/cancel/",
         attempt_views.UserTestAttemptCancelView.as_view(),
-        name="attempt-cancel",  # Unified cancel endpoint
+        name="attempt-cancel",
     ),
     path(
         "<int:attempt_id>/review/",
         attempt_views.UserTestAttemptReviewView.as_view(),
-        name="attempt-review",  # Unified review endpoint
+        name="attempt-review",
     ),
     path(
-        "<int:attempt_id>/retake/",  # Renamed from retake-similar
+        "<int:attempt_id>/retake/",
         attempt_views.UserTestAttemptRetakeView.as_view(),
-        name="attempt-retake",  # Unified retake endpoint
+        name="attempt-retake",
     ),
 ]
