@@ -1,11 +1,12 @@
-"use client"; // Required to use state for the dialog
+"use client";
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import EmployeeClient from "@/components/features/admin/employees/EmployeeClient";
 import AddEmployeeDialog from "@/components/features/admin/employees/components/AddEmployeeDialog";
+import { ExportControl } from "@/components/features/admin/shared/ExportControl";
 
 export default function AdminEmployeesPage() {
   const t = useTranslations("Admin.EmployeeManagement");
@@ -20,10 +21,10 @@ export default function AdminEmployeesPage() {
             <p className="text-muted-foreground">{t("description")}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline">
-              <Upload className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-              {t("export")}
-            </Button>
+            <ExportControl
+              exportType="users"
+              roles={["admin", "sub_admin", "teacher", "trainer"]}
+            />
             <Button onClick={() => setAddDialogOpen(true)}>
               <Plus className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
               {t("addUser")}

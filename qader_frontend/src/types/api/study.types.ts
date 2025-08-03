@@ -81,6 +81,14 @@ export interface UserTestAttemptList {
 
 export type PaginatedUserTestAttempts = PaginatedResponse<UserTestAttemptList>;
 
+// NEW: Response from GET /study/attempts/{id}/resume/
+export interface UserTestAttemptResume {
+  attempt_id: number;
+  answered_question_count: number;
+  total_questions: number;
+  questions: UnifiedQuestion[]; // The key is that `user_answer_details` is populated for answered questions
+}
+
 /**
  * Full details for an ongoing or completed test attempt.
  * API: GET /study/attempts/{attempt_id}/
@@ -183,7 +191,7 @@ export interface ResultsSummaryItem {
 export interface SubmitAnswerPayload {
   question_id: number;
   selected_answer: "A" | "B" | "C" | "D";
-  time_taken_seconds?: number | null;
+  time_taken_seconds?: number | null; // MODIFIED: Added optional time tracking
 }
 
 export interface SubmitAnswerResponse {

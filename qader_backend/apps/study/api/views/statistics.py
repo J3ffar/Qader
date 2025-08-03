@@ -226,7 +226,7 @@ EXAMPLE_STATISTICS_OUTPUT_BRIEF = {
     },
 )
 class UserStatisticsView(views.APIView):
-    permission_classes = [IsAuthenticated, IsSubscribed]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         start_date_str = request.query_params.get("start_date")

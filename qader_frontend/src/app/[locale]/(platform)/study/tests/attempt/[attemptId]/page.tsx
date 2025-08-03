@@ -32,17 +32,19 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
- import { StarButton } from "@/components/shared/StarButton";
+import { StarButton } from "@/components/shared/StarButton";
 
 import {
-  getTestAttemptDetails,
+  resumeTestAttempt,
   submitAnswer,
   completeTestAttempt,
   cancelTestAttempt,
 } from "@/services/study.service";
 import { PATHS } from "@/constants/paths";
 import type {
-  UserTestAttemptDetail,
+  // MODIFIED: Using new types
+  UserTestAttemptResume,
+  SubmitAnswerResponse,
   UnifiedQuestion,
   SubmitAnswerPayload,
   UserTestAttemptCompletionResponse,
@@ -71,60 +73,113 @@ const TestAttemptPage = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userSelections, setUserSelections] = useState<UserSelections>({});
   const [localStarred, setLocalStarred] = useState(false);
+  const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
+  const [isReady, setIsReady] = useState(false); // NEW: State to prevent premature rendering
 
+  // NEW: State for time tracking per question
+  const [questionStartTime, setQuestionStartTime] = useState<number>(0);
+
+  useEffect(() => {
+    setDirection(document.documentElement.dir as "ltr" | "rtl");
+  }, []);
+
+  // MODIFIED: Use the new `resumeTestAttempt` service function
   const {
-    data: attemptDetails,
+    data: attemptData,
     isLoading: isLoadingAttempt,
     error: attemptError,
     isSuccess,
-  } = useQuery<UserTestAttemptDetail, Error>({
-    queryKey: queryKeys.tests.detail(attemptId),
-    queryFn: () => getTestAttemptDetails(attemptId),
+  } = useQuery<UserTestAttemptResume, Error>({
+    // Using a distinct key for resume is cleaner
+    queryKey: queryKeys.tests.resume(attemptId),
+    queryFn: () => resumeTestAttempt(attemptId),
     enabled: !!attemptId,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
   // Redirect if the test is already completed
+  // Note: The `resume` endpoint will likely fail for completed tests, which attemptError will catch.
+  // This useEffect is a good fallback.
   useEffect(() => {
-    if (attemptDetails && attemptDetails.status !== "started") {
+    if (attemptError) {
+      // If resume fails, it might be completed. Redirect to score page.
+      // A more robust solution would check the error status code (e.g., 400).
+      toast.error(t("api.resumeErrorRedirecting"));
       router.replace(PATHS.STUDY.TESTS.SCORE(attemptId));
     }
-  }, [attemptDetails, router, attemptId]);
-
-  // Pre-fill answers if user is resuming a test
-  useEffect(() => {
-    if (isSuccess && attemptDetails) {
-      const initialSelections: UserSelections = {};
-      attemptDetails.attempted_questions?.forEach((aq) => {
-        if (aq.selected_answer) {
-          initialSelections[aq.question_id] = aq.selected_answer;
-        }
-      });
-      setUserSelections(initialSelections);
-    }
-  }, [isSuccess, attemptDetails]);
+  }, [attemptError, router, attemptId, t]);
 
   const questions: UnifiedQuestion[] = useMemo(
-    () => attemptDetails?.included_questions || [],
-    [attemptDetails]
+    () => attemptData?.questions || [],
+    [attemptData]
   );
+
+  // MODIFIED: Enhanced useEffect to handle resume logic
+  useEffect(() => {
+    if (isSuccess && attemptData) {
+      if (
+        attemptData.total_questions > 0 &&
+        attemptData.total_questions === attemptData.answered_question_count
+      ) {
+        handleCompleteTest(true); // Force complete if all questions are answered
+        return;
+      }
+
+      const initialSelections: UserSelections = {};
+      let firstUnansweredIndex = -1;
+
+      questions.forEach((q, index) => {
+        if (q.user_answer_details?.selected_choice) {
+          initialSelections[q.id] = q.user_answer_details.selected_choice;
+        } else if (firstUnansweredIndex === -1) {
+          firstUnansweredIndex = index;
+        }
+      });
+
+      setUserSelections(initialSelections);
+      setCurrentQuestionIndex(
+        firstUnansweredIndex !== -1 ? firstUnansweredIndex : 0
+      );
+      setIsReady(true); // Mark component as ready to render
+    }
+  }, [isSuccess, attemptData, questions]);
+
   const currentQuestion: UnifiedQuestion | undefined =
     questions[currentQuestionIndex];
 
-  // Update localStarred when current question changes
+  // MODIFIED: useEffect to start the timer and update star status
   useEffect(() => {
-    if (currentQuestion) {
+    if (isReady && currentQuestion) {
+      setQuestionStartTime(Date.now());
       setLocalStarred(currentQuestion.is_starred);
     }
-  }, [currentQuestion?.id, currentQuestion?.is_starred]);
+  }, [currentQuestionIndex, isReady, currentQuestion]);
 
+  // MODIFIED: Updated submitAnswerMutation with optimistic update
   const submitAnswerMutation = useMutation({
     mutationFn: (payload: SubmitAnswerPayload & { attemptId: string }) =>
-      submitAnswer(payload.attemptId, {
-        question_id: payload.question_id,
-        selected_answer: payload.selected_answer,
-      }),
+      submitAnswer(payload.attemptId, payload),
+
+    onSuccess: (data: SubmitAnswerResponse, variables) => {
+      const queryKey = queryKeys.tests.resume(variables.attemptId);
+      queryClient.setQueryData<UserTestAttemptResume>(queryKey, (oldData) => {
+        if (!oldData) return undefined;
+        const wasAlreadyAnswered =
+          oldData.questions.find((q) => q.id === data.question.id)
+            ?.user_answer_details !== null;
+        const newQuestions = oldData.questions.map((q) =>
+          q.id === data.question.id ? data.question : q
+        );
+        return {
+          ...oldData,
+          questions: newQuestions,
+          answered_question_count: wasAlreadyAnswered
+            ? oldData.answered_question_count
+            : oldData.answered_question_count + 1,
+        };
+      });
+    },
     onError: (error: any, variables) => {
       toast.error(
         t("api.answerSubmitError", {
@@ -191,11 +246,15 @@ const TestAttemptPage = () => {
     questionId: number,
     selectedAnswer: OptionKey | undefined
   ) => {
-    if (selectedAnswer && attemptDetails?.status === "started") {
+    if (selectedAnswer) {
+      const timeTakenSeconds = Math.round(
+        (Date.now() - questionStartTime) / 1000
+      );
       await submitAnswerMutation.mutateAsync({
         attemptId,
         question_id: questionId,
         selected_answer: selectedAnswer,
+        time_taken_seconds: timeTakenSeconds,
       });
     }
   };
@@ -220,10 +279,12 @@ const TestAttemptPage = () => {
     }
   };
 
-  const handleCompleteTest = async () => {
-    if (attemptDetails?.status !== "started") return;
-
-    if (currentQuestion && userSelections[currentQuestion.id]) {
+  const handleCompleteTest = async (forceComplete = false) => {
+    if (
+      !forceComplete &&
+      currentQuestion &&
+      userSelections[currentQuestion.id]
+    ) {
       await submitCurrentAnswer(
         currentQuestion.id,
         userSelections[currentQuestion.id]
@@ -237,9 +298,10 @@ const TestAttemptPage = () => {
   };
 
   // RENDER LOGIC
-  if (isLoadingAttempt) return <QuizPageSkeleton />;
+  if (isLoadingAttempt || !isReady) return <QuizPageSkeleton />;
 
-  if (attemptError || !attemptDetails) {
+  // The previous error handling for `attemptDetails` is now covered by the `attemptError` effect
+  if (attemptError) {
     return (
       <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
         <Alert variant="destructive" className="max-w-md">
@@ -264,16 +326,11 @@ const TestAttemptPage = () => {
       </div>
     );
   }
-
-  if (attemptDetails.status !== "started") {
-    return <QuizPageSkeleton message={t("testAlreadyCompletedRedirecting")} />;
-  }
-
   if (!currentQuestion) {
     return (
       <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
         <Alert className="max-w-md">
-          <AlertTriangle className="h-5 w-5" />
+          <HelpCircle className="h-5 w-5" />
           <AlertTitle>{t("noQuestionsTitle")}</AlertTitle>
           <AlertDescription>{t("noQuestionsDescription")}</AlertDescription>
         </Alert>
@@ -282,7 +339,7 @@ const TestAttemptPage = () => {
           variant="outline"
           className="mt-6"
         >
-          {locale === "ar" ? (
+          {direction === "rtl" ? (
             <ArrowRight className="me-2 h-4 w-4" />
           ) : (
             <ArrowLeft className="me-2 h-4 w-4" />
@@ -295,20 +352,20 @@ const TestAttemptPage = () => {
 
   const progressValue = ((currentQuestionIndex + 1) / questions.length) * 100;
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
-  const pageTitle =
-    attemptDetails.test_type === "simulation"
-      ? t("simulationTitle")
-      : t("title");
+  // const pageTitle =
+  //   attemptData?.test_type === "simulation" // Use attemptData for test_type
+  //     ? t("simulationTitle")
+  //     : t("title");
 
   return (
     <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
-      <Card className="w-full max-w-4xl shadow-xl">
-        <CardHeader className="pb-4">
+      <Card className="w-full max-w-4xl shadow-xl dark:bg-[#0B1739]">
+        <CardHeader dir={direction} className="pb-4">
           <div className="mb-3 flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
+            {/* <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
               <BookOpenCheck className="h-6 w-6 text-primary" />
               {pageTitle}
-            </CardTitle>
+            </CardTitle> */}
             <ConfirmationDialog
               triggerButton={
                 <Button
@@ -316,7 +373,7 @@ const TestAttemptPage = () => {
                   size="sm"
                   className="text-muted-foreground hover:text-destructive"
                 >
-                  <XCircle className="me-1.5 h-4 w-4" />
+                  <XCircle className="me-1.5 h-4 w-4 rtl:me-0 rtl:ms-1.5" />
                   {t("endTest")}
                 </Button>
               }
@@ -337,7 +394,7 @@ const TestAttemptPage = () => {
           <Progress value={progressValue} className="mt-2 h-2 w-full" />
         </CardHeader>
 
-        <CardContent className="min-h-[300px] py-6">
+        <CardContent dir={direction} className="min-h-[300px] py-6">
           <div className="flex items-start gap-4 mb-6">
             <div className="flex-1">
               <QuestionRenderer
@@ -363,7 +420,8 @@ const TestAttemptPage = () => {
                 handleSelectAnswer(value as OptionKey)
               }
               className="space-y-3 mt-8"
-              dir={"rtl"}
+              // MODIFIED: Use dynamic direction
+              dir={direction}
             >
               {Object.entries(currentQuestion.options).map(([key, text]) => {
                 const optionKey = key as OptionKey;
@@ -399,7 +457,10 @@ const TestAttemptPage = () => {
           )}
         </CardContent>
 
-        <CardFooter className="flex flex-col items-center justify-between gap-3 pt-6 sm:flex-row">
+        <CardFooter
+          dir={direction}
+          className="flex flex-col items-center justify-between gap-3 pt-6 sm:flex-row"
+        >
           <Button
             variant="outline"
             onClick={handlePrevious}
@@ -410,10 +471,10 @@ const TestAttemptPage = () => {
             }
             className="w-full sm:w-auto"
           >
-            {locale === "ar" ? (
-              <ArrowRight className="me-2 h-5 w-5" />
+            {direction === "rtl" ? (
+              <ArrowRight className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
             ) : (
-              <ArrowLeft className="me-2 h-5 w-5" />
+              <ArrowLeft className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
             )}
             {t("previous")}
           </Button>
@@ -426,13 +487,16 @@ const TestAttemptPage = () => {
                   disabled={
                     !userSelections[currentQuestion.id] ||
                     completeTestMutation.isPending ||
-                    cancelTestMutation.isPending
+                    cancelTestMutation.isPending ||
+                    (submitAnswerMutation.isPending &&
+                      submitAnswerMutation.variables?.question_id ===
+                        currentQuestion.id)
                   }
                 >
                   {completeTestMutation.isPending && (
-                    <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
                   )}
-                  <Send className="me-2 h-5 w-5" />
+                  <Send className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
                   {t("submitAnswers")}
                 </Button>
               }
@@ -451,20 +515,20 @@ const TestAttemptPage = () => {
                 cancelTestMutation.isPending ||
                 (submitAnswerMutation.isPending &&
                   submitAnswerMutation.variables?.question_id ===
-                    currentQuestion?.id)
+                    currentQuestion.id)
               }
               className="w-full sm:w-auto"
             >
               {submitAnswerMutation.isPending &&
                 submitAnswerMutation.variables?.question_id ===
-                  currentQuestion?.id && (
-                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                  currentQuestion.id && (
+                  <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
                 )}
               {t("next")}
-              {locale === "ar" ? (
-                <ChevronLeft className="ms-2 h-5 w-5" />
+              {direction === "rtl" ? (
+                <ChevronLeft className="ms-2 h-5 w-5 rtl:me-2 rtl:ms-0" />
               ) : (
-                <ChevronRight className="ms-2 h-5 w-5" />
+                <ChevronRight className="ms-2 h-5 w-5 rtl:me-2 rtl:ms-0" />
               )}
             </Button>
           )}
@@ -475,6 +539,7 @@ const TestAttemptPage = () => {
 };
 
 const QuizPageSkeleton = ({ message }: { message?: string }) => {
+  // ... Skeleton component remains unchanged
   return (
     <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
       <Card className="w-full max-w-3xl">

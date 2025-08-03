@@ -61,6 +61,11 @@ export const queryKeys = {
       overview: (filters: object) =>
         [...queryKeys.admin.statistics.overviews(), filters] as const,
     },
+    exportJobs: {
+      all: ["adminExportJobs"] as const,
+      list: (page: number) =>
+        [...queryKeys.admin.exportJobs.all, page] as const,
+    },
     support: {
       all: () => [...queryKeys.admin.all, "support"] as const,
       lists: () => [...queryKeys.admin.support.all(), "lists"] as const,
@@ -205,6 +210,8 @@ export const queryKeys = {
     details: () => [...queryKeys.tests.all, "details"] as const,
     detail: (attemptId: number | string) =>
       [...queryKeys.tests.details(), attemptId] as const,
+    resume: (attemptId: number | string) =>
+      [...queryKeys.tests.detail(attemptId), "resume"] as const,
     review: (attemptId: number | string) =>
       [...queryKeys.tests.detail(attemptId), "review"] as const,
     completionResult: (attemptId: number | string) =>

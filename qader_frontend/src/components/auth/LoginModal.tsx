@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation"; // Use next-intl's router
 import Link from "next/link"; // Use next-intl's Link
 import { toast } from "sonner";
@@ -44,6 +44,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
 }) => {
   const tAuth = useTranslations("Auth");
   const tCommon = useTranslations("Common");
+  const queryClient = useQueryClient();
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const { login: storeLogin } = useAuthActions();
@@ -68,6 +69,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
     onSuccess: (data) => {
       storeLogin({ access: data.access }, data.user);
       toast.success(tAuth("loginSuccess"));
+      queryClient.invalidateQueries();
       onClose();
       reset();
 

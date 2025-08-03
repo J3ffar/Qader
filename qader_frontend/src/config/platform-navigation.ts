@@ -16,6 +16,11 @@ import {
   ShieldAlert,
   Settings,
   LucideProps,
+  // Added for new "coming soon" links
+  Compass,
+  User,
+  UsersRound,
+  Presentation,
 } from "lucide-react";
 
 import { PATHS } from "@/constants/paths";
@@ -103,11 +108,35 @@ export const PLATFORM_SIDEBAR_SECTIONS: PlatformSidebarNavSection[] = [
         icon: Users,
         href: PATHS.STUDY.STUDY_COMMUNITY,
       },
+      {
+        labelKey: "PlatformSidebar.items.explore",
+        icon: Compass,
+        href: "#",
+        comingSoon: true,
+      },
+      {
+        labelKey: "PlatformSidebar.items.studyGroups",
+        icon: UsersRound,
+        href: "#",
+        comingSoon: true,
+      },
+      {
+        labelKey: "PlatformSidebar.items.studyRooms",
+        icon: Presentation,
+        href: "#",
+        comingSoon: true,
+      },
     ],
   },
   {
     titleKey: "PlatformSidebar.sections.account",
     items: [
+      {
+        labelKey: "PlatformSidebar.items.profile",
+        icon: User,
+        href: "#",
+        comingSoon: true,
+      },
       {
         labelKey: "PlatformSidebar.items.settings",
         icon: Settings,

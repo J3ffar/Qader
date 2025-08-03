@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-11 09:35+0300\n"
+"POT-Creation-Date: 2025-08-03 20:14+0300\n"
 "PO-Revision-Date: 2025-05-27 23:32+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -30,23 +30,29 @@ msgstr ""
 "الرقم التسلسلي لهذه المحاولة لهذا النوع المحدد من الاختبار (على سبيل المثال، "
 "تقييم المستوى الأول، اختبار الممارسة الثالث)."
 
-#: .\apps\study\api\serializers\attempts.py:172
+#: .\apps\study\api\serializers\attempts.py:176
+msgid ""
+"The full list of questions for this attempt. Questions that have been "
+"answered will have the 'user_answer_details' field populated."
+msgstr ""
+
+#: .\apps\study\api\serializers\attempts.py:196
 msgid "Primary key of the question being answered."
 msgstr "المفتاح الأساسي للسؤال الذي يتم الإجابة عليه."
 
-#: .\apps\study\api\serializers\attempts.py:178
+#: .\apps\study\api\serializers\attempts.py:202
 msgid "The answer choice selected by the user (A, B, C, or D)."
 msgstr "الخيار الذي اختاره المستخدم (أ، ب، ج، أو د)."
 
-#: .\apps\study\api\serializers\attempts.py:184
+#: .\apps\study\api\serializers\attempts.py:208
 msgid "Optional: Time spent on this specific question in seconds."
 msgstr "اختياري: الوقت المستغرق في هذا السؤال المحدد بالثواني."
 
-#: .\apps\study\api\serializers\attempts.py:237
+#: .\apps\study\api\serializers\attempts.py:261
 msgid "Number of questions answered correctly in this test."
 msgstr "عدد الأسئلة التي تمت الإجابة عليها بشكل صحيح في هذا الاختبار."
 
-#: .\apps\study\api\serializers\attempts.py:246
+#: .\apps\study\api\serializers\attempts.py:270
 msgid ""
 "Points earned from completing the test, streak bonuses, and badges awarded "
 "at completion."
@@ -54,7 +60,7 @@ msgstr ""
 "النقاط المكتسبة من إكمال الاختبار، مكافآت السلسلة، والشارات الممنوحة عند "
 "الانتهاء."
 
-#: .\apps\study\api\serializers\attempts.py:253
+#: .\apps\study\api\serializers\attempts.py:277
 msgid ""
 "Points earned from correctly answering questions during this specific test "
 "attempt."
@@ -96,6 +102,10 @@ msgstr "الرسالة التشجيعية من الذكاء الاصطناعي."
 #: .\apps\study\api\serializers\conversation.py:200
 msgid "The question posed by the AI."
 msgstr "السؤال الذي طرحه الذكاء الاصطناعي."
+
+#: .\apps\study\api\serializers\emergency.py:54
+msgid "How many days are left until the test."
+msgstr ""
 
 #: .\apps\study\api\serializers\level_assessment.py:38
 msgid "Slug of the learning section (e.g., 'verbal')."
@@ -177,61 +187,75 @@ msgstr "تصفية الأسئلة الأولية لتضمين المهارات �
 msgid "The sequence number of this attempt for traditional practice."
 msgstr "الرقم التسلسلي لهذه المحاولة للممارسة التقليدية."
 
-#: .\apps\study\api\views\attempts.py:200
-#: .\apps\study\api\views\attempts.py:313
-#: .\apps\study\api\views\attempts.py:413
+#: .\apps\study\api\views\attempts.py:189
+#, fuzzy
+#| msgid "The specified test attempt is not currently active or ongoing."
+msgid ""
+"The specified test attempt does not exist or you do not have permission to "
+"view it."
+msgstr "محاولة الاختبار المحددة ليست نشطة حاليًا أو جارية."
+
+#: .\apps\study\api\views\attempts.py:201
+#, fuzzy
+#| msgid "This test attempt is not currently active."
+msgid "This test cannot be resumed because it is not currently in progress."
+msgstr "محاولة الاختبار هذه ليست نشطة حاليًا."
+
+#: .\apps\study\api\views\attempts.py:302
+#: .\apps\study\api\views\attempts.py:423
+#: .\apps\study\api\views\attempts.py:523
 msgid "The specified test attempt is not currently active or ongoing."
 msgstr "محاولة الاختبار المحددة ليست نشطة حاليًا أو جارية."
 
-#: .\apps\study\api\views\attempts.py:206
-#: .\apps\study\api\views\attempts.py:319
-#: .\apps\study\api\views\attempts.py:419
+#: .\apps\study\api\views\attempts.py:308
+#: .\apps\study\api\views\attempts.py:429
+#: .\apps\study\api\views\attempts.py:529
 msgid "Test attempt not found."
 msgstr "لم يتم العثور على محاولة الاختبار."
 
-#: .\apps\study\api\views\attempts.py:212
-#: .\apps\study\api\views\attempts.py:325
-#: .\apps\study\api\views\attempts.py:425
+#: .\apps\study\api\views\attempts.py:314
+#: .\apps\study\api\views\attempts.py:435
+#: .\apps\study\api\views\attempts.py:535
 msgid "An error occurred while retrieving the test attempt."
 msgstr "حدث خطأ أثناء استرداد محاولة الاختبار."
 
-#: .\apps\study\api\views\attempts.py:251
+#: .\apps\study\api\views\attempts.py:361
 msgid "An internal error occurred while recording the answer."
 msgstr "حدث خطأ داخلي أثناء تسجيل الإجابة."
 
-#: .\apps\study\api\views\attempts.py:360
+#: .\apps\study\api\views\attempts.py:470
 msgid "An internal error occurred while completing the test."
 msgstr "حدث خطأ داخلي أثناء إكمال الاختبار."
 
-#: .\apps\study\api\views\attempts.py:438
+#: .\apps\study\api\views\attempts.py:548
 msgid "Test attempt cancelled."
 msgstr "تم إلغاء محاولة الاختبار."
 
-#: .\apps\study\api\views\attempts.py:445
+#: .\apps\study\api\views\attempts.py:555
 msgid "An internal error occurred while cancelling the test."
 msgstr "حدث خطأ داخلي أثناء إلغاء الاختبار."
 
-#: .\apps\study\api\views\attempts.py:510
+#: .\apps\study\api\views\attempts.py:620
 msgid "Cannot review a test attempt that is not completed."
 msgstr "لا يمكن مراجعة محاولة اختبار لم تكتمل."
 
-#: .\apps\study\api\views\attempts.py:516
+#: .\apps\study\api\views\attempts.py:626
 msgid "Completed test attempt not found."
 msgstr "لم يتم العثور على محاولة الاختبار المكتملة."
 
-#: .\apps\study\api\views\attempts.py:522
+#: .\apps\study\api\views\attempts.py:632
 msgid "An error occurred while retrieving test attempt details."
 msgstr "حدث خطأ أثناء استرداد تفاصيل محاولة الاختبار."
 
-#: .\apps\study\api\views\attempts.py:621
+#: .\apps\study\api\views\attempts.py:731
 msgid "Original test attempt not found or not accessible."
 msgstr "لم يتم العثور على محاولة الاختبار الأصلية أو لا يمكن الوصول إليها."
 
-#: .\apps\study\api\views\attempts.py:627
+#: .\apps\study\api\views\attempts.py:737
 msgid "An error occurred while retrieving the original test attempt."
 msgstr "حدث خطأ أثناء استرداد محاولة الاختبار الأصلية."
 
-#: .\apps\study\api\views\attempts.py:656
+#: .\apps\study\api\views\attempts.py:766
 msgid "An internal error occurred while trying to retake the test."
 msgstr "حدث خطأ داخلي أثناء محاولة إعادة الاختبار."
 
@@ -271,21 +295,38 @@ msgstr "حدث خطأ أثناء إرسال إجابتك."
 msgid "Session ended successfully."
 msgstr "انتهت الجلسة بنجاح."
 
-#: .\apps\study\api\views\emergency.py:148
+#: .\apps\study\api\views\emergency.py:107
+#, fuzzy
+#| msgid "An internal error occurred while recording the answer."
+msgid "An internal error occurred while generating the plan."
+msgstr "حدث خطأ داخلي أثناء تسجيل الإجابة."
+
+#: .\apps\study\api\views\emergency.py:161
 msgid "The study plan for this session is missing or invalid."
 msgstr "خطة الدراسة لهذه الجلسة مفقودة أو غير صالحة."
 
-#: .\apps\study\api\views\emergency.py:265
+#: .\apps\study\api\views\emergency.py:182
+msgid ""
+"The study plan does not contain any target areas to fetch questions from."
+msgstr ""
+
+#: .\apps\study\api\views\emergency.py:301
 msgid "This session has already ended."
 msgstr "انتهت هذه الجلسة بالفعل."
 
-#: .\apps\study\api\views\emergency.py:288
+#: .\apps\study\api\views\emergency.py:324
 msgid "Correct! Keep focusing."
 msgstr "صحيح! استمر في التركيز."
 
-#: .\apps\study\api\views\emergency.py:290
+#: .\apps\study\api\views\emergency.py:326
 msgid "That was incorrect. Let's review and move on."
 msgstr "كان ذلك غير صحيح. دعنا نراجع وننتقل."
+
+#: .\apps\study\api\views\emergency.py:394
+#, fuzzy
+#| msgid "An error occurred while asking for a question."
+msgid "An error occurred while finalizing your session."
+msgstr "حدث خطأ أثناء طلب سؤال."
 
 #: .\apps\study\api\views\level_assessment.py:73
 msgid "An internal error occurred while starting the assessment."
@@ -430,12 +471,12 @@ msgstr ""
 "كانت 'is_predefined' خاطئة."
 
 #: .\apps\study\models.py:65 .\apps\study\models.py:213
-#: .\apps\study\models.py:873 .\apps\study\models.py:937
+#: .\apps\study\models.py:897 .\apps\study\models.py:1020
 msgid "created at"
 msgstr "تاريخ الإنشاء"
 
 #: .\apps\study\models.py:66 .\apps\study\models.py:214
-#: .\apps\study\models.py:874 .\apps\study\models.py:938
+#: .\apps\study\models.py:898 .\apps\study\models.py:1021
 msgid "updated at"
 msgstr "تاريخ التحديث"
 
@@ -466,7 +507,7 @@ msgstr "تعريفات الاختبار"
 msgid "Started"
 msgstr "بدأت"
 
-#: .\apps\study\models.py:121 .\apps\study\models.py:905
+#: .\apps\study\models.py:121 .\apps\study\models.py:988
 msgid "Completed"
 msgstr "اكتملت"
 
@@ -478,7 +519,7 @@ msgstr "مهجورة"
 msgid "Error"
 msgstr "خطأ"
 
-#: .\apps\study\models.py:126 .\apps\study\models.py:472
+#: .\apps\study\models.py:126 .\apps\study\models.py:475
 msgid "Level Assessment"
 msgstr "تقييم المستوى"
 
@@ -490,8 +531,8 @@ msgstr "اختبار الممارسة"
 msgid "Traditional Practice Session"
 msgstr "جلسة الممارسة التقليدية"
 
-#: .\apps\study\models.py:137 .\apps\study\models.py:488
-#: .\apps\study\models.py:856 .\apps\study\models.py:912
+#: .\apps\study\models.py:137 .\apps\study\models.py:491
+#: .\apps\study\models.py:859 .\apps\study\models.py:995
 msgid "user"
 msgstr "المستخدم"
 
@@ -531,17 +572,17 @@ msgstr "معرفات الأسئلة"
 msgid "Ordered list of question primary keys included in this attempt."
 msgstr "قائمة مرتبة بالمفاتيح الأساسية للأسئلة المضمنة في هذه المحاولة."
 
-#: .\apps\study\models.py:172 .\apps\study\models.py:919
+#: .\apps\study\models.py:172 .\apps\study\models.py:1002
 msgid "status"
 msgstr "الحالة"
 
-#: .\apps\study\models.py:178 .\apps\study\models.py:870
-#: .\apps\study\models.py:935
+#: .\apps\study\models.py:178 .\apps\study\models.py:880
+#: .\apps\study\models.py:1018
 msgid "start time"
 msgstr "وقت البدء"
 
-#: .\apps\study\models.py:179 .\apps\study\models.py:871
-#: .\apps\study\models.py:936
+#: .\apps\study\models.py:179 .\apps\study\models.py:881
+#: .\apps\study\models.py:1019
 msgid "end time"
 msgstr "وقت الانتهاء"
 
@@ -586,143 +627,143 @@ msgstr "محاولة اختبار المستخدم"
 msgid "User Test Attempts"
 msgstr "محاولات اختبار المستخدم"
 
-#: .\apps\study\models.py:471
+#: .\apps\study\models.py:474
 msgid "Traditional Learning"
 msgstr "التعلم التقليدي"
 
-#: .\apps\study\models.py:473
+#: .\apps\study\models.py:476
 msgid "Practice Test/Simulation"
 msgstr "اختبار الممارسة/المحاكاة"
 
-#: .\apps\study\models.py:474
+#: .\apps\study\models.py:477
 msgid "Emergency Mode"
 msgstr "وضع الطوارئ"
 
-#: .\apps\study\models.py:475
+#: .\apps\study\models.py:478
 msgid "Learning via Conversation"
 msgstr "التعلم عبر المحادثة"
 
-#: .\apps\study\models.py:476
+#: .\apps\study\models.py:479
 msgid "Challenge"
 msgstr "تحدي"
 
-#: .\apps\study\models.py:495
+#: .\apps\study\models.py:498
 msgid "question"
 msgstr "سؤال"
 
-#: .\apps\study\models.py:504
+#: .\apps\study\models.py:507
 msgid "test attempt session"
 msgstr "جلسة محاولة الاختبار"
 
-#: .\apps\study\models.py:513
+#: .\apps\study\models.py:516
 msgid "conversation session"
 msgstr "جلسة المحادثة"
 
-#: .\apps\study\models.py:522
+#: .\apps\study\models.py:525
 msgid "challenge participation"
 msgstr "مشاركة التحدي"
 
-#: .\apps\study\models.py:531
+#: .\apps\study\models.py:534
 msgid "emergency mode session"
 msgstr "جلسة وضع الطوارئ"
 
-#: .\apps\study\models.py:539
+#: .\apps\study\models.py:542
 msgid "selected answer"
 msgstr "الإجابة المختارة"
 
-#: .\apps\study\models.py:546
+#: .\apps\study\models.py:549
 msgid "is correct"
 msgstr "صحيح"
 
-#: .\apps\study\models.py:552
+#: .\apps\study\models.py:555
 msgid "time taken (seconds)"
 msgstr "الوقت المستغرق (بالثواني)"
 
-#: .\apps\study\models.py:555
+#: .\apps\study\models.py:558
 msgid "Time spent specifically on this question."
 msgstr "الوقت المستغرق خصيصًا في هذا السؤال."
 
-#: .\apps\study\models.py:558
+#: .\apps\study\models.py:561
 msgid "used hint"
 msgstr "تم استخدام تلميح"
 
-#: .\apps\study\models.py:559
+#: .\apps\study\models.py:562
 msgid "used elimination"
 msgstr "تم استخدام الاستبعاد"
 
-#: .\apps\study\models.py:561
+#: .\apps\study\models.py:564
 msgid "revealed correct answer"
 msgstr "تم الكشف عن الإجابة الصحيحة"
 
-#: .\apps\study\models.py:563
+#: .\apps\study\models.py:566
 msgid "Track if the user explicitly revealed the correct answer choice."
 msgstr "تتبع ما إذا كان المستخدم قد كشف صراحة عن خيار الإجابة الصحيحة."
 
-#: .\apps\study\models.py:566
+#: .\apps\study\models.py:569
 msgid "revealed explanation"
 msgstr "تم الكشف عن الشرح"
 
-#: .\apps\study\models.py:568
+#: .\apps\study\models.py:571
 msgid "Track if the user explicitly revealed the explanation."
 msgstr "تتبع ما إذا كان المستخدم قد كشف صراحة عن الشرح."
 
-#: .\apps\study\models.py:572
+#: .\apps\study\models.py:575
 msgid "mode"
 msgstr "الوضع"
 
-#: .\apps\study\models.py:576
+#: .\apps\study\models.py:579
 msgid "The context (feature) in which the question was attempted."
 msgstr "السياق (الميزة) الذي تم فيه محاولة الإجابة على السؤال."
 
-#: .\apps\study\models.py:579
+#: .\apps\study\models.py:582
 msgid "attempted at"
 msgstr "تمت المحاولة في"
 
-#: .\apps\study\models.py:585
+#: .\apps\study\models.py:588
 msgid "User Question Attempt"
 msgstr "محاولة سؤال المستخدم"
 
-#: .\apps\study\models.py:586
+#: .\apps\study\models.py:589
 msgid "User Question Attempts"
 msgstr "محاولات أسئلة المستخدم"
 
-#: .\apps\study\models.py:756
+#: .\apps\study\models.py:759
 msgid "Proficiency Score"
 msgstr "درجة الكفاءة"
 
-#: .\apps\study\models.py:759
+#: .\apps\study\models.py:762
 msgid "User mastery score (0.0 to 1.0). Updated after attempts."
 msgstr "درجة إتقان المستخدم (0.0 إلى 1.0). يتم تحديثها بعد المحاولات."
 
-#: .\apps\study\models.py:761
+#: .\apps\study\models.py:764
 msgid "Attempts Count"
 msgstr "عدد المحاولات"
 
-#: .\apps\study\models.py:762
+#: .\apps\study\models.py:765
 msgid "Correct Count"
 msgstr "عدد الإجابات الصحيحة"
 
-#: .\apps\study\models.py:763
+#: .\apps\study\models.py:766
 msgid "Last Calculated At"
 msgstr "آخر حساب في"
 
-#: .\apps\study\models.py:768
+#: .\apps\study\models.py:771
 msgid "User Skill Proficiency"
 msgstr "كفاءة مهارة المستخدم"
 
-#: .\apps\study\models.py:769
+#: .\apps\study\models.py:772
 msgid "User Skill Proficiencies"
 msgstr "كفاءات مهارات المستخدم"
 
-#: .\apps\study\models.py:859
+#: .\apps\study\models.py:862
 msgid "reason"
 msgstr "السبب"
 
-#: .\apps\study\models.py:861
+#: .\apps\study\models.py:864
 msgid "suggested plan"
 msgstr "الخطة المقترحة"
 
-#: .\apps\study\models.py:865
+#: .\apps\study\models.py:868
 msgid ""
 "Stores plan details: {\"focus_skills\": [\"slug1\", ...], "
 "\"recommended_questions\": N, \"quick_review_topics\": [...]}"
@@ -730,91 +771,165 @@ msgstr ""
 "يخزن تفاصيل الخطة: {\"focus_skills\": [\"slug1\", ...], "
 "\"recommended_questions\": N, \"quick_review_topics\": [...]}"
 
-#: .\apps\study\models.py:869
+#: .\apps\study\models.py:872
 msgid "calm mode active"
 msgstr "وضع الهدوء نشط"
 
-#: .\apps\study\models.py:872
-msgid "shared with admin"
-msgstr "تمت المشاركة مع المسؤول"
-
 #: .\apps\study\models.py:877
+msgid "Number of days until the user's test, as stated at session start."
+msgstr ""
+
+#: .\apps\study\models.py:901
 msgid "Emergency Mode Session"
 msgstr "جلسة وضع الطوارئ"
 
-#: .\apps\study\models.py:878
+#: .\apps\study\models.py:902
 msgid "Emergency Mode Sessions"
 msgstr "جلسات وضع الطوارئ"
 
-#: .\apps\study\models.py:882
+#: .\apps\study\models.py:906
 msgid "Ended"
 msgstr "انتهت"
 
-#: .\apps\study\models.py:882 .\apps\study\models.py:904
+#: .\apps\study\models.py:906 .\apps\study\models.py:987
 msgid "Active"
 msgstr "نشطة"
 
-#: .\apps\study\models.py:899
+#: .\apps\study\models.py:926
+msgid "Technical Issue"
+msgstr ""
+
+#: .\apps\study\models.py:927
+#, fuzzy
+#| msgid "specific questions"
+msgid "Academic Question"
+msgstr "أسئلة محددة"
+
+#: .\apps\study\models.py:928
+msgid "Problem with a Question"
+msgstr ""
+
+#: .\apps\study\models.py:929
+msgid "Other"
+msgstr ""
+
+#: .\apps\study\models.py:932
+msgid "Open"
+msgstr ""
+
+#: .\apps\study\models.py:933
+#, fuzzy
+#| msgid "Study & Progress"
+msgid "In Progress"
+msgstr "الدراسة والتقدم"
+
+#: .\apps\study\models.py:934
+msgid "Resolved"
+msgstr ""
+
+#: .\apps\study\models.py:935
+msgid "Closed"
+msgstr ""
+
+#: .\apps\study\models.py:948
+#, fuzzy
+#| msgid "The context (feature) in which the question was attempted."
+msgid "The emergency session during which the request was made."
+msgstr "السياق (الميزة) الذي تم فيه محاولة الإجابة على السؤال."
+
+#: .\apps\study\models.py:951
+msgid "Problem Type"
+msgstr ""
+
+#: .\apps\study\models.py:957
+#, fuzzy
+#| msgid "description"
+msgid "Description"
+msgstr "الوصف"
+
+#: .\apps\study\models.py:958
+msgid "Detailed description of the problem or question from the user."
+msgstr ""
+
+#: .\apps\study\models.py:961
+#, fuzzy
+#| msgid "status"
+msgid "Status"
+msgstr "الحالة"
+
+#: .\apps\study\models.py:975
+#, fuzzy
+#| msgid "Emergency Mode"
+msgid "Emergency Support Request"
+msgstr "وضع الطوارئ"
+
+#: .\apps\study\models.py:976
+#, fuzzy
+#| msgid "Emergency Mode Session"
+msgid "Emergency Support Requests"
+msgstr "جلسة وضع الطوارئ"
+
+#: .\apps\study\models.py:982
 msgid "Cheerful"
 msgstr "مبهج"
 
-#: .\apps\study\models.py:900
+#: .\apps\study\models.py:983
 msgid "Serious"
 msgstr "جدي"
 
-#: .\apps\study\models.py:916
+#: .\apps\study\models.py:999
 msgid "AI tone"
 msgstr "نبرة الذكاء الاصطناعي"
 
-#: .\apps\study\models.py:932
+#: .\apps\study\models.py:1015
 msgid "current topic question"
 msgstr "سؤال الموضوع الحالي"
 
-#: .\apps\study\models.py:933
+#: .\apps\study\models.py:1016
 msgid "The question/concept currently being focused on."
 msgstr "السؤال/المفهوم الذي يتم التركيز عليه حاليًا."
 
-#: .\apps\study\models.py:941
+#: .\apps\study\models.py:1024
 msgid "Conversation Session"
 msgstr "جلسة المحادثة"
 
-#: .\apps\study\models.py:942
+#: .\apps\study\models.py:1025
 msgid "Conversation Sessions"
 msgstr "جلسات المحادثة"
 
-#: .\apps\study\models.py:963
+#: .\apps\study\models.py:1046
 msgid "User"
 msgstr "المستخدم"
 
-#: .\apps\study\models.py:964
+#: .\apps\study\models.py:1047
 msgid "AI"
 msgstr "الذكاء الاصطناعي"
 
-#: .\apps\study\models.py:970
+#: .\apps\study\models.py:1053
 msgid "session"
 msgstr "الجلسة"
 
-#: .\apps\study\models.py:974
+#: .\apps\study\models.py:1057
 msgid "sender type"
 msgstr "نوع المرسل"
 
-#: .\apps\study\models.py:976
+#: .\apps\study\models.py:1059
 msgid "message text"
 msgstr "نص الرسالة"
 
-#: .\apps\study\models.py:977
+#: .\apps\study\models.py:1060
 msgid "timestamp"
 msgstr "الطابع الزمني"
 
-#: .\apps\study\models.py:985
+#: .\apps\study\models.py:1068
 msgid "related question"
 msgstr "سؤال ذو صلة"
 
-#: .\apps\study\models.py:989
+#: .\apps\study\models.py:1072
 msgid "Conversation Message"
 msgstr "رسالة المحادثة"
 
-#: .\apps\study\models.py:990
+#: .\apps\study\models.py:1073
 msgid "Conversation Messages"
 msgstr "رسائل المحادثة"
 
@@ -837,12 +952,12 @@ msgstr "يبدو أنني عاجز عن الكلام! هل يمكنك محاول
 msgid "I had a little trouble formatting my thoughts. Could you try again?"
 msgstr "واجهت مشكلة صغيرة في تنسيق أفكاري. هل يمكنك المحاولة مرة أخرى؟"
 
-#: .\apps\study\services\ai_manager.py:377
+#: .\apps\study\services\ai_manager.py:401
 msgid "The AI service is currently busy. Please try again in a moment."
 msgstr ""
 "عذرًا، مساعد الذكاء الاصطناعي غير متاح حاليًا. يرجى المحاولة مرة أخرى لاحقًا."
 
-#: .\apps\study\services\ai_manager.py:381
+#: .\apps\study\services\ai_manager.py:405
 msgid ""
 "There's an issue with AI service authentication. Please contact support."
 msgstr "توجد مشكلة في مصادقة خدمة الذكاء الاصطناعي. يرجى الاتصال بالدعم."
@@ -864,7 +979,7 @@ msgid "Sorry, I encountered an issue processing that. Could you try again?"
 msgstr "عذرًا، واجهت مشكلة في معالجة ذلك. هل يمكنك المحاولة مرة أخرى؟"
 
 #: .\apps\study\services\conversation.py:432
-#: .\apps\study\services\study.py:455
+#: .\apps\study\services\study.py:444
 msgid "Answer recorded."
 msgstr "تم تسجيل الإجابة."
 
@@ -888,13 +1003,13 @@ msgid ""
 msgstr ""
 "تم تسجيل الإجابة. واجهت مشكلة صغيرة في تنسيق تعليقاتي المفصلة هذه المرة."
 
-#: .\apps\study\services\study.py:87
+#: .\apps\study\services\study.py:88
 msgid ""
 "Test completed! Review your detailed results to identify areas for "
 "improvement."
 msgstr "اكتمل الاختبار! راجع نتائجك التفصيلية لتحديد مجالات التحسين."
 
-#: .\apps\study\services\study.py:221
+#: .\apps\study\services\study.py:211
 #, python-brace-format
 msgid ""
 "Not enough questions found matching your criteria (found {count}, need at "
@@ -903,51 +1018,51 @@ msgstr ""
 "لم يتم العثور على عدد كافٍ من الأسئلة المطابقة لمعاييرك (تم العثور على "
 "{count}، تحتاج إلى {min} على الأقل). يرجى توسيع نطاق عوامل التصفية."
 
-#: .\apps\study\services\study.py:369
+#: .\apps\study\services\study.py:358
 msgid "Authentication required to record an answer."
 msgstr "المصادقة مطلوبة لتسجيل الإجابة."
 
-#: .\apps\study\services\study.py:377
+#: .\apps\study\services\study.py:366
 msgid "This test attempt is not currently active."
 msgstr "محاولة الاختبار هذه ليست نشطة حاليًا."
 
-#: .\apps\study\services\study.py:389
+#: .\apps\study\services\study.py:378
 msgid "This question is not part of the current test attempt."
 msgstr "هذا السؤال ليس جزءًا من محاولة الاختبار الحالية."
 
-#: .\apps\study\services\study.py:399
+#: .\apps\study\services\study.py:388
 msgid "Invalid answer choice provided. Please select A, B, C, or D."
 msgstr "تم تقديم خيار إجابة غير صالح. يرجى اختيار أ، ب، ج، أو د."
 
-#: .\apps\study\services\study.py:463
+#: .\apps\study\services\study.py:452
 msgid "Answer recorded. See feedback below."
 msgstr "تم تسجيل الإجابة. انظر التعليقات أدناه."
 
-#: .\apps\study\services\study.py:465
+#: .\apps\study\services\study.py:454
 msgid "Answer recorded. The correct answer is shown below."
 msgstr "تم تسجيل الإجابة. الإجابة الصحيحة معروضة أدناه."
 
-#: .\apps\study\services\study.py:475
+#: .\apps\study\services\study.py:464
 msgid "No detailed breakdown by topic available."
 msgstr "لا يوجد شرح مفصل متاح."
 
-#: .\apps\study\services\study.py:493
+#: .\apps\study\services\study.py:482
 msgid "Detailed topic scores are not available for this attempt."
 msgstr "النتائج التفصيلية للمواضيع غير متاحة لهذه المحاولة."
 
-#: .\apps\study\services\study.py:514
+#: .\apps\study\services\study.py:503
 msgid "No specific answer details available for this attempt."
 msgstr "لا تتوفر تفاصيل إجابة محددة لهذه المحاولة."
 
-#: .\apps\study\services\study.py:526 .\apps\study\services\study.py:527
-#: .\apps\study\services\study.py:551 .\apps\study\services\study.py:552
-#: .\apps\study\services\study.py:610 .\apps\study\services\study.py:615
-#: .\apps\study\services\study.py:620 .\apps\study\services\study.py:1782
-#: .\apps\study\services\study.py:1813 .\apps\study\services\study.py:1844
+#: .\apps\study\services\study.py:515 .\apps\study\services\study.py:516
+#: .\apps\study\services\study.py:540 .\apps\study\services\study.py:541
+#: .\apps\study\services\study.py:599 .\apps\study\services\study.py:604
+#: .\apps\study\services\study.py:609 .\apps\study\services\study.py:1838
+#: .\apps\study\services\study.py:1867 .\apps\study\services\study.py:1896
 msgid "N/A"
 msgstr "غير متوفر"
 
-#: .\apps\study\services\study.py:532
+#: .\apps\study\services\study.py:521
 #, python-brace-format
 msgid ""
 "Question in '{subsection}' (Skill: {skill}): Your answer '{user_ans}', "
@@ -956,11 +1071,11 @@ msgstr ""
 "السؤال في '{subsection}' (المهارة: {skill}): إجابتك '{user_ans}'، الصحيحة: "
 "'{correct_ans}' (غير صحيحة)."
 
-#: .\apps\study\services\study.py:536
+#: .\apps\study\services\study.py:525
 msgid "Not Answered"
 msgstr "لم يتم الإجابة"
 
-#: .\apps\study\services\study.py:557
+#: .\apps\study\services\study.py:546
 #, python-brace-format
 msgid ""
 "Question in '{subsection}' (Skill: {skill}): Your answer "
@@ -968,27 +1083,27 @@ msgid ""
 msgstr ""
 "السؤال في '{subsection}' (المهارة: {skill}): إجابتك '{user_ans}' (صحيحة)."
 
-#: .\apps\study\services\study.py:567
+#: .\apps\study\services\study.py:556
 msgid "Could not retrieve specific answer details for analysis."
 msgstr "تعذر استرداد تفاصيل إجابة محددة للتحليل."
 
-#: .\apps\study\services\study.py:578
+#: .\apps\study\services\study.py:567
 #, python-brace-format
 msgid "... (and {num_more} other questions were answered)."
 msgstr "... (وتمت الإجابة على {num_more} أسئلة أخرى)."
 
-#: .\apps\study\services\study.py:599 .\apps\study\services\study.py:875
+#: .\apps\study\services\study.py:588 .\apps\study\services\study.py:864
 msgid "Excellent work! You demonstrated strong understanding in this test."
 msgstr "عمل ممتاز! لقد أظهرت فهمًا قويًا في هذا الاختبار."
 
-#: .\apps\study\services\study.py:603
+#: .\apps\study\services\study.py:592
 msgid ""
 "Good effort! Keep practicing to improve your score. Review your answers to "
 "learn from any mistakes."
 msgstr ""
 "جهد جيد! استمر في الممارسة لتحسين درجاتك. راجع إجاباتك للتعلم من أي أخطاء."
 
-#: .\apps\study\services\study.py:643
+#: .\apps\study\services\study.py:632
 msgid ""
 "Please provide a performance analysis for the test I just completed based on "
 "my scores and answer summary."
@@ -996,11 +1111,11 @@ msgstr ""
 "يرجى تقديم تحليل أداء للاختبار الذي أكملته للتو بناءً على درجاتي وملخص "
 "الإجابات."
 
-#: .\apps\study\services\study.py:667
+#: .\apps\study\services\study.py:656
 msgid "Fantastic job on this test! Your hard work is paying off."
 msgstr "عمل رائع في هذا الاختبار! جهدك يؤتي ثماره."
 
-#: .\apps\study\services\study.py:685
+#: .\apps\study\services\study.py:674
 #, python-brace-format
 msgid ""
 "Good effort! Your results suggest focusing more practice on '{area}' where "
@@ -1009,46 +1124,46 @@ msgstr ""
 "جهد جيد! نتائجك تشير إلى ضرورة التركيز على المزيد من الممارسة في '{area}' "
 "حيث كانت نتيجتك {score}%."
 
-#: .\apps\study\services\study.py:688
+#: .\apps\study\services\study.py:677
 msgid ""
 "You've completed the test. Take some time to review your answers and "
 "identify areas for growth."
 msgstr "لقد أكملت الاختبار. خذ بعض الوقت لمراجعة إجاباتك وتحديد مجالات النمو."
 
-#: .\apps\study\services\study.py:703
+#: .\apps\study\services\study.py:692
 msgid "Authentication required to complete a test attempt."
 msgstr "المصادقة مطلوبة لإكمال محاولة الاختبار."
 
-#: .\apps\study\services\study.py:713
+#: .\apps\study\services\study.py:702
 msgid "This test attempt is not active or has already been completed."
 msgstr "محاولة الاختبار هذه ليست نشطة أو تم إكمالها بالفعل."
 
-#: .\apps\study\services\study.py:879
+#: .\apps\study\services\study.py:868
 msgid ""
 "Good effort! Review your results to identify areas for improvement and keep "
 "practicing."
 msgstr "جهد جيد! راجع نتائجك لتحديد مجالات التحسين واستمر في الممارسة."
 
-#: .\apps\study\services\study.py:883
+#: .\apps\study\services\study.py:872
 msgid ""
 "Well done on completing the test! Check your detailed results for insights."
 msgstr "أحسنت في إكمال الاختبار! تحقق من نتائجك التفصيلية للحصول على رؤى."
 
-#: .\apps\study\services\study.py:887
+#: .\apps\study\services\study.py:876
 msgid ""
 "Test completed. Scores are not available for detailed analysis at this time."
 msgstr "اكتمل الاختبار. النتائج غير متاحة للتحليل التفصيلي في هذا الوقت."
 
-#: .\apps\study\services\study.py:891
+#: .\apps\study\services\study.py:880
 msgid "Practice session ended."
 msgstr "انتهت جلسة الممارسة."
 
-#: .\apps\study\services\study.py:894
+#: .\apps\study\services\study.py:883
 #, python-brace-format
 msgid "Practice session ended. You answered {count} questions."
 msgstr "انتهت جلسة الممارسة. لقد أجبت على {count} أسئلة."
 
-#: .\apps\study\services\study.py:969
+#: .\apps\study\services\study.py:958
 #, python-brace-format
 msgid ""
 "You already have an active '{attempt_type}' in progress. Please complete or "
@@ -1057,120 +1172,161 @@ msgstr ""
 "لديك بالفعل '{attempt_type}' نشط قيد التقدم. يرجى إكماله أو إلغائه قبل بدء "
 "نوع آخر مماثل."
 
-#: .\apps\study\services\study.py:1003 .\apps\study\services\study.py:1303
+#: .\apps\study\services\study.py:992 .\apps\study\services\study.py:1296
 msgid "Could not verify account limits."
 msgstr "تعذر التحقق من حدود الحساب."
 
-#: .\apps\study\services\study.py:1050
+#: .\apps\study\services\study.py:1039
 msgid "Failed to select questions for the test. Please try again later."
 msgstr "فشل في اختيار الأسئلة للاختبار. يرجى المحاولة مرة أخرى لاحقًا."
 
-#: .\apps\study\services\study.py:1085
+#: .\apps\study\services\study.py:1074
 msgid "Failed to start the test session."
 msgstr "فشل في بدء جلسة الاختبار."
 
-#: .\apps\study\services\study.py:1120
+#: .\apps\study\services\study.py:1109
 msgid "No subsections found for the selected sections."
 msgstr "لم يتم العثور على أقسام فرعية للأقسام المختارة."
 
-#: .\apps\study\services\study.py:1236
-msgid "Please complete or cancel your ongoing test before starting a new one."
-msgstr "يرجى إكمال أو إلغاء اختبارك الجاري قبل بدء اختبار جديد."
-
-#: .\apps\study\services\study.py:1249
+#: .\apps\study\services\study.py:1225
 msgid "Original test configuration is missing or invalid."
 msgstr "تكوين الاختبار الأصلي مفقود أو غير صالح."
 
-#: .\apps\study\services\study.py:1267
+#: .\apps\study\services\study.py:1243
+msgid "Please complete or cancel your ongoing test before starting a new one."
+msgstr "يرجى إكمال أو إلغاء اختبارك الجاري قبل بدء اختبار جديد."
+
+#: .\apps\study\services\study.py:1260
 msgid "Cannot retake a test that had no questions selected."
 msgstr "لا يمكن إعادة اختبار لم يتم اختيار أي أسئلة فيه."
 
-#: .\apps\study\services\study.py:1347
+#: .\apps\study\services\study.py:1340
 msgid ""
 "No suitable questions found to generate a similar test based on the original "
 "criteria."
 msgstr ""
 "لم يتم العثور على أسئلة مناسبة لإنشاء اختبار مشابه بناءً على المعايير الأصلية."
 
-#: .\apps\study\services\study.py:1386
+#: .\apps\study\services\study.py:1379
 msgid "Failed to select questions for the new test."
 msgstr "فشل في اختيار الأسئلة للاختبار الجديد."
 
-#: .\apps\study\services\study.py:1416
+#: .\apps\study\services\study.py:1409
 msgid "Failed to start the new similar test."
 msgstr "فشل في بدء الاختبار الجديد المشابه."
 
-#: .\apps\study\services\study.py:1450
+#: .\apps\study\services\study.py:1443
 msgid "Action not valid for this session."
 msgstr "الإجراء غير صالح لهذه الجلسة."
 
-#: .\apps\study\services\study.py:1500
+#: .\apps\study\services\study.py:1493
 msgid "Failed to record action."
 msgstr "فشل في تسجيل الإجراء."
 
-#: .\apps\study\services\study.py:1505
+#: .\apps\study\services\study.py:1498
 msgid "Take deep breaths before starting."
 msgstr "خذ أنفاسًا عميقة قبل البدء."
 
-#: .\apps\study\services\study.py:1506
+#: .\apps\study\services\study.py:1499
 msgid "Focus on one question at a time."
 msgstr "ركز على سؤال واحد في كل مرة."
 
-#: .\apps\study\services\study.py:1507
+#: .\apps\study\services\study.py:1500
 msgid "Read questions carefully."
 msgstr "اقرأ الأسئلة بعناية."
 
-#: .\apps\study\services\study.py:1508
+#: .\apps\study\services\study.py:1501
 msgid "Manage your time effectively, but don't rush needlessly."
 msgstr "إدارة وقتك بفعالية، ولكن لا تتسرع بلا داعي."
 
-#: .\apps\study\services\study.py:1509
+#: .\apps\study\services\study.py:1502
 msgid "Trust your preparation and stay positive!"
 msgstr "ثق في تحضيرك وابقَ إيجابيًا!"
 
-#: .\apps\study\services\study.py:1548
+#: .\apps\study\services\study.py:1542
 msgid "  (General review recommended or user is new)"
 msgstr "  (مراجعة عامة موصى بها أو المستخدم جديد)"
 
-#: .\apps\study\services\study.py:1554
+#: .\apps\study\services\study.py:1548
 msgid "Verbal and Quantitative sections"
 msgstr "أقسام اللفظي والكمي"
 
-#: .\apps\study\services\study.py:1670
+#: .\apps\study\services\study.py:1675
 msgid "Please log in to get a personalized plan."
 msgstr "يرجى تسجيل الدخول للحصول على خطة مخصصة."
 
-#: .\apps\study\services\study.py:1758
+#: .\apps\study\services\study.py:1764
 msgid "Verbal"
 msgstr "لفظي"
 
-#: .\apps\study\services\study.py:1758
+#: .\apps\study\services\study.py:1764
 msgid "Quantitative"
 msgstr "كمي"
 
-#: .\apps\study\services\study.py:1774
+#: .\apps\study\services\study.py:1800
+msgid "Needs improvement"
+msgstr ""
+
+#: .\apps\study\services\study.py:1802
+msgid "Area of strength"
+msgstr ""
+
+#: .\apps\study\services\study.py:1830
 #, python-brace-format
 msgid "Low score ({score}%)"
 msgstr "نتيجة منخفضة ({score}%)"
 
-#: .\apps\study\services\study.py:1805
+#: .\apps\study\services\study.py:1859
 #, python-brace-format
 msgid "Area for improvement ({score}%)"
 msgstr "مجال للتحسين ({score}%)"
 
-#: .\apps\study\services\study.py:1841
+#: .\apps\study\services\study.py:1893
 msgid "Not attempted yet"
 msgstr "لم يتم المحاولة بعد"
 
-#: .\apps\study\services\study.py:1877
+#: .\apps\study\services\study.py:1912
 msgid ""
 "Could not generate personalized focus areas due to an error. Focusing on "
 "general review."
 msgstr "تعذر إنشاء مجالات تركيز مخصصة بسبب خطأ. التركيز على المراجعة العامة."
 
-#: .\apps\study\services\study.py:1899
+#: .\apps\study\services\study.py:1935
 msgid "Remember to stay calm and focused!"
 msgstr "تذكر أن تبقى هادئًا ومركزًا!"
+
+#: .\apps\study\services\study.py:1976
+msgid ""
+"Great job completing your emergency session! Review your results to see "
+"where you excelled and what you can focus on next."
+msgstr ""
+
+#: .\apps\study\services\study.py:2003
+#, fuzzy
+#| msgid ""
+#| "Please provide a performance analysis for the test I just completed based "
+#| "on my scores and answer summary."
+msgid ""
+"Please provide a performance analysis for the emergency study session I just "
+"completed."
+msgstr ""
+"يرجى تقديم تحليل أداء للاختبار الذي أكملته للتو بناءً على درجاتي وملخص "
+"الإجابات."
+
+#: .\apps\study\services\study.py:2048
+#, fuzzy
+#| msgid "This session has already ended."
+msgid "This emergency session has already been completed."
+msgstr "انتهت هذه الجلسة بالفعل."
+
+#: .\apps\study\services\study.py:2067
+msgid ""
+"You completed the session without answering any questions. Try a few next "
+"time!"
+msgstr ""
+
+#~ msgid "shared with admin"
+#~ msgstr "تمت المشاركة مع المسؤول"
 
 #~ msgid "You've got this! Do your best."
 #~ msgstr "أنت قادر على ذلك! ابذل قصارى جهدك."

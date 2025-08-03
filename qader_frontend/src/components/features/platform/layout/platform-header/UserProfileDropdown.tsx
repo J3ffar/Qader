@@ -18,6 +18,7 @@ import {
   ArrowLeftStartOnRectangleIcon,
 } from "@heroicons/react/24/outline"; // Or Lucide equivalents
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface UserProfileDropdownProps {
   isVisible: boolean;
@@ -32,12 +33,14 @@ const UserProfileDropdown = forwardRef<
   const { user, isAuthenticated } = useAuthCore();
   const { logout } = useAuthActions();
   const t = useTranslations("Nav.UserDropdown"); // Ensure i18n keys
+  const queryClient = useQueryClient();
 
   if (!isVisible) return null;
 
   const handleLogout = async () => {
     try {
       await logout(); // This should also handle token removal from Zustand/localStorage via the store action
+      queryClient.clear();
       toast.success(t("logoutSuccess"));
       router.push(`/${locale}${PATHS.HOME}`); // Redirect to home on current locale
     } catch (error) {

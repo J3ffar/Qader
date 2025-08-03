@@ -131,7 +131,11 @@
       "community": "مجتمع الطلاب",
       "settings": "الإعدادات والاشتراك",
       "adminSupport": "دعم الإدارة",
-      "comingSoonSuffix": "قريباً"
+      "comingSoonSuffix": "قريباً",
+      "explore": "اكسبلور",
+      "profile": "الحساب الشخصي",
+      "studyGroups": "المذاكرة في مجموعات",
+      "studyRooms": "غرف المذاكرة"
     }
   },
   "AdminSidebar": {

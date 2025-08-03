@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Qader\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-11 09:35+0300\n"
+"POT-Creation-Date: 2025-08-03 20:14+0300\n"
 "PO-Revision-Date: 2025-05-18 13:07+0300\n"
 "Last-Translator: Abubakr Alsheikh <AbubakrAlskeikh@outlook.com>\n"
 "Language-Team: Arabic <ar@li.org>\n"
@@ -532,35 +532,127 @@ msgstr "إدارة الإعدادات"
 msgid "Allows full CRUD operations on application settings and configurations."
 msgstr "يسمح بعمليات CRUD الكاملة على إعدادات وتكوينات التطبيق."
 
-#: .\apps\admin_panel\models.py:12
+#: .\apps\admin_panel\models.py:14
 msgid "Slug"
 msgstr "سلاغ"
 
-#: .\apps\admin_panel\models.py:17
+#: .\apps\admin_panel\models.py:19
 msgid ""
 "Unique identifier for the permission (e.g., 'view_users', 'manage_content')."
 msgstr "معرف فريد للإذن (مثل 'view_users', 'manage_content')."
 
-#: .\apps\admin_panel\models.py:21
+#: .\apps\admin_panel\models.py:23
 msgid "Name"
 msgstr "الاسم"
 
-#: .\apps\admin_panel\models.py:23
+#: .\apps\admin_panel\models.py:25
 msgid "Human-readable name for the permission."
 msgstr "اسم الإذن سهل القراءة."
 
-#: .\apps\admin_panel\models.py:26
+#: .\apps\admin_panel\models.py:28
 msgid "Description"
 msgstr "الوصف"
 
-#: .\apps\admin_panel\models.py:29
+#: .\apps\admin_panel\models.py:31
 msgid "Detailed explanation of what this permission allows."
 msgstr "شرح مفصل لما يسمح به هذا الإذن."
 
-#: .\apps\admin_panel\models.py:33
+#: .\apps\admin_panel\models.py:35
 msgid "Admin Permission"
 msgstr "إذن المسؤول"
 
-#: .\apps\admin_panel\models.py:34
+#: .\apps\admin_panel\models.py:36
 msgid "Admin Permissions"
 msgstr "صلاحيات المسؤول"
+
+#: .\apps\admin_panel\models.py:62
+msgid "CSV"
+msgstr "CSV"
+
+#: .\apps\admin_panel\models.py:63
+msgid "Excel (XLSX)"
+msgstr "Excel (XLSX)"
+
+#: .\apps\admin_panel\models.py:66
+msgid "Test Attempts Export"
+msgstr "تصدير محاولات الاختبار"
+
+#: .\apps\admin_panel\models.py:67
+msgid "User Data Export"
+msgstr "تصدير بيانات المستخدم"
+
+#: .\apps\admin_panel\models.py:75
+msgid "Requesting User"
+msgstr "المستخدم الطالب"
+
+#: .\apps\admin_panel\models.py:78
+msgid "Job Type"
+msgstr "نوع المهمة"
+
+#: .\apps\admin_panel\models.py:84
+msgid "Status"
+msgstr "الحالة"
+
+#: .\apps\admin_panel\models.py:91
+msgid "File Format"
+msgstr "تنسيق الملف"
+
+#: .\apps\admin_panel\models.py:94
+msgid "Celery Task ID"
+msgstr "معرف مهمة Celery"
+
+#: .\apps\admin_panel\models.py:99
+msgid "The ID of the background task processing this job."
+msgstr "معرف المهمة الخلفية التي تعالج هذه الوظيفة."
+
+#: .\apps\admin_panel\models.py:102
+msgid "Applied Filters"
+msgstr "الفلاتر المطبقة"
+
+#: .\apps\admin_panel\models.py:104
+msgid "The query parameters used for this export."
+msgstr "معلمات الاستعلام المستخدمة لهذا التصدير."
+
+#: .\apps\admin_panel\models.py:107
+msgid "Exported File"
+msgstr "الملف المصدر"
+
+#: .\apps\admin_panel\models.py:111
+msgid "The final generated file."
+msgstr "الملف النهائي الذي تم إنشاؤه."
+
+#: .\apps\admin_panel\models.py:114
+msgid "Error Message"
+msgstr "رسالة خطأ"
+
+#: .\apps\admin_panel\models.py:117
+msgid "Details of the error if the job failed."
+msgstr "تفاصيل الخطأ في حالة فشل الوظيفة."
+
+#: .\apps\admin_panel\models.py:119
+msgid "Created At"
+msgstr "أنشئت في"
+
+#: .\apps\admin_panel\models.py:120
+msgid "Completed At"
+msgstr "اكتمل في"
+
+#: .\apps\admin_panel\models.py:123
+msgid "Export Job"
+msgstr "مهمة تصدير"
+
+#: .\apps\admin_panel\models.py:124
+msgid "Export Jobs"
+msgstr "مهام التصدير"
+
+#~ msgid "Pending"
+#~ msgstr "قيد الانتظar"
+
+#~ msgid "In Progress"
+#~ msgstr "قيد التنفيذ"
+
+#~ msgid "Success"
+#~ msgstr "نجاح"
+
+#~ msgid "Failure"
+#~ msgstr "فشل"

@@ -44,9 +44,9 @@ export const API_ENDPOINTS = {
       TEST_HISTORY: (userId: number) => `/admin/users/${userId}/test-history/`,
     },
     STATISTICS: {
-      // NEW SECTION
       OVERVIEW: "/admin/statistics/overview/",
-      EXPORT: "/admin/statistics/export/",
+      EXPORT_JOBS: "/admin/statistics/export-jobs/",
+      EXPORT_USERS: "/admin/statistics/export-jobs/users/", // <-- ADD THIS
     },
     PERMISSIONS: "/admin/permissions/",
     SUPPORT: {
@@ -132,6 +132,7 @@ export const API_ENDPOINTS = {
     ATTEMPTS: {
       LIST: "/study/attempts/",
       DETAIL: (attemptId: number | string) => `/study/attempts/${attemptId}/`,
+      RESUME: (id: number | string) => `/study/attempts/${id}/resume/`, // NEW
       ANSWER: (attemptId: number | string) =>
         `/study/attempts/${attemptId}/answer/`,
       CANCEL: (attemptId: number | string) =>

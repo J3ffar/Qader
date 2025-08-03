@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudentClient from "@/components/features/admin/students/StudentClient";
 import AddStudentDialog from "@/components/features/admin/students/components/AddStudentDialog";
+import { ExportControl } from "@/components/features/admin/shared/ExportControl";
 
 export default function AdminStudentsPage() {
   const t = useTranslations("Admin.StudentManagement");
@@ -20,10 +21,7 @@ export default function AdminStudentsPage() {
             <p className="text-muted-foreground">{t("description")}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline">
-              <Upload className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
-              {t("export")}
-            </Button>
+            <ExportControl exportType="users" roles={["student"]} />
             <Button onClick={() => setAddDialogOpen(true)}>
               <Plus className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
               {t("addUser")}
