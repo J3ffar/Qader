@@ -6,15 +6,18 @@ import { Download, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExportJobsDialog } from "@/components/features/admin/statistics/overview/ExportJobsDialog";
 import { useCreateExportJob } from "@/hooks/useCreateExportJob";
-import type { StatisticsExportParams } from "@/types/api/admin/statistics.types";
+import type {
+  StatisticsExportParams,
+  UserExportParams,
+} from "@/types/api/admin/statistics.types";
 
 type ExportType = "statistics" | "users";
 type JobType = "TEST_ATTEMPTS" | "USERS";
 
 interface ExportControlProps {
-  exportType: ExportType;
-  // Filters are only needed for statistics export
+  exportType: "statistics" | "users";
   dateFilters?: Omit<StatisticsExportParams, "format">;
+  roles?: string[]; // Add roles prop
 }
 
 // Helper to map our internal type to the API's type
@@ -22,7 +25,11 @@ const getJobTypeForApi = (exportType: "statistics" | "users"): JobType => {
   return exportType === "statistics" ? "TEST_ATTEMPTS" : "USERS";
 };
 
-export function ExportControl({ exportType, dateFilters }: ExportControlProps) {
+export function ExportControl({
+  exportType,
+  dateFilters,
+  roles,
+}: ExportControlProps) {
   const [isJobsDialogOpen, setIsJobsDialogOpen] = useState(false);
 
   const { mutate: handleExport, isPending: isExporting } = useCreateExportJob({
@@ -31,10 +38,14 @@ export function ExportControl({ exportType, dateFilters }: ExportControlProps) {
   });
 
   const onExportClick = () => {
-    const params = {
-      format: "xlsx" as const,
-      ...dateFilters,
-    };
+    let params: StatisticsExportParams | UserExportParams;
+
+    if (exportType === "users") {
+      params = { format: "xlsx" as const, role: roles };
+    } else {
+      params = { format: "xlsx" as const, ...dateFilters };
+    }
+
     handleExport(params);
   };
 

@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudentClient from "@/components/features/admin/students/StudentClient";
 import AddStudentDialog from "@/components/features/admin/students/components/AddStudentDialog";
-import { ExportControl } from "@/components/features/admin/shared/ExportControl"; // Import new component
+import { ExportControl } from "@/components/features/admin/shared/ExportControl";
 
 export default function AdminStudentsPage() {
   const t = useTranslations("Admin.StudentManagement");
@@ -21,8 +21,7 @@ export default function AdminStudentsPage() {
             <p className="text-muted-foreground">{t("description")}</p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Replace old button with our new control component */}
-            <ExportControl exportType="users" />
+            <ExportControl exportType="users" roles={["student"]} />
             <Button onClick={() => setAddDialogOpen(true)}>
               <Plus className="ltr:mr-2 rtl:ml-2 h-4 w-4" />
               {t("addUser")}

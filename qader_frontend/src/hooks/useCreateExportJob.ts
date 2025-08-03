@@ -7,12 +7,13 @@ import {
 } from "@/services/api/admin/statistics.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
-import type { StatisticsExportParams } from "@/types/api/admin/statistics.types";
+import type {
+  StatisticsExportParams,
+  UserExportParams,
+} from "@/types/api/admin/statistics.types";
 
 type ExportType = "statistics" | "users";
-type ExportParams =
-  | StatisticsExportParams
-  | Pick<StatisticsExportParams, "format">;
+type ExportParams = StatisticsExportParams | UserExportParams; // Use a union type
 
 interface UseCreateExportJobOptions {
   exportType: ExportType;
@@ -28,12 +29,10 @@ export const useCreateExportJob = ({
   const mutationFn = (params: ExportParams) => {
     switch (exportType) {
       case "users":
-        return createUserExportJob(
-          params as Pick<StatisticsExportParams, "format">
-        );
+        return createUserExportJob(params as UserExportParams); // Cast to correct type
       case "statistics":
       default:
-        return createExportJob(params as StatisticsExportParams);
+        return createExportJob(params as StatisticsExportParams); // Cast to correct type
     }
   };
 

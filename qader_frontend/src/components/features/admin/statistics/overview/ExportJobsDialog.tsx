@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTablePagination } from "@/components/shared/DataTablePagination";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Import Tabs
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type JobType = "TEST_ATTEMPTS" | "USERS";
 
@@ -50,15 +50,34 @@ interface ExportJobsDialogProps {
 }
 const PAGE_SIZE = 20;
 
-const formatJobFilters = (filters: ExportJob["filters"]): string => {
-  if (!filters.datetime_from && !filters.datetime_to) {
-    return "الكل"; // All
+// --- NEW Helper to format Job Type ---
+const formatJobType = (jobType: ExportJob["job_type"]): string => {
+  const map = {
+    TEST_ATTEMPTS: "بيانات الاختبارات",
+    USERS: "بيانات المستخدمين",
+  };
+  return map[jobType] || "غير معروف";
+};
+
+// --- UPDATED Helper to format filters based on job type ---
+const formatJobFilters = (job: ExportJob): string => {
+  if (job.job_type === "USERS") {
+    if (job.filters.role && job.filters.role.length > 0) {
+      // For now, just show the count. We can map to Arabic names later if needed.
+      return `الأدوار: ${job.filters.role.length}`;
+    }
+    return "كل المستخدمين";
   }
-  const from = filters.datetime_from
-    ? formatDate(new Date(filters.datetime_from), "dd/MM/yyyy")
+
+  // Fallback to original date range logic for TEST_ATTEMPTS
+  if (!job.filters.datetime_from && !job.filters.datetime_to) {
+    return "-";
+  }
+  const from = job.filters.datetime_from
+    ? formatDate(new Date(job.filters.datetime_from), "dd/MM/yy")
     : "...";
-  const to = filters.datetime_to
-    ? formatDate(new Date(filters.datetime_to), "dd/MM/yyyy")
+  const to = job.filters.datetime_to
+    ? formatDate(new Date(job.filters.datetime_to), "dd/MM/yy")
     : "...";
   return `${from} - ${to}`;
 };
@@ -187,7 +206,7 @@ export function ExportJobsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-5xl h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-6xl h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>سجل طلبات التصدير</DialogTitle>
           <DialogDescription>
@@ -225,6 +244,7 @@ export function ExportJobsDialog({
                 <TableRow>
                   <TableHead>تاريخ الإنشاء</TableHead>
                   <TableHead>المستخدم</TableHead>
+                  <TableHead>النوع</TableHead>
                   <TableHead>الفلاتر</TableHead>
                   <TableHead>الحالة</TableHead>
                   <TableHead>المدة</TableHead>
@@ -242,7 +262,10 @@ export function ExportJobsDialog({
                         <Skeleton className="h-5 w-24" />
                       </TableCell>
                       <TableCell>
-                        <Skeleton className="h-5 w-40" />
+                        <Skeleton className="h-5 w-28" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-24" />
                       </TableCell>
                       <TableCell>
                         <Skeleton className="h-6 w-28 rounded-full" />
@@ -258,7 +281,7 @@ export function ExportJobsDialog({
                 ) : isError ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="text-center text-destructive"
                     >
                       حدث خطأ أثناء تحميل قائمة المهام.
@@ -285,7 +308,8 @@ export function ExportJobsDialog({
                         </TooltipProvider>
                       </TableCell>
                       <TableCell>{job.requesting_user}</TableCell>
-                      <TableCell>{formatJobFilters(job.filters)}</TableCell>
+                      <TableCell>{formatJobType(job.job_type)}</TableCell>
+                      <TableCell>{formatJobFilters(job)}</TableCell>
                       <TableCell>
                         <JobStatus
                           status={job.status}
@@ -315,7 +339,7 @@ export function ExportJobsDialog({
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center">
+                    <TableCell colSpan={7} className="text-center">
                       لا توجد طلبات تصدير حتى الآن.
                     </TableCell>
                   </TableRow>

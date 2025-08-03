@@ -31,19 +31,28 @@ export interface AdminStatisticsOverview {
   daily_activity: DailyActivity[];
 }
 
+// Specific params for user export jobs
+export interface UserExportParams {
+  format: "csv" | "xlsx";
+  role?: string[];
+}
+
+// Updated definition for the job object returned by the API
 export interface ExportJob {
   id: string;
   requesting_user: string;
   status: "Pending" | "In Progress" | "Success" | "Failure";
-  file_format: string; // "CSV" or "Excel (XLSX)"
+  job_type: "TEST_ATTEMPTS" | "USERS";
+  file_format: string;
   file_url: string | null;
   filters: {
     datetime_from?: string;
     datetime_to?: string;
+    role?: string[]; // Add role to filters
   };
   error_message: string | null;
-  created_at: string; // ISO 8601 timestamp
-  completed_at: string | null; // ISO 8601 timestamp
+  created_at: string;
+  completed_at: string | null;
 }
 
 // Renamed from ExportTaskResponse for clarity

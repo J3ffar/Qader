@@ -5,8 +5,9 @@ import {
   AdminStatisticsOverview,
   CreateExportJobResponse,
   ExportJob,
-  StatisticsExportParams, // This can be reused for user export format
+  StatisticsExportParams,
   StatisticsOverviewParams,
+  UserExportParams,
 } from "@/types/api/admin/statistics.types";
 
 type JobType = "TEST_ATTEMPTS" | "USERS";
@@ -58,9 +59,9 @@ export const getExportJobs = async (
   );
 };
 
-// NEW: Function to create a user data export job.
+// Update function to use the new, more specific type
 export const createUserExportJob = async (
-  payload: Pick<StatisticsExportParams, "format">
+  payload: UserExportParams
 ): Promise<CreateExportJobResponse> => {
   return apiClient<CreateExportJobResponse>(
     API_ENDPOINTS.ADMIN.STATISTICS.EXPORT_USERS,
