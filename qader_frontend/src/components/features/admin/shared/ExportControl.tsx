@@ -9,12 +9,18 @@ import { useCreateExportJob } from "@/hooks/useCreateExportJob";
 import type { StatisticsExportParams } from "@/types/api/admin/statistics.types";
 
 type ExportType = "statistics" | "users";
+type JobType = "TEST_ATTEMPTS" | "USERS";
 
 interface ExportControlProps {
   exportType: ExportType;
   // Filters are only needed for statistics export
   dateFilters?: Omit<StatisticsExportParams, "format">;
 }
+
+// Helper to map our internal type to the API's type
+const getJobTypeForApi = (exportType: "statistics" | "users"): JobType => {
+  return exportType === "statistics" ? "TEST_ATTEMPTS" : "USERS";
+};
 
 export function ExportControl({ exportType, dateFilters }: ExportControlProps) {
   const [isJobsDialogOpen, setIsJobsDialogOpen] = useState(false);
@@ -48,6 +54,8 @@ export function ExportControl({ exportType, dateFilters }: ExportControlProps) {
       <ExportJobsDialog
         isOpen={isJobsDialogOpen}
         onOpenChange={setIsJobsDialogOpen}
+        // Pass the correct initial filter to the dialog
+        initialJobType={getJobTypeForApi(exportType)}
       />
     </>
   );

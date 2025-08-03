@@ -9,6 +9,8 @@ import {
   StatisticsOverviewParams,
 } from "@/types/api/admin/statistics.types";
 
+type JobType = "TEST_ATTEMPTS" | "USERS";
+
 export const getStatisticsOverview = async (
   params: StatisticsOverviewParams
 ): Promise<AdminStatisticsOverview> => {
@@ -35,16 +37,23 @@ export const createExportJob = async (
 };
 
 export const getExportJobs = async (
-  page: number = 1
+  page: number = 1,
+  jobType?: JobType
 ): Promise<PaginatedResponse<ExportJob>> => {
+  const params: { ordering: string; page: number; job_type?: JobType } = {
+    ordering: "-created_at",
+    page,
+  };
+
+  if (jobType) {
+    params.job_type = jobType;
+  }
+
   return apiClient<PaginatedResponse<ExportJob>>(
     API_ENDPOINTS.ADMIN.STATISTICS.EXPORT_JOBS,
     {
       method: "GET",
-      params: {
-        ordering: "-created_at",
-        page,
-      },
+      params,
     }
   );
 };

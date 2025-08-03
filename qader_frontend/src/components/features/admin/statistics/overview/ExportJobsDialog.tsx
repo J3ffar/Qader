@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Clock,
@@ -37,14 +38,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
 import { DataTablePagination } from "@/components/shared/DataTablePagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Import Tabs
+
+type JobType = "TEST_ATTEMPTS" | "USERS";
 
 interface ExportJobsDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  initialJobType?: JobType;
 }
-
 const PAGE_SIZE = 20;
 
 const formatJobFilters = (filters: ExportJob["filters"]): string => {
@@ -139,24 +142,27 @@ const JobStatus = ({
 export function ExportJobsDialog({
   isOpen,
   onOpenChange,
+  initialJobType,
 }: ExportJobsDialogProps) {
-  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [activeFilter, setActiveFilter] = useState<"current" | "all">(
+    "current"
+  );
 
-  const [page, setPage] = useState(1); // State for the current page
+  const apiJobTypeFilter =
+    activeFilter === "current" ? initialJobType : undefined;
 
-  // useQuery now fetches paginated data. The key includes the page to cache each page separately.
   const {
     data: paginatedData,
+    isFetching,
+    refetch,
     isLoading,
     isError,
-    refetch,
-    isFetching,
   } = useQuery({
-    queryKey: queryKeys.admin.exportJobs.list(page), // Assuming queryKeys is updated e.g., list: (page) => [...all, page]
-    queryFn: () => getExportJobs(page),
+    queryKey: [...queryKeys.admin.exportJobs.all, page, apiJobTypeFilter],
+    queryFn: () => getExportJobs(page, apiJobTypeFilter),
     enabled: isOpen,
     placeholderData: (previousData) => previousData,
-    // CORRECTED: Polling logic now checks the `results` array within the paginated data.
     refetchInterval: (query) => {
       const data = query.state.data;
       if (Array.isArray(data?.results)) {
@@ -169,15 +175,15 @@ export function ExportJobsDialog({
     },
   });
 
-  // Extract the jobs array and pagination details from the fetched data
+  const handleTabChange = (value: string) => {
+    setPage(1);
+    setActiveFilter(value as "current" | "all");
+  };
+
   const jobs = paginatedData?.results;
   const pageCount = paginatedData
     ? Math.ceil(paginatedData.count / PAGE_SIZE)
-    : 1;
-
-  const handleRefresh = () => {
-    refetch();
-  };
+    : 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -185,27 +191,38 @@ export function ExportJobsDialog({
         <DialogHeader>
           <DialogTitle>سجل طلبات التصدير</DialogTitle>
           <DialogDescription>
-            هنا يمكنك تتبع حالة طلبات تصدير البيانات الخاصة بك.
+            تتبع حالة طلبات تصدير البيانات. يمكنك التبديل بين عرض هذا النوع فقط
+            أو عرض الكل.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto pr-2">
-          <div className="flex justify-end mb-4">
+        <Tabs
+          value={activeFilter}
+          onValueChange={handleTabChange}
+          className="mt-2"
+        >
+          <div className="flex justify-between items-center mb-4">
+            <TabsList>
+              <TabsTrigger value="current">هذا النوع</TabsTrigger>
+              <TabsTrigger value="all">الكل</TabsTrigger>
+            </TabsList>
             <Button
               variant="outline"
               size="sm"
-              onClick={handleRefresh}
+              onClick={() => refetch()}
               disabled={isFetching}
             >
               <RefreshCcw className="me-2 h-4 w-4" />
               تحديث
             </Button>
           </div>
+        </Tabs>
+
+        <div className="flex-1 overflow-auto pr-2">
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  {/* Added new headers */}
                   <TableHead>تاريخ الإنشاء</TableHead>
                   <TableHead>المستخدم</TableHead>
                   <TableHead>الفلاتر</TableHead>
@@ -218,7 +235,6 @@ export function ExportJobsDialog({
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {/* Updated skeleton to match new column layout */}
                       <TableCell>
                         <Skeleton className="h-5 w-32" />
                       </TableCell>
@@ -268,7 +284,6 @@ export function ExportJobsDialog({
                           </Tooltip>
                         </TooltipProvider>
                       </TableCell>
-                      {/* Added new cells with data */}
                       <TableCell>{job.requesting_user}</TableCell>
                       <TableCell>{formatJobFilters(job.filters)}</TableCell>
                       <TableCell>
