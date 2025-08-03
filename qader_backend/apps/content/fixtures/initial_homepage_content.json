@@ -217,7 +217,7 @@
     "model": "content.contentimage",
     "pk": 3,
     "fields": {
-      "page": 3,
+      "page": 4,
       "slug": "homepage-advantage-section-image",
       "name": "صورة قسم ميزة الصفحة الرئيسية",
       "image": null,
