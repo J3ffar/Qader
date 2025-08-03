@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from apps.admin_panel.models import ExportJob
+from apps.users.models import RoleChoices
 
 # --- Overview Serializers ---
 
@@ -74,6 +75,22 @@ class AdminStatisticsExportSerializer(serializers.Serializer):
     date_to = serializers.DateField(required=False, write_only=True)
     # This serializer is now for input validation, not output representation.
     # The 'create' and 'update' methods are correctly not implemented.
+
+
+# --- NEW SERIALIZER FOR USER EXPORT ---
+class UserExportRequestSerializer(serializers.Serializer):
+    """Serializer for validating USER DATA export request parameters."""
+    format = serializers.ChoiceField(
+        choices=ExportJob.Format.choices, default=ExportJob.Format.CSV
+    )
+    # Allows for filtering by one or more roles.
+    # If omitted or empty, all roles will be included.
+    role = serializers.MultipleChoiceField(
+        choices=RoleChoices.choices,
+        required=False,
+        allow_empty=True,
+        help_text="A list of roles to include in the export (e.g., ['STUDENT', 'TEACHER']). Omitting this exports all roles."
+    )
 
 
 class ExportJobSerializer(serializers.ModelSerializer):

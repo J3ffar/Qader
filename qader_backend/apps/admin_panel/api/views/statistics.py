@@ -369,45 +369,11 @@ class ExportJobViewSet(
 
     def get_serializer_class(self):
         """Return different serializers for create vs. list/retrieve actions."""
-        if self.action == "create" or self.action == "export_users":
+        if self.action == "export_users":
+            return stats_serializers.UserExportRequestSerializer
+        if self.action == "create":
             return stats_serializers.AdminStatisticsExportSerializer
         return stats_serializers.ExportJobSerializer
-
-    # --- HELPER METHOD TO REDUCE DUPLICATION ---
-    def _trigger_job(
-        self, request, job_type, validation_serializer_class, filters_data
-    ):
-        validation_serializer = validation_serializer_class(data=request.data)
-        validation_serializer.is_valid(raise_exception=True)
-        validated_data = validation_serializer.validated_data
-
-        job = ExportJob.objects.create(
-            requesting_user=request.user,
-            job_type=job_type,
-            file_format=validated_data["format"],
-            status=ExportJob.Status.PENDING,
-            filters=filters_data,
-        )
-
-        # Trigger the generic Celery task
-        process_export_job.delay(job_id=job.id)
-
-        status_check_url = reverse(
-            "api:v1:admin_panel:export-job-detail",
-            kwargs={"pk": job.id},
-            request=request,
-        )
-        response_data = {
-            "job_id": job.id,
-            "message": "Your export request has been received and is being processed. You can check the status at the provided URL.",
-            "status_check_url": status_check_url,
-        }
-
-        response_serializer = stats_serializers.ExportTaskResponseSerializer(
-            data=response_data
-        )
-        response_serializer.is_valid(raise_exception=True)
-        return Response(response_serializer.data, status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(
         summary="Trigger a Test Attempts Data Export",
@@ -431,17 +397,38 @@ class ExportJobViewSet(
             "datetime_from": date_from.isoformat() if date_from else None,
             "datetime_to": date_to.isoformat() if date_to else None,
         }
-        return self._trigger_job(
-            request,
-            ExportJob.JobType.TEST_ATTEMPTS,
-            stats_serializers.AdminStatisticsExportSerializer,
-            filters_for_task,
+
+        job = ExportJob.objects.create(
+            requesting_user=request.user,
+            job_type=ExportJob.JobType.TEST_ATTEMPTS,
+            file_format=validated_data["format"],
+            status=ExportJob.Status.PENDING,
+            filters=filters_for_task,
         )
 
-    # --- NEW ACTION FOR USER EXPORT ---
+        # Trigger the generic Celery task
+        process_export_job.delay(job_id=job.id)
+
+        status_check_url = reverse(
+            "api:v1:admin_panel:export-job-detail",
+            kwargs={"pk": job.id},
+            request=request,
+        )
+        response_data = {
+            "job_id": job.id,
+            "message": "Your export request has been received and is being processed. You can check the status at the provided URL.",
+            "status_check_url": status_check_url,
+        }
+
+        response_serializer = stats_serializers.ExportTaskResponseSerializer(
+            data=response_data
+        )
+        response_serializer.is_valid(raise_exception=True)
+        return Response(response_serializer.data, status=status.HTTP_202_ACCEPTED)
+
     @extend_schema(
         summary="Trigger a User Data Export",
-        request=stats_serializers.AdminStatisticsExportSerializer,
+        request=stats_serializers.UserExportRequestSerializer,
         responses={202: stats_serializers.ExportTaskResponseSerializer},
         tags=["Admin Panel - Exports"],
     )
@@ -449,15 +436,47 @@ class ExportJobViewSet(
     def export_users(self, request, *args, **kwargs):
         """
         Creates an ExportJob record for USER DATA and triggers a background task.
+        Supports filtering by user role.
         """
-        # For now, user export takes no filters, but this is where you'd extract them
-        filters_for_task = {}
-        return self._trigger_job(
-            request,
-            ExportJob.JobType.USERS,
-            stats_serializers.AdminStatisticsExportSerializer,  # Re-use the format validation serializer
-            filters_for_task,
+        validation_serializer = stats_serializers.UserExportRequestSerializer(
+            data=request.data
         )
+        validation_serializer.is_valid(raise_exception=True)
+        validated_data = validation_serializer.validated_data
+
+        # `validated_data.get('role')` returns a set. We must convert it to a list.
+        roles_filter = validated_data.get("role", [])
+
+        # Prepare the filters dictionary, ensuring the role value is a list for JSON serialization.
+        filters_for_task = {"role": list(roles_filter)}
+
+        # The rest of the function remains the same.
+        job = ExportJob.objects.create(
+            requesting_user=request.user,
+            job_type=ExportJob.JobType.USERS,
+            file_format=validated_data["format"],
+            status=ExportJob.Status.PENDING,
+            filters=filters_for_task,
+        )
+
+        process_export_job.delay(job_id=job.id)
+
+        status_check_url = reverse(
+            "api:v1:admin_panel:export-job-detail",
+            kwargs={"pk": job.id},
+            request=request,
+        )
+        response_data = {
+            "job_id": job.id,
+            "message": "Your export request has been received and is being processed. You can check the status at the provided URL.",
+            "status_check_url": status_check_url,
+        }
+
+        response_serializer = stats_serializers.ExportTaskResponseSerializer(
+            data=response_data
+        )
+        response_serializer.is_valid(raise_exception=True)
+        return Response(response_serializer.data, status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(
         summary="List Data Export Jobs",

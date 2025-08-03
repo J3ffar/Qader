@@ -193,19 +193,21 @@ def get_filtered_users(filters: dict):
     Retrieves and filters UserProfile queryset based on provided filters.
     This is the single source of truth for querying user export data.
     """
-    # Eagerly load related data to prevent N+1 queries.
     queryset = UserProfile.objects.select_related(
         "user", "assigned_mentor__user", "referred_by"
     ).all()
 
-    # --- APPLY FILTERS ---
-    # Example: You could add filters from the user management list here
-    # if filters.get('role'):
-    #     queryset = queryset.filter(role__in=filters.get('role'))
-    # if filters.get('account_type'):
-    #     queryset = queryset.filter(account_type=filters.get('account_type'))
-    # if filters.get('is_active'):
-    #     queryset = queryset.filter(user__is_active=filters.get('is_active'))
+    # --- APPLY FILTERS FROM THE 'filters' DICTIONARY ---
+    roles_to_filter = filters.get("role")
+
+    # Check if a list of roles was provided and it's not empty
+    if roles_to_filter:
+        queryset = queryset.filter(role__in=roles_to_filter)
+
+    # You can add more filters here in the future
+    # account_type = filters.get('account_type')
+    # if account_type:
+    #     queryset = queryset.filter(account_type=account_type)
 
     return queryset.order_by("-user__date_joined")
 
