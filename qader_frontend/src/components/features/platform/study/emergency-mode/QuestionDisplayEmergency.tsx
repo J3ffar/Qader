@@ -30,8 +30,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { queryKeys } from "@/constants/queryKeys";
+import { QuestionRenderer } from "@/components/shared/QuestionRenderer";
+import { RichContentViewer } from "@/components/shared/RichContentViewer";
 
 type AnswerOption = "A" | "B" | "C" | "D";
+
+const arabicOptionMap: { [key in AnswerOption]: string } = {
+  A: "أ",
+  B: "ب",
+  C: "ج",
+  D: "د",
+};
 
 interface QuestionDisplayEmergencyProps {
   question: UnifiedQuestion;
@@ -114,9 +123,10 @@ export function QuestionDisplayEmergency({
             total: totalQuestions,
           })}
         </CardDescription>
-        <p className="pt-4 text-base font-semibold text-foreground">
-          {question.question_text}
-        </p>
+        <QuestionRenderer
+          questionText={question.question_text}
+          imageUrl={question.image}
+        />
       </CardHeader>
       <CardContent>
         <RadioGroup
@@ -124,6 +134,7 @@ export function QuestionDisplayEmergency({
           onValueChange={(value: AnswerOption) => setSelectedAnswer(value)}
           disabled={isAnswered || isPending}
           className="space-y-3"
+          dir={"rtl"}
         >
           {options.map(([key, value]) => {
             const isSelected = selectedAnswer === key;
@@ -148,13 +159,18 @@ export function QuestionDisplayEmergency({
                   !(isAnswered || isPending) && setSelectedAnswer(key)
                 }
               >
-                <RadioGroupItem value={key} id={`option-${key}`} />
-                <Label
-                  htmlFor={`option-${key}`}
-                  className="w-full cursor-pointer"
-                >
-                  {value}
-                </Label>
+                <RadioGroupItem
+                  value={key}
+                  id={`option-${key}`}
+                  className="hidden"
+                />
+                <div className="flex ml-3 border h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground">
+                  {arabicOptionMap[key]}
+                </div>
+                <RichContentViewer
+                  htmlContent={value}
+                  className="prose dark:prose-invert max-w-none flex-1"
+                />
               </div>
             );
           })}
