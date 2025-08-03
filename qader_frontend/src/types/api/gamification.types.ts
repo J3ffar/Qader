@@ -54,6 +54,7 @@ export interface RewardStoreItem {
   cost_points: number;
   image_url: string;
   asset_file_url: string | null; // For downloadable items
+  is_purchased: boolean; // Indicates if the current user has already purchased this item
   // is_active: boolean; // Implied as only active items are listed
   // stock_available: number | null; // If applicable
 }

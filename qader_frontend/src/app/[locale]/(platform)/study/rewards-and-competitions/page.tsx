@@ -113,13 +113,16 @@ const RewardsDashboard = () => {
   } = usePointsTotals();
 
   // end the madaka
-  const defaultStoreItems: StoreItemGamificaiton[] = [
+  const defaultStoreItems: (StoreItemGamificaiton & {
+    is_purchased: boolean;
+  })[] = [
     {
       id: 0,
       title: "تصاميم",
       desc: "استبدل 20 نقطة مقابل الحصول على تصاميم، شرح وافٍ لما ستحصل عليه.",
       points: 20,
       image_url: "",
+      is_purchased: false,
     },
     {
       id: 1,
@@ -127,6 +130,7 @@ const RewardsDashboard = () => {
       desc: "استبدل 30 نقطة مقابل الدخول للمسابقة الكبرى، التي سيتم الإعلان عنها لاحقاً.",
       points: 30,
       image_url: "",
+      is_purchased: false,
     },
     {
       id: 2,
@@ -134,6 +138,7 @@ const RewardsDashboard = () => {
       desc: "استبدل 10 نقاط مقابل الحصول على أشعار، شرح وافٍ لما ستحصل عليه.",
       points: 10,
       image_url: "",
+      is_purchased: false,
     },
     {
       id: 3,
@@ -141,6 +146,7 @@ const RewardsDashboard = () => {
       desc: "استبدل 5 نقاط مقابل الحصول على مخطوطة، شرح وافٍ لما ستحصل عليه.",
       points: 5,
       image_url: "",
+      is_purchased: false,
     },
   ];
 
@@ -335,13 +341,10 @@ const RewardsDashboard = () => {
     queryFn: getPointsSummary,
   });
 
-  const { data: PurchasedItems, refetch: refetchPurchasedItems } =
-    useQuery<PurchasedItemResponse>({
-      queryKey: ["getMyPurchasedItems"],
-      queryFn: getMyPurchasedItems,
-    });
-  const PurchasedItemsIds =
-    PurchasedItems?.results.map((entry) => entry.item.id) ?? [];
+  const { refetch: refetchPurchasedItems } = useQuery<PurchasedItemResponse>({
+    queryKey: ["getMyPurchasedItems"],
+    queryFn: getMyPurchasedItems,
+  });
   const { data: storeData, isLoading: isLoadingStore } = useQuery<
     RewardStoreItem[]
   >({
@@ -368,6 +371,7 @@ const RewardsDashboard = () => {
           desc: item.description,
           points: item.cost_points,
           image_url: item.image_url,
+          is_purchased: item.is_purchased,
         }))
       : defaultStoreItems;
 
@@ -379,6 +383,21 @@ const RewardsDashboard = () => {
     try {
       await purchaseRewardItem(selectedReward.id);
       setIsConfirmed(true);
+
+      // Immediately update the cache to show purchased status
+      queryClient.setQueryData<RewardStoreItem[]>(
+        ["rewardStoreItems"],
+        (oldData) => {
+          if (!oldData) return oldData;
+          return oldData.map((item) =>
+            item.id === selectedReward.id
+              ? { ...item, is_purchased: true }
+              : item
+          );
+        }
+      );
+
+      // Invalidate other related queries
       queryClient.invalidateQueries({ queryKey: ["getMyPurchasedItems"] });
       queryClient.invalidateQueries({ queryKey: ["pointsSummary"] });
       queryClient.invalidateQueries({ queryKey: ["gamificationSummary"] });
@@ -796,10 +815,9 @@ const RewardsDashboard = () => {
                   <div className="flex flex-col gap-2.5 h-full justify-around">
                     <p className="font-bold mb-1 text-2xl">{item.title}</p>
                     <p className="text-[1.2rem] text-gray-600">{item.desc}</p>
-                    {typeof item.id === "number" &&
-                    PurchasedItemsIds.includes(item.id) ? (
+                    {item.is_purchased ? (
                       <div className="text-green-600 font-semibold text-[1.2rem] h-14 flex items-center justify-center rounded-lg border border-green-500 bg-green-100">
-                        تم الاستبدال
+                        تم شرئها
                       </div>
                     ) : (
                       <Button
