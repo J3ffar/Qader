@@ -331,7 +331,7 @@ export function ExportJobsDialog({
                         {formatJobDuration(job.created_at, job.completed_at)}
                       </TableCell>
                       <TableCell className="text-left">
-                        {job.status === "Success" && job.file_url ? (
+                        {job.file_url ? (
                           <Button asChild size="sm" variant="ghost">
                             <a
                               href={job.file_url}

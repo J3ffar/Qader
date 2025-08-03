@@ -5,7 +5,7 @@ import openpyxl
 from io import StringIO, BytesIO
 from django.utils import timezone
 from django.http import HttpResponse
-from django.db.models import Count, Avg, Q, F, FloatField
+from django.db.models import Count, Avg, Q, F, FloatField, Case, When, IntegerField
 from django.db.models.functions import TruncDate, Cast
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -133,6 +133,18 @@ class AdminStatisticsOverviewAPIView(APIView):
         except drf_serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
+        # Define a reusable expression to calculate accuracy
+        accuracy_expression = (
+            Avg(
+                Case(
+                    When(is_correct=True, then=1),
+                    default=0,
+                    output_field=IntegerField(),
+                )
+            )
+            * 100
+        )
+
         # --- Perform Aggregations ---
         active_students_q = UserProfile.objects.filter(
             role=RoleChoices.STUDENT,
@@ -158,7 +170,7 @@ class AdminStatisticsOverviewAPIView(APIView):
             avg_score=Avg("score_percentage")
         )["avg_score"]
         overall_average_accuracy = attempts_in_period.aggregate(
-            avg_acc=Avg(Cast("is_correct", FloatField())) * 100
+            avg_acc=accuracy_expression
         )["avg_acc"]
         section_performance = []
         for section in LearningSection.objects.all().order_by("order"):
@@ -166,7 +178,7 @@ class AdminStatisticsOverviewAPIView(APIView):
                 question__subsection__section=section
             )
             section_agg = section_attempts.aggregate(
-                avg_acc=Avg(Cast("is_correct", FloatField())) * 100,
+                avg_acc=accuracy_expression,
                 total_attempts=Count("id"),
             )
             section_performance.append(
@@ -183,7 +195,7 @@ class AdminStatisticsOverviewAPIView(APIView):
             attempts_in_period.values("question_id")
             .annotate(
                 attempt_count=Count("id"),
-                accuracy_rate=Avg(Cast("is_correct", FloatField())) * 100,
+                accuracy_rate=accuracy_expression,
             )
             .order_by("-attempt_count")[:5]
         )
@@ -218,7 +230,7 @@ class AdminStatisticsOverviewAPIView(APIView):
             attempts_in_period.values("question_id")
             .annotate(
                 attempt_count=Count("id"),
-                accuracy_rate=Avg(Cast("is_correct", FloatField())) * 100,
+                accuracy_rate=accuracy_expression,
             )
             .filter(attempt_count__gte=min_attempts_threshold)
             .order_by("accuracy_rate")[:5]
