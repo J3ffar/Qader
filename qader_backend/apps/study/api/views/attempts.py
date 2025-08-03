@@ -77,7 +77,7 @@ class UserTestAttemptListView(generics.ListAPIView):
     """Lists all test attempts for the authenticated user, with filtering and ordering."""
 
     serializer_class = attempt_serializers.UserTestAttemptListSerializer
-    permission_classes = [IsAuthenticated, IsSubscribed]
+    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = {
         "status": ["exact"],
@@ -117,7 +117,7 @@ class UserTestAttemptDetailView(generics.RetrieveAPIView):
     """Retrieves details for a specific test attempt owned by the user."""
 
     serializer_class = attempt_serializers.UserTestAttemptDetailSerializer
-    permission_classes = [IsAuthenticated, IsSubscribed]
+    permission_classes = [IsAuthenticated]
     lookup_url_kwarg = "attempt_id"
 
     def get_queryset(self):

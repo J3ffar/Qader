@@ -416,7 +416,7 @@ class ExportJobViewSet(
         )
         response_data = {
             "job_id": job.id,
-            "message": "Your export request has been received and is being processed. You can check the status at the provided URL.",
+            "message": "تم استلام طلب التصدير الخاص بك وهو قيد المعالجة.",
             "status_check_url": status_check_url,
         }
 
@@ -468,7 +468,7 @@ class ExportJobViewSet(
         )
         response_data = {
             "job_id": job.id,
-            "message": "Your export request has been received and is being processed. You can check the status at the provided URL.",
+            "message": "تم استلام طلب التصدير الخاص بك وهو قيد المعالجة.",
             "status_check_url": status_check_url,
         }
 

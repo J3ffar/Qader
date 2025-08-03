@@ -18,6 +18,7 @@ from drf_spectacular.utils import (
 from apps.api.permissions import (
     IsSubscribed,
 )  # Assuming IsSubscribed checks for active subscription
+from rest_framework.permissions import IsAuthenticated
 from ..models import (
     LearningSection,
     LearningSubSection,
@@ -57,7 +58,7 @@ class LearningSectionViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = LearningSection.objects.all().order_by("order")
     serializer_class = LearningSectionSerializer
-    permission_classes = [IsSubscribed]  # Requires active subscription
+    permission_classes = [IsAuthenticated]  # Requires active subscription
     lookup_field = "slug"
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["order", "name"]
@@ -110,7 +111,7 @@ class LearningSubSectionViewSet(viewsets.ReadOnlyModelViewSet):
         .order_by("section__order", "order")
     )
     serializer_class = LearningSubSectionSerializer
-    permission_classes = [IsSubscribed]  # Requires active subscription
+    permission_classes = [IsAuthenticated]  # Requires active subscription
     lookup_field = "slug"
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["section__slug"]  # Allows filtering like ?section__slug=verbal
@@ -176,7 +177,7 @@ class SkillViewSet(viewsets.ReadOnlyModelViewSet):
         .order_by("subsection__section__order", "subsection__order", "name")
     )
     serializer_class = SkillSerializer
-    permission_classes = [IsSubscribed]  # Requires active subscription
+    permission_classes = [IsAuthenticated]  # Requires active subscription
     lookup_field = "slug"
     filter_backends = [
         DjangoFilterBackend,
@@ -292,7 +293,7 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Question.objects.filter(
         is_active=True
     )  # Base queryset only includes active questions
-    permission_classes = [IsSubscribed]  # Requires active subscription
+    permission_classes = [IsAuthenticated]  # Requires active subscription
     filter_backends = [
         DjangoFilterBackend,
         filters.OrderingFilter,

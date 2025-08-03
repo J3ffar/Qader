@@ -110,7 +110,7 @@ class BlogAdviceRequestViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet)
     """
 
     serializer_class = BlogAdviceRequestSerializer
-    permission_classes = [IsAuthenticated, IsSubscribed]
+    permission_classes = [IsAuthenticated]
     queryset = BlogAdviceRequest.objects.none()  # Create only
 
 
@@ -163,7 +163,7 @@ class MyBlogAdviceRequestListView(generics.ListAPIView):
     """
 
     serializer_class = BlogAdviceRequestSerializer
-    permission_classes = [IsAuthenticated, IsSubscribed]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """

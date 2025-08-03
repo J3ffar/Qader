@@ -99,10 +99,11 @@ class ChallengeViewSet(
         return action_serializer_map.get(self.action, self.serializer_class)
 
     def get_permissions(self):
+        if self.action == "list":
+            permission_classes = [IsAuthenticated]
         if self.action == "create":
             permission_classes = [IsAuthenticated, IsSubscribed]
         elif self.action in [
-            "list",
             "retrieve",
             "ready",
             "answer",

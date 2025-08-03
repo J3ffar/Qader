@@ -80,7 +80,7 @@ class PartnerSearchView(generics.ListAPIView):
     """
 
     serializer_class = CommunityPartnerSerializer
-    permission_classes = [IsAuthenticated, IsSubscribed]
+    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_class = UserPartnerFilter
 
@@ -246,6 +246,21 @@ class CommunityPostViewSet(viewsets.ModelViewSet):
         #     queryset = queryset.prefetch_related('replies__author__profile')
 
         return queryset.order_by(*self.ordering)  # Apply default or requested ordering
+
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.action == "list":
+            # Here we specify that ONLY the 'list' action requires just authentication.
+            # You could also use [AllowAny()] to make it public.
+            permission_classes = [IsAuthenticated]
+        else:
+            # For all other actions (create, accept, reject, etc.),
+            # we require the user to be authenticated AND subscribed.
+            permission_classes = [IsAuthenticated, IsSubscribed]
+
+        return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
         """Return appropriate serializer class based on the action."""
@@ -444,6 +459,20 @@ class CommunityReplyListCreateView(generics.ListCreateAPIView):
     ]  # Must be subscribed to read/write replies
     # Inherits pagination class from settings
 
+    # def get_permissions(self):
+    #     """
+    #     Instantiates and returns the list of permissions that this view requires,
+    #     based on the request method.
+    #     """
+    #     # For a 'list' request (GET), maybe you only require authentication
+    #     if self.request.method == "GET":
+    #         permission_classes = [IsAuthenticated]
+    #     # For a 'create' request (POST), you require authentication AND subscription
+    #     else:  # This covers POST, OPTIONS, etc.
+    #         permission_classes = [IsAuthenticated, IsSubscribed]
+
+    #     return [permission() for permission in permission_classes]
+
     def get_post_object(self):
         """Helper method to retrieve the associated CommunityPost or raise NotFound."""
         post_pk = self.kwargs.get("post_pk")
@@ -557,6 +586,21 @@ class PartnerRequestViewSet(
 
     serializer_class = PartnerRequestSerializer
     permission_classes = [IsAuthenticated, IsSubscribed]
+
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.action == "list":
+            # Here we specify that ONLY the 'list' action requires just authentication.
+            # You could also use [AllowAny()] to make it public.
+            permission_classes = [IsAuthenticated]
+        else:
+            # For all other actions (create, accept, reject, etc.),
+            # we require the user to be authenticated AND subscribed.
+            permission_classes = [IsAuthenticated, IsSubscribed]
+
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         """
