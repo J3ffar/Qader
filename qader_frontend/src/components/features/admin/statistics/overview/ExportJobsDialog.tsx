@@ -106,7 +106,7 @@ const JobStatus = ({
       text: "فشلت",
       variant: "destructive",
     },
-  };
+  } as const;
 
   const config = statusConfig[status] || statusConfig.Pending;
 

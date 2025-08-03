@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
-import { toast } from "sonner";
 import {
   Users,
   UserPlus,
@@ -13,15 +12,10 @@ import {
   Target,
   Percent,
   Calendar as CalendarIcon,
-  Download,
-  List, // New Icon
 } from "lucide-react";
 
 import { queryKeys } from "@/constants/queryKeys";
-import {
-  getStatisticsOverview,
-  createExportJob, // Updated service function
-} from "@/services/api/admin/statistics.service";
+import { getStatisticsOverview } from "@/services/api/admin/statistics.service";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,11 +33,9 @@ import { StatCard } from "./StatCard";
 import { DailyActivityChart } from "./DailyActivityChart";
 import { PerformanceBySectionChart } from "./PerformanceBySectionChart";
 import { QuestionStatsTable } from "./QuestionStatsTable";
-import { ExportJobsDialog } from "./ExportJobsDialog"; // Import the new dialog
+import { ExportControl } from "@/components/features/admin/shared/ExportControl";
 
 const StatCards = ({ data }: { data: any }) => {
-  // Use hardcoded Arabic text as requested
-  // const t = useTranslations("Admin.AdminStatistics");
   const cards = [
     {
       title: "إجمالي الطلاب النشطين",
@@ -93,17 +85,12 @@ const StatCards = ({ data }: { data: any }) => {
 
 // Main Client Component
 export function StatisticsOverviewClient() {
-  // Use hardcoded Arabic text as requested
-  // const t = useTranslations("Admin.AdminStatistics");
-  // const tCore = useTranslations("Core");
   const defaultDateRange = {
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date(),
   };
 
   const [date, setDate] = useState<DateRange | undefined>(defaultDateRange);
-  const [isJobsDialogOpen, setIsJobsDialogOpen] = useState(false);
-  const queryClient = useQueryClient();
 
   const filters = {
     date_from: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
@@ -114,22 +101,6 @@ export function StatisticsOverviewClient() {
     queryKey: queryKeys.admin.statistics.overview(filters),
     queryFn: () => getStatisticsOverview(filters),
     placeholderData: (previousData) => previousData,
-  });
-
-  const { mutate: handleExport, isPending: isExporting } = useMutation({
-    mutationFn: () => createExportJob({ ...filters, format: "xlsx" }),
-    onSuccess: (data) => {
-      toast.success("تم استلام طلب التصدير الخاص بك وهو قيد المعالجة.");
-      // Invalidate query to refetch the list in the dialog
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.exportJobs.all,
-      });
-      // Open the dialog to show the user the new pending job
-      setIsJobsDialogOpen(true);
-    },
-    onError: (err) => {
-      toast.error(getApiErrorMessage(err, "حدث خطأ غير متوقع."));
-    },
   });
 
   if (isLoading && !data) {
@@ -194,22 +165,7 @@ export function StatisticsOverviewClient() {
                 />
               </PopoverContent>
             </Popover>
-            <Button
-              variant="outline"
-              onClick={() => setIsJobsDialogOpen(true)}
-              className="w-full sm:w-auto"
-            >
-              <List className="me-2 h-4 w-4" />
-              سجل التصدير
-            </Button>
-            <Button
-              onClick={() => handleExport()}
-              disabled={isExporting}
-              className="w-full sm:w-auto"
-            >
-              <Download className="me-2 h-4 w-4" />
-              {isExporting ? "جاري التصدير..." : "تصدير البيانات"}
-            </Button>
+            <ExportControl exportType="statistics" dateFilters={filters} />
           </div>
         </div>
 
@@ -261,11 +217,6 @@ export function StatisticsOverviewClient() {
           </TabsContent>
         </Tabs>
       </div>
-
-      <ExportJobsDialog
-        isOpen={isJobsDialogOpen}
-        onOpenChange={setIsJobsDialogOpen}
-      />
     </>
   );
 }

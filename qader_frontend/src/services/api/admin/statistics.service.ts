@@ -1,13 +1,13 @@
 import { apiClient } from "@/services/apiClient";
 import { API_ENDPOINTS } from "@/constants/api";
+import { PaginatedResponse } from "@/types/api";
 import {
   AdminStatisticsOverview,
-  StatisticsOverviewParams,
-  StatisticsExportParams,
   CreateExportJobResponse,
   ExportJob,
+  StatisticsExportParams, // This can be reused for user export format
+  StatisticsOverviewParams,
 } from "@/types/api/admin/statistics.types";
-import { PaginatedResponse } from "@/types/api";
 
 export const getStatisticsOverview = async (
   params: StatisticsOverviewParams
@@ -44,8 +44,20 @@ export const getExportJobs = async (
       params: {
         ordering: "-created_at",
         page,
-        job_type: "TEST_ATTEMPTS",
       },
+    }
+  );
+};
+
+// NEW: Function to create a user data export job.
+export const createUserExportJob = async (
+  payload: Pick<StatisticsExportParams, "format">
+): Promise<CreateExportJobResponse> => {
+  return apiClient<CreateExportJobResponse>(
+    API_ENDPOINTS.ADMIN.STATISTICS.EXPORT_USERS,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
     }
   );
 };
