@@ -80,6 +80,7 @@ class AdminStatisticsExportSerializer(serializers.Serializer):
 # --- NEW SERIALIZER FOR USER EXPORT ---
 class UserExportRequestSerializer(serializers.Serializer):
     """Serializer for validating USER DATA export request parameters."""
+
     format = serializers.ChoiceField(
         choices=ExportJob.Format.choices, default=ExportJob.Format.CSV
     )
@@ -89,7 +90,7 @@ class UserExportRequestSerializer(serializers.Serializer):
         choices=RoleChoices.choices,
         required=False,
         allow_empty=True,
-        help_text="A list of roles to include in the export (e.g., ['STUDENT', 'TEACHER']). Omitting this exports all roles."
+        help_text="A list of roles to include in the export (e.g., ['STUDENT', 'TEACHER']). Omitting this exports all roles.",
     )
 
 
@@ -107,6 +108,7 @@ class ExportJobSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "requesting_user",
+            "job_type",
             "status",
             "file_format",
             "file_url",  # Use our new method field

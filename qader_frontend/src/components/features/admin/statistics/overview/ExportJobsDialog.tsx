@@ -59,19 +59,30 @@ const formatJobType = (jobType: ExportJob["job_type"]): string => {
   return map[jobType] || "غير معروف";
 };
 
+const roleTranslations: { [key: string]: string } = {
+  student: "طالب",
+  teacher: "معلم",
+  trainer: "مدرب",
+  admin: "مدير",
+  sub_admin: "مدير فرعي",
+};
+
 // --- UPDATED Helper to format filters based on job type ---
 const formatJobFilters = (job: ExportJob): string => {
   if (job.job_type === "USERS") {
     if (job.filters.role && job.filters.role.length > 0) {
-      // For now, just show the count. We can map to Arabic names later if needed.
-      return `الأدوار: ${job.filters.role.length}`;
+      // Map each role key to its Arabic translation, with a fallback to the key itself.
+      const translatedRoles = job.filters.role.map(
+        (roleKey) => roleTranslations[roleKey.toLowerCase()] || roleKey
+      );
+      return translatedRoles.join("، "); // Join with an Arabic comma
     }
     return "كل المستخدمين";
   }
 
   // Fallback to original date range logic for TEST_ATTEMPTS
   if (!job.filters.datetime_from && !job.filters.datetime_to) {
-    return "-";
+    return "الكل";
   }
   const from = job.filters.datetime_from
     ? formatDate(new Date(job.filters.datetime_from), "dd/MM/yy")
