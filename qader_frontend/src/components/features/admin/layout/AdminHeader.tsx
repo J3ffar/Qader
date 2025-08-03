@@ -10,7 +10,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useAuthCore, useAuthStore } from "@/store/auth.store";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/constants/queryKeys";
 import { getNotifications } from "@/services/notification.service";
 import NotificationsDropdown from "@/components/features/platform/layout/platform-header/NotificationsDropdown";
@@ -52,6 +52,7 @@ const AdminHeader = () => {
   const { logout } = useAuthActions();
   const router = useRouter();
   const { updateUserProfile } = useAuthStore();
+  const queryClient = useQueryClient();
 
   const [isNotificationsDropdownOpen, setIsNotificationsDropdownOpen] =
     useState(false);
@@ -88,6 +89,7 @@ const AdminHeader = () => {
   const handleLogout = async () => {
     try {
       await logout();
+      queryClient.clear();
       toast.success(t("logoutSuccess"));
       router.push(PATHS.HOME);
     } catch (error) {

@@ -44,11 +44,13 @@ import { toast } from "sonner";
 import { locales as appLocales, Locale } from "@/config/i18n.config"; // Import Locale type
 import { CheckIcon } from "lucide-react";
 import { join } from "path";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Navbar = () => {
   const tNav = useTranslations("Nav");
   const tAuth = useTranslations("Auth");
   const tCommon = useTranslations("Common");
+  const queryClient = useQueryClient();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -109,6 +111,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     storeLogout();
+    queryClient.clear();
     toast.success(tAuth("logoutSuccess"));
     router.push(PATHS.HOME);
     closeMobileMenu();

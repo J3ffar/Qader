@@ -178,11 +178,11 @@ export default function EmergencyModeActivitationForm({
         </div>
         <div className="flex justify-center items-center flex-col pt-4">
           <Image
-            src="/images/document.svg"
+            src="/images/search.png"
             alt="Document illustration"
-            width={400}
-            height={300}
-            className="object-contain"
+            width={150}
+            height={200}
+            className="object-contain my-4"
           />
           <div className="text-center space-y-2">
             <p className="font-semibold text-2xl">{t("selectDaysAndHours")}</p>

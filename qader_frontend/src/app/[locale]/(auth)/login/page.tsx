@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation"; // Added useSearchParams
 import Link from "next/link";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ export default function LoginPage() {
   const tCommon = useTranslations("Common");
   const router = useRouter();
   const searchParams = useSearchParams(); // For redirect_to
+  const queryClient = useQueryClient();
 
   const { isAuthenticated, user: authUser } = useAuthCore(); // Use custom hook
   const { login: storeLogin, setIsProfileComplete } = useAuthActions(); // Use custom hook
@@ -72,6 +73,7 @@ export default function LoginPage() {
       storeLogin({ access: data.access }, data.user);
       setIsProfileComplete(data.user.profile_complete); // Set profile completeness
       toast.success(tAuth("loginSuccess"));
+      queryClient.invalidateQueries();
       reset(); // Clear form
 
       if (data.user.is_staff || data.user.is_super) {

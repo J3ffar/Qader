@@ -1,3 +1,4 @@
+// qader_frontend/src/components/features/platform/study/determine-level/StartLevelAssessmentForm.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -8,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Info, Loader2, Check } from "lucide-react"; // REMOVED: Minus icon
+import { Info, Loader2, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,15 +19,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+// REMOVED: Checkbox is no longer needed.
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-} from "@/components/ui/accordion";
 
 import { getLearningSections } from "@/services/learning.service";
 import { startLevelAssessmentTest } from "@/services/study.service";
@@ -38,30 +34,20 @@ import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { queryKeys } from "@/constants/queryKeys";
 import { useAuthCore } from "@/store/auth.store";
 
+// SIMPLIFIED: State is now a simple map of section slugs to a boolean.
 interface StartLevelAssessmentFormValues {
-  selectedSections: Record<
-    string,
-    {
-      allSelected: boolean;
-      subsections: Record<string, boolean>;
-    }
-  >;
+  selectedSections: Record<string, boolean>;
   num_questions: number;
 }
 
+// SIMPLIFIED: Creates a simple map where each section is initially not selected.
 const createInitialFormValues = (
   sections: LearningSection[]
 ): StartLevelAssessmentFormValues => {
   const initialSelectedSections: StartLevelAssessmentFormValues["selectedSections"] =
     {};
   sections.forEach((section) => {
-    initialSelectedSections[section.slug] = {
-      allSelected: false,
-      subsections: section.subsections.reduce((acc, sub) => {
-        acc[sub.slug] = false;
-        return acc;
-      }, {} as Record<string, boolean>),
-    };
+    initialSelectedSections[section.slug] = false;
   });
   return {
     selectedSections: initialSelectedSections,
@@ -89,17 +75,14 @@ const StartLevelAssessmentForm: React.FC = () => {
 
   const sections = learningSectionsData?.results || [];
 
+  // SIMPLIFIED: Schema validation works on the new, simpler data structure.
   const formSchema = z.object({
-    selectedSections: z
-      .custom<StartLevelAssessmentFormValues["selectedSections"]>()
-      .refine(
-        (val) => {
-          return Object.values(val).some(
-            (mainSection) => mainSection.allSelected
-          );
-        },
-        { message: t("validation.atLeastOneSection") }
-      ),
+    selectedSections: z.record(z.boolean()).refine(
+      (val) => {
+        return Object.values(val).some((isSelected) => isSelected);
+      },
+      { message: t("validation.atLeastOneSection") }
+    ),
     num_questions: z
       .number()
       .min(5, t("validation.numQuestionsMin"))
@@ -130,21 +113,13 @@ const StartLevelAssessmentForm: React.FC = () => {
 
   const selectedSectionsWatched = watch("selectedSections");
 
-  // SIMPLIFIED: This is now the only function needed to change selections.
-  const handleMainSectionChange = (sectionSlug: string, isChecked: boolean) => {
-    const currentMainSection = selectedSectionsWatched[sectionSlug];
-    const updatedSubsections: Record<string, boolean> = {};
-    for (const subSlug in currentMainSection.subsections) {
-      updatedSubsections[subSlug] = isChecked;
-    }
-    setValue(
-      `selectedSections.${sectionSlug}`,
-      { allSelected: isChecked, subsections: updatedSubsections },
-      { shouldValidate: true }
-    );
+  // SIMPLIFIED: A single handler to toggle the selection state of a card.
+  const handleSectionSelect = (sectionSlug: string) => {
+    const currentValue = selectedSectionsWatched?.[sectionSlug] || false;
+    setValue(`selectedSections.${sectionSlug}`, !currentValue, {
+      shouldValidate: true,
+    });
   };
-
-  // REMOVED: handleSubSectionChange is no longer needed.
 
   const startAssessmentMutation = useMutation({
     mutationFn: startLevelAssessmentTest,
@@ -161,10 +136,10 @@ const StartLevelAssessmentForm: React.FC = () => {
     },
   });
 
+  // SIMPLIFIED: Submission logic is much clearer with the new state shape.
   const onSubmit = (formData: StartLevelAssessmentFormValues) => {
-    // SIMPLIFIED: Submission logic is clearer now.
     const payloadSections: string[] = Object.entries(formData.selectedSections)
-      .filter(([_, sectionData]) => sectionData.allSelected)
+      .filter(([_, isSelected]) => isSelected)
       .map(([mainSlug, _]) => mainSlug);
 
     if (payloadSections.length === 0) {
@@ -181,16 +156,6 @@ const StartLevelAssessmentForm: React.FC = () => {
 
   if (isLoadingSections) {
     return <StartLevelAssessmentFormSkeleton />;
-  }
-  {
-    mutationErrorMsg && (
-      <Alert variant="destructive" className="mb-4">
-        <AlertTitle>
-          {t("api.startError") /* Add this translation */}
-        </AlertTitle>
-        <AlertDescription>{mutationErrorMsg}</AlertDescription>
-      </Alert>
-    );
   }
 
   if (sections.length === 0 && !isLoadingSections) {
@@ -224,7 +189,6 @@ const StartLevelAssessmentForm: React.FC = () => {
       <Card className="overflow-hidden w-full max-w-none dark:bg-[#0B1739] dark:border-[#7E89AC]">
         <CardHeader>
           <CardTitle>{t("selectSectionsAndCount")}</CardTitle>
-          {/* UPDATED: New description reflects simplified interaction */}
           <CardDescription>{t("selectSectionsDescriptionNew")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -235,70 +199,77 @@ const StartLevelAssessmentForm: React.FC = () => {
                 : t("validation.selectAtLeastOneSubsection")}
             </p>
           )}
-          <Accordion
-            type="multiple"
-            defaultValue={sections.map((s) => s.slug)}
-            className="w-full grid grid-cols-1 md:grid-cols-2 gap-6"
-          >
+
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
             {sections.map((section) => {
-              // SIMPLIFIED: Main checkbox is either checked or not. No indeterminate state.
               const isSectionSelected =
-                selectedSectionsWatched?.[section.slug]?.allSelected || false;
+                selectedSectionsWatched?.[section.slug] || false;
 
               return (
-                <AccordionItem
-                  value={section.slug}
+                <div
                   key={section.slug}
-                  className="w-full max-w-full rounded-2xl border-2 p-6 shadow-md dark:border-gray-700"
+                  onClick={() => handleSectionSelect(section.slug)}
+                  className={cn(
+                    "w-full max-w-full rounded-2xl border-2 p-6 shadow-md transition-all duration-200 cursor-pointer",
+                    isSectionSelected
+                      ? "border-primary bg-primary/5 dark:bg-[#074182]/50"
+                      : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
+                  )}
+                  role="checkbox"
+                  aria-checked={isSectionSelected}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === " " || e.key === "Enter") {
+                      e.preventDefault();
+                      handleSectionSelect(section.slug);
+                    }
+                  }}
                 >
-                  <div className="flex items-center space-x-3 rtl:space-x-reverse mb-4">
-                    <Checkbox
-                      id={`section-${section.slug}`}
-                      checked={isSectionSelected}
-                      onCheckedChange={(checked) =>
-                        handleMainSectionChange(section.slug, checked === true)
-                      }
-                      className="cursor-pointer"
-                      aria-label={`Select all in ${section.name}`}
-                    />
-                    <label
-                      htmlFor={`section-${section.slug}`}
-                      className="cursor-pointer font-semibold text-lg sm:text-xl rtl:mr-3"
-                    >
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="font-semibold text-lg sm:text-xl pr-8">
                       {section.name}
-                    </label>
+                    </h3>
+                    <div
+                      className={cn(
+                        "flex-shrink-0 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all",
+                        isSectionSelected
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : "bg-transparent border-muted-foreground"
+                      )}
+                      aria-hidden="true"
+                    >
+                      {isSectionSelected && <Check className="h-4 w-4" />}
+                    </div>
                   </div>
 
-                  <AccordionContent className="grid grid-cols-1 gap-3 p-4 pt-0 sm:grid-cols-3">
+                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {section.subsections.map((subsection) => (
-                      // CHANGED: Subsections are now purely informational.
-                      // No onClick, no complex styling.
                       <div
                         key={subsection.slug}
                         className={cn(
-                          "rounded-lg p-4 text-center text-sm select-none border",
+                          "rounded-lg p-3 text-center text-sm select-none border",
                           isSectionSelected
-                            ? "border-primary/50 bg-primary/10 dark:bg-[#074182]/50 font-medium"
+                            ? "border-primary/50 bg-primary/10 font-medium"
                             : "border-gray-300 dark:border-gray-600 bg-muted/50 text-muted-foreground"
                         )}
                       >
                         {subsection.name}
                       </div>
                     ))}
-                  </AccordionContent>
-                </AccordionItem>
+                  </div>
+                </div>
               );
             })}
-          </Accordion>
+          </div>
 
-          <div className="w-full">
+          <div className="w-full pt-4 border-t dark:border-gray-700">
             <Label
               htmlFor="num_questions"
-              className="text-base font-medium justify-center"
+              className="text-base font-medium flex justify-center"
             >
               {t("numQuestions")}
             </Label>
-            <Controller // make a custom number input with increment/decrement buttons
+            <Controller
               name="num_questions"
               control={control}
               render={({ field }) => (
@@ -307,26 +278,36 @@ const StartLevelAssessmentForm: React.FC = () => {
                     type="button"
                     variant="outline"
                     onClick={() =>
-                      field.onChange(Math.max((field.value || 0) - 1, 0))
+                      field.onChange(Math.max((field.value || 0) - 1, 5))
                     }
                     className="w-10 h-10 p-0 text-xl cursor-pointer"
                   >
                     –
                   </Button>
-
                   <input
                     type="text"
+                    id="num_questions"
                     value={field.value || ""}
                     onChange={(e) => {
                       const value = parseInt(e.target.value, 10);
-                      field.onChange(isNaN(value) ? "" : Math.max(value, 0)); // prevent negative
+                      field.onChange(isNaN(value) ? "" : value);
                     }}
-                    className="w-16 text-center text-lg font-semibold border rounded px-2 py-1"
+                    onBlur={() => {
+                      // Validate on blur to clamp value between 5 and 100
+                      const value = Math.max(
+                        5,
+                        Math.min(100, field.value || 30)
+                      );
+                      field.onChange(value);
+                    }}
+                    className="w-16 text-center text-lg font-semibold border rounded-md px-2 py-1 dark:bg-transparent dark:border-gray-600"
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => field.onChange((field.value || 0) + 1)}
+                    onClick={() =>
+                      field.onChange(Math.min((field.value || 0) + 1, 100))
+                    }
                     className="w-10 h-10 p-0 text-xl cursor-pointer"
                   >
                     +
@@ -334,9 +315,8 @@ const StartLevelAssessmentForm: React.FC = () => {
                 </div>
               )}
             />
-
             {errors.num_questions && (
-              <p className="mt-1 text-sm font-medium text-destructive">
+              <p className="mt-2 text-sm text-center font-medium text-destructive">
                 {errors.num_questions.message}
               </p>
             )}
@@ -362,7 +342,6 @@ const StartLevelAssessmentForm: React.FC = () => {
 };
 
 const StartLevelAssessmentFormSkeleton: React.FC = () => {
-  const t = useTranslations("Study.determineLevel.startForm");
   return (
     <div className="space-y-8">
       <Card>
@@ -371,33 +350,36 @@ const StartLevelAssessmentFormSkeleton: React.FC = () => {
           <Skeleton className="h-4 w-4/5" />
         </CardHeader>
         <CardContent className="space-y-6">
-          <Skeleton className="mb-4 h-4 w-1/3" />{" "}
-          {/* Error message placeholder */}
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="rounded-lg border p-4 dark:border-gray-700"
+                className="rounded-2xl border p-6 space-y-4 dark:border-gray-700"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3 rtl:space-x-reverse">
-                    <Skeleton className="h-6 w-6 rounded" />
-                    <Skeleton className="h-5 w-32" />
-                  </div>
-                  <Skeleton className="h-6 w-6" /> {/* Chevron */}
+                <div className="flex items-start justify-between">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-6 w-6 rounded-full" />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
                 </div>
               </div>
             ))}
           </div>
-          <div>
-            <Skeleton className="mb-2 h-6 w-1/4" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="mt-1 h-4 w-1/2" />
+          <div className="pt-4 border-t dark:border-gray-700">
+            <Skeleton className="h-6 w-1/4 mx-auto mb-2" />
+            <div className="flex justify-center items-center gap-4">
+              <Skeleton className="h-10 w-10" />
+              <Skeleton className="h-10 w-16" />
+              <Skeleton className="h-10 w-10" />
+            </div>
           </div>
         </CardContent>
       </Card>
-      <div className="flex justify-end">
-        <Skeleton className="h-12 w-32" />
+      <div className="flex justify-center">
+        <Skeleton className="h-12 w-full max-w-xs" />
       </div>
     </div>
   );
