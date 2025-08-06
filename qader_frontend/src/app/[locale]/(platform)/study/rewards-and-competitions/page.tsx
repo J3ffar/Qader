@@ -24,6 +24,7 @@ import {
   PaginatedStudyDayLogResponse,
   PointsDataType,
   PointsSummary,
+  PurchasedItem,
   PurchasedItemResponse,
   RewardStoreItem,
   StoreItemGamificaiton,
@@ -115,6 +116,7 @@ const RewardsDashboard = () => {
   // end the madaka
   const defaultStoreItems: (StoreItemGamificaiton & {
     is_purchased: boolean;
+    asset_file_url?: string | null;
   })[] = [
     {
       id: 0,
@@ -156,6 +158,8 @@ const RewardsDashboard = () => {
     id: number | string;
     title: string;
     points: number;
+    image_url?: string;
+    asset_file_url?: string;
   } | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [selectedRangeDailyPoints, setSelectedRangeDailyPoints] =
@@ -341,10 +345,11 @@ const RewardsDashboard = () => {
     queryFn: getPointsSummary,
   });
 
-  const { refetch: refetchPurchasedItems } = useQuery<PurchasedItemResponse>({
-    queryKey: ["getMyPurchasedItems"],
-    queryFn: getMyPurchasedItems,
-  });
+  const { data: purchasedItemsData, refetch: refetchPurchasedItems } =
+    useQuery<PurchasedItemResponse>({
+      queryKey: ["getMyPurchasedItems"],
+      queryFn: getMyPurchasedItems,
+    });
   const { data: storeData, isLoading: isLoadingStore } = useQuery<
     RewardStoreItem[]
   >({
@@ -371,6 +376,7 @@ const RewardsDashboard = () => {
           desc: item.description,
           points: item.cost_points,
           image_url: item.image_url,
+          asset_file_url: item.asset_file_url,
           is_purchased: item.is_purchased,
         }))
       : defaultStoreItems;
@@ -413,6 +419,15 @@ const RewardsDashboard = () => {
     } finally {
       setIsPurchasing(false);
     }
+  };
+
+  // Handle viewing/downloading purchased items
+  const handleViewImage = (imageUrl: string) => {
+    window.open(imageUrl, "_blank");
+  };
+
+  const handleViewAsset = (assetUrl: string) => {
+    window.open(assetUrl, "_blank");
   };
   const testingChartData =
     selectedRangeTestPoints === "الأسبوع الماضي"
@@ -802,7 +817,7 @@ const RewardsDashboard = () => {
                 >
                   <div className="flex items-center justify-between mt-4">
                     <Image
-                      src={item.image_url || "/images/gift.png"}
+                      src={"/images/gift.png"}
                       alt="كأس"
                       width={0}
                       height={0}
@@ -813,11 +828,42 @@ const RewardsDashboard = () => {
                   </div>
 
                   <div className="flex flex-col gap-2.5 h-full justify-around">
-                    <p className="font-bold mb-1 text-2xl">{item.title}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold mb-1 text-2xl">{item.title}</p>
+                      {item.is_purchased && (
+                        <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 min-w-fit py-0.5 rounded-full border border-green-200">
+                          تم الشراء
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[1.2rem] text-gray-600">{item.desc}</p>
                     {item.is_purchased ? (
-                      <div className="text-green-600 font-semibold text-[1.2rem] h-14 flex items-center justify-center rounded-lg border border-green-500 bg-green-100">
-                        تم شرئها
+                      <div className="flex justify-center gap-2">
+                        {item.image_url && (
+                          <Button
+                            onClick={() => handleViewImage(item.image_url!)}
+                            className="bg-[#007bff] text-[1.1rem] py-2 text-white h-12 rounded-lg hover:bg-[#0056b3]"
+                          >
+                            عرض الصورة
+                          </Button>
+                        )}
+                        {item.asset_file_url && (
+                          <Button
+                            onClick={() =>
+                              handleViewAsset(item.asset_file_url!)
+                            }
+                            className="bg-[#28a745] text-[1.1rem] py-2 text-white h-12 rounded-lg hover:bg-[#218838]"
+                          >
+                            عرض الملف
+                          </Button>
+                        )}
+                        {item.is_purchased &&
+                          !item.image_url &&
+                          !item.asset_file_url && (
+                            <div className="text-gray-500 text-center py-2 text-sm">
+                              لا يوجد ملف أو صورة متاحة
+                            </div>
+                          )}
                       </div>
                     ) : (
                       <Button
@@ -826,6 +872,8 @@ const RewardsDashboard = () => {
                             id: item.id || index,
                             title: item.title,
                             points: item.points,
+                            image_url: item.image_url || undefined,
+                            asset_file_url: item.asset_file_url || undefined,
                           });
                           setShowConfirm(true);
                           setIsConfirmed(false);
@@ -881,9 +929,38 @@ const RewardsDashboard = () => {
                 <h2 className="font-bold text-[#212121] mb-2 text-2xl dark:text-white">
                   تم استبدال النقاط
                 </h2>
-                <p className="text-gray-600 mb-6 text-2xl">
-                  ستحصل على مكافأتك قريباً.
+                <p className="text-gray-600 mb-4 text-lg">
+                  تم شراء "{selectedReward?.title}" بنجاح!
                 </p>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-3 mb-4">
+                  {selectedReward?.image_url && (
+                    <Button
+                      onClick={() => handleViewImage(selectedReward.image_url!)}
+                      className="bg-[#007bff] text-white h-12 rounded-lg hover:bg-[#0056b3]"
+                    >
+                      عرض الصورة
+                    </Button>
+                  )}
+                  {selectedReward?.asset_file_url && (
+                    <Button
+                      onClick={() =>
+                        handleViewAsset(selectedReward.asset_file_url!)
+                      }
+                      className="bg-[#28a745] text-white h-12 rounded-lg hover:bg-[#218838]"
+                    >
+                      عرض الملف
+                    </Button>
+                  )}
+                  {!selectedReward?.image_url &&
+                    !selectedReward?.asset_file_url && (
+                      <p className="text-gray-500 text-center text-sm">
+                        لا يوجد ملف أو صورة متاحة لهذا العنصر
+                      </p>
+                    )}
+                </div>
+
                 <div className="border-t pt-4">
                   <button
                     className="w-full text-[#074182] dark:hover:text-[#074182] font-bold py-2 text-sm flex justify-center items-center gap-2 hover:bg-[#f5faff] rounded-lg dark:text[#fff]"

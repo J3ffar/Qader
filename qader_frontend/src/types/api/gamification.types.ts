@@ -31,6 +31,7 @@ export interface StoreItem {
   item_type: "avatar" | "background" | "badge" | string;
   item_type_display: string;
   image_url: string;
+  asset_file_url?: string | null; // For downloadable items
 }
 
 // From API Docs: /gamification/study-days/
