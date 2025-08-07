@@ -76,6 +76,7 @@ export const PATHS = {
       SUBSCRIPTION: "/study/settings/subscription",
       NOTIFICATIONS: "/study/settings/notifications",
     },
+    NOTIFICATIONS: "/study/notifications",
     // Consider adding other common study sections here as they are developed
   },
 

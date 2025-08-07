@@ -39,7 +39,7 @@
       "noNotifications": "لا توجد إشعارات جديدة.",
       "errorLoading": "خطأ في تحميل الإشعارات.",
       "viewAll": "عرض كل الإشعارات",
-      "notificationActorAltFallback": "مرسل الإشعار"
+      "notificationActorAltFallback": "المستخدم"
     },
 
     "GiftDropdown": {
@@ -129,6 +129,7 @@
       "rewards": "المكافآت والمسابقات",
       "challengeColleagues": "تحدي الزملاء",
       "community": "مجتمع الطلاب",
+      "notifications": "الإشعارات",
       "settings": "الإعدادات والاشتراك",
       "adminSupport": "دعم الإدارة",
       "comingSoonSuffix": "قريباً",

@@ -91,6 +91,9 @@ export default getRequestConfig(
       ).default;
       const navMessages = (await import(`@/locales/${resolvedLocale}/nav.json`))
         .default;
+      const notificationsMessages = (
+        await import(`@/locales/${resolvedLocale}/notifications.json`)
+      ).default;
 
       // Construct the final messages object
       messages = {
@@ -99,6 +102,7 @@ export default getRequestConfig(
         Nav: navMessages,
         Study: studyNamespace,
         Admin: adminNamespace,
+        Notifications: notificationsMessages,
       };
     } catch (error) {
       console.error(

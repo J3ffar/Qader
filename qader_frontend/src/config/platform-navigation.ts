@@ -21,6 +21,7 @@ import {
   User,
   UsersRound,
   Presentation,
+  Bell,
 } from "lucide-react";
 
 import { PATHS } from "@/constants/paths";
@@ -136,6 +137,11 @@ export const PLATFORM_SIDEBAR_SECTIONS: PlatformSidebarNavSection[] = [
         icon: User,
         href: "#",
         comingSoon: true,
+      },
+      {
+        labelKey: "PlatformSidebar.items.notifications",
+        icon: Bell,
+        href: PATHS.STUDY.NOTIFICATIONS,
       },
       {
         labelKey: "PlatformSidebar.items.settings",

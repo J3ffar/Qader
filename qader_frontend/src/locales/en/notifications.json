@@ -1,0 +1,27 @@
+{
+  "title": "Notifications",
+  "description": "Stay updated with your latest activities and important updates",
+  "tabs": {
+    "all": "All",
+    "unread": "Unread",
+    "read": "Read"
+  },
+  "unread": "Unread",
+  "markAllRead": "Mark all as read",
+  "marking": "Marking...",
+  "viewDetails": "View Details",
+  "previous": "Previous",
+  "next": "Next",
+  "retry": "Retry",
+  "noNotifications": "No notifications yet",
+  "noUnreadNotifications": "No unread notifications",
+  "noReadNotifications": "No read notifications",
+  "errorLoading": "Error loading notifications",
+  "allReadSuccess": "All notifications marked as read",
+  "allReadError": "Failed to mark all notifications as read",
+  "markReadError": "Failed to mark notification as read",
+  "deleteSuccess": "Notification deleted successfully",
+  "deleteError": "Failed to delete notification",
+  "pageInfo": "Page {current} of {total}",
+  "notificationActorAltFallback": "User"
+}

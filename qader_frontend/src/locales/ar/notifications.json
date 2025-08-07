@@ -1,0 +1,27 @@
+{
+  "title": "الإشعارات",
+  "description": "ابق على اطلاع بآخر أنشطتك والتحديثات المهمة",
+  "tabs": {
+    "all": "الكل",
+    "unread": "غير مقروءة",
+    "read": "مقروءة"
+  },
+  "unread": "غير مقروءة",
+  "markAllRead": "تحديد الكل كمقروء",
+  "marking": "جاري التحديد...",
+  "viewDetails": "عرض التفاصيل",
+  "previous": "السابق",
+  "next": "التالي",
+  "retry": "إعادة المحاولة",
+  "noNotifications": "لا توجد إشعارات بعد",
+  "noUnreadNotifications": "لا توجد إشعارات غير مقروءة",
+  "noReadNotifications": "لا توجد إشعارات مقروءة",
+  "errorLoading": "خطأ في تحميل الإشعارات",
+  "allReadSuccess": "تم تحديد جميع الإشعارات كمقروءة",
+  "allReadError": "فشل في تحديد جميع الإشعارات كمقروءة",
+  "markReadError": "فشل في تحديد الإشعار كمقروء",
+  "deleteSuccess": "تم حذف الإشعار بنجاح",
+  "deleteError": "فشل في حذف الإشعار",
+  "pageInfo": "الصفحة {current} من {total}",
+  "notificationActorAltFallback": "المستخدم"
+}

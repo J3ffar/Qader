@@ -39,7 +39,7 @@
       "noNotifications": "No new notifications.",
       "errorLoading": "Error loading notifications.",
       "viewAll": "View all notifications",
-      "notificationActorAltFallback": "Notification sender"
+      "notificationActorAltFallback": "User"
     },
 
     "GiftDropdown": {
@@ -129,6 +129,7 @@
       "rewards": "Rewards & Competitions",
       "challengeColleagues": "Challenge Colleagues",
       "community": "Student Community",
+      "notifications": "Notifications",
       "settings": "Settings & Subscription",
       "adminSupport": "Admin Support",
       "comingSoonSuffix": "Soon"

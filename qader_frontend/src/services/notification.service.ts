@@ -52,3 +52,20 @@ export const getUnreadNotificationsCount =
       }
     );
   };
+
+export const markNotificationAsRead = async (
+  id: number
+): Promise<MarkReadResponse> => {
+  return apiClient<MarkReadResponse>(API_ENDPOINTS.NOTIFICATIONS.MARK_READ, {
+    method: "POST",
+    body: JSON.stringify({ notification_ids: [id] }),
+  });
+};
+
+export const deleteNotification = async (
+  id: number
+): Promise<MarkReadResponse> => {
+  return apiClient<MarkReadResponse>(API_ENDPOINTS.NOTIFICATIONS.DELETE(id), {
+    method: "DELETE",
+  });
+};

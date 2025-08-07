@@ -196,6 +196,7 @@ export const API_ENDPOINTS = {
     MARK_READ: "/notifications/mark-read/",
     MARK_ALL_READ: "/notifications/mark-all-read/",
     UNREAD_COUNT: "/notifications/unread-count/",
+    DELETE: (id: number | string) => `/notifications/${id}/delete/`,
   },
   GAMIFICATION: {
     REWARD_STORE: "/gamification/reward-store/",

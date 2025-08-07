@@ -16,6 +16,7 @@ import {
 import type { Notification } from "@/types/api/notification.types"; // Path might need adjustment
 import { useAuthStore } from "@/store/auth.store"; // Path might need adjustment
 import { queryKeys } from "@/constants/queryKeys";
+import { PATHS } from "@/constants/paths";
 
 interface NotificationsDropdownProps {
   isVisible: boolean;
@@ -70,14 +71,12 @@ const NotificationsDropdown = forwardRef<
     markAllReadMutation.mutate();
   };
 
-  const renderNotificationItem = (notification: Notification) => (
-    <Link
-      href={notification.url || "#"}
-      key={notification.id}
-      passHref
-      legacyBehavior // Consider removing if not strictly needed for styling an <a> tag.
-    >
-      <a className="block rounded-md border-t border-border px-2 py-3 transition-colors hover:bg-muted dark:hover:bg-muted/50">
+  const renderNotificationItem = (notification: Notification) => {
+    // Only make it clickable if there's a valid URL
+    const hasValidUrl = notification.url && notification.url !== "#";
+
+    const notificationContent = (
+      <div className="block rounded-md border-t border-border px-2 py-3 transition-colors hover:bg-muted dark:hover:bg-muted/50">
         <div className="flex items-start justify-between gap-2">
           <Image
             src={
@@ -103,9 +102,24 @@ const NotificationsDropdown = forwardRef<
           {notification.timesince ||
             new Date(notification.created_at_iso).toLocaleTimeString()}
         </span>
-      </a>
-    </Link>
-  );
+      </div>
+    );
+
+    if (hasValidUrl) {
+      return (
+        <Link
+          href={notification.url!}
+          key={notification.id}
+          passHref
+          legacyBehavior
+        >
+          <a>{notificationContent}</a>
+        </Link>
+      );
+    }
+
+    return <div key={notification.id}>{notificationContent}</div>;
+  };
 
   const renderSkeletonItem = (
     key: number // Added key for mapped items
@@ -167,7 +181,7 @@ const NotificationsDropdown = forwardRef<
       </ScrollArea>
       <div className="mt-2 border-t border-border pt-2 text-center">
         <Button asChild variant="ghost" size="sm" className="w-full">
-          <Link href="/notifications">{t("viewAll")}</Link>
+          <Link href={PATHS.STUDY.NOTIFICATIONS}>{t("viewAll")}</Link>
         </Button>
       </div>
     </div>
