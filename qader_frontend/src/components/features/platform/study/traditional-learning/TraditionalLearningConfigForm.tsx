@@ -190,7 +190,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
       onSubmit={handleSubmit(onSubmit)}
       className="mx-auto max-w-4xl space-y-8"
     >
-      <Card className="overflow-hidden w-full max-w-none border-2 dark:bg-[#0B1739] dark:border-[#7E89AC]">
+      <Card className="overflow-hidden w-full max-w-none border-2  dark:bg-[#0B1739] dark:border-[#7E89AC]">
         <CardHeader>
           <CardTitle>{t("sectionsTitle")}</CardTitle>
           <CardDescription>{t("sectionsDescription")}</CardDescription>
@@ -204,7 +204,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
           <Accordion
             type="multiple"
             defaultValue={sections.map((s) => s.slug)}
-            className="w-full space-y-3"
+            className="w-full space-y-3 grid lg:grid-cols-2 grid-cols-1 gap-3"
           >
             {sections.map((section) => {
               const allSubSelected = section.subsections.every(
@@ -226,7 +226,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
                   className="rounded-lg border"
                 >
                   <AccordionTrigger className="p-4 hover:no-underline">
-                    <div className="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div className="flex items-center space-x-3 gap-2 rtl:space-x-reverse">
                       <Checkbox
                         id={`section-${section.slug}`}
                         checked={mainCheckboxState === "checked"}
@@ -247,7 +247,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
                       </Checkbox>
                       <label
                         htmlFor={`section-${section.slug}`}
-                        className="cursor-pointer font-medium"
+                        className="cursor-pointer font-bold"
                       >
                         {section.name}
                       </label>
