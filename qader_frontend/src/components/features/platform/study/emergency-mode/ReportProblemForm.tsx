@@ -43,7 +43,7 @@ const createReportSchema = (t: (key: string) => string) =>
   });
 
 interface ReportProblemFormProps {
-  sessionId: number;
+  sessionId: any;
   onSuccess?: () => void;
 }
 
