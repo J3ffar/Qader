@@ -43,15 +43,15 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { AttemptActionButtons } from "./_components/AttemptActionButtons";
-import { DataTablePagination } from "@/components/shared/DataTablePagination"; // Assumes component from previous step exists
+import { DataTablePagination } from "@/components/shared/DataTablePagination";
 import { queryKeys } from "@/constants/queryKeys";
 import { useParams } from "next/navigation";
 
 // Constants
-const PAGE_SIZE = 20; // Number of attempts to show per page
+const PAGE_SIZE = 20;
 
 // =================================================================
-// HELPER FUNCTIONS (unchanged)
+// HELPER FUNCTIONS
 // =================================================================
 
 const getBadgeStyle = (levelKey?: string): string => {
@@ -144,11 +144,9 @@ const LevelAssessmentPage = () => {
 
     return {
       attempts: enhancedAttempts,
-      // `attemptsData.count` is now correctly typed.
       pageCount: attemptsData?.count
         ? Math.ceil(attemptsData.count / PAGE_SIZE)
         : 1,
-      // `attemptsData.previous` and `next` are now correctly typed.
       canPreviousPage: !!attemptsData?.previous,
       canNextPage: !!attemptsData?.next,
     };
@@ -165,10 +163,10 @@ const LevelAssessmentPage = () => {
 
   if (error) {
     return (
-      <div className="container mx-auto p-4 md:p-6 lg:p-8">
-        <Alert variant="destructive">
-          <AlertTitle>{t("errors.fetchFailedTitle")}</AlertTitle>
-          <AlertDescription>
+      <div className="container mx-auto p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl">
+        <Alert variant="destructive" className="mx-auto max-w-2xl">
+          <AlertTitle className="text-base sm:text-lg">{t("errors.fetchFailedTitle")}</AlertTitle>
+          <AlertDescription className="text-sm sm:text-base">
             {getApiErrorMessage(error, t("errors.fetchFailedDescription"))}
           </AlertDescription>
         </Alert>
@@ -176,56 +174,67 @@ const LevelAssessmentPage = () => {
     );
   }
 
-  // `attemptsData.count` is now correctly typed.
   const hasNoAttemptsAtAll = !attemptsData?.count;
 
   if (hasNoAttemptsAtAll) {
     return (
-      <div className="flex min-h-[calc(100vh-150px)] flex-col items-center justify-center p-4 text-center">
+      <div className="flex min-h-[calc(100vh-100px)] sm:min-h-[calc(100vh-150px)] flex-col items-center justify-center p-4 text-center">
         <Image
           src="/images/search.png"
           width={120}
           height={120}
           alt={t("noAttemptsTitle")}
-          className="mb-6"
+          className="mb-4 sm:mb-6 w-20 h-20 sm:w-[120px] sm:h-[120px]"
         />
-        <h2 className="mb-2 text-2xl font-semibold dark:text-white">
+        <h2 className="mb-2 text-xl sm:text-2xl font-[700] dark:text-white">
           {t("noAttemptsTitle")}
         </h2>
-        <p className="mb-6 max-w-md text-muted-foreground dark:text-gray-300">
+        <p className="mb-4 sm:mb-6 max-w-xs sm:max-w-md text-sm sm:text-base text-muted-foreground dark:text-gray-300">
           {t("noAttemptsDescription")}
         </p>
-        <Button asChild size="lg">
+        <Button asChild size="lg" className="w-full sm:w-auto md:w-[250px]">
           <Link href={PATHS.STUDY.DETERMINE_LEVEL.START}>
-            <PencilLine className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
+            <PencilLine className="me-2 h-4 w-4 sm:h-5 sm:w-5 rtl:me-0 rtl:ms-2" />
             {t("startTest")}
           </Link>
         </Button>
       </div>
     );
   }
-  const {locale}= useParams();
+
+  const {locale} = useParams();
 
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
+    <div className="container mx-auto space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl">
       <Card className="dark:bg-[#0B1739] dark:border-[#7E89AC] border-2">
-        <CardHeader dir={locale === "en" ? "ltr" : "rtl"} className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <CardTitle className="text-2xl font-bold">{t("title")}</CardTitle>
-            <p className="text-sm text-muted-foreground">{t("description")}</p>
+        <CardHeader 
+          dir={locale === "en" ? "ltr" : "rtl"} 
+          className="flex flex-col justify-between gap-3 sm:gap-4 p-4 sm:p-6 md:flex-row md:items-center"
+        >
+          <div className="space-y-1">
+            <CardTitle className="text-xl sm:text-2xl font-bold">
+              {t("title")}
+            </CardTitle>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {t("description")}
+            </p>
           </div>
-          <Button asChild className="text-white">
+          <Button asChild className="text-white w-full sm:w-auto" size="default">
             <Link href={PATHS.STUDY.DETERMINE_LEVEL.START}>
-              <PencilLine className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
+              <PencilLine className="me-2 h-4 w-4 sm:h-5 sm:w-5 rtl:me-0 rtl:ms-2" />
               {t("retakeTest")}
             </Link>
           </Button>
         </CardHeader>
-        <CardContent dir={locale === "en" ? "ltr" : "rtl"}>
-          <div className="mb-6 flex flex-col justify-between gap-4 rounded-lg border bg-card p-4 md:flex-row md:items-center dark:bg-[#0B1739]">
-            <h3 className="text-lg font-semibold">{t("attemptsLogTitle")}</h3>
+        
+        <CardContent dir={locale === "en" ? "ltr" : "rtl"} className="p-3 sm:p-4 md:p-6">
+          {/* Sort Controls */}
+          <div className="mb-4 sm:mb-6 flex flex-col justify-between gap-3 sm:gap-4 rounded-lg border bg-card p-3 sm:p-4 sm:flex-row sm:items-center dark:bg-[#0B1739]">
+            <h3 className="text-base sm:text-lg font-semibold">
+              {t("attemptsLogTitle")}
+            </h3>
             <div className="flex items-center gap-2">
-              <ListFilter className="h-5 w-5 text-muted-foreground" />
+              <ListFilter className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
               <Select
                 value={sortBy}
                 onValueChange={handleSortChange}
@@ -235,7 +244,7 @@ const LevelAssessmentPage = () => {
                     : "ltr"
                 }
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder={t("sortBy")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -248,30 +257,30 @@ const LevelAssessmentPage = () => {
             </div>
           </div>
 
-          {/* Desktop Table (no changes needed here) */}
-          <div className="hidden rounded-xl border md:block">
+          {/* Desktop/Tablet Table - Show from md breakpoint */}
+          <div className="hidden rounded-xl border overflow-x-auto md:block">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className={cn(locale==="en" ? "text-left" : "text-right")}>
+                  <TableHead className={cn(locale === "en" ? "text-left" : "text-right", "whitespace-nowrap")}>
                     {t("attemptsTable.date")}
                   </TableHead>
-                  <TableHead className="text-center">
+                  <TableHead className="text-center whitespace-nowrap">
                     {t("attemptsTable.numQuestions")}
                   </TableHead>
-                  <TableHead className="text-center">
+                  <TableHead className="text-center whitespace-nowrap">
                     {t("attemptsTable.percentage")}
                   </TableHead>
-                  <TableHead className="text-center">
+                  <TableHead className="text-center whitespace-nowrap min-w-[120px]">
                     {t("attemptsTable.quantitativePerformance")}
                   </TableHead>
-                  <TableHead className="text-center">
+                  <TableHead className="text-center whitespace-nowrap min-w-[120px]">
                     {t("attemptsTable.verbalPerformance")}
                   </TableHead>
-                  <TableHead className="text-center">
+                  <TableHead className="text-center whitespace-nowrap">
                     {t("attemptsTable.status")}
                   </TableHead>
-                  <TableHead className="w-[280px] text-center">
+                  <TableHead className="w-[200px] lg:w-[280px] text-center whitespace-nowrap">
                     {t("attemptsTable.actions")}
                   </TableHead>
                 </TableRow>
@@ -284,7 +293,7 @@ const LevelAssessmentPage = () => {
                       "opacity-60": attempt.status === "abandoned",
                     })}
                   >
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {new Date(attempt.date).toLocaleDateString(undefined, {
                         year: "numeric",
                         month: "short",
@@ -304,7 +313,7 @@ const LevelAssessmentPage = () => {
                     <TableCell className="text-center">
                       <span
                         className={cn(
-                          "rounded-md px-2 py-1 text-xs font-medium",
+                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium",
                           getBadgeStyle(attempt.quantitative_level_key)
                         )}
                       >
@@ -314,7 +323,7 @@ const LevelAssessmentPage = () => {
                     <TableCell className="text-center">
                       <span
                         className={cn(
-                          "rounded-md px-2 py-1 text-xs font-medium",
+                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium",
                           getBadgeStyle(attempt.verbal_level_key)
                         )}
                       >
@@ -324,7 +333,7 @@ const LevelAssessmentPage = () => {
                     <TableCell className="text-center">
                       <span
                         className={cn(
-                          "rounded-md px-2 py-1 text-xs font-medium",
+                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium",
                           {
                             "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100":
                               attempt.status === "completed",
@@ -350,37 +359,39 @@ const LevelAssessmentPage = () => {
             </Table>
           </div>
 
-          {/* Mobile Accordion (no changes needed here) */}
-          <div className="space-y-3 md:hidden">
-            <Accordion type="single" collapsible className="w-full">
+          {/* Mobile Accordion - Show only on mobile */}
+          <div className="space-y-2 sm:space-y-3 md:hidden">
+            <Accordion type="single" collapsible className="w-full space-y-2">
               {attempts.map((attempt) => (
                 <AccordionItem
                   value={`item-${attempt.attempt_id}`}
                   key={attempt.attempt_id}
-                  className="rounded-lg border dark:border-gray-700"
+                  className="rounded-lg border dark:border-gray-700 overflow-hidden"
                   disabled={attempt.status === "abandoned"}
                 >
-                  <AccordionTrigger className="p-4 hover:no-underline disabled:opacity-60">
-                    <div className="flex w-full items-center justify-between">
-                      <div className="text-start rtl:text-right">
-                        <p className="font-medium">
+                  <AccordionTrigger className="p-3 sm:p-4 hover:no-underline disabled:opacity-60">
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <div className="text-start rtl:text-right space-y-1">
+                        <p className="text-sm sm:text-base font-medium">
                           {new Date(attempt.date).toLocaleDateString(
                             undefined,
                             { year: "numeric", month: "short", day: "numeric" }
                           )}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           {t("attemptsTable.percentage")}:{" "}
-                          {attempt.score_percentage !== null
-                            ? `${attempt.score_percentage.toFixed(0)}%`
-                            : attempt.status === "started"
-                            ? t("attemptsTable.statusInProgress")
-                            : "-"}
+                          <span className="font-medium">
+                            {attempt.score_percentage !== null
+                              ? `${attempt.score_percentage.toFixed(0)}%`
+                              : attempt.status === "started"
+                              ? t("attemptsTable.statusInProgress")
+                              : "-"}
+                          </span>
                         </p>
                       </div>
                       <span
                         className={cn(
-                          "me-2 rounded-md px-2 py-1 text-xs font-medium rtl:ms-2 rtl:me-0",
+                          "flex-shrink-0 rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium",
                           {
                             "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100":
                               attempt.status === "completed",
@@ -395,37 +406,39 @@ const LevelAssessmentPage = () => {
                       </span>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="p-4 pt-0">
-                    <div className="space-y-2 text-sm">
-                      <p>
-                        <strong>{t("attemptsTable.numQuestions")}:</strong>{" "}
-                        {attempt.num_questions}
-                      </p>
-                      <p>
-                        <strong>
+                  <AccordionContent className="p-3 sm:p-4 pt-0">
+                    <div className="space-y-2 text-xs sm:text-sm">
+                      <div className="flex justify-between items-center">
+                        <strong>{t("attemptsTable.numQuestions")}:</strong>
+                        <span>{attempt.num_questions}</span>
+                      </div>
+                      <div className="flex justify-between items-center gap-2">
+                        <strong className="flex-shrink-0">
                           {t("attemptsTable.quantitativePerformance")}:
-                        </strong>{" "}
+                        </strong>
                         <span
                           className={cn(
-                            "rounded-md px-2 py-1 text-xs",
+                            "rounded-md px-1.5 py-0.5 text-xs",
                             getBadgeStyle(attempt.quantitative_level_key)
                           )}
                         >
                           {tBadge(attempt.quantitative_level_key)}
                         </span>
-                      </p>
-                      <p>
-                        <strong>{t("attemptsTable.verbalPerformance")}:</strong>{" "}
+                      </div>
+                      <div className="flex justify-between items-center gap-2">
+                        <strong className="flex-shrink-0">
+                          {t("attemptsTable.verbalPerformance")}:
+                        </strong>
                         <span
                           className={cn(
-                            "rounded-md px-2 py-1 text-xs",
+                            "rounded-md px-1.5 py-0.5 text-xs",
                             getBadgeStyle(attempt.verbal_level_key)
                           )}
                         >
                           {tBadge(attempt.verbal_level_key)}
                         </span>
-                      </p>
-                      <div className="mt-3">
+                      </div>
+                      <div className="mt-3 pt-3 border-t">
                         <AttemptActionButtons
                           attempt={attempt}
                           cancelAttemptMutation={cancelAttemptMutation}
@@ -438,6 +451,7 @@ const LevelAssessmentPage = () => {
             </Accordion>
           </div>
 
+          {/* Pagination */}
           <DataTablePagination
             page={page}
             pageCount={pageCount}
@@ -453,31 +467,32 @@ const LevelAssessmentPage = () => {
   );
 };
 
-// Skeleton component remains unchanged
+// Responsive Skeleton component
 const DetermineLevelPageSkeleton = () => {
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
+    <div className="container mx-auto space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl">
       <Card>
-        <CardHeader className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <CardHeader className="flex flex-col justify-between gap-3 sm:gap-4 p-4 sm:p-6 md:flex-row md:items-center">
           <div>
-            <Skeleton className="mb-2 h-8 w-48" />
-            <Skeleton className="h-4 w-72" />
+            <Skeleton className="mb-2 h-6 sm:h-8 w-32 sm:w-48" />
+            <Skeleton className="h-3 sm:h-4 w-48 sm:w-72" />
           </div>
-          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-9 sm:h-10 w-full sm:w-48" />
         </CardHeader>
-        <CardContent>
-          <div className="mb-6 flex flex-col justify-between gap-4 rounded-lg border bg-background p-4 md:flex-row md:items-center">
-            <Skeleton className="h-7 w-40" />
-            <Skeleton className="h-10 w-[180px]" />
+        <CardContent className="p-3 sm:p-4 md:p-6">
+          <div className="mb-4 sm:mb-6 flex flex-col justify-between gap-3 sm:gap-4 rounded-lg border bg-background p-3 sm:p-4 sm:flex-row sm:items-center">
+            <Skeleton className="h-5 sm:h-7 w-32 sm:w-40" />
+            <Skeleton className="h-9 sm:h-10 w-full sm:w-[180px]" />
           </div>
 
-          <div className="hidden rounded-xl border md:block">
+          {/* Desktop skeleton */}
+          <div className="hidden rounded-xl border md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   {[...Array(7)].map((_, i) => (
                     <TableHead key={i}>
-                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-4 sm:h-5 w-20 sm:w-24" />
                     </TableHead>
                   ))}
                 </TableRow>
@@ -486,25 +501,25 @@ const DetermineLevelPageSkeleton = () => {
                 {[...Array(3)].map((_, i) => (
                   <TableRow key={i}>
                     <TableCell>
-                      <Skeleton className="h-5 w-20" />
+                      <Skeleton className="h-4 sm:h-5 w-16 sm:w-20" />
                     </TableCell>
                     <TableCell className="text-center">
-                      <Skeleton className="mx-auto h-5 w-10" />
+                      <Skeleton className="mx-auto h-4 sm:h-5 w-8 sm:w-10" />
                     </TableCell>
                     <TableCell className="text-center">
-                      <Skeleton className="mx-auto h-5 w-10" />
+                      <Skeleton className="mx-auto h-4 sm:h-5 w-8 sm:w-10" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-5 sm:h-6 w-14 sm:w-16" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-5 sm:h-6 w-14 sm:w-16" />
                     </TableCell>
                     <TableCell className="text-center">
-                      <Skeleton className="mx-auto h-6 w-20" />
+                      <Skeleton className="mx-auto h-5 sm:h-6 w-16 sm:w-20" />
                     </TableCell>
                     <TableCell className="text-center">
-                      <Skeleton className="mx-auto h-9 w-32" />
+                      <Skeleton className="mx-auto h-8 sm:h-9 w-28 sm:w-32" />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -512,17 +527,18 @@ const DetermineLevelPageSkeleton = () => {
             </Table>
           </div>
 
-          <div className="space-y-3 md:hidden">
+          {/* Mobile skeleton */}
+          <div className="space-y-2 sm:space-y-3 md:hidden">
             {[...Array(3)].map((_, i) => (
               <div
                 key={`skeleton-mobile-${i}`}
-                className="flex items-center justify-between rounded-lg border p-4 dark:border-gray-700"
+                className="flex items-center justify-between rounded-lg border p-3 sm:p-4 dark:border-gray-700"
               >
-                <div className="text-start rtl:text-right">
-                  <Skeleton className="mb-2 h-5 w-24" />
-                  <Skeleton className="h-4 w-32" />
+                <div className="text-start rtl:text-right space-y-1">
+                  <Skeleton className="h-4 sm:h-5 w-20 sm:w-24" />
+                  <Skeleton className="h-3 sm:h-4 w-28 sm:w-32" />
                 </div>
-                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-5 sm:h-6 w-16 sm:w-20" />
               </div>
             ))}
           </div>
