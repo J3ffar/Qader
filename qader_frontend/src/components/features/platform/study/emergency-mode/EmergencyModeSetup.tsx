@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, MessageSquareWarning } from "lucide-react";
 
 import {
   Card,
@@ -21,6 +21,7 @@ import { queryKeys } from "@/constants/queryKeys";
 import { startEmergencyMode } from "@/services/study.service";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { StartEmergencyModePayload } from "@/types/api/study.types";
+import ReportProblemForm from "./ReportProblemForm";
 
 export function EmergencyModeSetup() {
   const t = useTranslations("Study.emergencyMode.setup");
@@ -28,6 +29,8 @@ export function EmergencyModeSetup() {
   const startNewSession = useEmergencyModeStore(
     (state) => state.startNewSession
   );
+
+  
 
   const { mutate, isPending } = useMutation({
     mutationKey: queryKeys.emergencyMode.start(),
@@ -55,7 +58,21 @@ export function EmergencyModeSetup() {
     mutate(payload);
   };
 
+    const {
+      sessionId,
+      suggestedPlan,
+      questions,
+      currentQuestionIndex,
+      isCalmModeActive,
+      setQuestions,
+      setCalmMode,
+      setCompleting,
+      completeSession, // Get the function to update the store with results
+      endSession,
+    } = useEmergencyModeStore();
+
   return (
+    <>
     <Card className="max-w-6xl mx-auto shadow-none">
       <CardHeader className="text-center">
         <CardTitle className="text-3xl font-bold">{t("title")}</CardTitle>
@@ -80,5 +97,21 @@ export function EmergencyModeSetup() {
         />
       </CardContent>
     </Card>
+
+    <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquareWarning className="h-5 w-5 text-muted-foreground" />
+مشاركة وضعي مع الادارة      
+              </CardTitle>
+              {/* <CardDescription>
+                {t("requestSupport.description")}
+              </CardDescription> */}
+            </CardHeader>
+            <CardContent>
+              <ReportProblemForm sessionId={sessionId} />
+            </CardContent>
+          </Card>
+    </>
   );
 }
