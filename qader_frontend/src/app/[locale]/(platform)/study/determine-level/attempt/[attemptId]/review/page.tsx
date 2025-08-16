@@ -12,6 +12,7 @@ import {
   Filter as FilterIcon,
   BookOpen,
   ThumbsDown,
+  ThumbsUp,
   HelpCircle as HelpCircleIcon,
   Loader2,
   AlertTriangle,
@@ -36,7 +37,7 @@ import Link from "next/link";
 import ReviewQuestionCard from "@/components/shared/ReviewQuestionCard";
 import { queryKeys } from "@/constants/queryKeys";
 
-type FilterType = "all" | "incorrect" | "skipped";
+type FilterType = "all" | "incorrect" | "correct" | "skipped";
 
 const LevelAssessmentReviewPage = () => {
   const params = useParams();
@@ -70,6 +71,12 @@ const LevelAssessmentReviewPage = () => {
     [allQuestions]
   );
 
+  const correctQuestions = useMemo(
+    () =>
+      allQuestions.filter((q) => q.user_answer_details?.is_correct === true),
+    [allQuestions]
+  );
+
   const skippedQuestions = useMemo(
     () =>
       allQuestions.filter(
@@ -82,13 +89,15 @@ const LevelAssessmentReviewPage = () => {
     switch (filterType) {
       case "incorrect":
         return incorrectQuestions;
+      case "correct":
+        return correctQuestions;
       case "skipped":
         return skippedQuestions;
       case "all":
       default:
         return allQuestions;
     }
-  }, [filterType, allQuestions, incorrectQuestions, skippedQuestions]);
+  }, [filterType, allQuestions, incorrectQuestions, correctQuestions, skippedQuestions]);
 
   useEffect(() => {
     setCurrentQuestionIndex(0);
@@ -274,31 +283,47 @@ const LevelAssessmentReviewPage = () => {
                 value && setFilterType(value)
               }
               aria-label={t("filterBy")}
-              className="grid w-full grid-cols-3 gap-1 sm:flex sm:w-auto"
+              className="grid w-full grid-cols-2 gap-1 sm:flex sm:w-auto"
             >
               <ToggleGroupItem
                 value="all"
                 aria-label={t("allQuestionsOptFull")}
                 className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
               >
-                <BookOpen className="h-4 w-4" /> {t("allQuestionsOpt")} (
-                {allQuestions.length})
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="incorrect"
-                aria-label={t("incorrectOnlyOptFull")}
-                className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
-              >
-                <ThumbsDown className="h-4 w-4" /> {t("incorrectOnlyOpt")} (
-                {incorrectQuestions.length})
+                <BookOpen className="h-4 w-4" /> 
+                <span className="hidden sm:inline">{t("allQuestionsOpt")}</span>
+                <span className="sm:hidden">الكل</span>
+                ({allQuestions.length})
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="skipped"
                 aria-label={t("skippedOnlyOptFull")}
                 className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
               >
-                <HelpCircleIcon className="h-4 w-4" /> {t("skippedOnlyOpt")} (
-                {skippedQuestions.length})
+                <HelpCircleIcon className="h-4 w-4" /> 
+                <span className="hidden sm:inline">{t("skippedOnlyOpt")}</span>
+                <span className="sm:hidden">المتجاوزة</span>
+                ({skippedQuestions.length})
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="incorrect"
+                aria-label={t("incorrectOnlyOptFull")}
+                className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
+              >
+                <ThumbsDown className="h-4 w-4" /> 
+                <span className="hidden sm:inline">{t("incorrectOnlyOpt")}</span>
+                <span className="sm:hidden">الخاطئة</span>
+                ({incorrectQuestions.length})
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="correct"
+                aria-label={  "الأسئلة الصحيحة"}
+                className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
+              >
+                <ThumbsUp className="h-4 w-4" /> 
+                <span className="hidden sm:inline">{ "الصحيحة"}</span>
+                <span className="sm:hidden">الصحيحة</span>
+                ({correctQuestions.length})
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -404,7 +429,8 @@ const ReviewPageSkeleton = () => {
               <FilterIcon className="me-2 h-4 w-4 text-muted-foreground/50 rtl:me-0 rtl:ms-2" />
               <Skeleton className="h-5 w-16" /> {/* "Filter By:" */}
             </div>
-            <div className="grid w-full grid-cols-3 gap-1 sm:flex sm:w-auto">
+            <div className="grid w-full grid-cols-2 gap-1 sm:flex sm:w-auto">
+              <Skeleton className="h-9 flex-1 rounded-md" />
               <Skeleton className="h-9 flex-1 rounded-md" />
               <Skeleton className="h-9 flex-1 rounded-md" />
               <Skeleton className="h-9 flex-1 rounded-md" />
