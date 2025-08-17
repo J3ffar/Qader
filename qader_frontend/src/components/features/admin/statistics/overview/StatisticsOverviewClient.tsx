@@ -42,40 +42,47 @@ const StatCards = ({ data }: { data: any }) => {
       value: data.total_active_students,
       icon: Users,
       description: "إجمالي الطلاب على المنصة",
+      colorScheme: 'blue' as const
     },
     {
       title: "التسجيلات الجديدة",
       value: `+${data.new_registrations_period}`,
       icon: UserPlus,
       description: "في الفترة المحددة",
+      colorScheme: 'green' as const
     },
     {
       title: "الأسئلة التي تم الإجابة عليها",
       value: data.total_questions_answered_period.toLocaleString(),
       icon: HelpCircle,
       description: "في الفترة المحددة",
+      colorScheme: 'purple' as const
     },
     {
       title: "الاختبارات المكتملة",
       value: data.total_tests_completed_period.toLocaleString(),
       icon: ClipboardCheck,
       description: "في الفترة المحددة",
+      colorScheme: 'orange' as const
     },
     {
       title: "متوسط درجة الاختبار",
       value: `${data.overall_average_test_score?.toFixed(1) ?? "N/A"}%`,
       icon: Target,
       description: "المعدل العام",
+      colorScheme: 'rose' as const
     },
     {
       title: "متوسط الدقة",
       value: `${data.overall_average_accuracy?.toFixed(1) ?? "N/A"}%`,
       icon: Percent,
       description: "عبر جميع الأسئلة",
+      colorScheme: 'teal' as const
     },
   ];
+  
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {cards.map((card) => (
         <StatCard key={card.title} {...card} />
       ))}
