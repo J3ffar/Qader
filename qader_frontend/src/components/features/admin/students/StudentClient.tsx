@@ -82,22 +82,20 @@ export default function StudentClient() {
     setCurrentPage(1);
   }, 300);
 
-  // KEY CHANGE: Fetching only users with the 'student' role.
   const { data, isLoading, isError, error, isPlaceholderData, isFetching } =
     useQuery({
       queryKey: queryKeys.admin.users.list({
-        roles: ["student"], // Filter for students
+        roles: ["student"], 
         page: currentPage,
         search: searchTerm,
         is_active: statusFilter,
       }),
       queryFn: () =>
         getAdminUsers({
-          role: ["student"], // API call with student role
+          role: ["student"], 
           page: currentPage,
           search: searchTerm,
           user__is_active: statusFilter,
-          // page_size: ITEMS_PER_PAGE,
         }),
       placeholderData: (previousData) => previousData,
       staleTime: 5 * 1000,
