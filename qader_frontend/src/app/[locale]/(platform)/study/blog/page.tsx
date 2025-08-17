@@ -161,9 +161,28 @@ const BlogSupportSection = () => {
 
       {/* Support form section */}
       <div className="bg-white dark:bg-[#0B1739] p-6 rounded-xl shadow-sm flex flex-col lg:flex-row gap-6 ">
+        <div className="lg:w-1/2">
+          <h3 className="text-md font-bold mb-2">
+            هل تواجه مشكلة؟!{" "}
+            <Link href="/study/admin-support" className="text-[#074182]">
+              اطلب نصيحة
+            </Link>
+          </h3>
+          <p className="text-sm text-gray-600">
+            - اكتب لنا المشكلة التي تواجه صعوبة فيها. <br />- سيتم الرد و{" "}
+            <Link
+              href="/study/admin-support"
+              className="text-blue-600 underline"
+            >
+              الدعم الخارجي
+            </Link>{" "}
+            يمكنه خدمتك لاحقاً بدون ذكر اسمك.
+          </p>
+        </div>
+
         <form
           onSubmit={handleSubmit}
-          className="flex-1 space-y-4 rounded-[10px] p-[10px] shadow-[1px_5px_11px_#074182] dark:shadow-[1px_5px_30px_#052c5c]"
+          className="flex-1 space-y-4 rounded-[10px] p-[10px] shadow-md dark:shadow-[1px_5px_30px_#052c5c]"
         >
           <div>
             <label className="block text-sm font-bold mb-1">نوع المشكلة</label>
@@ -190,28 +209,11 @@ const BlogSupportSection = () => {
             className="bg-[#074182] text-white px-4 py-2 rounded-md hover:bg-[#05356a] transition w-full"
             disabled={mutation.isPending}
           >
-            {mutation.isPending ? "جاري الإرسال..." : "✉️ إرسال"}
+            {mutation.isPending ? "جاري الإرسال..." : " إرسال"}
           </button>
         </form>
 
-        <div className="lg:w-1/2">
-          <h3 className="text-md font-bold mb-2">
-            هل تواجه مشكلة؟!{" "}
-            <Link href="/study/admin-support" className="text-[#074182]">
-              اطلب نصيحة
-            </Link>
-          </h3>
-          <p className="text-sm text-gray-600">
-            - اكتب لنا المشكلة التي تواجه صعوبة فيها. <br />- سيتم الرد و{" "}
-            <Link
-              href="/study/admin-support"
-              className="text-blue-600 underline"
-            >
-              الدعم الخارجي
-            </Link>{" "}
-            يمكنه خدمتك لاحقاً بدون ذكر اسمك.
-          </p>
-        </div>
+        
       </div>
     </section>
   );
