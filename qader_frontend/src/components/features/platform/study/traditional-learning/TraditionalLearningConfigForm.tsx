@@ -240,6 +240,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
                             : ""
                         }
                         aria-label={`Select all in ${section.name}`}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {mainCheckboxState === "indeterminate" && (
                           <Minus className="h-4 w-4" />
@@ -248,6 +249,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
                       <label
                         htmlFor={`section-${section.slug}`}
                         className="cursor-pointer font-bold"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {section.name}
                       </label>
@@ -406,3 +408,4 @@ const TraditionalLearningConfigForm: React.FC = () => {
 };
 
 export default TraditionalLearningConfigForm;
+
