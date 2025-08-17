@@ -79,7 +79,7 @@ export default function AddEmployeeDialog({
       full_name: "",
       username: "",
       email: "",
-      role: "teacher", // Default role
+      role: "teacher", 
       password: "",
       password_confirm: "",
     },
