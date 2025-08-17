@@ -317,7 +317,7 @@ const SignupModal: React.FC<SignupModalProps> = ({
                 >
                   {tAuth("agreeTo")}{" "}
                   <Link
-                    href={PATHS.TERMS_AND_CONDITIONS} // Simple path, next-intl/link handles locale
+                    href={"/terms-and-conditions"} 
                     className="font-medium text-primary hover:underline"
                     target="_blank"
                     rel="noopener noreferrer"
