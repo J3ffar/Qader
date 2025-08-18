@@ -177,7 +177,7 @@ const HeroSection = ({ data }: HeroProps) => {
   return (
     <div ref={heroRef} className="relative bg-[#F9F9FA] dark:bg-[#0B1739] font-body overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
-        <div ref={(el) => { floatingRefs.current[0] = el; }} className="absolute left-14 top-[25%] will-change-transform z-99">
+        <div ref={(el) => { floatingRefs.current[0] = el; }} className="absolute left-14 top-[25%] will-change-transform">
           <Image
             src={one}
             alt="1"
