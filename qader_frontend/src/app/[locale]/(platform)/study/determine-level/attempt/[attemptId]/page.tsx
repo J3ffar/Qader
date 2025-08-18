@@ -60,6 +60,7 @@ interface UserSelections {
 
 const TEST_DURATION_SECONDS = 30 * 60;
 
+
 const LevelAssessmentAttemptPage = () => {
   const params = useParams();
   const router = useRouter();
@@ -80,6 +81,13 @@ const LevelAssessmentAttemptPage = () => {
   // NEW: State for time tracking per question
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
 
+  // إضافة state لتسجيل وقت بداية الاختبار
+  const [testStartTime, setTestStartTime] = useState<number | null>(null);
+
+  // Debug logs to help diagnose why the page is empty
+  console.log("[DEBUG] Render: isLoadingAttempt, isReady, attemptId", { attemptId });
+
+
   useEffect(() => {
     setDirection(document.documentElement.dir as "ltr" | "rtl");
   }, []);
@@ -98,6 +106,11 @@ const LevelAssessmentAttemptPage = () => {
     refetchOnWindowFocus: false,
   });
 
+  // Log after fetching attemptData
+  useEffect(() => {
+    console.log("[DEBUG] useQuery", { isLoadingAttempt, isReady, attemptData, attemptError });
+  }, [isLoadingAttempt, isReady, attemptData, attemptError]);
+
   const questions: UnifiedQuestion[] = useMemo(
     () => attemptData?.questions || [],
     [attemptData]
@@ -105,6 +118,7 @@ const LevelAssessmentAttemptPage = () => {
 
   // MODIFIED: Enhanced useEffect to handle resume logic
   useEffect(() => {
+    console.log("[DEBUG] useEffect (resume logic)", { isSuccess, attemptData });
     if (isSuccess && attemptData) {
       if (attemptData.total_questions === attemptData.answered_question_count) {
         // All questions answered, but not completed. Force completion.
@@ -127,7 +141,10 @@ const LevelAssessmentAttemptPage = () => {
       setCurrentQuestionIndex(
         firstUnansweredIndex !== -1 ? firstUnansweredIndex : 0
       );
-      setIsReady(true); // Mark component as ready to render
+      setIsReady(true);
+      
+      // تسجيل وقت بداية الاختبار
+      setTestStartTime(Date.now());
     }
   }, [isSuccess, attemptData]);
 
@@ -319,6 +336,24 @@ const LevelAssessmentAttemptPage = () => {
         userSelections[currentQuestion.id]
       );
     }
+    
+    // حساب الوقت المستغرق قبل إكمال الاختبار
+    if (testStartTime) {
+      const timeTaken = Date.now() - testStartTime;
+      const minutes = Math.floor(timeTaken / 60000);
+      const seconds = Math.floor((timeTaken % 60000) / 1000);
+      
+      // حفظ الوقت في localStorage مع تنسيق جديد
+      localStorage.setItem(`test_time_${attemptId}`, JSON.stringify({
+        minutes,
+        seconds,
+        total_seconds: Math.floor(timeTaken / 1000),
+        formatted: `${minutes}:${seconds.toString().padStart(2, '0')}`,
+        // إضافة تنسيق جديد للعرض
+        displayText: `${minutes} دقيقة ${seconds} ثانية`
+      }));
+    }
+    
     completeTestMutation.mutate(attemptId);
   };
 
@@ -382,6 +417,7 @@ const LevelAssessmentAttemptPage = () => {
 
   return (
     <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
+      
       <Card className="w-full max-w-3xl shadow-xl dark:bg-[#0B1739]">
         <CardHeader dir={locale === "en" ? "ltr" : "rtl"} className="pb-4">
           <div className="mb-3 flex items-center justify-between">
@@ -407,6 +443,7 @@ const LevelAssessmentAttemptPage = () => {
             />
           </div>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
+          
             <span>
               {t("question")} {currentQuestionIndex + 1} {t("outOf")}{" "}
               {questions.length}
@@ -610,3 +647,4 @@ const QuizPageSkeleton = ({ message }: { message?: string }) => {
 };
 
 export default LevelAssessmentAttemptPage;
+
