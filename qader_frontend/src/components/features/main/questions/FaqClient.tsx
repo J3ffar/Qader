@@ -77,7 +77,12 @@ const FaqClient: React.FC<FaqClientProps> = ({ data }) => {
   useEffect(() => {
     const ctx = gsap.context(() => {
       // Set initial states
-      gsap.set([heroRef.current, searchBarRef.current, categoriesRef.current], {
+      gsap.set([heroRef.current, searchBarRef.current], {
+        opacity: 0,
+        y: 30,
+      });
+
+      gsap.set(categoriesRef.current, {
         opacity: 0,
         y: 30,
       });
@@ -85,6 +90,11 @@ const FaqClient: React.FC<FaqClientProps> = ({ data }) => {
       gsap.set(categoryButtonsRef.current, {
         opacity: 0,
         scale: 0.8,
+      });
+
+      gsap.set(questionsRef.current, {
+        opacity: 0,
+        y: 20,
       });
 
       gsap.set(ctaRef.current, {
@@ -112,26 +122,64 @@ const FaqClient: React.FC<FaqClientProps> = ({ data }) => {
         ease: "back.out(1.2)",
       }, "-=0.4");
 
-      // Animate categories container
-      tl.to(categoriesRef.current, {
-        opacity: 1,
-        y: 0,
-        duration: 0.6,
-      }, "-=0.3");
-
-      // Animate category buttons with stagger
-      tl.to(categoryButtonsRef.current, {
-        opacity: 1,
-        scale: 1,
-        duration: 0.4,
-        stagger: 0.08,
-        ease: "back.out(1.5)",
-      }, "-=0.2");
+      // Animate categories section when it enters viewport
+      ScrollTrigger.create({
+        trigger: categoriesRef.current,
+        start: "top bottom", // Trigger when top of element reaches bottom of viewport
+        onEnter: () => {
+          // First animate the categories container
+          gsap.to(categoriesRef.current, {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            ease: "power2.out",
+            onComplete: () => {
+              // Then animate category buttons with stagger - they must appear first
+              gsap.to(categoryButtonsRef.current, {
+                opacity: 1,
+                scale: 1,
+                duration: 0.5,
+                stagger: 0.12, // Increased stagger for more visible sequential appearance
+                ease: "back.out(1.5)",
+                onComplete: () => {
+                  // Add a delay before questions appear to ensure buttons are fully visible
+                  gsap.delayedCall(0.3, () => {
+                    // Finally animate questions after categories are completely visible
+                    gsap.to(questionsRef.current, {
+                      opacity: 1,
+                      y: 0,
+                      duration: 0.6,
+                      ease: "power2.out",
+                      onComplete: () => {
+                        // Animate individual question items with more noticeable stagger
+                        const questions = questionsRef.current?.querySelectorAll('.question-item');
+                        if (questions) {
+                          gsap.fromTo(questions,
+                            { opacity: 0, x: -20 },
+                            { 
+                              opacity: 1, 
+                              x: 0, 
+                              duration: 0.4,
+                              stagger: 0.08, // Increased stagger for better visibility
+                              ease: "power2.out"
+                            }
+                          );
+                        }
+                      }
+                    });
+                  });
+                }
+              });
+            }
+          });
+        },
+        toggleActions: "play none none reverse"
+      });
 
       // Animate CTA section on scroll
       ScrollTrigger.create({
         trigger: ctaRef.current,
-        start: "top 85%",
+        start: "top bottom", // Changed from "top 85%" to "top bottom"
         onEnter: () => {
           gsap.to(ctaRef.current, {
             opacity: 1,
@@ -140,6 +188,7 @@ const FaqClient: React.FC<FaqClientProps> = ({ data }) => {
             ease: "power2.out",
           });
         },
+        toggleActions: "play none none reverse"
       });
 
       // Add floating animation to search bar
@@ -452,4 +501,4 @@ const FaqClient: React.FC<FaqClientProps> = ({ data }) => {
   );
 };
 
-export default FaqClient; 
+export default FaqClient;
