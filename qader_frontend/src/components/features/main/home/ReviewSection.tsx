@@ -36,7 +36,7 @@ const ReviewCard = ({ review, index }: { review: Review; index: number }) => {
         ease: "power3.out",
         scrollTrigger: {
           trigger: cardRef.current,
-          start: "top 85%",
+          start: "top 120%",
           end: "bottom 15%",
           toggleActions: "play none none reverse",
         }
@@ -166,7 +166,7 @@ const ReviewSection = ({ data }: ReviewProps) => {
       const headerTl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 80%",
+          start: "top 120%",
           end: "bottom 20%",
           toggleActions: "play none none reverse",
         }
@@ -233,7 +233,7 @@ const ReviewSection = ({ data }: ReviewProps) => {
       // Create multiple floating elements
       const floatingElements: HTMLDivElement[] = [];
       for (let i = 0; i < 10; i++) {
-        floatingElements.push(createFloatingElement(i * 0.3));
+        floatingElements.push(createFloatingElement(i * 0.1));
       }
 
       // Cleanup floating elements
