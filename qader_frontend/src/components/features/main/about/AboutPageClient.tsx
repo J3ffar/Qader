@@ -96,7 +96,7 @@ const AboutPageClient = ({ data }: AboutPageProps) => {
         ease: "back.out(1.5)",
         scrollTrigger: {
           trigger: storyCardsRef.current[0],
-          start: "top 80%",
+          start: "top 120%",
         },
       });
 
@@ -145,7 +145,7 @@ const AboutPageClient = ({ data }: AboutPageProps) => {
         ease: "power3.out",
         scrollTrigger: {
           trigger: mainImageRef.current,
-          start: "top 75%",
+          start: "top 120%",
         },
       });
 
@@ -172,7 +172,7 @@ const AboutPageClient = ({ data }: AboutPageProps) => {
           ease: "power2.out",
           scrollTrigger: {
             trigger: detailsSectionRef.current,
-            start: "top 80%",
+            start: "top 180%",
           },
         }
       );
@@ -181,7 +181,7 @@ const AboutPageClient = ({ data }: AboutPageProps) => {
       const whyTl = gsap.timeline({
         scrollTrigger: {
           trigger: whyDifferentRef.current,
-          start: "top 75%",
+          start: "top 180%",
         },
       });
 
@@ -209,7 +209,7 @@ const AboutPageClient = ({ data }: AboutPageProps) => {
             ease: "power2.out",
             scrollTrigger: {
               trigger: whyDifferentRef.current,
-              start: "top 70%",
+              start: "top 180%",
             },
           }
         );
@@ -219,7 +219,7 @@ const AboutPageClient = ({ data }: AboutPageProps) => {
       const missionTl = gsap.timeline({
         scrollTrigger: {
           trigger: missionRef.current,
-          start: "top 75%",
+          start: "top 180%",
         },
       });
 
