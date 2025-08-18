@@ -80,22 +80,23 @@ const AboutSection = ({ data }: AboutSectionProps) => {
         opacity: 0,
       });
 
-      // Create main timeline
+      // Create main timeline with updated ScrollTrigger settings
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 80%",
-          end: "bottom 20%",
+          start: "top 120%", // CHANGED: Animation starts when section top is at 90% of viewport (much earlier)
+          end: "center center", // CHANGED: Animation completes by the time section center reaches viewport center
           toggleActions: "play none none reverse",
+          // markers: true, // Uncomment this to see visual markers for debugging
         }
       });
 
-      // Video/Image animation - slide in from left with rotation
+      // Video/Image animation - slide in from RIGHT with rotation (CHANGED: x: 100 instead of x: -100, rotateY: 30 instead of rotateY: -30)
       tl.fromTo(videoRef.current, 
         {
           opacity: 0,
-          x: -100,
-          rotateY: -30,
+          x: 100, // CHANGED: From right side (positive value)
+          rotateY: 30, // CHANGED: Positive rotation
           scale: 0.8
         },
         {
@@ -103,55 +104,61 @@ const AboutSection = ({ data }: AboutSectionProps) => {
           x: 0,
           rotateY: 0,
           scale: 1,
-          duration: 1,
+          duration: 0.8, // CHANGED: Slightly faster duration
           ease: "power3.out",
         }
       );
 
-      // Title animation - fade in with typewriter effect
+      // Title animation - slide in from right with typewriter effect
       tl.fromTo(titleRef.current,
         {
           opacity: 0,
+          x: 100, // CHANGED: Start from right
           y: 30,
           clipPath: "inset(0 100% 0 0)"
         },
         {
           opacity: 1,
+          x: 0, // CHANGED: Move to center
           y: 0,
           clipPath: "inset(0 0% 0 0)",
-          duration: 0.8,
+          duration: 0.6, // CHANGED: Slightly faster duration
           ease: "power2.out"
         },
-        "-=0.5"
+        "-=0.4" // CHANGED: More overlap with previous animation
       );
 
-      // Text animation - fade in with stagger effect for each word
+      // Text animation - slide in from right
       tl.fromTo(textRef.current,
         {
           opacity: 0,
+          x: 80, // CHANGED: Start from right
           y: 20,
         },
         {
           opacity: 1,
+          x: 0, // CHANGED: Move to center
           y: 0,
-          duration: 0.6,
+          duration: 0.5, // CHANGED: Slightly faster duration
           ease: "power2.out"
         },
         "-=0.3"
       );
 
-      // Button animation - scale and fade in
+      // Button animation - slide in from right with scale
       tl.fromTo(buttonRef.current,
         {
           opacity: 0,
           scale: 0.5,
+          x: 60, // CHANGED: Start from right
           y: 20
         },
         {
           opacity: 1,
           scale: 1,
+          x: 0, // CHANGED: Move to center
           y: 0,
-          duration: 0.5,
+          duration: 0.4, // CHANGED: Slightly faster duration
           ease: "back.out(1.7)"
         },
         "-=0.2"
