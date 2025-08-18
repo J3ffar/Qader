@@ -21,9 +21,10 @@ const StatisticsSection = ({ data }: StatisticsProps) => {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Set initial states
+      // Set initial states - CHANGED: Added x: 50 for right-to-left animation
       gsap.set([titleRef.current, subtitleRef.current], {
         opacity: 0,
+        x: 50, // CHANGED: Start from right side
         y: 30,
       });
 
@@ -31,13 +32,14 @@ const StatisticsSection = ({ data }: StatisticsProps) => {
         opacity: 0,
         scale: 0.5,
         rotateX: -90,
+        x: 30, // CHANGED: Start stats from right side too
       });
 
       // Create main timeline
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 75%",
+          start: "top 120%",
           end: "bottom 25%",
           toggleActions: "play none none reverse",
           onEnter: () => {
@@ -47,16 +49,18 @@ const StatisticsSection = ({ data }: StatisticsProps) => {
         },
       });
 
-      // Animate title with typewriter effect
+      // Animate title with typewriter effect from right - CHANGED: Updated clipPath for RTL
       tl.fromTo(
         titleRef.current,
         {
           opacity: 0,
+          x: 50, // CHANGED: Start from right
           y: 30,
-          clipPath: "polygon(0 0, 0 0, 0 100%, 0% 100%)",
+          clipPath: "polygon(100% 0, 100% 0, 100% 100%, 100% 100%)", // CHANGED: Start from right edge
         },
         {
           opacity: 1,
+          x: 0, // CHANGED: Move to center
           y: 0,
           clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
           duration: 0.8,
@@ -64,11 +68,12 @@ const StatisticsSection = ({ data }: StatisticsProps) => {
         }
       );
 
-      // Animate subtitle
+      // Animate subtitle from right - CHANGED: Added x animation
       tl.to(
         subtitleRef.current,
         {
           opacity: 1,
+          x: 0, // CHANGED: Move to center
           y: 0,
           duration: 0.6,
           ease: "power2.out",
@@ -76,13 +81,14 @@ const StatisticsSection = ({ data }: StatisticsProps) => {
         "-=0.4"
       );
 
-      // Animate stat cards with 3D flip effect
+      // Animate stat cards with 3D flip effect from right - CHANGED: Added x: 0
       tl.to(
         statItemsRef.current,
         {
           opacity: 1,
           scale: 1,
           rotateX: 0,
+          x: 0, // CHANGED: Move to center
           duration: 0.8,
           stagger: 0.15,
           ease: "back.out(1.5)",
@@ -140,14 +146,15 @@ const StatisticsSection = ({ data }: StatisticsProps) => {
         });
       });
 
-      // Interactive hover effects
+      // Interactive hover effects - CHANGED: x: -5 for RTL feel
       statItemsRef.current.forEach((item, index) => {
         if (!item) return;
 
         const handleMouseEnter = () => {
           gsap.to(item, {
             scale: 1.05,
-            rotateY: 5,
+            rotateY: -5, // CHANGED: Negative rotation for RTL feel
+            x: -5, // CHANGED: Move slightly left on hover for RTL feel
             boxShadow: "0 20px 40px rgba(7, 65, 130, 0.2)",
             duration: 0.3,
             ease: "power2.out",
@@ -167,6 +174,7 @@ const StatisticsSection = ({ data }: StatisticsProps) => {
           gsap.to(item, {
             scale: 1,
             rotateY: 0,
+            x: 0, // CHANGED: Return to center
             boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
             duration: 0.3,
             ease: "power2.out",
