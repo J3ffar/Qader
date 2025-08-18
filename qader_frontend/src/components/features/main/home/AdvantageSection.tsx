@@ -36,35 +36,35 @@ const AdvantageSection = ({ data }: AdvantageProps) => {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Set initial states
+      // Set initial states - CHANGED: x: 50 instead of x: -50 (from right)
       gsap.set([titleRef.current, subtitleRef.current], {
         opacity: 0,
-        x: -50,
+        x: 50, // CHANGED: Start from right side
       });
 
       gsap.set(featureItemsRef.current, {
         opacity: 0,
-        x: -30,
+        x: 30, // CHANGED: Start from right side
         scale: 0.95,
       });
 
       gsap.set(imageRef.current, {
         opacity: 0,
         scale: 0.8,
-        rotation: -5,
+        rotation: 5, // CHANGED: Positive rotation for right-side entry
       });
 
       // Create main timeline
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 75%",
+          start: "top 120%",
           end: "bottom 25%",
           toggleActions: "play none none reverse",
         },
       });
 
-      // Animate title
+      // Animate title - slide in from right
       tl.to(titleRef.current, {
         opacity: 1,
         x: 0,
@@ -72,7 +72,7 @@ const AdvantageSection = ({ data }: AdvantageProps) => {
         ease: "power3.out",
       });
 
-      // Animate subtitle
+      // Animate subtitle - slide in from right
       tl.to(
         subtitleRef.current,
         {
@@ -84,7 +84,7 @@ const AdvantageSection = ({ data }: AdvantageProps) => {
         "-=0.5"
       );
 
-      // Animate features with stagger
+      // Animate features with stagger - slide in from right
       tl.to(
         featureItemsRef.current,
         {
@@ -98,7 +98,7 @@ const AdvantageSection = ({ data }: AdvantageProps) => {
         "-=0.3"
       );
 
-      // Animate image with rotation
+      // Animate image with rotation - slide in from right
       tl.to(
         imageRef.current,
         {
@@ -142,7 +142,7 @@ const AdvantageSection = ({ data }: AdvantageProps) => {
               snap: { textContent: 1 },
               scrollTrigger: {
                 trigger: item,
-                start: "top 85%",
+                start: "top 120%",
                 toggleActions: "play none none none",
               },
               onUpdate: function() {
@@ -153,14 +153,14 @@ const AdvantageSection = ({ data }: AdvantageProps) => {
         }
       });
 
-      // Interactive hover effects for features
+      // Interactive hover effects for features - CHANGED: x: -10 instead of x: 10 for RTL feel
       featureItemsRef.current.forEach((item, index) => {
         if (!item) return;
 
         item.addEventListener("mouseenter", () => {
           gsap.to(item, {
             scale: 1.03,
-            x: 10,
+            x: -10, // CHANGED: Move to left on hover for RTL feel
             duration: 0.3,
             ease: "power2.out",
           });
