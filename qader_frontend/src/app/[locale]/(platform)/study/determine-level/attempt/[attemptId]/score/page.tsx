@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useEffect, useRef } from "react";
+import React, { useMemo, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -118,6 +118,18 @@ const LevelAssessmentScorePage = () => {
 
   const attemptId = params.attemptId as string;
 
+  const [timeTaken, setTimeTaken] = useState<any>(null);
+  useEffect(() => {
+    const savedTime = localStorage.getItem(`test_time_${attemptId}`);
+    if (savedTime) {
+      try {
+        setTimeTaken(JSON.parse(savedTime));
+      } catch (error) {
+        console.error('Error parsing saved time:', error);
+      }
+    }
+  }, [attemptId]);
+
   // Get auth state and actions for updating global user profile ---
   const { user } = useAuthStore();
   const { updateUserProfile } = useAuthActions();
@@ -221,6 +233,7 @@ const LevelAssessmentScorePage = () => {
       const data = combinedData as UserTestAttemptCompletionResponse;
       const answeredCount = data.answered_question_count;
       const correctCount = data.correct_answers_in_test_count;
+      const totalQuestions = data.total_questions || data.answered_question_count || 5;
       return {
         isFallback: false,
         overallScore: data.score.overall,
@@ -230,7 +243,8 @@ const LevelAssessmentScorePage = () => {
         smart_analysis: data.smart_analysis,
         badges_won: data.badges_won,
         streak_info: data.streak_info,
-        totalQuestions: data.total_questions,
+        // totalQuestions: data.total_questions,
+         totalQuestions: totalQuestions,
         correctAnswers: correctCount,
         answeredQuestionsCount: answeredCount,
         incorrectAnswers: answeredCount - correctCount,
@@ -238,7 +252,8 @@ const LevelAssessmentScorePage = () => {
         totalPointsEarned:
           (data.points_from_test_completion_event ?? 0) +
           (data.points_from_correct_answers_this_test ?? 0),
-        timeTakenMinutes: null,
+        // timeTakenMinutes: null,
+        timeTakenMinutes: timeTaken,
       };
     }
 
@@ -250,6 +265,14 @@ const LevelAssessmentScorePage = () => {
     const correctCount = data.questions.filter(
       (q) => q.user_answer_details?.is_correct === true
     ).length;
+
+    let timeTakenMinutes = null;
+    if (totalQuestions > 0) {
+      if (totalQuestions <= 5) { timeTakenMinutes = 15; }
+      else if (totalQuestions <= 10) { timeTakenMinutes = 30; }
+      else if (totalQuestions <= 20) { timeTakenMinutes = 60; }
+      else { timeTakenMinutes = Math.round(totalQuestions * 3); }
+    }
 
     return {
       isFallback: true,
@@ -265,9 +288,10 @@ const LevelAssessmentScorePage = () => {
       incorrectAnswers: answeredCount - correctCount,
       skippedAnswers: totalQuestions - answeredCount,
       totalPointsEarned: 0,
-      timeTakenMinutes: data.time_taken_minutes ?? null,
+      timeTakenMinutes: timeTakenMinutes,
+      // timeTakenMinutes: data.time_taken_minutes ?? null,
     };
-  }, [combinedData]);
+  }, [combinedData, timeTaken]);
 
   if (isLoading) return <ScorePageSkeleton />;
 
@@ -402,8 +426,9 @@ const LevelAssessmentScorePage = () => {
           <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
             <Card className="p-4">
               <Clock className="mx-auto mb-2 h-8 w-8 text-primary" />
-              <p className="text-sm text-muted-foreground">{t("timeTaken")}</p>
-              {timeTakenMinutes !== null ? (
+              <span className="text-xl font-semibold">{timeTaken?.displayText || "غير متوفر"}</span>
+              {/* <p className="text-sm text-muted-foreground">{t("timeTaken")}</p> */}
+              {/* {timeTakenMinutes !== null ? (
                 <p className="text-xl font-bold">
                   {timeTakenMinutes} {t("minutes")}
                 </p>
@@ -411,7 +436,7 @@ const LevelAssessmentScorePage = () => {
                 <p className="text-lg font-semibold text-muted-foreground">
                   {tCommon("status.notAvailableShort")}
                 </p>
-              )}
+              )} */}
             </Card>
             <Card className="p-4">
               <levelInfo.IconComponent
@@ -623,3 +648,4 @@ const ScorePageSkeleton = () => {
 };
 
 export default LevelAssessmentScorePage;
+
