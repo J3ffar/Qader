@@ -12,11 +12,13 @@ import {
   Filter as FilterIcon,
   BookOpen,
   ThumbsDown,
+  ThumbsUp,
   HelpCircle as HelpCircleIcon,
   AlertTriangle,
   Frown,
   FileText,
   TrendingUp,
+  MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -33,7 +35,125 @@ import { UserTestAttemptReviewResponse } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { queryKeys } from "@/constants/queryKeys";
 
-type FilterType = "all" | "incorrect" | "skipped";
+type FilterType = "all" | "incorrect" | "correct" | "skipped";
+
+// Custom Pagination Component
+const CustomPagination = ({ 
+  currentPage, 
+  totalPages, 
+  onPageChange, 
+  locale,
+  className = ""
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  locale: string;
+  className?: string;
+}) => {
+  const getVisiblePages = () => {
+    const delta = 2; // Number of pages to show on each side of current page
+    const pages: (number | 'ellipsis')[] = [];
+    
+    // Always show first page
+    pages.push(1);
+    
+    if (currentPage - delta > 2) {
+      pages.push('ellipsis');
+    }
+    
+    // Show pages around current page
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+      pages.push(i);
+    }
+    
+    if (currentPage + delta < totalPages - 1) {
+      pages.push('ellipsis');
+    }
+    
+    // Always show last page if there's more than one page
+    if (totalPages > 1) {
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
+
+  if (totalPages <= 1) return null;
+
+  const visiblePages = getVisiblePages();
+
+  return (
+    <div className={`flex items-center justify-center gap-1 ${className}`} dir={locale === "ar" ? "rtl" : "ltr"}>
+      {/* Previous Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="h-8 w-8 p-0"
+        aria-label={locale === "ar" ? "الصفحة السابقة" : "Previous page"}
+      >
+        {locale === "ar" ? (
+          <ChevronRight className="h-4 w-4" />
+        ) : (
+          <ChevronLeft className="h-4 w-4" />
+        )}
+      </Button>
+
+      {/* Page Numbers */}
+      {visiblePages.map((page, index) => {
+        if (page === 'ellipsis') {
+          return (
+            <Button
+              key={`ellipsis-${index}`}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 cursor-default"
+              disabled
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          );
+        }
+
+        return (
+          <Button
+            key={page}
+            variant={page === currentPage ? "default" : "outline"}
+            size="sm"
+            onClick={() => onPageChange(page)}
+            className={`h-8 min-w-8 px-2 ${
+              page === currentPage 
+                ? "bg-primary text-primary-foreground" 
+                : "hover:bg-primary/10"
+            }`}
+            aria-label={locale === "ar" ? `الصفحة ${page}` : `Page ${page}`}
+            aria-current={page === currentPage ? "page" : undefined}
+          >
+            {page}
+          </Button>
+        );
+      })}
+
+      {/* Next Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="h-8 w-8 p-0"
+        aria-label={locale === "ar" ? "الصفحة التالية" : "Next page"}
+      >
+        {locale === "ar" ? (
+          <ChevronLeft className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
+      </Button>
+    </div>
+  );
+};
 
 const TraditionalLearningReviewPage = () => {
   const params = useParams();
@@ -59,11 +179,19 @@ const TraditionalLearningReviewPage = () => {
   });
 
   const allQuestions = useMemo(() => reviewData?.questions || [], [reviewData]);
+  
   const incorrectQuestions = useMemo(
     () =>
       allQuestions.filter((q) => q.user_answer_details?.is_correct === false),
     [allQuestions]
   );
+
+  const correctQuestions = useMemo(
+    () =>
+      allQuestions.filter((q) => q.user_answer_details?.is_correct === true),
+    [allQuestions]
+  );
+  
   const skippedQuestions = useMemo(
     () =>
       allQuestions.filter(
@@ -76,13 +204,15 @@ const TraditionalLearningReviewPage = () => {
     switch (filterType) {
       case "incorrect":
         return incorrectQuestions;
+      case "correct":
+        return correctQuestions;
       case "skipped":
         return skippedQuestions;
       case "all":
       default:
         return allQuestions;
     }
-  }, [filterType, allQuestions, incorrectQuestions, skippedQuestions]);
+  }, [filterType, allQuestions, incorrectQuestions, correctQuestions, skippedQuestions]);
 
   useEffect(() => {
     setCurrentQuestionIndex(0);
@@ -99,6 +229,14 @@ const TraditionalLearningReviewPage = () => {
       setCurrentQuestionIndex((prev) => prev - 1);
     }
   };
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentQuestionIndex(page - 1); // Convert to 0-based index
+  };
+
+  const currentPage = currentQuestionIndex + 1; // Convert to 1-based page number
+  const totalPages = filteredQuestions.length;
 
   const currentQuestionData = filteredQuestions[currentQuestionIndex];
 
@@ -135,7 +273,10 @@ const TraditionalLearningReviewPage = () => {
   return (
     <div className="container mx-auto space-y-6 p-4 md:p-6 lg:p-8">
       {/* Header Card */}
-      <Card className="overflow-hidden shadow-md">
+      <Card 
+        dir={locale === "en" ? "ltr" : "rtl"}
+        className="overflow-hidden shadow-md dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]"
+      >
         <CardHeader>
           <div className="flex flex-col-reverse items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="flex items-center text-xl font-semibold text-primary sm:text-2xl">
@@ -172,7 +313,10 @@ const TraditionalLearningReviewPage = () => {
       </Card>
 
       {/* Filter Controls Card */}
-      <Card>
+      <Card
+        dir={locale === "en" ? "ltr" : "rtl"}
+        className="dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]"
+      >
         <CardContent>
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center text-sm font-medium text-muted-foreground">
@@ -187,31 +331,47 @@ const TraditionalLearningReviewPage = () => {
                 value && setFilterType(value)
               }
               aria-label={t("filterBy")}
-              className="grid w-full grid-cols-3 gap-1 sm:flex sm:w-auto"
+              className="grid w-full grid-cols-2 gap-1 sm:flex sm:w-auto"
             >
               <ToggleGroupItem
                 value="all"
                 aria-label={t("allQuestionsOptFull")}
                 className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
               >
-                <BookOpen className="h-4 w-4" /> {t("allQuestionsOpt")} (
-                {allQuestions.length})
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="incorrect"
-                aria-label={t("incorrectOnlyOptFull")}
-                className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
-              >
-                <ThumbsDown className="h-4 w-4" /> {t("incorrectOnlyOpt")} (
-                {incorrectQuestions.length})
+                <BookOpen className="h-4 w-4" /> 
+                <span className="hidden sm:inline">{t("allQuestionsOpt")}</span>
+                <span className="sm:hidden">الكل</span>
+                ({allQuestions.length})
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="skipped"
                 aria-label={t("skippedOnlyOptFull")}
                 className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
               >
-                <HelpCircleIcon className="h-4 w-4" /> {t("skippedOnlyOpt")} (
-                {skippedQuestions.length})
+                <HelpCircleIcon className="h-4 w-4" /> 
+                <span className="hidden sm:inline">{t("skippedOnlyOpt")}</span>
+                <span className="sm:hidden">المتجاوزة</span>
+                ({skippedQuestions.length})
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="incorrect"
+                aria-label={t("incorrectOnlyOptFull")}
+                className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
+              >
+                <ThumbsDown className="h-4 w-4" /> 
+                <span className="hidden sm:inline">{t("incorrectOnlyOpt")}</span>
+                <span className="sm:hidden">الخاطئة</span>
+                ({incorrectQuestions.length})
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="correct"
+                aria-label={"الأسئلة الصحيحة"}
+                className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
+              >
+                <ThumbsUp className="h-4 w-4" /> 
+                <span className="hidden sm:inline">{"الصحيحة"}</span>
+                <span className="sm:hidden">الصحيحة</span>
+                ({correctQuestions.length})
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -227,42 +387,65 @@ const TraditionalLearningReviewPage = () => {
             totalQuestionsInFilter={filteredQuestions.length}
             attemptId={attemptId}
           />
+          
+          {/* Enhanced Navigation with Pagination */}
           {filteredQuestions.length > 1 && (
-            <div className="mt-6 flex items-center justify-between rounded-lg border bg-card p-2.5 shadow-sm sm:p-3">
-              <Button
-                onClick={handlePreviousQuestion}
-                disabled={currentQuestionIndex === 0}
-                variant="ghost"
-                size="lg"
-                className="text-primary hover:bg-primary/10"
-              >
-                {locale === "ar" ? (
-                  <ChevronRight className="me-1.5 h-5 w-5" />
-                ) : (
-                  <ChevronLeft className="me-1.5 h-5 w-5" />
-                )}
-                {t("previousQuestion")}
-              </Button>
-              <span className="text-sm font-medium text-muted-foreground">
-                {t("questionXofYShort", {
-                  current: currentQuestionIndex + 1,
-                  total: filteredQuestions.length,
-                })}
-              </span>
-              <Button
-                onClick={handleNextQuestion}
-                disabled={currentQuestionIndex >= filteredQuestions.length - 1}
-                variant="ghost"
-                size="lg"
-                className="text-primary hover:bg-primary/10"
-              >
-                {t("nextQuestion")}
-                {locale === "ar" ? (
-                  <ChevronLeft className="ms-1.5 h-5 w-5" />
-                ) : (
-                  <ChevronRight className="ms-1.5 h-5 w-5" />
-                )}
-              </Button>
+            <div className="space-y-4">
+              {/* Previous/Next Navigation */}
+              <div className="flex items-center justify-between rounded-lg bg-card p-2.5 shadow-sm sm:p-3 dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]">
+                <Button
+                  onClick={handlePreviousQuestion}
+                  disabled={currentQuestionIndex === 0}
+                  variant="ghost"
+                  size="lg"
+                  className="text-primary hover:bg-primary/10"
+                >
+                  {locale === "ar" ? (
+                    <ChevronRight className="me-1.5 h-5 w-5" />
+                  ) : (
+                    <ChevronLeft className="me-1.5 h-5 w-5" />
+                  )}
+                  {t("previousQuestion")}
+                </Button>
+                <span className="text-sm font-medium text-muted-foreground">
+                  {t("questionXofYShort", {
+                    current: currentQuestionIndex + 1,
+                    total: filteredQuestions.length,
+                  })}
+                </span>
+                <Button
+                  onClick={handleNextQuestion}
+                  disabled={currentQuestionIndex >= filteredQuestions.length - 1}
+                  variant="ghost"
+                  size="lg"
+                  className="text-primary hover:bg-primary/10"
+                >
+                  {t("nextQuestion")}
+                  {locale === "ar" ? (
+                    <ChevronLeft className="ms-1.5 h-5 w-5" />
+                  ) : (
+                    <ChevronRight className="ms-1.5 h-5 w-5" />
+                  )}
+                </Button>
+              </div>
+
+              {/* Custom Pagination Component */}
+              <Card className="dark:bg-[#0B1739] border-2 dark:border-[#7E89AC]">
+                <CardContent className="py-3">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {locale === "ar" ? "انتقل إلى سؤال محدد" : "Jump to specific question"}
+                    </span>
+                    <CustomPagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                      locale={locale}
+                      className="flex-wrap"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>
@@ -307,7 +490,8 @@ const ReviewPageSkeleton = () => {
               <FilterIcon className="me-2 h-4 w-4 text-muted-foreground/50 rtl:me-0 rtl:ms-2" />
               <Skeleton className="h-5 w-16" />
             </div>
-            <div className="grid w-full grid-cols-3 gap-1 sm:flex sm:w-auto">
+            <div className="grid w-full grid-cols-2 gap-1 sm:flex sm:w-auto">
+              <Skeleton className="h-9 flex-1 rounded-md" />
               <Skeleton className="h-9 flex-1 rounded-md" />
               <Skeleton className="h-9 flex-1 rounded-md" />
               <Skeleton className="h-9 flex-1 rounded-md" />
