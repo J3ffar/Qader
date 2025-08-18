@@ -59,7 +59,7 @@ const CallToActionSection = ({ data }: CTAProps) => {
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 80%",
+          start: "top 120%",
           toggleActions: "play none none reverse",
         },
       });
