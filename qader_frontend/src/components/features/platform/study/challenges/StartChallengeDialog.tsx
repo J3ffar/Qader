@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   createChallenge,
@@ -51,7 +52,7 @@ interface StartChallengeDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Map images to challenge types (you may need to adjust the keys based on your actual challenge types)
+// Map images to challenge types
 const challengeTypeImages = [
   { key: "accuracy", image: one, label: "تحدي الدقة", description: "من يحقق أعلى نسبة دقة" },
   { key: "focus", image: two, label: "لفظي متوسط", description: "15 سؤال بدون تلميحات" },
@@ -68,7 +69,7 @@ export function StartChallengeDialog({
   const tCommon = useTranslations("Common");
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("invite");
 
   const challengeFormSchema = z.object({
     opponent_username: z.string().optional(),
@@ -100,7 +101,7 @@ export function StartChallengeDialog({
             queryKey: queryKeys.challenges.lists(),
           });
           router.push(`${PATHS.STUDY.CHALLENGE_COLLEAGUES}/${newChallenge.id}`);
-          setIsOpen(false);
+          onOpenChange(false);
           form.reset();
           return t("challengeSentAndReady");
         },
@@ -122,7 +123,8 @@ export function StartChallengeDialog({
 
   function onSubmit(values: z.infer<typeof challengeFormSchema>) {
     const payload: CreateChallengePayload = {
-      opponent_username: values.opponent_username || "",
+      // For random selection, send empty string or a special value
+      opponent_username: activeTab === "random" ? "RANDOM" : (values.opponent_username || ""),
       challenge_type: values.challenge_type,
     };
     createChallengeMutation.mutate(payload);
@@ -142,111 +144,140 @@ export function StartChallengeDialog({
 
   const mappedTypes = getMappedChallengeTypes();
 
+  // Challenge type selection component (reused in both tabs)
+  const ChallengeTypeSelection = () => (
+    <FormField
+      control={form.control}
+      name="challenge_type"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel className="text-right block mb-2">اختر نوع التحدي</FormLabel>
+          <FormControl>
+            <div className="grid grid-cols-5 gap-3 mt-4">
+              {isLoadingTypes ? (
+                <div className="col-span-5 flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : (
+                mappedTypes.map((type) => (
+                  <button
+                    key={type.key}
+                    type="button"
+                    onClick={() => field.onChange(type.key)}
+                    className={cn(
+                      "relative flex flex-col items-center p-3 rounded-lg transition-all duration-200",
+                      "hover:bg-gray-50 hover:shadow-md",
+                      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                      field.value === type.key
+                        ? "bg-blue-50 ring-2 ring-blue-500 shadow-md"
+                        : "bg-white border border-gray-200"
+                    )}
+                  >
+                    {field.value === type.key && (
+                      <div className="absolute -top-2 -right-2 bg-blue-500 rounded-full p-1">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    )}
+                    
+                    <div className="w-16 h-16 mb-2 relative">
+                      <Image
+                        src={type.image}
+                        alt={type.label}
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                    
+                    <h4 className="text-xs font-semibold text-gray-900 text-center mb-1">
+                      {type.label}
+                    </h4>
+                    
+                    <p className="text-[10px] text-gray-500 text-center leading-tight">
+                      {type.description}
+                    </p>
+                  </button>
+                ))
+              )}
+            </div>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle className="text-center text-xl">
-            {t("createChallengeTitle")}
+        <DialogHeader className="pb-0">
+          <DialogTitle className="text-center text-xl font-bold text-[#1e4a8b]">
+            تحدي جديد
           </DialogTitle>
-          <DialogDescription className="text-center">
-            {t("createChallengeDescription")}
-          </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="opponent_username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("opponentUsername")}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={t("opponentUsernamePlaceholder")}
-                      {...field}
-                      className="text-right"
-                      dir="rtl"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="challenge_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("challengeType")}</FormLabel>
-                  <FormControl>
-                    <div className="grid grid-cols-5 gap-3 mt-4">
-                      {isLoadingTypes ? (
-                        <div className="col-span-5 flex justify-center py-8">
-                          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                        </div>
-                      ) : (
-                        mappedTypes.map((type) => (
-                          <button
-                            key={type.key}
-                            type="button"
-                            onClick={() => field.onChange(type.key)}
-                            className={cn(
-                              "relative flex flex-col items-center p-3 rounded-lg transition-all duration-200",
-                              "hover:bg-gray-50 hover:shadow-md",
-                              "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-                              field.value === type.key
-                                ? "bg-blue-50 ring-2 ring-blue-500 shadow-md"
-                                : "bg-white border border-gray-200"
-                            )}
-                          >
-                            {field.value === type.key && (
-                              <div className="absolute -top-2 -right-2 bg-blue-500 rounded-full p-1">
-                                <Check className="h-3 w-3 text-white" />
-                              </div>
-                            )}
-                            
-                            <div className="w-16 h-16 mb-2 relative">
-                              <Image
-                                src={type.image}
-                                alt={type.label}
-                                fill
-                                className="object-contain"
-                              />
-                            </div>
-                            
-                            <h4 className="text-xs font-semibold text-gray-900 text-center mb-1">
-                              {type.label}
-                            </h4>
-                            
-                            <p className="text-[10px] text-gray-500 text-center leading-tight">
-                              {type.description}
-                            </p>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <DialogFooter>
-              <Button
-                type="submit"
-                disabled={createChallengeMutation.isPending || !form.watch("challenge_type")}
-                className="w-full sm:w-auto"
-              >
-                {createChallengeMutation.isPending && (
-                  <Loader2 className="ltr:mr-2 rtl:ml-2 h-4 w-4 animate-spin" />
-                )}
-                {t("startChallenge")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger 
+              value="invite" 
+              className="data-[state=active]:bg-[#1e4a8b] data-[state=active]:text-white"
+            >
+              دعوة صديق
+            </TabsTrigger>
+            <TabsTrigger 
+              value="random"
+              className="data-[state=active]:bg-[#1e4a8b] data-[state=active]:text-white"
+            >
+              اختيار عشوائي
+            </TabsTrigger>
+          </TabsList>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <TabsContent value="invite" className="space-y-6 mt-0">
+                {/* Username input field for invite friend */}
+                <FormField
+                  control={form.control}
+                  name="opponent_username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-right block">كود/اسم للمستخدم</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="#rw283"
+                          {...field}
+                          className="text-right"
+                          dir="rtl"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Challenge type selection */}
+                <ChallengeTypeSelection />
+              </TabsContent>
+
+              <TabsContent value="random" className="space-y-6 mt-0">
+                {/* Only challenge type selection for random */}
+                <ChallengeTypeSelection />
+              </TabsContent>
+
+              <DialogFooter className="mt-6">
+                <Button
+                  type="submit"
+                  disabled={createChallengeMutation.isPending || !form.watch("challenge_type")}
+                  className="w-full bg-[#1e4a8b] hover:bg-[#2a5ca0] text-white"
+                >
+                  {createChallengeMutation.isPending && (
+                    <Loader2 className="ltr:mr-2 rtl:ml-2 h-4 w-4 animate-spin" />
+                  )}
+                  ابدأ التحدي
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
