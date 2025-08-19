@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { History } from "lucide-react";
+import { gsap } from "gsap";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -39,6 +40,11 @@ export default function TraditionalLearningHubPage() {
   const queryClient = useQueryClient();
 
   const [page, setPage] = useState(1);
+
+  // Refs for GSAP animations
+  const containerRef:any = useRef<HTMLDivElement>(null);
+  const configFormRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const {
     data: attemptsData,
@@ -84,6 +90,66 @@ export default function TraditionalLearningHubPage() {
     };
   }, [attemptsData]);
 
+  // GSAP Animation Effect
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Create GSAP context for cleanup
+    const ctx = gsap.context(() => {
+      // Timeline for sequential animations
+      const tl = gsap.timeline({
+        defaults: {
+          ease: "power3.out",
+          duration: 0.8,
+        }
+      });
+
+      // Set initial states
+      gsap.set([configFormRef.current, contentRef.current], {
+        opacity: 0,
+        y: 30,
+      });
+
+      // Animate sections in sequence
+      tl.to(configFormRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 0.6,
+      })
+      .to(contentRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 0.6,
+      }, "-=0.3"); // Start slightly before previous animation ends
+
+      // Additional animation for table rows or accordion items when they load
+      if (!isLoading && attempts.length > 0) {
+        const items = containerRef.current.querySelectorAll(
+          ".animate-row, .accordion-item"
+        );
+        
+        gsap.fromTo(
+          items,
+          {
+            opacity: 0,
+            x: -20,
+          },
+          {
+            opacity: 1,
+            x: 0,
+            duration: 0.4,
+            stagger: 0.05, // Stagger each item by 50ms
+            delay: 0.8, // Wait for main sections to animate
+            ease: "power2.out",
+          }
+        );
+      }
+    }, containerRef);
+
+    // Cleanup function
+    return () => ctx.revert();
+  }, [isLoading, attempts]);
+
   const renderContent = () => {
     if (isLoading) {
       return <TraditionalLearningPageSkeleton />;
@@ -91,7 +157,7 @@ export default function TraditionalLearningHubPage() {
 
     if (error) {
       return (
-        <Alert variant="destructive" className="mt-8">
+        <Alert variant="destructive" className="mt-8 animate-fade-in">
           <AlertTitle>{t("errors.fetchFailedTitle")}</AlertTitle>
           <AlertDescription>
             {getApiErrorMessage(error, t("errors.fetchFailedDescription"))}
@@ -99,12 +165,12 @@ export default function TraditionalLearningHubPage() {
         </Alert>
       );
     }
-
+    
     const hasAttempts = (attemptsData?.count ?? 0) > 0;
 
     if (!hasAttempts) {
       return (
-        <div className="mt-8 rounded-lg border-2 border-dashed p-8 text-center text-muted-foreground">
+        <div className="mt-8 rounded-lg border-2 border-dashed p-8 text-center text-muted-foreground animate-fade-in">
           <History className="mx-auto mb-4 h-12 w-12" />
           <h3 className="mb-2 text-xl font-semibold">{t("noAttemptsTitle")}</h3>
           <p>{t("noAttemptsDescription")}</p>
@@ -139,12 +205,15 @@ export default function TraditionalLearningHubPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {attempts.map((attempt) => (
+                {attempts.map((attempt, index) => (
                   <TableRow
                     key={attempt.attempt_id}
-                    className={cn({
-                      "opacity-60": attempt.status === "abandoned",
-                    })}
+                    className={cn(
+                      "animate-row", // Add class for GSAP targeting
+                      {
+                        "opacity-60": attempt.status === "abandoned",
+                      }
+                    )}
                   >
                     <TableCell>
                       {new Date(attempt.date).toLocaleString()}
@@ -184,11 +253,11 @@ export default function TraditionalLearningHubPage() {
           {/* Mobile Accordion */}
           <div className="space-y-3 md:hidden">
             <Accordion type="single" collapsible className="w-full">
-              {attempts.map((attempt) => (
+              {attempts.map((attempt, index) => (
                 <AccordionItem
                   value={`item-${attempt.attempt_id}`}
                   key={attempt.attempt_id}
-                  className="rounded-lg border"
+                  className="accordion-item rounded-lg border" // Add class for GSAP targeting
                 >
                   <AccordionTrigger className="p-4 hover:no-underline">
                     <div className="flex w-full items-center justify-between">
@@ -244,14 +313,21 @@ export default function TraditionalLearningHubPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-8 p-4 md:p-6 lg:p-8">
-      <TraditionalLearningConfigForm />
-      {renderContent()}
+    <div 
+      ref={containerRef}
+      className="container mx-auto space-y-8 p-4 md:p-6 lg:p-8"
+    >
+      <div ref={configFormRef}>
+        <TraditionalLearningConfigForm />
+      </div>
+      <div ref={contentRef}>
+        {renderContent()}
+      </div>
     </div>
   );
 }
 
-// Skeleton can be moved to a separate file or kept here for locality.
+// Skeleton component remains the same
 const TraditionalLearningPageSkeleton = () => (
   <div className="space-y-8">
     {/* Config Form Skeleton */}
