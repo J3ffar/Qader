@@ -39,13 +39,14 @@ const BlogCard = ({ title, published_at, slug }: any) => (
   </Link>
 );
 
+
 const BlogSupportSection = () => {
   const [problemType, setProblemType] = useState("");
   const [description, setDescription] = useState("");
   const [expandedTags, setExpandedTags] = useState<Record<string, boolean>>({});
-  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>(
-    {}
-  );
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({});
+  
+  const [search, setSearch] = useState("");
 
   const { data } = useQuery({
     queryKey: ["blogPosts"],
@@ -64,8 +65,20 @@ const BlogSupportSection = () => {
     },
   });
 
+
+  
+  const filteredResults = data?.results?.filter((post: BlogPost) => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    return (
+      post.title.toLowerCase().includes(searchLower) ||
+      post.tags.some((tag: string) => tag.toLowerCase().includes(searchLower))
+    );
+  }) ?? [];
+
+  
   const groupedByTag: Record<string, BlogPost[]> =
-    data?.results.reduce((acc, post) => {
+    filteredResults.reduce((acc, post) => {
       post.tags.forEach((tag: string) => {
         if (!acc[tag]) acc[tag] = [];
         acc[tag].push(post);
@@ -105,6 +118,15 @@ const BlogSupportSection = () => {
 
   return (
     <section className="container mx-auto p-4 space-y-6 max-w-screen-xl">
+      <div className="mb-4 flex justify-center">
+        <input
+          type="text"
+          placeholder="ابحث عن مقال أو كلمة مفتاحية..."
+          className="w-full max-w-md border rounded-md p-2 shadow-sm"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
       {/* Categories section */}
       <div className="space-y-4">
         {!data ? (
@@ -114,48 +136,51 @@ const BlogSupportSection = () => {
             ))}
           </div>
         ) : (
-          Object.entries(groupedByTag).map(([tag, posts]) => {
-            const isExpanded = expandedTags[tag] ?? true;
-            const visibleCount = visibleCounts[tag] ?? 20;
-
-            return (
-              <div
-                key={tag}
-                className="bg-white dark:bg-[#0B1739] p-4 rounded-xl shadow-sm"
-              >
+          Object.keys(groupedByTag).length === 0 ? (
+            <div className="text-center text-gray-500 py-8">لا توجد نتائج مطابقة للبحث.</div>
+          ) : (
+            Object.entries(groupedByTag).map(([tag, posts]) => {
+              const isExpanded = expandedTags[tag] ?? true;
+              const visibleCount = visibleCounts[tag] ?? 20;
+              return (
                 <div
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={() => handleToggle(tag)}
+                  key={tag}
+                  className="bg-white dark:bg-[#0B1739] p-4 rounded-xl shadow-sm"
                 >
-                  <h3 className="font-bold">{tag}</h3>
-                  {isExpanded ? (
-                    <ChevronUp size={20} />
-                  ) : (
-                    <ChevronDown size={20} />
+                  <div
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => handleToggle(tag)}
+                  >
+                    <h3 className="font-bold">{tag}</h3>
+                    {isExpanded ? (
+                      <ChevronUp size={20} />
+                    ) : (
+                      <ChevronDown size={20} />
+                    )}
+                  </div>
+                  {isExpanded && (
+                    <>
+                      <div className=" flex flex-col sm:grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+                        {posts.slice(0, visibleCount).map((blog: any) => (
+                          <BlogCard key={blog.id} {...blog} />
+                        ))}
+                      </div>
+                      {posts.length > visibleCount && (
+                        <div className="mt-4 text-center">
+                          <button
+                            onClick={() => handleSeeMore(tag)}
+                            className="text-blue-600 underline text-sm"
+                          >
+                            عرض المزيد
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
-                {isExpanded && (
-                  <>
-                    <div className=" flex flex-col sm:grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-                      {posts.slice(0, visibleCount).map((blog: any) => (
-                        <BlogCard key={blog.id} {...blog} />
-                      ))}
-                    </div>
-                    {posts.length > visibleCount && (
-                      <div className="mt-4 text-center">
-                        <button
-                          onClick={() => handleSeeMore(tag)}
-                          className="text-blue-600 underline text-sm"
-                        >
-                          عرض المزيد
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })
+              );
+            })
+          )
         )}
       </div>
 
