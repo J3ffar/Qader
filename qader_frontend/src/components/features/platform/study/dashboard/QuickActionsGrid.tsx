@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowRight,
@@ -12,6 +12,7 @@ import { useTranslations } from "next-intl";
 import { UserProfile } from "@/types/api/auth.types";
 import { PATHS } from "@/constants/paths";
 import Link from "next/link";
+import { gsap } from "gsap";
 
 interface QuickActionsGridProps {
   user: UserProfile;
@@ -39,6 +40,9 @@ interface ActionItem {
 export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ user }) => {
   const t = useTranslations("Study.StudyPage.dashboard.quickActions");
   const tNav = useTranslations("Nav.PlatformSidebar.items");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const actionItems: ActionItem[] = [
     {
@@ -121,16 +125,85 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ user }) => {
     },
   ];
 
+  const visibleActionItems = actionItems.filter((item) => 
+    !item.showCondition || item.showCondition(user)
+  );
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const tl = gsap.timeline({ delay: 0.3 }); // Wait 0.3s after QuickStats
+
+    // Set initial states - completely hidden
+    gsap.set([titleRef.current, gridRef.current], {
+      y: 60,
+      opacity: 0,
+    });
+
+    gsap.set(gridRef.current?.children || [], {
+      y: 80,
+      opacity: 0,
+      scale: 0.9,
+      rotateY: -15,
+    });
+
+    // Animate title first
+    tl.to(titleRef.current, {
+      duration: 0.6,
+      y: 0,
+      opacity: 1,
+      ease: "power3.out",
+    })
+    
+    // Then animate the grid container
+    .to(gridRef.current, {
+      duration: 0.4,
+      y: 0,
+      opacity: 1,
+      ease: "power2.out",
+    }, "-=0.2")
+    
+    // Finally animate each card with stagger
+    .to(gridRef.current?.children || [], {
+      duration: 0.8,
+      y: 0,
+      opacity: 1,
+      scale: 1,
+      rotateY: 0,
+      stagger: {
+        amount: 0.4,
+        from: "start",
+      },
+      ease: "back.out(1.2)",
+    }, "-=0.2");
+
+    // Add subtle floating animation after entrance
+    const cards = gridRef.current?.children;
+    if (cards) {
+      Array.from(cards).forEach((card, index) => {
+        gsap.to(card, {
+          y: -2,
+          duration: 2.5 + index * 0.3,
+          yoyo: true,
+          repeat: -1,
+          ease: "power2.inOut",
+          delay: 2 + index * 0.2,
+        });
+      });
+    }
+
+  }, [visibleActionItems.length]);
+
   return (
-    <div>
-      <h2 className="mb-6 text-xl font-semibold bg-gradient-to-r from-[#074182] to-slate-600 bg-clip-text text-transparent dark:from-blue-200 dark:to-slate-400">
+    <div ref={containerRef}>
+      <h2 
+        ref={titleRef}
+        className="mb-6 text-xl font-semibold bg-gradient-to-r from-[#074182] to-slate-600 bg-clip-text text-transparent dark:from-blue-200 dark:to-slate-400"
+      >
         {t("title")}
       </h2>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {actionItems.map((item) => {
-          if (item.showCondition && !item.showCondition(user)) {
-            return null;
-          }
+      <div ref={gridRef} className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {visibleActionItems.map((item, index) => {
           const title = item.dynamicTitleKey
             ? item.dynamicTitleKey(user)
             : t(item.titleKey);
@@ -138,13 +211,15 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ user }) => {
 
           return (
             <Link href={href} key={item.titleKey} className="group">
-              <Card className={`
-                group relative h-full overflow-hidden border-0 transition-all duration-500 
-                bg-gradient-to-br ${item.colorScheme.gradient} ${item.colorScheme.darkGradient}
-                shadow-sm hover:shadow-2xl ${item.colorScheme.hoverShadow}
-                hover:-translate-y-2 hover:scale-[1.03] hover:rotate-1
-                cursor-pointer transform-gpu
-              `}>
+              <Card 
+                className={`
+                  group relative h-full overflow-hidden border-0 transition-all duration-500 
+                  bg-gradient-to-br ${item.colorScheme.gradient} ${item.colorScheme.darkGradient}
+                  shadow-sm hover:shadow-2xl ${item.colorScheme.hoverShadow}
+                  hover:-translate-y-2 hover:scale-[1.03] hover:rotate-1
+                  cursor-pointer transform-gpu
+                `}
+              >
                 {/* Background glow effects */}
                 <div className={`
                   absolute -top-4 -right-4 h-20 w-20 rounded-full blur-2xl
