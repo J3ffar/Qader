@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactNode, useEffect } from "react";
+import React, { ReactNode, useEffect, useRef } from "react";
 import { useForm, Controller, FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Loader2, Minus, Sparkles } from "lucide-react";
+import { gsap } from "gsap";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -89,6 +90,14 @@ const TraditionalLearningConfigForm: React.FC = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  // Refs for GSAP animations
+  const formRef = useRef<HTMLFormElement>(null);
+  const sectionsCardRef = useRef<HTMLDivElement>(null);
+  const optionsCardRef = useRef<HTMLDivElement>(null);
+  const submitButtonRef = useRef<HTMLDivElement>(null);
+  const accordionItemsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const optionItemsRef = useRef<(HTMLDivElement | null)[]>([]);
+
   const {
     data: learningSectionsData,
     error: sectionsError,
@@ -134,6 +143,130 @@ const TraditionalLearningConfigForm: React.FC = () => {
   });
   const selectedSubsectionsWatched = watch("selectedSubsections");
 
+  // GSAP Animation Effect
+  useEffect(() => {
+    if (!formRef.current || isSectionsLoading) return;
+
+    const ctx = gsap.context(() => {
+      // Create main timeline
+      const mainTl = gsap.timeline({
+        defaults: {
+          ease: "power3.out",
+        }
+      });
+
+      // Set initial states
+      gsap.set([
+        sectionsCardRef.current,
+        optionsCardRef.current,
+        submitButtonRef.current
+      ], {
+        opacity: 0,
+        y: 40,
+        scale: 0.95
+      });
+
+      // Animate main cards in sequence
+      mainTl
+        .to(sectionsCardRef.current, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+        })
+        .to(optionsCardRef.current, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+        }, "-=0.4") // Overlap animations
+        .to(submitButtonRef.current, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.5,
+        }, "-=0.3");
+
+      // Animate accordion items with stagger
+      const validAccordionItems = accordionItemsRef.current.filter(item => item !== null);
+      if (validAccordionItems.length > 0) {
+        gsap.fromTo(
+          validAccordionItems,
+          {
+            opacity: 0,
+            x: -30,
+            scale: 0.95
+          },
+          {
+            opacity: 1,
+            x: 0,
+            scale: 1,
+            duration: 0.4,
+            stagger: 0.08,
+            delay: 0.3,
+            ease: "power2.out"
+          }
+        );
+      }
+
+      // Animate option cards with a bounce effect
+      const validOptionItems = optionItemsRef.current.filter(item => item !== null);
+      if (validOptionItems.length > 0) {
+        gsap.fromTo(
+          validOptionItems,
+          {
+            opacity: 0,
+            y: 20,
+            rotateX: -15,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            rotateX: 0,
+            duration: 0.5,
+            stagger: 0.1,
+            delay: 0.8,
+            ease: "back.out(1.5)"
+          }
+        );
+      }
+
+      // Add hover animations for interactive elements
+      validAccordionItems.forEach(item => {
+        if (!item) return;
+        
+        item.addEventListener('mouseenter', () => {
+          gsap.to(item, {
+            scale: 1.02,
+            duration: 0.2,
+            ease: "power2.out"
+          });
+        });
+        
+        item.addEventListener('mouseleave', () => {
+          gsap.to(item, {
+            scale: 1,
+            duration: 0.2,
+            ease: "power2.out"
+          });
+        });
+      });
+
+      // Pulse animation for submit button
+      gsap.to(submitButtonRef.current, {
+        scale: 1.05,
+        duration: 0.6,
+        repeat: 2,
+        yoyo: true,
+        delay: 1.5,
+        ease: "power1.inOut"
+      });
+
+    }, formRef);
+
+    return () => ctx.revert();
+  }, [isSectionsLoading, sections.length]);
+
   const handleMainSectionChange = (
     section: LearningSection,
     isChecked: boolean
@@ -151,10 +284,34 @@ const TraditionalLearningConfigForm: React.FC = () => {
       toast.success(t("api.startSuccess"));
       queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
 
-      router.push(PATHS.STUDY.TRADITIONAL_LEARNING.SESSION(data.attempt_id));
+      // Animate out before navigation
+      gsap.to(formRef.current, {
+        opacity: 0,
+        scale: 0.95,
+        y: -20,
+        duration: 0.3,
+        ease: "power2.in",
+        onComplete: () => {
+          router.push(PATHS.STUDY.TRADITIONAL_LEARNING.SESSION(data.attempt_id));
+        }
+      });
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, t("api.startError")));
+      
+      // Shake animation on error - Fixed: using single number instead of array
+      gsap.to(formRef.current, {
+        x: 0,
+        duration: 0.5,
+        ease: "power2.inOut",
+        keyframes: [
+          { x: -10 },
+          { x: 10 },
+          { x: -10 },
+          { x: 10 },
+          { x: 0 }
+        ]
+      });
     },
   });
 
@@ -176,7 +333,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
 
   if (sectionsError) {
     return (
-      <Alert variant="destructive">
+      <Alert variant="destructive" className="animate-fade-in">
         <AlertTitle>{commonT("errors.fetchFailedTitle")}</AlertTitle>
         <AlertDescription>
           {getApiErrorMessage(sectionsError, t("api.startError"))}
@@ -187,17 +344,21 @@ const TraditionalLearningConfigForm: React.FC = () => {
 
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit(onSubmit)}
       className="mx-auto max-w-4xl space-y-8"
     >
-      <Card className="overflow-hidden w-full max-w-none border-2  dark:bg-[#0B1739] dark:border-[#7E89AC]">
+      <Card 
+        ref={sectionsCardRef}
+        className="overflow-hidden w-full max-w-none border-2 dark:bg-[#0B1739] dark:border-[#7E89AC]"
+      >
         <CardHeader>
           <CardTitle>{t("sectionsTitle")}</CardTitle>
           <CardDescription>{t("sectionsDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           {errors.selectedSubsections && (
-            <p className="mb-4 text-sm font-medium text-destructive">
+            <p className="mb-4 text-sm font-medium text-destructive animate-pulse">
               {errors.selectedSubsections.message as ReactNode}
             </p>
           )}
@@ -206,7 +367,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
             defaultValue={sections.map((s) => s.slug)}
             className="w-full space-y-3 grid lg:grid-cols-2 grid-cols-1 gap-3"
           >
-            {sections.map((section) => {
+            {sections.map((section, index) => {
               const allSubSelected = section.subsections.every(
                 (sub) => selectedSubsectionsWatched[sub.slug]
               );
@@ -221,9 +382,12 @@ const TraditionalLearningConfigForm: React.FC = () => {
 
               return (
                 <AccordionItem
+                  ref={(el) => {
+                    accordionItemsRef.current[index] = el;
+                  }}
                   value={section.slug}
                   key={section.slug}
-                  className="rounded-lg border"
+                  className="rounded-lg border accordion-item"
                 >
                   <AccordionTrigger className="p-4 hover:no-underline">
                     <div className="flex items-center space-x-3 gap-2 rtl:space-x-reverse">
@@ -240,7 +404,6 @@ const TraditionalLearningConfigForm: React.FC = () => {
                             : ""
                         }
                         aria-label={`Select all in ${section.name}`}
-                        onClick={(e) => e.stopPropagation()}
                       >
                         {mainCheckboxState === "indeterminate" && (
                           <Minus className="h-4 w-4" />
@@ -249,7 +412,6 @@ const TraditionalLearningConfigForm: React.FC = () => {
                       <label
                         htmlFor={`section-${section.slug}`}
                         className="cursor-pointer font-bold"
-                        onClick={(e) => e.stopPropagation()}
                       >
                         {section.name}
                       </label>
@@ -267,10 +429,10 @@ const TraditionalLearningConfigForm: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => field.onChange(!field.value)}
-                            className={`px-4 py-2 rounded-lg border text-sm font-medium transition cursor-pointer ${
+                            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer transform hover:scale-105 ${
                               field.value
-                                ? "bg-primary text-white border-primary"
-                                : "border border-gray-300 hover:border-primary font-normal"
+                                ? "bg-primary text-white border-primary shadow-lg"
+                                : "border border-gray-300 hover:border-primary font-normal hover:shadow-md"
                             }`}
                           >
                             {sub.name}
@@ -286,20 +448,28 @@ const TraditionalLearningConfigForm: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden w-full max-w-none border-2 dark:bg-[#0B1739] dark:border-[#7E89AC]">
+      <Card 
+        ref={optionsCardRef}
+        className="overflow-hidden w-full max-w-none border-2 dark:bg-[#0B1739] dark:border-[#7E89AC]"
+      >
         <CardHeader>
           <CardTitle>{t("advancedOptionsTitle")}</CardTitle>
           <CardDescription>{t("advancedOptionsDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className=" flex flex-col items-center justify-between p-7 rounded-lg border">
+          <div 
+            ref={(el) => {
+              optionItemsRef.current[0] = el;
+            }}
+            className="flex flex-col items-center justify-between p-7 rounded-lg border option-card"
+          >
             <Label
               htmlFor="num_questions"
               className="text-base font-medium justify-center"
             >
               {t("numQuestionsLabel")}
             </Label>
-            <Controller // make a custom number input with increment/decrement buttons
+            <Controller
               name="num_questions"
               control={control}
               render={({ field }) => (
@@ -307,10 +477,20 @@ const TraditionalLearningConfigForm: React.FC = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() =>
-                      field.onChange(Math.max((field.value || 0) - 1, 0))
-                    }
-                    className="w-10 h-10 p-0 text-xl cursor-pointer"
+                    onClick={(e) => {
+                      field.onChange(Math.max((field.value || 0) - 1, 0));
+                      // Add a little bounce animation - Fixed: proper type checking
+                      const target = e.currentTarget;
+                      if (target) {
+                        gsap.to(target, {
+                          scale: 0.9,
+                          duration: 0.1,
+                          yoyo: true,
+                          repeat: 1
+                        });
+                      }
+                    }}
+                    className="w-10 h-10 p-0 text-xl cursor-pointer transition-transform"
                   >
                     –
                   </Button>
@@ -320,15 +500,27 @@ const TraditionalLearningConfigForm: React.FC = () => {
                     value={field.value || ""}
                     onChange={(e) => {
                       const value = parseInt(e.target.value, 10);
-                      field.onChange(isNaN(value) ? "" : Math.max(value, 0)); // prevent negative
+                      field.onChange(isNaN(value) ? "" : Math.max(value, 0));
                     }}
                     className="w-16 text-center text-lg font-semibold border rounded px-2 py-1"
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => field.onChange((field.value || 0) + 1)}
-                    className="w-10 h-10 p-0 text-xl cursor-pointer"
+                    onClick={(e) => {
+                      field.onChange((field.value || 0) + 1);
+                      // Add a little bounce animation - Fixed: proper type checking
+                      const target = e.currentTarget;
+                      if (target) {
+                        gsap.to(target, {
+                          scale: 0.9,
+                          duration: 0.1,
+                          yoyo: true,
+                          repeat: 1
+                        });
+                      }
+                    }}
+                    className="w-10 h-10 p-0 text-xl cursor-pointer transition-transform"
                   >
                     +
                   </Button>
@@ -337,16 +529,22 @@ const TraditionalLearningConfigForm: React.FC = () => {
             />
 
             {errors.num_questions && (
-              <p className="mt-1 text-sm font-medium text-destructive">
+              <p className="mt-1 text-sm font-medium text-destructive animate-pulse">
                 {errors.num_questions.message}
               </p>
             )}
           </div>
+          
           <Controller
             name="starred"
             control={control}
             render={({ field }) => (
-              <div className="flex items-center justify-between md:space-x-8 rounded-lg border p-7 rtl:space-x-reverse">
+              <div 
+                ref={(el) => {
+                  optionItemsRef.current[1] = el;
+                }}
+                className="flex items-center justify-between md:space-x-8 rounded-lg border p-7 rtl:space-x-reverse option-card"
+              >
                 <div className="space-y-0.5">
                   <Label htmlFor="starred" className="text-base">
                     {t("starredLabel")}
@@ -363,11 +561,17 @@ const TraditionalLearningConfigForm: React.FC = () => {
               </div>
             )}
           />
+          
           <Controller
             name="not_mastered"
             control={control}
             render={({ field }) => (
-              <div className="flex items-center justify-between md:space-x-8 rounded-lg border p-7 rtl:space-x-reverse">
+              <div 
+                ref={(el) => {
+                  optionItemsRef.current[2] = el;
+                }}
+                className="flex items-center justify-between md:space-x-8 rounded-lg border p-7 rtl:space-x-reverse option-card"
+              >
                 <div className="space-y-0.5">
                   <Label htmlFor="not_mastered" className="text-base">
                     {t("notMasteredLabel")}
@@ -387,12 +591,12 @@ const TraditionalLearningConfigForm: React.FC = () => {
         </CardContent>
       </Card>
 
-      <div className="flex justify-center">
+      <div ref={submitButtonRef} className="flex justify-center">
         <Button
           type="submit"
           disabled={startPracticeMutation.isPending || !isValid}
           size="lg"
-          className="w-full max-w-md"
+          className="w-full max-w-md transform transition-all duration-200 hover:scale-105"
         >
           {startPracticeMutation.isPending && (
             <Loader2 className="me-2 h-5 w-5 animate-spin" />
@@ -408,4 +612,3 @@ const TraditionalLearningConfigForm: React.FC = () => {
 };
 
 export default TraditionalLearningConfigForm;
-
