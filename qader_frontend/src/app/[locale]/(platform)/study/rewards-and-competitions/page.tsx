@@ -34,12 +34,20 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO, subDays } from "date-fns";
 import dayjs from "dayjs";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useLayoutEffect } from "react";
 import { toast } from "sonner";
+import { gsap } from "gsap";
 
 const RewardsDashboard = () => {
   const todayIndex = new Date().getDay();
-  // start the madaka?
+  
+  // Refs for GSAP animations
+  const titleRef = useRef(null);
+  const badgesCardRef = useRef(null);
+  const streakCardRef = useRef(null);
+  const testPointsCardRef = useRef(null);
+  const storeHeaderRef = useRef(null);
+  const storeItemsRef = useRef<(HTMLDivElement | null)[]>([]);
 
   const today = dayjs().format("YYYY-MM-DD");
   const weekStart = dayjs().startOf("week").format("YYYY-MM-DD");
@@ -113,7 +121,6 @@ const RewardsDashboard = () => {
     isLoading: isLoadingPointsTotal,
   } = usePointsTotals();
 
-  // end the madaka
   const defaultStoreItems: (StoreItemGamificaiton & {
     is_purchased: boolean;
     asset_file_url?: string | null;
@@ -192,7 +199,6 @@ const RewardsDashboard = () => {
       queryKey: ["gamificationSummary"],
       queryFn: getGamificationSummary,
     });
-  // start days summary
   const { data: PointsSummary, isLoading: isLoadingPointsSummary } =
     useQuery<PaginatedDailyPointSummaryResponse>({
       queryKey: ["mPointsSummary"],
@@ -259,7 +265,7 @@ const RewardsDashboard = () => {
       }
     }
   }, [activeIndexes, fullWeek]);
-  //last week charts
+  
   useEffect(() => {
     const lastWeekResults = results.filter(({ date }) => {
       const day = dayjs(date);
@@ -287,7 +293,6 @@ const RewardsDashboard = () => {
     setMyLastWeekData(aLastWeekData);
   }, [results, mylastWeekStart, mylastWeekEnd]);
 
-  // end of  days summary
   const [testPoints] = useState(fullWeek);
 
   const { data: badgesData, isLoading: isLoadingBadges } = useQuery<Badge[]>({
@@ -338,7 +343,6 @@ const RewardsDashboard = () => {
 
     setMyStreak(count);
   }, [studyDaysData]);
-  //end the try
 
   const { data: pointsData } = useQuery<PointsSummary>({
     queryKey: ["pointsSummary"],
@@ -358,7 +362,6 @@ const RewardsDashboard = () => {
   });
   const queryClient = useQueryClient();
 
-  // Derived state
   const mybadgesCount = badgesData?.filter((b) => b.is_earned).length || 0;
   const badgesCount = badgesData?.length || 0;
   const myBadges = badgesData || [];
@@ -381,7 +384,140 @@ const RewardsDashboard = () => {
         }))
       : defaultStoreItems;
 
-  // Handle reward purchase
+  // GSAP Animations
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      // Title animation
+      gsap.fromTo(titleRef.current, 
+        { opacity: 0, y: -30 },
+        { 
+          opacity: 1, 
+          y: 0, 
+          duration: 0.8, 
+          ease: "power3.out" 
+        }
+      );
+
+      // Badges card animation
+      gsap.fromTo(badgesCardRef.current,
+        { opacity: 0, x: -50, scale: 0.9 },
+        { 
+          opacity: 1, 
+          x: 0, 
+          scale: 1,
+          duration: 0.6,
+          delay: 0.2,
+          ease: "power2.out"
+        }
+      );
+
+      // Streak card animation
+      gsap.fromTo(streakCardRef.current,
+        { opacity: 0, x: -50, scale: 0.9 },
+        { 
+          opacity: 1, 
+          x: 0,
+          scale: 1, 
+          duration: 0.6,
+          delay: 0.4,
+          ease: "power2.out"
+        }
+      );
+
+      // Test points card animation
+      gsap.fromTo(testPointsCardRef.current,
+        { opacity: 0, y: 50, scale: 0.95 },
+        { 
+          opacity: 1, 
+          y: 0,
+          scale: 1, 
+          duration: 0.7,
+          delay: 0.6,
+          ease: "back.out(1.7)"
+        }
+      );
+
+      // Store header animation
+      gsap.fromTo(storeHeaderRef.current,
+        { opacity: 0, y: 30 },
+        { 
+          opacity: 1, 
+          y: 0, 
+          duration: 0.6,
+          delay: 0.8,
+          ease: "power2.out"
+        }
+      );
+
+      // Store items staggered animation
+      gsap.fromTo(storeItemsRef.current.filter(el => el !== null),
+        { 
+          opacity: 0, 
+          y: 40,
+          scale: 0.9
+        },
+        { 
+          opacity: 1, 
+          y: 0,
+          scale: 1,
+          duration: 0.5,
+          stagger: 0.1,
+          delay: 1,
+          ease: "power2.out"
+        }
+      );
+
+      // Chart bars animation (when visible)
+      const chartBars = document.querySelectorAll('.chart-bar');
+      if (chartBars.length > 0) {
+        gsap.fromTo(chartBars,
+          { scaleY: 0, transformOrigin: "bottom" },
+          { 
+            scaleY: 1, 
+            duration: 0.8,
+            stagger: 0.05,
+            delay: 1.2,
+            ease: "power2.out"
+          }
+        );
+      }
+
+      // Badge emojis animation
+      const badgeEmojis = document.querySelectorAll('.badge-emoji');
+      if (badgeEmojis.length > 0) {
+        gsap.fromTo(badgeEmojis,
+          { scale: 0, rotation: -180 },
+          { 
+            scale: 1,
+            rotation: 0, 
+            duration: 0.5,
+            stagger: 0.05,
+            delay: 0.8,
+            ease: "back.out(1.7)"
+          }
+        );
+      }
+
+      // Star icons animation
+      const starIcons = document.querySelectorAll('.star-icon');
+      if (starIcons.length > 0) {
+        gsap.fromTo(starIcons,
+          { scale: 0, opacity: 0 },
+          { 
+            scale: 1,
+            opacity: 1, 
+            duration: 0.4,
+            stagger: 0.08,
+            delay: 1,
+            ease: "elastic.out(1, 0.5)"
+          }
+        );
+      }
+    });
+
+    return () => ctx.revert();
+  }, [isLoadingBadges, isLoadingStore, isLoadingPointsTotal]);
+
   const handlePurchase = async () => {
     if (!selectedReward) return;
 
@@ -390,7 +526,6 @@ const RewardsDashboard = () => {
       await purchaseRewardItem(selectedReward.id);
       setIsConfirmed(true);
 
-      // Immediately update the cache to show purchased status
       queryClient.setQueryData<RewardStoreItem[]>(
         ["rewardStoreItems"],
         (oldData) => {
@@ -403,7 +538,6 @@ const RewardsDashboard = () => {
         }
       );
 
-      // Invalidate other related queries
       queryClient.invalidateQueries({ queryKey: ["getMyPurchasedItems"] });
       queryClient.invalidateQueries({ queryKey: ["pointsSummary"] });
       queryClient.invalidateQueries({ queryKey: ["gamificationSummary"] });
@@ -421,7 +555,6 @@ const RewardsDashboard = () => {
     }
   };
 
-  // Handle viewing/downloading purchased items
   const handleViewImage = (imageUrl: string) => {
     window.open(imageUrl, "_blank");
   };
@@ -438,14 +571,14 @@ const RewardsDashboard = () => {
 
   return (
     <div className="py-5 sm:p-5 space-y-6 dark:bg-[#081028]">
-      <h1 className="text-4xl pr-3 font-bold leading-9">
+      <h1 ref={titleRef} className="text-4xl pr-3 font-bold leading-9">
         مكافآت المذاكرة والمسابقات
       </h1>
       <div className="flex flex-wrap gap-6 justify-center">
         {/* Achievement and Weekly Stars Section */}
         <div className="min-w-[300px] space-y-6 font-sans text-right">
           {/* Badges Card */}
-          <div className="rounded-[20px] border border-[#E0E0E0] bg-white dark:bg-[#0B1739] px-5 py-6 shadow-sm space-y-5 max-w-[400px]">
+          <div ref={badgesCardRef} className="rounded-[20px] border border-[#E0E0E0] bg-white dark:bg-[#0B1739] px-5 py-6 shadow-sm space-y-5 max-w-[400px]">
             {isLoadingBadges ? (
               <>
                 {/* Badges Skeleton */}
@@ -523,7 +656,7 @@ const RewardsDashboard = () => {
                         <span
                           key={index}
                           title={description}
-                          className={`${
+                          className={`badge-emoji ${
                             isEarned ? "" : "grayscale opacity-50"
                           } transition duration-200 cursor-default`}
                         >
@@ -547,7 +680,7 @@ const RewardsDashboard = () => {
           </div>
 
           {/* Streak Card */}
-          <div className="rounded-[20px] border border-[#E0E0E0] bg-white dark:bg-[#0B1739] px-5 py-6 shadow-sm space-y-5 max-w-[400px]">
+          <div ref={streakCardRef} className="rounded-[20px] border border-[#E0E0E0] bg-white dark:bg-[#0B1739] px-5 py-6 shadow-sm space-y-5 max-w-[400px]">
             {isLoadingStudyDays || isLoadingSummary ? (
               <>
                 {/* Streak Skeleton */}
@@ -648,7 +781,7 @@ const RewardsDashboard = () => {
                       fullWeek[idx]?.percent > 0 ? (
                         <Image
                           width={20}
-                          className="rotate-6 text-[#2f80ed]"
+                          className="rotate-6 text-[#2f80ed] star-icon"
                           src="/images/rewards/active-star.svg"
                           alt="star"
                           height={20}
@@ -656,7 +789,7 @@ const RewardsDashboard = () => {
                       ) : (
                         <Image
                           width={20}
-                          className="rotate-6 text-gray-300 dark:invert-100"
+                          className="rotate-6 text-gray-300 dark:invert-100 star-icon"
                           src="/images/rewards/unactive-star.svg"
                           alt="star"
                           height={20}
@@ -680,7 +813,7 @@ const RewardsDashboard = () => {
         </div>
 
         {/* Test Points Section */}
-        <div className="flex flex-col flex-1 min-w-[300px] border rounded-2xl p-5 dark:bg-[#0B1739] items-center min-h-[70vh]">
+        <div ref={testPointsCardRef} className="flex flex-col flex-1 min-w-[300px] border rounded-2xl p-5 dark:bg-[#0B1739] items-center min-h-[70vh]">
           <div className="flex justify-between w-full">
             <p className="font-bold mb-2 text-[#4F4F4F] dark:text-[#FDFDFD]">
               النقاط الاختبارات
@@ -750,7 +883,7 @@ const RewardsDashboard = () => {
                   >
                     <div className="w-3 bg-gray-200 rounded-2xl overflow-hidden h-[281px] relative">
                       <div
-                        className="absolute bottom-0 w-full bg-[#2f80ed] rounded-b-2xl"
+                        className="absolute bottom-0 w-full bg-[#2f80ed] rounded-b-2xl chart-bar"
                         style={{ height: `${item.percent}%` }}
                       />
                     </div>
@@ -774,7 +907,7 @@ const RewardsDashboard = () => {
 
       {/* Store Section */}
       <div className="border p-5 rounded-2xl flex flex-col dark:bg-[#0B1739]">
-        <div className="mb-5">
+        <div ref={storeHeaderRef} className="mb-5">
           <div className="flex gap-1 mb-3 justify-center items-center w-fit">
             <Image
               src="/images/rewards/Shopping_Bag.png"
@@ -795,6 +928,7 @@ const RewardsDashboard = () => {
             ? [...Array(4)].map((_, i) => (
                 <div
                   key={i}
+                  ref={(el:any) => storeItemsRef.current[i] = el}
                   className="flex-col sm:flex-row items-center border rounded-[8px] p-4 flex gap-6 justify-between"
                 >
                   <div className="flex items-center justify-between mt-4">
@@ -813,6 +947,7 @@ const RewardsDashboard = () => {
             : storeItems.map((item, index) => (
                 <div
                   key={item.id}
+                  ref={(el:any) => storeItemsRef.current[index] = el}
                   className="flex-col sm:flex-row items-center border rounded-[8px] p-4 hover:border-[#9EC9FA] sm:items-start hover:bg-[#9ec9fa3d] dark:hover:bg-[unset] flex gap-6 justify-between"
                 >
                   <div className="flex items-center justify-between mt-4">
@@ -896,7 +1031,7 @@ const RewardsDashboard = () => {
           onClick={() => setShowConfirm(false)}
         >
           <div
-            className="bg-white dark:bg-[#0B1739] rounded-[14px] max-w-[400px] max-h-[60vh] h-300px flex flex-col justify-around w-full px-6 py-8 text-center shadow-lg"
+            className="bg-white dark:bg-[#0B1739] rounded-[14px] max-w-[400px] max-h-[60vh] h-300px flex flex-col justify-around w-full px-6 py-8 text-center shadow-lg modal-entrance"
             onClick={(e) => e.stopPropagation()}
           >
             {!isConfirmed ? (
@@ -978,6 +1113,23 @@ const RewardsDashboard = () => {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes modalEntrance {
+          from {
+            opacity: 0;
+            transform: scale(0.9) translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        .modal-entrance {
+          animation: modalEntrance 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };
