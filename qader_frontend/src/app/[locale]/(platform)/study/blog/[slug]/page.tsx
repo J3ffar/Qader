@@ -77,7 +77,9 @@ const ArticlePage = () => {
           className="object-cover"
         />
         <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-white p-4">
+          
           <h1 className="text-2xl font-bold mb-1">{blog.title}</h1>
+
           <p className="text-sm">
             {new Date(blog.published_at).toLocaleDateString("ar-EG", {
               year: "numeric",
@@ -148,6 +150,15 @@ const ArticlePage = () => {
             </a>
           )}
         </div>
+      </div>
+
+      <div className="flex justify-center mt-8">
+        <a
+          href="/study/blog"
+          className="bg-[#074182] text-white px-6 py-2 rounded-md hover:bg-[#05356a] transition"
+        >
+          العودة لكل المقالات
+        </a>
       </div>
     </div>
   );
