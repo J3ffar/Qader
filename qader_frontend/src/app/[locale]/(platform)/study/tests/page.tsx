@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { PencilLine, ListXIcon, ChevronDown } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +36,9 @@ import {
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 
+// Register GSAP plugins
+gsap.registerPlugin(ScrollTrigger);
+
 const PAGE_SIZE = 20;
 
 const TestsPage = () => {
@@ -53,6 +58,15 @@ const TestsPage = () => {
   const { locale } = useParams();
   const dir = locale === "en" ? "ltr" : "rtl";
 
+  // Refs for GSAP animations
+  const containerRef = useRef<HTMLDivElement>(null);
+  const headerCardRef = useRef<HTMLDivElement>(null);
+  const tableCardRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const buttonRef = useRef<HTMLAnchorElement>(null);
+  const controlsRef:any = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<gsap.core.Timeline | null>(null);
+
   const { data, isLoading, isFetching, error } = useQuery<
     PaginatedUserTestAttempts,
     Error
@@ -66,21 +80,55 @@ const TestsPage = () => {
       }),
   });
 
-  // noAttemptsTitle
-
   const retakeMutation = useMutation<
     UserTestAttemptStartResponse,
     Error,
     number
   >({
     mutationFn: retakeTestAttempt,
-    onMutate: (attemptId) => setRetakingId(attemptId),
+    onMutate: (attemptId) => {
+      setRetakingId(attemptId);
+      // Animate button loading state
+      if (buttonRef.current) {
+        gsap.to(buttonRef.current, {
+          scale: 0.95,
+          duration: 0.1,
+          yoyo: true,
+          repeat: 1,
+        });
+      }
+    },
     onSuccess: (data) => {
       toast.success(t("api.retakeSuccess"));
+      // Success animation
+      gsap.fromTo(
+        containerRef.current,
+        { x: 0 },
+        { 
+          x: dir === "rtl" ? 20 : -20, 
+          duration: 0.3, 
+          yoyo: true, 
+          repeat: 1,
+          ease: "power2.out"
+        }
+      );
       router.push(PATHS.STUDY.TESTS.ATTEMPT(data.attempt_id));
     },
-    onError: (err: any) =>
-      toast.error(getApiErrorMessage(err, tCommon("errors.generic"))),
+    onError: (err: any) => {
+      toast.error(getApiErrorMessage(err, tCommon("errors.generic")));
+      // Error shake animation
+      gsap.fromTo(
+        containerRef.current,
+        { x: 0 },
+        { 
+          x: 10, 
+          duration: 0.1, 
+          yoyo: true, 
+          repeat: 5,
+          ease: "power2.out"
+        }
+      );
+    },
     onSettled: () => setRetakingId(null),
   });
 
@@ -90,6 +138,19 @@ const TestsPage = () => {
     onSuccess: (_, attemptId) => {
       toast.success(tActions("cancelDialog.successToast", { attemptId }));
       queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
+      
+      // Success pulse animation
+      gsap.fromTo(
+        tableCardRef.current,
+        { scale: 1 },
+        { 
+          scale: 1.02, 
+          duration: 0.2, 
+          yoyo: true, 
+          repeat: 1,
+          ease: "power2.out"
+        }
+      );
     },
     onError: (err: any) => {
       toast.error(
@@ -102,7 +163,6 @@ const TestsPage = () => {
   const { attempts, pageCount, canPreviousPage, canNextPage } = useMemo(() => {
     const results = data?.results ?? [];
 
-    // 🔍 Filter: only poor tests
     const filtered = poorTests
       ? results.filter(
           (attempt) =>
@@ -110,7 +170,6 @@ const TestsPage = () => {
         )
       : results;
 
-    // Sort by selected
     const sorted = [...filtered].sort((a, b) => {
       switch (selectedSort) {
         case "dateAsc":
@@ -129,8 +188,133 @@ const TestsPage = () => {
     };
   }, [data?.results, page, poorTests, selectedSort]);
 
+  // Initial page load animations
+  useEffect(() => {
+    if (!isLoading && containerRef.current) {
+      // Create timeline for coordinated animations
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      timelineRef.current = tl;
+
+      // Set initial states
+      gsap.set([headerCardRef.current, tableCardRef.current], { 
+        opacity: 0, 
+        y: 50 
+      });
+      gsap.set(titleRef.current, { 
+        opacity: 0, 
+        x: dir === "rtl" ? -30 : 30 
+      });
+      gsap.set(buttonRef.current, { 
+        opacity: 0, 
+        scale: 0.8 
+      });
+      gsap.set(controlsRef.current, { 
+        opacity: 0, 
+        y: 20 
+      });
+
+      // Animate in sequence
+      tl.to(headerCardRef.current, { 
+        opacity: 1, 
+        y: 0, 
+        duration: 0.6 
+      })
+        .to(titleRef.current, { 
+          opacity: 1, 
+          x: 0, 
+          duration: 0.5 
+        }, "-=0.3")
+        .to(buttonRef.current, { 
+          opacity: 1, 
+          scale: 1, 
+          duration: 0.4 
+        }, "-=0.2")
+        .to(tableCardRef.current, { 
+          opacity: 1, 
+          y: 0, 
+          duration: 0.6 
+        }, "-=0.3")
+        .to(controlsRef.current, { 
+          opacity: 1, 
+          y: 0, 
+          duration: 0.4 
+        }, "-=0.4");
+
+      // Add scroll-triggered animations for table content
+      if (attempts.length > 0) {
+        ScrollTrigger.create({
+          trigger: tableCardRef.current,
+          start: "top 80%",
+          onEnter: () => {
+            gsap.fromTo(
+              ".test-attempt-item", 
+              { 
+                opacity: 0, 
+                x: dir === "rtl" ? -20 : 20 
+              },
+              { 
+                opacity: 1, 
+                x: 0, 
+                duration: 0.4, 
+                stagger: 0.1,
+                ease: "power2.out"
+              }
+            );
+          }
+        });
+      }
+
+      return () => {
+        ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+        if (timelineRef.current) {
+          timelineRef.current.kill();
+        }
+      };
+    }
+  }, [isLoading, attempts.length, dir]);
+
+  // Animate filter/sort changes
+  useEffect(() => {
+    if (!isLoading && tableCardRef.current) {
+      gsap.fromTo(
+        tableCardRef.current.querySelector('.card-content'),
+        { opacity: 0.7, y: 10 },
+        { 
+          opacity: 1, 
+          y: 0, 
+          duration: 0.3,
+          ease: "power2.out"
+        }
+      );
+    }
+  }, [attempts, poorTests, selectedSort]);
+
   const handleRetake = (attemptId: number) => {
     retakeMutation.mutate(attemptId);
+  };
+
+  const handleSortChange = (newSort: "dateDesc" | "dateAsc") => {
+    // Animate sort change
+    if (controlsRef.current) {
+      gsap.to(controlsRef.current, {
+        scale: 1.05,
+        duration: 0.1,
+        yoyo: true,
+        repeat: 1,
+      });
+    }
+    setSelectedSort(newSort);
+  };
+
+  const handlePoorTestsToggle = () => {
+    // Animate toggle
+    gsap.to(controlsRef.current?.querySelector('[role="switch"]'), {
+      scale: 1.1,
+      duration: 0.1,
+      yoyo: true,
+      repeat: 1,
+    });
+    setPoorTests(!poorTests);
   };
 
   if (isLoading) {
@@ -165,15 +349,20 @@ const TestsPage = () => {
     );
   }
 
-  // +++ FIX: Corrected variable name typo +++
   const hasNoAttemptsAtAll = !data?.count;
 
   return (
-    <div className="container mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
-      <Card dir={dir}>
+    <div 
+      ref={containerRef}
+      className="container mx-auto space-y-6 p-4 sm:p-6 lg:p-8"
+    >
+      <Card ref={headerCardRef} dir={dir}>
         <CardHeader className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div className="w-full">
-            <CardTitle className="flex items-center text-center justify-center sm:justify-start text-2xl mb-2 font-bold">
+            <CardTitle 
+              ref={titleRef}
+              className="flex items-center text-center justify-center sm:justify-start text-2xl mb-2 font-bold"
+            >
               {t("simulationTest.title")}
             </CardTitle>
             <p className="mt-1 text-muted-foreground">
@@ -185,8 +374,12 @@ const TestsPage = () => {
               {t("simulationTest.reviewDescription")}
             </p>
           </div>
-          <Button asChild size="lg" className="self-center">
-            <Link href={PATHS.STUDY.TESTS.START}>
+          <Button 
+            asChild 
+            size="lg" 
+            className="self-center transition-transform hover:scale-105"
+          >
+            <Link ref={buttonRef} href={PATHS.STUDY.TESTS.START}>
               <PencilLine className="me-2 h-5 w-5" />
               {t("list.startNewTest")}
             </Link>
@@ -195,27 +388,32 @@ const TestsPage = () => {
       </Card>
 
       {/* Table Card */}
-      <Card dir={dir}>
+      <Card ref={tableCardRef} dir={dir}>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full">
             <div className="flex flex-col sm:flex-row md:w-full">
               <CardTitle className="text-xl font-bold text-center sm:text-right mb-2 min-w-36">
                 {t("list.title")}
               </CardTitle>
-              <div className="flex items-center justify-between md:justify-end w-full gap-4">
+              <div 
+                ref={controlsRef}
+                className="flex items-center justify-between md:justify-end w-full gap-4"
+              >
                 <div className="flex items-center gap-2">
                   {t("list.showLowPerformanceTests")}
                   <Switch
-                    onClick={() => {
-                      setPoorTests(!poorTests);
-                    }}
+                    onClick={handlePoorTestsToggle}
+                    className="transition-transform hover:scale-110"
                   />
                 </div>
                 <div className="flex items-center flex-col md:flex-row gap-2">
                   <span className="text-sm">{t("list.sortBy")}</span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline">
+                      <Button 
+                        variant="outline"
+                        className="transition-transform hover:scale-105"
+                      >
                         {tOptions(selectedSort)}
                         <ChevronDown className="h-4 w-4" />
                       </Button>
@@ -223,14 +421,14 @@ const TestsPage = () => {
 
                     <DropdownMenuContent className="text-center">
                       <DropdownMenuItem
-                        className="justify-center"
-                        onSelect={() => setSelectedSort("dateDesc")}
+                        className="justify-center transition-colors hover:bg-accent"
+                        onSelect={() => handleSortChange("dateDesc")}
                       >
                         {tOptions("dateDesc")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className="justify-center"
-                        onSelect={() => setSelectedSort("dateAsc")}
+                        className="justify-center transition-colors hover:bg-accent"
+                        onSelect={() => handleSortChange("dateAsc")}
                       >
                         {tOptions("dateAsc")}
                       </DropdownMenuItem>
@@ -241,10 +439,10 @@ const TestsPage = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="card-content">
           {hasNoAttemptsAtAll ? (
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-6 text-center">
-              <ListXIcon size={48} className="text-primary" />
+              <ListXIcon size={48} className="text-primary animate-pulse" />
               <h3 className="mt-4 text-xl font-semibold">
                 لا يوجد امتحانات
               </h3>
@@ -254,14 +452,16 @@ const TestsPage = () => {
             </div>
           ) : (
             <>
-              <TestAttemptsList
-                attempts={attempts}
-                onRetake={handleRetake}
-                isRetaking={retakeMutation.isPending}
-                retakeAttemptId={retakingId}
-                cancelAttemptMutation={cancelAttemptMutation}
-                cancellingAttemptId={cancellingId}
-              />
+              <div className="test-attempts-container">
+                <TestAttemptsList
+                  attempts={attempts}
+                  onRetake={handleRetake}
+                  isRetaking={retakeMutation.isPending}
+                  retakeAttemptId={retakingId}
+                  cancelAttemptMutation={cancelAttemptMutation}
+                  cancellingAttemptId={cancellingId}
+                />
+              </div>
               <DataTablePagination
                 page={page}
                 pageCount={pageCount}
@@ -269,7 +469,7 @@ const TestsPage = () => {
                 canPreviousPage={canPreviousPage}
                 canNextPage={canNextPage}
                 isFetching={isFetching}
-                className="mt-4"
+                className="mt-4 transition-opacity duration-300"
               />
             </>
           )}
