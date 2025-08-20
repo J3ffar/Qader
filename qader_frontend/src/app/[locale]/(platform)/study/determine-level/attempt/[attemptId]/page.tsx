@@ -1,401 +1,463 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useMemo, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  Clock,
+  FileText,
+  Loader2,
+  RefreshCcw,
   ArrowLeft,
   ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
+  CheckCircle,
   XCircle,
-  Loader2,
-  Send,
   HelpCircle,
+  BarChart3,
+  ThumbsUp,
+  Info,
+  ListTree,
+  TrendingUp,
+  Award,
+  Sparkles,
+  Flame,
+  Target,
+  BookOpenCheck,
+  Star,
+  Trophy,
+  Gift,
+  Zap,
+  Plus,
+  Coins,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
-import { StarButton } from "@/components/shared/StarButton";
+import { Progress } from "@/components/ui/progress";
+import ScorePieChart from "@/components/features/platform/study/determine-level/ScorePieChart";
+import { useAuthActions, useAuthStore } from "@/store/auth.store";
+import { UserProfile } from "@/types/api/auth.types";
 
 import {
-  resumeTestAttempt, // MODIFIED
-  submitAnswer,
-  completeTestAttempt,
-  cancelTestAttempt,
+  getTestAttemptReview,
+  retakeTestAttempt,
 } from "@/services/study.service";
 import { PATHS } from "@/constants/paths";
-import type {
-  UserTestAttemptResume, // MODIFIED
-  UnifiedQuestion,
-  SubmitAnswerPayload,
+import {
   UserTestAttemptCompletionResponse,
-  SubmitAnswerResponse,
+  UserTestAttemptReviewResponse,
+  UserTestAttemptStartResponse,
 } from "@/types/api/study.types";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { queryKeys } from "@/constants/queryKeys";
-import { QuestionRenderer } from "@/components/shared/QuestionRenderer";
-import { RichContentViewer } from "@/components/shared/RichContentViewer";
 
-type OptionKey = "A" | "B" | "C" | "D";
-interface UserSelections {
-  [questionId: number]: OptionKey | undefined;
+interface QualitativeLevelInfo {
+  text: string;
+  colorClass: string;
+  IconComponent: React.ElementType;
 }
 
-const TEST_DURATION_SECONDS = 30 * 60;
+interface PointsBreakdown {
+  category: string;
+  points: number;
+  description: string;
+  icon: React.ElementType;
+  colorClass: string;
+}
 
+const getQualitativeLevelInfo = (
+  percentage: number | null,
+  tLevel: any
+): QualitativeLevelInfo => {
+  const defaultLevel = {
+    text: tLevel("notAvailable"),
+    colorClass: "text-muted-foreground",
+    IconComponent: HelpCircle,
+  };
+  if (percentage === null) return defaultLevel;
 
-const LevelAssessmentAttemptPage = () => {
+  if (percentage >= 90)
+    return {
+      text: tLevel("excellent"),
+      colorClass: "text-green-600 dark:text-green-500",
+      IconComponent: TrendingUp,
+    };
+  if (percentage >= 80)
+    return {
+      text: tLevel("veryGood"),
+      colorClass: "text-sky-600 dark:text-sky-500",
+      IconComponent: TrendingUp,
+    };
+  if (percentage >= 70)
+    return {
+      text: tLevel("good"),
+      colorClass: "text-blue-600 dark:text-blue-500",
+      IconComponent: CheckCircle,
+    };
+  if (percentage >= 50)
+    return {
+      text: tLevel("acceptable"),
+      colorClass: "text-yellow-500 dark:text-yellow-400",
+      IconComponent: AlertTriangle,
+    };
+  return {
+    text: tLevel("weak"),
+    colorClass: "text-red-600 dark:text-red-500",
+    IconComponent: XCircle,
+  };
+};
+
+const PointsAnimation: React.FC<{ points: number; delay?: number }> = ({ 
+  points, 
+  delay = 0 
+}) => {
+  const [animatedPoints, setAnimatedPoints] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const duration = 2000; // 2 seconds
+      const steps = 60;
+      const increment = points / steps;
+      let current = 0;
+
+      const interval = setInterval(() => {
+        current += increment;
+        if (current >= points) {
+          setAnimatedPoints(points);
+          clearInterval(interval);
+        } else {
+          setAnimatedPoints(Math.floor(current));
+        }
+      }, duration / steps);
+
+      return () => clearInterval(interval);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [points, delay]);
+
+  return (
+    <span className="font-bold text-2xl text-yellow-600">
+      +{animatedPoints.toLocaleString()}
+    </span>
+  );
+};
+
+const PointsBreakdownCard: React.FC<{
+  breakdown: PointsBreakdown[];
+  totalPoints: number;
+}> = ({ breakdown, totalPoints }) => {
+  const t = useTranslations("Study.determineLevel.score");
+  const [showAnimation, setShowAnimation] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowAnimation(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Card className="overflow-hidden border-2 border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950 dark:to-amber-950">
+      <CardHeader className="text-center pb-4">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Trophy className="h-6 w-6 text-yellow-600" />
+          <CardTitle className="text-xl">{t("pointsEarned")}</CardTitle>
+        </div>
+        <div className="flex items-center justify-center gap-3">
+          <Coins className="h-8 w-8 text-yellow-600" />
+          {showAnimation ? (
+            <PointsAnimation points={totalPoints} />
+          ) : (
+            <span className="font-bold text-2xl text-yellow-600">
+              +{totalPoints.toLocaleString()}
+            </span>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="text-center mb-4">
+          <h4 className="font-semibold text-sm text-muted-foreground mb-2">
+            {t("pointsBreakdown")}
+          </h4>
+        </div>
+        {breakdown.map((item, index) => (
+          <div
+            key={item.category}
+            className={`flex items-center justify-between p-3 rounded-lg bg-white/50 dark:bg-black/20 border transition-all duration-300 ${
+              showAnimation ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
+            }`}
+            style={{ transitionDelay: `${index * 200}ms` }}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${item.colorClass}`}>
+                <item.icon className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">{item.category}</p>
+                <p className="text-xs text-muted-foreground">{item.description}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Plus className="h-3 w-3 text-yellow-600" />
+              <span className="font-bold text-yellow-600">
+                {item.points.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        ))}
+        
+        <Separator className="my-4" />
+        
+        <div className="flex items-center justify-between p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border-2 border-yellow-300 dark:border-yellow-700">
+          <div className="flex items-center gap-2">
+            <Star className="h-5 w-5 text-yellow-600" />
+            <span className="font-semibold">{t("totalPoints")}</span>
+          </div>
+          <span className="font-bold text-xl text-yellow-600">
+            +{totalPoints.toLocaleString()}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const LevelAssessmentScorePage = () => {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const t = useTranslations("Study.determineLevel.quiz");
+  const t = useTranslations("Study.determineLevel.score");
+  const tLevel = useTranslations("Study.determineLevel.badgeColors");
   const tCommon = useTranslations("Common");
   const locale = params.locale as string;
+
   const attemptId = params.attemptId as string;
 
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [userSelections, setUserSelections] = useState<UserSelections>({});
-  const [timeLeft, setTimeLeft] = useState(TEST_DURATION_SECONDS);
-  const [isTimeUp, setIsTimeUp] = useState(false);
-  const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
-  const [localStarred, setLocalStarred] = useState(false);
-  const [isReady, setIsReady] = useState(false); // NEW: State to prevent premature rendering
+  // Get auth state and actions for updating global user profile ---
+  const { user } = useAuthStore();
+  const { updateUserProfile } = useAuthActions();
+  const hasUpdatedProfileRef = useRef(false);
 
-  // NEW: State for time tracking per question
-  const [questionStartTime, setQuestionStartTime] = useState<number>(0);
+  const completionData =
+    queryClient.getQueryData<UserTestAttemptCompletionResponse>(
+      queryKeys.tests.completionResult(attemptId)
+    );
 
-  // إضافة state لتسجيل وقت بداية الاختبار
-  const [testStartTime, setTestStartTime] = useState<number | null>(null);
-
-  // Debug logs to help diagnose why the page is empty
-  console.log("[DEBUG] Render: isLoadingAttempt, isReady, attemptId", { attemptId });
-
-
-  useEffect(() => {
-    setDirection(document.documentElement.dir as "ltr" | "rtl");
-  }, []);
-
-  // MODIFIED: Use the new `resumeTestAttempt` service function
   const {
-    data: attemptData,
-    isLoading: isLoadingAttempt,
-    error: attemptError,
-    isSuccess,
-  } = useQuery<UserTestAttemptResume, Error>({
-    queryKey: queryKeys.tests.resume(attemptId),
-    queryFn: () => resumeTestAttempt(attemptId),
-    enabled: !!attemptId,
+    data: reviewData,
+    isLoading: isLoadingReview,
+    error,
+  } = useQuery<UserTestAttemptReviewResponse, Error>({
+    queryKey: queryKeys.tests.review(attemptId),
+    queryFn: () => getTestAttemptReview(attemptId),
+    enabled: !!attemptId && !completionData,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  // Log after fetching attemptData
   useEffect(() => {
-    console.log("[DEBUG] useQuery", { isLoadingAttempt, isReady, attemptData, attemptError });
-  }, [isLoadingAttempt, isReady, attemptData, attemptError]);
+    if (completionData && user && !hasUpdatedProfileRef.current) {
+      const totalPointsEarned =
+        (completionData.points_from_test_completion_event ?? 0) +
+        (completionData.points_from_correct_answers_this_test ?? 0);
 
-  const questions: UnifiedQuestion[] = useMemo(
-    () => attemptData?.questions || [],
-    [attemptData]
-  );
+      const newStreakDays = completionData.streak_info?.current_days;
 
-  // MODIFIED: Enhanced useEffect to handle resume logic
-  useEffect(() => {
-    console.log("[DEBUG] useEffect (resume logic)", { isSuccess, attemptData });
-    if (isSuccess && attemptData) {
-      if (attemptData.total_questions === attemptData.answered_question_count) {
-        // All questions answered, but not completed. Force completion.
-        handleCompleteTest(false, true);
-        return;
+      const profileUpdates: Partial<UserProfile> = {};
+      let hasGamificationUpdate = false;
+
+      if (totalPointsEarned > 0) {
+        profileUpdates.points = user.points + totalPointsEarned;
+        hasGamificationUpdate = true;
       }
 
-      const initialSelections: UserSelections = {};
-      let firstUnansweredIndex = -1;
+      if (
+        newStreakDays !== undefined &&
+        newStreakDays !== user.current_streak_days
+      ) {
+        profileUpdates.current_streak_days = newStreakDays;
+        hasGamificationUpdate = true;
+      }
 
-      attemptData.questions.forEach((q, index) => {
-        if (q.user_answer_details?.selected_choice) {
-          initialSelections[q.id] = q.user_answer_details.selected_choice;
-        } else if (firstUnansweredIndex === -1) {
-          firstUnansweredIndex = index;
+      if (user.level_determined === false) {
+        profileUpdates.level_determined = true;
+      }
+
+      if (Object.keys(profileUpdates).length > 0) {
+        // 1. Update the global client-side state for immediate UI feedback in the header
+        updateUserProfile(profileUpdates);
+        hasUpdatedProfileRef.current = true;
+
+        // 2. --- NEW: Invalidate server-state caches ---
+        // If points or streak were updated, the data for their dropdowns is now stale.
+        if (hasGamificationUpdate) {
+          console.log("Invalidating gamification query caches...");
+          // Invalidate the weekly points summary so the dropdown refetches
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.gamification.pointsSummary(user.id),
+          });
+          // Invalidate the study days log for the streak dropdown
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.gamification.studyDaysLog(user.id),
+          });
         }
-      });
-
-      setUserSelections(initialSelections);
-      setCurrentQuestionIndex(
-        firstUnansweredIndex !== -1 ? firstUnansweredIndex : 0
-      );
-      setIsReady(true);
-      
-      // تسجيل وقت بداية الاختبار
-      setTestStartTime(Date.now());
+      }
     }
-  }, [isSuccess, attemptData]);
+  }, [completionData, user, updateUserProfile, t, queryClient]);
 
-  const currentQuestion: UnifiedQuestion | undefined =
-    questions[currentQuestionIndex];
+  const isLoading = isLoadingReview && !completionData;
+  const combinedData = completionData || reviewData;
 
-  // NEW: useEffect to start the timer for a new question
-  useEffect(() => {
-    if (isReady && currentQuestion) {
-      setQuestionStartTime(Date.now());
-      setLocalStarred(currentQuestion.is_starred);
-    }
-  }, [currentQuestionIndex, isReady, currentQuestion]);
-
-  // Timer logic remains the same...
-  useEffect(() => {
-    if (!isReady || isLoadingAttempt || isTimeUp) return;
-    if (timeLeft <= 0) {
-      setIsTimeUp(true);
-      toast.warning(t("timeOver"), { duration: 5000 });
-      handleCompleteTest(true);
-      return;
-    }
-    const timerId = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-    return () => clearInterval(timerId);
-  }, [timeLeft, isLoadingAttempt, isReady, isTimeUp]);
-
-  const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(
-      2,
-      "0"
-    )}`;
-  };
-
-  const submitAnswerMutation = useMutation({
-    mutationFn: (payload: SubmitAnswerPayload & { attemptId: string }) =>
-      submitAnswer(payload.attemptId, {
-        question_id: payload.question_id,
-        selected_answer: payload.selected_answer,
-        time_taken_seconds: payload.time_taken_seconds,
-      }),
-    onSuccess: (data: SubmitAnswerResponse, variables) => {
-      // `data` is the response from the API, which includes the updated question object.
-      // `variables` is what we sent to the mutation.
-      const queryKey = queryKeys.tests.resume(variables.attemptId);
-
-      // Use setQueryData to update the cache for the resume endpoint
-      queryClient.setQueryData<UserTestAttemptResume>(queryKey, (oldData) => {
-        // If for some reason the cache is empty, do nothing.
-        if (!oldData) {
-          return undefined;
-        }
-
-        // Check if this question was already answered before this submission.
-        const wasAlreadyAnswered =
-          oldData.questions.find((q) => q.id === data.question.id)
-            ?.user_answer_details !== null;
-
-        // Create a new array of questions, replacing the one we just answered
-        // with the updated version from the API response.
-        const newQuestions = oldData.questions.map((q) =>
-          q.id === data.question.id ? data.question : q
-        );
-
-        // Return the new state for the cache.
-        // It's crucial to return a new object to trigger a re-render.
-        return {
-          ...oldData,
-          questions: newQuestions,
-          // Increment the answered count only if it was a new answer.
-          answered_question_count: wasAlreadyAnswered
-            ? oldData.answered_question_count
-            : oldData.answered_question_count + 1,
-        };
-      });
-    },
-    onError: (error: any, variables) => {
-      const errorMsg = getApiErrorMessage(error, tCommon("errors.generic"));
-      toast.error(
-        t("api.answerSubmitError", {
-          questionId: variables.question_id,
-          error: errorMsg,
-        })
-      );
-    },
-  });
-
-  const completeTestMutation = useMutation<
-    UserTestAttemptCompletionResponse,
-    Error,
-    string
-  >({
-    mutationFn: completeTestAttempt,
-    onSuccess: (data, attemptId) => {
-      toast.success(t("api.testCompletedSuccess"));
-      queryClient.setQueryData(
-        queryKeys.tests.completionResult(attemptId),
-        data
+  const retakeMutation = useMutation<UserTestAttemptStartResponse, Error>({
+    mutationFn: () => retakeTestAttempt(attemptId),
+    onSuccess: (data) => {
+      toast.success(
+        t("api.retakeSuccessNewTest", { attemptId: data.attempt_id })
       );
       queryClient.invalidateQueries({
         queryKey: queryKeys.tests.lists(),
       });
-      router.push(PATHS.STUDY.DETERMINE_LEVEL.SCORE(attemptId));
+      router.push(PATHS.STUDY.DETERMINE_LEVEL.ATTEMPT(data.attempt_id));
     },
-    onError: (error: any) => {
-      const errorMsg = getApiErrorMessage(error, tCommon("errors.generic"));
-      toast.error(t("api.testCompleteError", { error: errorMsg }));
-    },
-  });
-
-  const cancelTestMutation = useMutation({
-    mutationFn: cancelTestAttempt,
-    onSuccess: () => {
-      toast.success(t("api.testCancelledSuccess"));
-      queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
-      queryClient.removeQueries({
-        queryKey: queryKeys.tests.detail(attemptId),
-      });
-      router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST);
-    },
-    onError: (error: any) => {
-      const errorMsg = getApiErrorMessage(error, tCommon("errors.generic"));
-      toast.error(t("api.testCancelError", { error: errorMsg }));
+    onError: (err: any) => {
+      const errorMsg = getApiErrorMessage(err, tCommon("errors.generic"));
+      toast.error(t("api.retakeError", { error: errorMsg }));
     },
   });
 
-  const handleSelectAnswer = (selectedOption: OptionKey) => {
-    if (currentQuestion) {
-      setUserSelections((prev) => ({
-        ...prev,
-        [currentQuestion.id]: selectedOption,
-      }));
-    }
+  const handleRetakeTest = () => {
+    retakeMutation.mutate();
   };
 
-  // MODIFIED: Function to handle answer submission with timing
-  const submitCurrentAnswer = async (
-    questionId: number,
-    selectedAnswer: OptionKey | undefined
-  ) => {
-    if (selectedAnswer) {
-      const timeTakenSeconds = Math.round(
-        (Date.now() - questionStartTime) / 1000
-      );
-      await submitAnswerMutation.mutateAsync({
-        attemptId,
-        question_id: questionId,
-        selected_answer: selectedAnswer,
-        time_taken_seconds: timeTakenSeconds,
+  const displayData = useMemo(() => {
+    if (!combinedData) return null;
+
+    if ("score" in combinedData && combinedData.score) {
+      const data = combinedData as UserTestAttemptCompletionResponse;
+      const answeredCount = data.answered_question_count;
+      const correctCount = data.correct_answers_in_test_count;
+      return {
+        isFallback: false,
+        overallScore: data.score.overall,
+        verbalScore: data.score.verbal,
+        quantitativeScore: data.score.quantitative,
+        results_summary: data.results_summary,
+        smart_analysis: data.smart_analysis,
+        badges_won: data.badges_won,
+        streak_info: data.streak_info,
+        totalQuestions: data.total_questions,
+        correctAnswers: correctCount,
+        answeredQuestionsCount: answeredCount,
+        incorrectAnswers: answeredCount - correctCount,
+        skippedAnswers: data.total_questions - answeredCount,
+        totalPointsEarned:
+          (data.points_from_test_completion_event ?? 0) +
+          (data.points_from_correct_answers_this_test ?? 0),
+        pointsFromCompletion: data.points_from_test_completion_event ?? 0,
+        pointsFromCorrectAnswers: data.points_from_correct_answers_this_test ?? 0,
+        timeTakenMinutes: null,
+      };
+    }
+
+    const data = combinedData as UserTestAttemptReviewResponse;
+    const totalQuestions = data.questions.length;
+    const answeredCount = data.questions.filter(
+      (q) => q.user_answer_details?.selected_choice !== null
+    ).length;
+    const correctCount = data.questions.filter(
+      (q) => q.user_answer_details?.is_correct === true
+    ).length;
+
+    return {
+      isFallback: true,
+      overallScore: data.score_percentage,
+      verbalScore: data.score_verbal,
+      quantitativeScore: data.score_quantitative,
+      results_summary: data.results_summary,
+      smart_analysis: null,
+      badges_won: [],
+      streak_info: null,
+      totalQuestions: totalQuestions,
+      correctAnswers: correctCount,
+      incorrectAnswers: answeredCount - correctCount,
+      skippedAnswers: totalQuestions - answeredCount,
+      totalPointsEarned: 0,
+      pointsFromCompletion: 0,
+      pointsFromCorrectAnswers: 0,
+      timeTakenMinutes: data.time_taken_minutes ?? null,
+    };
+  }, [combinedData]);
+
+  // Calculate points breakdown
+  const pointsBreakdown: PointsBreakdown[] = useMemo(() => {
+    if (!displayData || displayData.totalPointsEarned === 0) return [];
+
+    const breakdown: PointsBreakdown[] = [];
+
+    if (displayData.pointsFromCompletion > 0) {
+      breakdown.push({
+        category: t("completionBonus"),
+        points: displayData.pointsFromCompletion,
+        description: t("completionBonusDesc"),
+        icon: Gift,
+        colorClass: "bg-gradient-to-r from-blue-500 to-blue-600",
       });
     }
-  };
 
-  const handleNext = async () => {
-    if (currentQuestion) {
-      await submitCurrentAnswer(
-        currentQuestion.id,
-        userSelections[currentQuestion.id]
-      );
+    if (displayData.pointsFromCorrectAnswers > 0) {
+      breakdown.push({
+        category: t("correctAnswersPoints"),
+        points: displayData.pointsFromCorrectAnswers,
+        description: t("correctAnswersPointsDesc", { 
+          count: displayData.correctAnswers 
+        }),
+        icon: Zap,
+        colorClass: "bg-gradient-to-r from-green-500 to-green-600",
+      });
     }
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
-    } else {
-      // User is on the last question, clicking Next should trigger completion flow
-      handleCompleteTest();
-    }
-  };
 
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex((prev) => prev - 1);
+    // Add bonus for high performance
+    if (displayData.overallScore && displayData.overallScore >= 90) {
+      const bonusPoints = Math.floor(displayData.totalPointsEarned * 0.1);
+      if (bonusPoints > 0) {
+        breakdown.push({
+          category: t("excellenceBonus"),
+          points: bonusPoints,
+          description: t("excellenceBonusDesc"),
+          icon: Star,
+          colorClass: "bg-gradient-to-r from-yellow-500 to-yellow-600",
+        });
+      }
     }
-  };
 
-  const handleCompleteTest = async (
-    autoSubmittedDueToTimeUp = false,
-    forceComplete = false
-  ) => {
-    if (
-      currentQuestion &&
-      userSelections[currentQuestion.id] &&
-      !autoSubmittedDueToTimeUp &&
-      !forceComplete
-    ) {
-      await submitCurrentAnswer(
-        currentQuestion.id,
-        userSelections[currentQuestion.id]
-      );
-    }
-    
-    // حساب الوقت المستغرق قبل إكمال الاختبار
-    if (testStartTime) {
-      const timeTaken = Date.now() - testStartTime;
-      const minutes = Math.floor(timeTaken / 60000);
-      const seconds = Math.floor((timeTaken % 60000) / 1000);
-      
-      // حفظ الوقت في localStorage مع تنسيق جديد
-      localStorage.setItem(`test_time_${attemptId}`, JSON.stringify({
-        minutes,
-        seconds,
-        total_seconds: Math.floor(timeTaken / 1000),
-        formatted: `${minutes}:${seconds.toString().padStart(2, '0')}`,
-        // إضافة تنسيق جديد للعرض
-        displayText: `${minutes} دقيقة ${seconds} ثانية`
-      }));
-    }
-    
-    completeTestMutation.mutate(attemptId);
-  };
+    return breakdown;
+  }, [displayData, t]);
 
-  const handleCancelTest = () => {
-    cancelTestMutation.mutate(attemptId);
-  };
+  if (isLoading) return <ScorePageSkeleton />;
 
-  // RENDER LOGIC
-  if (isLoadingAttempt || !isReady) return <QuizPageSkeleton />;
-  if (attemptError || !attemptData) {
+  if (error || !displayData) {
     return (
       <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertTriangle className="h-5 w-5" />
+        <Alert variant="destructive" className="max-w-md text-center">
+          <AlertTriangle className="mx-auto mb-2 h-6 w-6" />
           <AlertTitle>{tCommon("errors.fetchFailedTitle")}</AlertTitle>
           <AlertDescription>
-            {getApiErrorMessage(attemptError, tCommon("errors.generic"))}
+            {getApiErrorMessage(error, t("errors.fetchReviewFailed"))}
           </AlertDescription>
-        </Alert>
-        <Button
-          onClick={() => router.back()}
-          variant="outline"
-          className="mt-6"
-        >
-          {locale === "ar" ? (
-            <ArrowRight className="me-2 h-4 w-4" />
-          ) : (
-            <ArrowLeft className="me-2 h-4 w-4" />
-          )}
-          {tCommon("back")}
-        </Button>
-      </div>
-    );
-  }
-
-  if (!currentQuestion) {
-    return (
-      <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
-        <Alert variant="default" className="max-w-md">
-          <AlertTriangle className="h-5 w-5" />
-          <AlertTitle>{t("noQuestionsTitle")}</AlertTitle>
-          <AlertDescription>{t("noQuestionsDescription")}</AlertDescription>
         </Alert>
         <Button
           onClick={() => router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST)}
@@ -403,248 +465,421 @@ const LevelAssessmentAttemptPage = () => {
           className="mt-6"
         >
           {locale === "ar" ? (
-            <ArrowRight className="me-2 h-4 w-4" />
+            <ArrowRight className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
           ) : (
-            <ArrowLeft className="me-2 h-4 w-4" />
+            <ArrowLeft className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
           )}
-          {tCommon("backToList")}
+          {t("backToOverview")}
         </Button>
       </div>
     );
   }
 
-  const progressValue = ((currentQuestionIndex + 1) / questions.length) * 100;
+  const {
+    overallScore,
+    verbalScore,
+    quantitativeScore,
+    results_summary,
+    smart_analysis,
+    badges_won,
+    streak_info,
+    totalQuestions,
+    correctAnswers,
+    incorrectAnswers,
+    skippedAnswers,
+    totalPointsEarned,
+    timeTakenMinutes,
+  } = displayData;
+
+  const levelInfo = getQualitativeLevelInfo(overallScore, tLevel);
+
+  let AdviceIconComponent: React.ElementType = ThumbsUp;
+  if (smart_analysis && overallScore !== null && overallScore < 50) {
+    AdviceIconComponent = AlertTriangle;
+  }
 
   return (
-    <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
-      
-      <Card className="w-full max-w-3xl shadow-xl dark:bg-[#0B1739]">
-        <CardHeader dir={locale === "en" ? "ltr" : "rtl"} className="pb-4">
-          <div className="mb-3 flex items-center justify-between">
-            <CardTitle className="text-xl md:text-2xl">{t("title")}</CardTitle>
-            <ConfirmationDialog
-              triggerButton={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <XCircle className="me-1.5 h-4 w-4 rtl:me-0 rtl:ms-1.5" />
-                  {t("endTest")}
-                </Button>
-              }
-              title={t("cancelDialog.title")}
-              description={t("cancelDialog.description")}
-              confirmActionText={t("cancelDialog.confirmButton")}
-              cancelActionText={tCommon("no")}
-              onConfirm={handleCancelTest}
-              isConfirming={cancelTestMutation.isPending}
-              confirmButtonVariant="destructive"
-            />
-          </div>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-          
-            <span>
-              {t("question")} {currentQuestionIndex + 1} {t("outOf")}{" "}
-              {questions.length}
-            </span>
-            <div className="flex items-center">
-              <Clock className="me-1.5 h-4 w-4 rtl:me-0 rtl:ms-1.5" />
-              <span>{formatTime(timeLeft)}</span>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8">
+      <Card className="mx-auto max-w-4xl shadow-xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold md:text-3xl">
+            {t("yourScoreIsReady")}
+          </CardTitle>
+          {overallScore !== null ? (
+            <div className="mt-4">
+              <span
+                className={`inline-flex items-center rounded-full bg-primary px-6 py-3 text-3xl font-bold text-primary-foreground shadow-lg`}
+              >
+                {overallScore.toFixed(0)}
+                <span className="ms-1 text-xl opacity-80">/100</span>
+              </span>
             </div>
-          </div>
-          <Progress value={progressValue} className="mt-2 h-2 w-full" />
+          ) : (
+            <div className="mt-4">
+              <span className="inline-flex items-center rounded-full bg-muted px-6 py-3 text-2xl font-bold text-muted-foreground shadow-lg">
+                {tCommon("status.notAvailableShort")}
+              </span>
+            </div>
+          )}
         </CardHeader>
 
-        <CardContent className="min-h-[250px] py-6">
-          <div className="flex items-start gap-4 mb-6">
-            <div className="flex-1">
-              <QuestionRenderer
-                questionText={currentQuestion.question_text}
-                imageUrl={currentQuestion.image}
+        <CardContent className="space-y-8 pt-6">
+          {/* Enhanced Points Display Section */}
+          {totalPointsEarned > 0 && (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PointsBreakdownCard 
+                  breakdown={pointsBreakdown} 
+                  totalPoints={totalPointsEarned}
+                />
+                
+                {/* Other gamification elements */}
+                <div className="space-y-4">
+                  {streak_info && (
+                    <Card className="p-4 text-center border-orange-200 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950">
+                      <Flame className="mx-auto mb-2 h-8 w-8 text-orange-500" />
+                      <p className="text-sm text-muted-foreground">
+                        {t("currentStreak")}
+                      </p>
+                      <p className="text-xl font-bold">
+                        {streak_info.current_days} {t("days")}
+                        {streak_info.updated && (
+                          <CheckCircle className="ms-1 inline-block h-5 w-5 text-green-500" />
+                        )}
+                      </p>
+                    </Card>
+                  )}
+                  
+                  {badges_won && badges_won.length > 0 && (
+                    <Card className="p-4 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950">
+                      <Award className="mx-auto mb-2 h-8 w-8 text-indigo-500" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {t("badgesUnlocked")}
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {badges_won.map((badge) => (
+                          <Badge
+                            key={badge.slug}
+                            variant="secondary"
+                            className="text-xs"
+                            title={badge.description}
+                          >
+                            {badge.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          {/* Rest of the original gamification display for cases where totalPointsEarned is 0 */}
+          {totalPointsEarned === 0 && (streak_info || (badges_won && badges_won.length > 0)) && (
+            <>
+              <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2">
+                {streak_info && (
+                  <Card className="p-4">
+                    <Flame className="mx-auto mb-2 h-8 w-8 text-orange-500" />
+                    <p className="text-sm text-muted-foreground">
+                      {t("currentStreak")}
+                    </p>
+                    <p className="text-xl font-bold">
+                      {streak_info.current_days} {t("days")}
+                      {streak_info.updated && (
+                        <CheckCircle className="ms-1 inline-block h-5 w-5 text-green-500" />
+                      )}
+                    </p>
+                  </Card>
+                )}
+                {badges_won && badges_won.length > 0 && (
+                  <Card className="p-4">
+                    <Award className="mx-auto mb-2 h-8 w-8 text-indigo-500" />
+                    <p className="text-sm text-muted-foreground">
+                      {t("badgesUnlocked")}
+                    </p>
+                    <div className="mt-1 flex flex-wrap justify-center gap-2">
+                      {badges_won.map((badge) => (
+                        <Badge
+                          key={badge.slug}
+                          variant="secondary"
+                          className="text-xs"
+                          title={badge.description}
+                        >
+                          {badge.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+              </div>
+              <Separator />
+            </>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="p-4">
+              <Clock className="mx-auto mb-2 h-8 w-8 text-primary" />
+              <p className="text-sm text-muted-foreground">{t("timeTaken")}</p>
+              {timeTakenMinutes !== null ? (
+                <p className="text-xl font-bold">
+                  {timeTakenMinutes} {t("minutes")}
+                </p>
+              ) : (
+                <p className="text-lg font-semibold text-muted-foreground">
+                  {tCommon("status.notAvailableShort")}
+                </p>
+              )}
+            </Card>
+            <Card className="p-4">
+              <levelInfo.IconComponent
+                className={`mx-auto mb-2 h-8 w-8 ${levelInfo.colorClass}`}
               />
-            </div>
-            <div className="flex-shrink-0 pt-2">
-              <StarButton
-                questionId={currentQuestion.id}
-                isStarred={localStarred}
-                onStarChange={(newState) => setLocalStarred(newState)}
-                disabled={false}
-                attemptId={attemptId}
-              />
-            </div>
+              <p className="text-sm text-muted-foreground">
+                {t("currentLevel")}
+              </p>
+              <p className={`text-xl font-bold ${levelInfo.colorClass}`}>
+                {levelInfo.text}
+              </p>
+            </Card>
+            <Card className="p-4">
+              <CheckCircle className="mx-auto mb-2 h-8 w-8 text-green-500" />
+              <p className="text-sm text-muted-foreground">
+                {t("correctAnswers")}
+              </p>
+              <p className="text-xl font-bold">
+                {correctAnswers}{" "}
+                <span className="text-base text-muted-foreground">
+                  /{totalQuestions || tCommon("status.notAvailableShort")}
+                </span>
+              </p>
+            </Card>
+            <Card className="p-4">
+              <XCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
+              <p className="text-sm text-muted-foreground">
+                {t("incorrectAnswers")}
+              </p>
+              <p className="text-xl font-bold">
+                {incorrectAnswers}
+                {skippedAnswers > 0 && (
+                  <span className="ms-2 text-sm font-normal text-muted-foreground">
+                    (+{skippedAnswers} {t("skipped")})
+                  </span>
+                )}
+              </p>
+            </Card>
           </div>
 
-          {currentQuestion.options ? (
-            <RadioGroup
-              value={userSelections[currentQuestion.id] || ""}
-              onValueChange={(value: string) =>
-                handleSelectAnswer(value as OptionKey)
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {(verbalScore !== null || quantitativeScore !== null) &&
+              totalQuestions > 0 && (
+                <div dir="ltr">
+                  <h3 className="mb-4 text-center text-xl font-semibold">
+                    <BarChart3 className="me-2 inline-block h-6 w-6 rtl:me-0 rtl:ms-2" />
+                    {t("scoreDistribution")}
+                  </h3>
+                  <ScorePieChart
+                    verbalScore={verbalScore}
+                    quantitativeScore={quantitativeScore}
+                  />
+                </div>
+              )}
+
+            {results_summary && Object.keys(results_summary).length > 0 && (
+              <div>
+                <h3 className="mb-4 text-center text-xl font-semibold">
+                  <Target className="me-2 inline-block h-6 w-6 rtl:me-0 rtl:ms-2" />
+                  {t("detailedPerformance")}
+                </h3>
+                <Card>
+                  <CardContent className="max-h-80 space-y-3 overflow-y-auto p-4">
+                    {Object.entries(results_summary).map(([key, item]) => (
+                      <div key={key} className="rounded-md border p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <BookOpenCheck className="me-2 h-5 w-5 text-muted-foreground rtl:me-0 rtl:ms-2" />
+                            <span className="font-medium">{item.name}</span>
+                          </div>
+                          <Badge
+                            variant={
+                              item.score >= 70
+                                ? "default"
+                                : item.score >= 50
+                                ? "secondary"
+                                : "destructive"
+                            }
+                          >
+                            {item.score.toFixed(0)}%
+                          </Badge>
+                        </div>
+                        <div className="mt-1 flex justify-between text-sm text-muted-foreground">
+                          <span>
+                            {t("correct")}: {item.correct}/{item.total}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+
+          {smart_analysis && (
+            <Alert
+              className="mt-6"
+              variant={
+                AdviceIconComponent === AlertTriangle
+                  ? "destructive"
+                  : "default"
               }
-              className="space-y-3 mt-8"
-              dir={direction}
             >
-              {Object.entries(currentQuestion.options).map(([key, text]) => {
-                const optionKey = key as OptionKey;
-                return (
-                  <Label
-                    key={optionKey}
-                    htmlFor={`${currentQuestion.id}-${optionKey}`}
-                    className="has-[input:checked]:border-primary has-[input:checked]:bg-primary has-[input-checked]:text-primary-foreground flex cursor-pointer items-center space-x-3 rounded-md border p-3 text-base transition-colors hover:bg-accent rtl:space-x-reverse"
-                  >
-                    <RadioGroupItem
-                      value={optionKey}
-                      id={`${currentQuestion.id}-${optionKey}`}
-                      className="border-primary text-primary"
-                    />
-                    <RichContentViewer
-                      htmlContent={text}
-                      className="prose dark:prose-invert max-w-none flex-1"
-                    />
-                  </Label>
-                );
-              })}
-            </RadioGroup>
-          ) : (
-            <Alert variant="destructive">
-              <HelpCircle className="h-5 w-5" />
-              <AlertTitle>{t("questionLoadError.title")}</AlertTitle>
-              <AlertDescription>
-                {t("questionLoadError.description", {
-                  questionId: currentQuestion.id,
-                })}
-              </AlertDescription>
+              <AdviceIconComponent className="me-3 mt-1 h-5 w-5 flex-shrink-0 rtl:me-0 rtl:ms-3" />
+              <div>
+                <AlertTitle className="mb-1 font-semibold">
+                  {t("smartAnalysisTitle")}
+                </AlertTitle>
+                <AlertDescription className="text-base">
+                  {smart_analysis}
+                </AlertDescription>
+              </div>
             </Alert>
           )}
         </CardContent>
 
-        <CardFooter
-          dir={locale === "en" ? "ltr" : "rtl"}
-          className="flex flex-col items-center justify-between gap-3 pt-6 sm:flex-row"
-        >
+        <CardFooter className="flex flex-col-reverse justify-center gap-3 pt-8 sm:flex-row sm:gap-4">
           <Button
+            asChild
             variant="outline"
-            onClick={handlePrevious}
-            disabled={
-              currentQuestionIndex === 0 ||
-              completeTestMutation.isPending ||
-              cancelTestMutation.isPending
-            }
+            size="lg"
             className="w-full sm:w-auto"
           >
-            {locale === "ar" ? (
-              <ChevronRight className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
-            ) : (
-              <ChevronLeft className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
-            )}
-            {t("previous")}
+            <Link href={PATHS.STUDY.DETERMINE_LEVEL.LIST}>
+              <ListTree className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
+              {t("backToOverview")}
+            </Link>
           </Button>
-          {currentQuestionIndex < questions.length - 1 ? (
-            <Button
-              onClick={handleNext}
-              disabled={
-                !userSelections[currentQuestion.id] ||
-                !currentQuestion.options ||
-                completeTestMutation.isPending ||
-                cancelTestMutation.isPending ||
-                (submitAnswerMutation.isPending &&
-                  submitAnswerMutation.variables?.question_id ===
-                    currentQuestion?.id)
-              }
-              className="w-full sm:w-auto"
-            >
-              {submitAnswerMutation.isPending &&
-                submitAnswerMutation.variables?.question_id ===
-                  currentQuestion?.id && (
-                  <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
-                )}
-              {t("next")}
-              {locale === "ar" ? (
-                <ChevronLeft className="ms-2 h-5 w-5 rtl:me-2 rtl:ms-0" />
-              ) : (
-                <ChevronRight className="ms-2 h-5 w-5 rtl:me-2 rtl:ms-0" />
-              )}
-            </Button>
-          ) : (
-            <ConfirmationDialog
-              triggerButton={
-                <Button
-                  className="w-full sm:w-auto"
-                  disabled={
-                    !userSelections[currentQuestion.id] ||
-                    !currentQuestion.options ||
-                    completeTestMutation.isPending ||
-                    cancelTestMutation.isPending ||
-                    (submitAnswerMutation.isPending &&
-                      submitAnswerMutation.variables?.question_id ===
-                        currentQuestion?.id)
-                  }
-                >
-                  {completeTestMutation.isPending && (
-                    <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
-                  )}
-                  <Send className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
-                  {t("submitAnswers")}
-                </Button>
-              }
-              title={t("completeDialog.title")}
-              description={t("completeDialog.description")}
-              confirmActionText={t("completeDialog.confirmButton")}
-              cancelActionText={tCommon("no")}
-              onConfirm={() => handleCompleteTest(false)}
-              isConfirming={completeTestMutation.isPending}
-              confirmButtonVariant="default"
-            />
-          )}
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={handleRetakeTest}
+            disabled={retakeMutation.isPending}
+            className="w-full sm:w-auto"
+          >
+            {retakeMutation.isPending ? (
+              <Loader2 className="me-2 h-5 w-5 animate-spin rtl:me-0 rtl:ms-2" />
+            ) : (
+              <RefreshCcw className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
+            )}
+            {t("retakeTest")}
+          </Button>
+          <Button
+            asChild
+            variant="default"
+            size="lg"
+            className="w-full sm:w-auto"
+          >
+            <Link href={PATHS.STUDY.DETERMINE_LEVEL.REVIEW(attemptId)}>
+              <FileText className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
+              {tCommon("reviewTest")}
+            </Link>
+          </Button>
         </CardFooter>
       </Card>
     </div>
   );
 };
 
-const QuizPageSkeleton = ({ message }: { message?: string }) => {
+const ScorePageSkeleton = () => {
   return (
-    <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
-      <Card className="w-full max-w-3xl">
-        <CardHeader className="pb-4">
-          <div className="mb-3 flex items-center justify-between">
-            <Skeleton className="h-7 w-1/2" />
-            <Skeleton className="h-8 w-24" />
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <Skeleton className="h-5 w-1/3" />
-            <Skeleton className="h-5 w-1/4" />
-          </div>
-          <Skeleton className="mt-2 h-2 w-full" />
+    <div className="container mx-auto p-4 md:p-6 lg:p-8">
+      <Card className="mx-auto max-w-4xl">
+        <CardHeader className="text-center">
+          <Skeleton className="mx-auto mb-4 h-8 w-3/5" />
+          <Skeleton className="mx-auto h-16 w-36 rounded-full" />
         </CardHeader>
-        <CardContent className="min-h-[250px] py-6">
-          {message ? (
-            <p className="text-center text-muted-foreground">{message}</p>
-          ) : (
-            <>
-              <Skeleton className="mb-6 h-6 w-3/4" />
-              <div className="space-y-4">
-                {[...Array(4)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center space-x-3 rtl:space-x-reverse"
-                  >
-                    <Skeleton className="h-5 w-5 rounded-full" />
-                    <Skeleton className="h-10 flex-1 rounded-md" />
+        <CardContent className="space-y-8 pt-6">
+          {/* Enhanced Points Section Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-2 border-yellow-200">
+              <CardHeader className="text-center pb-4">
+                <Skeleton className="mx-auto mb-2 h-6 w-32" />
+                <Skeleton className="mx-auto h-8 w-24" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Skeleton className="mx-auto mb-4 h-4 w-24" />
+                {[...Array(3)].map((_, i) => (
+                  <div key={`points-skel-${i}`} className="flex items-center justify-between p-3 rounded-lg bg-white/50">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-5 w-12" />
                   </div>
                 ))}
-              </div>
-            </>
-          )}
+                <Skeleton className="h-px w-full my-4" />
+                <div className="p-3 bg-yellow-100 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="space-y-4">
+              <Card className="p-4 text-center">
+                <Skeleton className="mx-auto mb-2 h-8 w-8 rounded-full" />
+                <Skeleton className="mx-auto mb-1 h-4 w-3/4" />
+                <Skeleton className="mx-auto h-6 w-1/2" />
+              </Card>
+              <Card className="p-4">
+                <Skeleton className="mx-auto mb-2 h-8 w-8 rounded-full" />
+                <Skeleton className="mx-auto mb-2 h-4 w-3/4" />
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+              </Card>
+            </div>
+          </div>
+          
+          <Skeleton className="h-px w-full" />
+          
+          <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={`core-skel-${i}`} className="p-4">
+                <Skeleton className="mx-auto mb-2 h-8 w-8 rounded-full" />
+                <Skeleton className="mx-auto mb-1 h-4 w-3/4" />
+                <Skeleton className="mx-auto h-6 w-1/2" />
+              </Card>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div>
+              <Skeleton className="mx-auto mb-4 h-6 w-1/3" />
+              <Skeleton className="h-64 w-full rounded-md" />
+            </div>
+            <div>
+              <Skeleton className="mx-auto mb-4 h-6 w-1/3" />
+              <Skeleton className="h-64 w-full rounded-md" />
+            </div>
+          </div>
+          <Skeleton className="h-20 w-full rounded-md" />
         </CardContent>
-        <CardFooter className="flex flex-col items-center justify-between gap-3 pt-6 sm:flex-row">
-          <Skeleton className="h-10 w-full sm:w-28" />
-          <Skeleton className="h-10 w-full sm:w-28" />
+        <CardFooter className="flex flex-col-reverse justify-center gap-3 pt-8 sm:flex-row sm:gap-4">
+          <Skeleton className="h-12 w-full sm:w-40" />
+          <Skeleton className="h-12 w-full sm:w-36" />
+          <Skeleton className="h-12 w-full sm:w-40" />
         </CardFooter>
       </Card>
     </div>
   );
 };
 
-export default LevelAssessmentAttemptPage;
-
+export default LevelAssessmentScorePage;
