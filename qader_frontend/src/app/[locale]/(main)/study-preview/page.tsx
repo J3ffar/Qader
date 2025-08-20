@@ -7,6 +7,7 @@ import { useAuthCore } from "@/store/auth.store";
 import SignupModal from "@/components/auth/SignupModal";
 import {
   UserPlusIcon,
+  HomeIcon,
   BookOpenIcon,
   NewspaperIcon,
   ChatBubbleLeftRightIcon,
@@ -19,6 +20,10 @@ import {
   QuestionMarkCircleIcon,
   ExclamationCircleIcon,
   Cog6ToothIcon,
+  BellIcon,
+  UserIcon,
+  
+  PresentationChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import LoginModal from "@/components/auth/LoginModal";
@@ -36,97 +41,166 @@ const StudyPage = () => {
       router.push("/study");
     }
   }, [isAuthenticated, router]);
+  
   if (isAuthenticated) {
     return null;
   }
 
-  const switchToLogin = () => {
-    setShowSignup(false);
-    setShowLogin(true);
-  };
-
-  const openSignup = () => {
-    setShowSignup(true);
+  const switchToSignup = () => {
     setShowLogin(false);
+    setShowSignup(true);
   };
 
-  // Intercept clicks here
+  const openLogin = () => {
+    setShowLogin(true);
+    setShowSignup(false);
+  };
+
+  // Intercept clicks here - now opens login modal instead of signup
   const handleMenuClick = (link: string) => {
     if (!isAuthenticated) {
-      openSignup();
+      openLogin();
     } else {
       router.push(link);
     }
   };
 
-  const menuItems = [
+  // Home item
+  const homeItem = {
+    label: "لوحة المذاكرة",
+    icon: <HomeIcon className="w-6 h-6" />,
+    link: "/study",
+  };
+
+  const learningItems = [
     {
       label: "تحديد المستوى",
       icon: <NewspaperIcon className="w-6 h-6" />,
-      link: "/student/level",
+      link: "/study/determine-level",
     },
     {
-      label: "التعلم بالطرق التقليدية",
+      label: "التعلم التقليدي",
       icon: <BookOpenIcon className="w-6 h-6" />,
-      link: "/traditional-learning",
+      link: "/study/traditional-learning",
+    },
+    {
+      label: "وضع الطوارئ",
+      icon: <ExclamationCircleIcon className="w-6 h-6" />,
+      link: "/study/emergency-mode",
     },
     {
       label: "التعلم عبر المحادثة",
       icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />,
-      link: "/conversation-learning",
+      link: "/study/conversational-learning",
     },
     {
-      label: "اختبارات المحاكاة",
+      label: "الاختبارات",
       icon: <PencilSquareIcon className="w-6 h-6" />,
-      link: "/simulation-tests",
+      link: "/study/tests",
     },
     {
-      label: "المكافأت والمسابقات",
-      icon: <GiftIcon className="w-6 h-6" />,
-      link: "/rewards-and-competitions",
-    },
-    {
-      label: "الاحصائيات",
+      label: "الإحصائيات",
       icon: <ChartPieIcon className="w-6 h-6" />,
-      link: "/statistics",
+      link: "/study/statistics",
     },
   ];
 
-  const communityItems = [
+  const engagementItems = [
     {
-      label: "تحدى الزملاء",
+      label: "المدونة",
+      icon: <BookmarkIcon className="w-6 h-6" />,
+      link: "/study/blog",
+    },
+    {
+      label: "المكافآت والمسابقات",
+      icon: <GiftIcon className="w-6 h-6" />,
+      link: "/study/rewards-and-competitions",
+    },
+    {
+      label: "تحدي الزملاء",
       icon: <ClockIcon className="w-6 h-6" />,
-      link: "/challenge-peers",
+      link: "/study/challenge-colleagues",
     },
     {
       label: "مجتمع الطلاب",
       icon: <UsersIcon className="w-6 h-6" />,
-      link: "/student-community",
+      link: "/study/community",
     },
     {
-      label: "المدونة",
-      icon: <BookmarkIcon className="w-6 h-6" />,
-      link: "/blog",
+      label: "اكسبلور",
+      icon: <ExclamationCircleIcon className="w-6 h-6" />,
+      link: "#",
+      comingSoon: true,
     },
     {
-      label: "الدعم الإدارى",
-      icon: <QuestionMarkCircleIcon className="w-6 h-6" />,
-      link: "/admin-support",
+      label: "المذاكرة في مجموعات",
+      icon: <UsersIcon className="w-6 h-6" />,
+      link: "#",
+      comingSoon: true,
+    },
+    {
+      label: "غرف المذاكرة",
+      icon: <PresentationChartBarIcon className="w-6 h-6" />,
+      link: "#",
+      comingSoon: true,
     },
   ];
 
-  const settingsItems = [
+  const accountItems = [
     {
-      label: "وضع الطوارئ",
-      icon: <ExclamationCircleIcon className="w-6 h-6" />,
-      link: "/emergency-mode",
+      label: "الحساب الشخصي",
+      icon: <UserIcon className="w-6 h-6" />,
+      link: "#",
+      comingSoon: true,
     },
     {
-      label: "الاعداد",
+      label: "الإشعارات",
+      icon: <BellIcon className="w-6 h-6" />,
+      link: "/study/notifications",
+    },
+    {
+      label: "الإعدادات والاشتراك",
       icon: <Cog6ToothIcon className="w-6 h-6" />,
-      link: "/settings",
+      link: "/study/settings",
+    },
+    {
+      label: "دعم الإدارة",
+      icon: <QuestionMarkCircleIcon className="w-6 h-6" />,
+      link: "/study/admin-support",
     },
   ];
+
+  const renderMenuItem = (item: any, index: number) => (
+    <motion.div
+      key={index}
+      onClick={() => handleMenuClick(item.link)}
+      className={`flex items-center px-4 py-2 hover:bg-white/10 cursor-pointer transition-all duration-200 ${
+        isOpen ? "justify-start gap-3" : "justify-center"
+      } ${item.comingSoon ? "opacity-60" : ""}`}
+      whileHover={{ scale: 1.05 }}
+      transition={{ duration: 0.2 }}
+    >
+      {item.icon}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.span
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center gap-2"
+          >
+            {item.label}
+            {item.comingSoon && (
+              <span className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded">
+                قريباً
+              </span>
+            )}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
 
   return (
     <div className="flex min-h-screen dark:bg-[#081028] text-white">
@@ -169,8 +243,13 @@ const StudyPage = () => {
         </div>
 
         {/* Menu Sections */}
-        <nav className="flex-1 mt-6 space-y-3 justify-center items-center">
-          {/* تعلم Section */}
+        <nav className="flex-1 mt-6 space-y-6 justify-center items-center">
+          {/* Home Item */}
+          <div>
+            {renderMenuItem(homeItem, -1)}
+          </div>
+
+          {/* التعلم Section */}
           <div>
             <p
               className={`text-white font-semibold mb-3 px-4 text-sm ${
@@ -179,99 +258,31 @@ const StudyPage = () => {
             >
               التعلم
             </p>
-            {menuItems.map((item, index) => (
-              <motion.div
-                key={index}
-                onClick={() => handleMenuClick(item.link)}
-                className={`flex items-center px-4 py-2 hover:bg-white/10 cursor-pointer transition-all duration-200 ${
-                  isOpen ? "justify-start gap-3" : "justify-center"
-                }`}
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.2 }}
-              >
-                {item.icon}
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.span
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            ))}
+            {learningItems.map((item, index) => renderMenuItem(item, index))}
           </div>
 
-          {/* مجتمع قادر Section */}
-          <div>
-            <p className="text-white font-semibold mb-3 px-4 text-sm">
-              مجتمع قادر
-            </p>
-            {communityItems.map((item, index) => (
-              <motion.div
-                key={index}
-                onClick={() => handleMenuClick(item.link)}
-                className={`flex items-center px-4 py-2 hover:bg-white/10 cursor-pointer transition-all duration-200 ${
-                  isOpen ? "justify-start gap-3" : "justify-center"
-                }`}
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.2 }}
-              >
-                {item.icon}
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.span
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* الإعدادات Section */}
+          {/* التفاعل Section */}
           <div>
             <p
               className={`text-white font-semibold mb-3 px-4 text-sm ${
                 isOpen ? "text-start" : "text-center"
               }`}
             >
-              الإعدادات
+              التفاعل
             </p>
-            {settingsItems.map((item, index) => (
-              <motion.div
-                key={index}
-                onClick={() => handleMenuClick(item.link)}
-                className={`flex items-center px-4 py-2 hover:bg-white/10 cursor-pointer transition-all duration-200 ${
-                  isOpen ? "justify-start gap-3" : "justify-center"
-                }`}
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.2 }}
-              >
-                {item.icon}
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.span
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            ))}
+            {engagementItems.map((item, index) => renderMenuItem(item, index))}
+          </div>
+
+          {/* الحساب Section */}
+          <div>
+            <p
+              className={`text-white font-semibold mb-3 px-4 text-sm ${
+                isOpen ? "text-start" : "text-center"
+              }`}
+            >
+              الحساب
+            </p>
+            {accountItems.map((item, index) => renderMenuItem(item, index))}
           </div>
         </nav>
       </div>
@@ -291,26 +302,26 @@ const StudyPage = () => {
           قم بإنشاء حساب لتستفيد من ميزات قادر
         </p>
         <button
-          onClick={openSignup}
+          onClick={openLogin}
           className="flex justify-center gap-2 min-[1120px]:py-3 sm:w-[220px] w-[130px] mt-4 p-2 rounded-[8px] bg-[#074182] dark:bg-[#074182] text-[#FDFDFD] font-[600] hover:bg-[#074182DF] dark:hover:bg-[#074182DF] transition-all cursor-pointer"
         >
           <UserPlusIcon className="w-5 h-5" />
-          <span> اشتراك</span>
+          <span>تسجيل الدخول</span>
         </button>
       </div>
 
       <SignupModal
         show={showSignup}
         onClose={() => setShowSignup(false)}
-        onSwitchToLogin={switchToLogin}
+        onSwitchToLogin={() => {
+          setShowSignup(false);
+          setShowLogin(true);
+        }}
       />
       <LoginModal
         show={showLogin}
         onClose={() => setShowLogin(false)}
-        onSwitchToSignup={() => {
-          setShowLogin(false);
-          setShowSignup(true);
-        }}
+        onSwitchToSignup={switchToSignup}
       />
     </div>
   );
