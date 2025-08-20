@@ -27,6 +27,11 @@ import ReportProblemForm from "./ReportProblemForm";
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
 
+// Validation constants
+const MAX_HOURS = 16;
+const MAX_DAYS = 14;
+const MIN_DAYS = 1;
+
 export function EmergencyModeSetup() {
   const t = useTranslations("Study.emergencyMode.setup");
   const tSession = useTranslations("Study.emergencyMode.session");
@@ -87,10 +92,70 @@ export function EmergencyModeSetup() {
     },
   });
 
+  const validateFormValues = (values: {
+    days_until_test: number;
+    available_time_hours: number;
+  }): boolean => {
+    // Validate days
+    if (values.days_until_test < MIN_DAYS) {
+      toast.error("خطأ في التحقق", {
+        description: "يجب أن يكون عدد الأيام المتبقية للامتحان يوم واحد على الأقل",
+      });
+      return false;
+    }
+
+    if (values.days_until_test > MAX_DAYS) {
+      toast.error("خطأ في التحقق", {
+        description: `لا يمكن أن يتجاوز عدد الأيام المتبقية للامتحان ${MAX_DAYS} يوم`,
+      });
+      return false;
+    }
+
+    // Validate hours
+    if (values.available_time_hours > MAX_HOURS) {
+      toast.error("خطأ في التحقق", {
+        description: `لا يمكن أن تتجاوز ساعات الدراسة المتاحة ${MAX_HOURS} ساعة في اليوم`,
+      });
+      return false;
+    }
+
+    if (values.available_time_hours <= 0) {
+      toast.error("خطأ في التحقق", {
+        description: "يجب أن تكون ساعات الدراسة المتاحة أكثر من صفر",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleFormSubmit = (values: {
     days_until_test: number;
     available_time_hours: number;
   }) => {
+    // Validate form values before proceeding
+    if (!validateFormValues(values)) {
+      // Error shake animation for validation failure
+      gsap.to(formContainerRef.current, {
+        keyframes: {
+          "0%": { x: -5 },
+          "10%": { x: 5 },
+          "20%": { x: -4 },
+          "30%": { x: 4 },
+          "40%": { x: -3 },
+          "50%": { x: 3 },
+          "60%": { x: -2 },
+          "70%": { x: 2 },
+          "80%": { x: -1 },
+          "90%": { x: 1 },
+          "100%": { x: 0 }
+        },
+        duration: 0.4,
+        ease: "power2.out"
+      });
+      return;
+    }
+
     // Submit animation - just a subtle scale
     gsap.to(formContainerRef.current, {
       scale: 0.98,
@@ -236,6 +301,9 @@ export function EmergencyModeSetup() {
             <EmergencyModeActivitationForm
               onSubmit={handleFormSubmit}
               isPending={isPending}
+              maxHours={MAX_HOURS}
+              maxDays={MAX_DAYS}
+              minDays={MIN_DAYS}
             />
           </div>
         </CardContent>
