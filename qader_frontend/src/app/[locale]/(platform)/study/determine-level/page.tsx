@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { PencilLine, ListFilter } from "lucide-react";
+import { gsap } from "gsap";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,6 +96,17 @@ const LevelAssessmentPage = () => {
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<"date" | "percentage">("date");
 
+  // Animation refs
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const mobileRef = useRef<HTMLDivElement>(null);
+  const paginationRef = useRef<HTMLDivElement>(null);
+  const noDataRef = useRef<HTMLDivElement>(null);
+  const animationTimelineRef = useRef<gsap.core.Timeline | null>(null);
+
   const ordering = sortBy === "date" ? "-date" : "-score_percentage";
 
   const {
@@ -152,9 +164,214 @@ const LevelAssessmentPage = () => {
     };
   }, [attemptsData]);
 
+  // GSAP Animations
+  useEffect(() => {
+    if (isLoading) return;
+
+    // Kill any existing timeline
+    if (animationTimelineRef.current) {
+      animationTimelineRef.current.kill();
+    }
+
+    // Create main timeline
+    const tl = gsap.timeline({
+      defaults: { ease: "power3.out" }
+    });
+    animationTimelineRef.current = tl;
+
+    // Set initial states
+    gsap.set([cardRef.current], { 
+      opacity: 0, 
+      y: 30,
+      scale: 0.95
+    });
+
+    if (headerRef.current) {
+      gsap.set(headerRef.current.children, { 
+        opacity: 0, 
+        x: -20 
+      });
+    }
+
+    if (controlsRef.current) {
+      gsap.set(controlsRef.current, { 
+        opacity: 0, 
+        y: 20 
+      });
+    }
+
+    // Main card animation
+    tl.to(cardRef.current, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 0.6,
+      ease: "back.out(1.7)"
+    });
+
+    // Header content animation
+    if (headerRef.current) {
+      tl.to(headerRef.current.children, {
+        opacity: 1,
+        x: 0,
+        duration: 0.4,
+        stagger: 0.1,
+        ease: "power2.out"
+      }, "-=0.3");
+    }
+
+    // Controls animation
+    if (controlsRef.current) {
+      tl.to(controlsRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 0.4
+      }, "-=0.2");
+    }
+
+    // Table rows animation (desktop)
+    if (tableRef.current) {
+      const rows = tableRef.current.querySelectorAll("tbody tr");
+      gsap.set(rows, { opacity: 0, x: -30 });
+      
+      tl.to(rows, {
+        opacity: 1,
+        x: 0,
+        duration: 0.3,
+        stagger: 0.05,
+        ease: "power2.out"
+      }, "-=0.1");
+
+      // Add hover animations to rows
+      rows.forEach((row) => {
+        row.addEventListener("mouseenter", () => {
+          gsap.to(row, {
+            scale: 1.02,
+            backgroundColor: "rgba(59, 130, 246, 0.05)",
+            duration: 0.2,
+            ease: "power2.out"
+          });
+        });
+
+        row.addEventListener("mouseleave", () => {
+          gsap.to(row, {
+            scale: 1,
+            backgroundColor: "transparent",
+            duration: 0.2,
+            ease: "power2.out"
+          });
+        });
+      });
+    }
+
+    // Mobile accordion animation
+    if (mobileRef.current) {
+      const items = mobileRef.current.querySelectorAll("[data-state]");
+      gsap.set(items, { opacity: 0, y: 20 });
+      
+      tl.to(items, {
+        opacity: 1,
+        y: 0,
+        duration: 0.3,
+        stagger: 0.08,
+        ease: "power2.out"
+      }, "-=0.1");
+    }
+
+    // Pagination animation
+    if (paginationRef.current) {
+      gsap.set(paginationRef.current, { opacity: 0, y: 20 });
+      tl.to(paginationRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 0.4
+      });
+    }
+
+    // Cleanup
+    return () => {
+      if (animationTimelineRef.current) {
+        animationTimelineRef.current.kill();
+      }
+    };
+  }, [isLoading, attempts, page]);
+
+  // No data animation
+  useEffect(() => {
+    if (!attemptsData?.count && noDataRef.current) {
+      const tl = gsap.timeline();
+      
+      const img = noDataRef.current.querySelector("img");
+      const texts = noDataRef.current.querySelectorAll("h2, p, button");
+      
+      gsap.set([img, texts], { opacity: 0 });
+      gsap.set(img, { scale: 0.5, rotation: -10 });
+      gsap.set(texts, { y: 30 });
+      
+      tl.to(img, {
+        opacity: 1,
+        scale: 1,
+        rotation: 0,
+        duration: 0.8,
+        ease: "back.out(1.7)"
+      })
+      .to(texts, {
+        opacity: 1,
+        y: 0,
+        duration: 0.5,
+        stagger: 0.1,
+        ease: "power3.out"
+      }, "-=0.4");
+
+      // Floating animation for image
+      gsap.to(img, {
+        y: -10,
+        duration: 2,
+        repeat: -1,
+        yoyo: true,
+        ease: "power1.inOut"
+      });
+    }
+  }, [attemptsData?.count]);
+
+  // Badge animation on hover
+  useEffect(() => {
+    const badges = document.querySelectorAll("span[class*='rounded-md']");
+    badges.forEach((badge) => {
+      badge.addEventListener("mouseenter", () => {
+        gsap.to(badge, {
+          scale: 1.1,
+          duration: 0.2,
+          ease: "power2.out"
+        });
+      });
+
+      badge.addEventListener("mouseleave", () => {
+        gsap.to(badge, {
+          scale: 1,
+          duration: 0.2,
+          ease: "power2.out"
+        });
+      });
+    });
+  }, [attempts]);
+
   const handleSortChange = (value: "date" | "percentage") => {
-    setPage(1);
-    setSortBy(value);
+    // Animate the sort change
+    gsap.to([tableRef.current, mobileRef.current], {
+      opacity: 0,
+      y: 10,
+      duration: 0.2,
+      onComplete: () => {
+        setPage(1);
+        setSortBy(value);
+        gsap.to([tableRef.current, mobileRef.current], {
+          opacity: 1,
+          y: 0,
+          duration: 0.3
+        });
+      }
+    });
   };
 
   if (isLoading) {
@@ -178,7 +395,7 @@ const LevelAssessmentPage = () => {
 
   if (hasNoAttemptsAtAll) {
     return (
-      <div className="flex min-h-[calc(100vh-100px)] sm:min-h-[calc(100vh-150px)] flex-col items-center justify-center p-4 text-center">
+      <div ref={noDataRef} className="flex min-h-[calc(100vh-100px)] sm:min-h-[calc(100vh-150px)] flex-col items-center justify-center p-4 text-center">
         <Image
           src="/images/search.png"
           width={120}
@@ -205,9 +422,10 @@ const LevelAssessmentPage = () => {
   const {locale} = useParams();
 
   return (
-    <div className="container mx-auto space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl">
-      <Card className="dark:bg-[#0B1739] dark:border-[#7E89AC] border-2">
+    <div ref={containerRef} className="container mx-auto space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl">
+      <Card ref={cardRef} className="dark:bg-[#0B1739] dark:border-[#7E89AC] border-2">
         <CardHeader 
+          ref={headerRef}
           dir={locale === "en" ? "ltr" : "rtl"} 
           className="flex flex-col justify-between gap-3 sm:gap-4 p-4 sm:p-6 md:flex-row md:items-center"
         >
@@ -229,7 +447,7 @@ const LevelAssessmentPage = () => {
         
         <CardContent dir={locale === "en" ? "ltr" : "rtl"} className="p-3 sm:p-4 md:p-6">
           {/* Sort Controls */}
-          <div className="mb-4 sm:mb-6 flex flex-col justify-between gap-3 sm:gap-4 rounded-lg border bg-card p-3 sm:p-4 sm:flex-row sm:items-center dark:bg-[#0B1739]">
+          <div ref={controlsRef} className="mb-4 sm:mb-6 flex flex-col justify-between gap-3 sm:gap-4 rounded-lg border bg-card p-3 sm:p-4 sm:flex-row sm:items-center dark:bg-[#0B1739]">
             <h3 className="text-base sm:text-lg font-semibold">
               {t("attemptsLogTitle")}
             </h3>
@@ -258,7 +476,7 @@ const LevelAssessmentPage = () => {
           </div>
 
           {/* Desktop/Tablet Table - Show from md breakpoint */}
-          <div className="hidden rounded-xl border overflow-x-auto md:block">
+          <div ref={tableRef} className="hidden rounded-xl border overflow-x-auto md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -313,7 +531,7 @@ const LevelAssessmentPage = () => {
                     <TableCell className="text-center">
                       <span
                         className={cn(
-                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium",
+                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium transition-transform",
                           getBadgeStyle(attempt.quantitative_level_key)
                         )}
                       >
@@ -323,7 +541,7 @@ const LevelAssessmentPage = () => {
                     <TableCell className="text-center">
                       <span
                         className={cn(
-                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium",
+                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium transition-transform",
                           getBadgeStyle(attempt.verbal_level_key)
                         )}
                       >
@@ -333,7 +551,7 @@ const LevelAssessmentPage = () => {
                     <TableCell className="text-center">
                       <span
                         className={cn(
-                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium",
+                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium transition-transform",
                           {
                             "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100":
                               attempt.status === "completed",
@@ -360,7 +578,7 @@ const LevelAssessmentPage = () => {
           </div>
 
           {/* Mobile Accordion - Show only on mobile */}
-          <div className="space-y-2 sm:space-y-3 md:hidden">
+          <div ref={mobileRef} className="space-y-2 sm:space-y-3 md:hidden">
             <Accordion type="single" collapsible className="w-full space-y-2">
               {attempts.map((attempt) => (
                 <AccordionItem
@@ -452,15 +670,17 @@ const LevelAssessmentPage = () => {
           </div>
 
           {/* Pagination */}
-          <DataTablePagination
-            page={page}
-            pageCount={pageCount}
-            setPage={setPage}
-            canPreviousPage={canPreviousPage}
-            canNextPage={canNextPage}
-            isFetching={isFetching}
-            className="mt-4"
-          />
+          <div ref={paginationRef}>
+            <DataTablePagination
+              page={page}
+              pageCount={pageCount}
+              setPage={setPage}
+              canPreviousPage={canPreviousPage}
+              canNextPage={canNextPage}
+              isFetching={isFetching}
+              className="mt-4"
+            />
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -469,20 +689,39 @@ const LevelAssessmentPage = () => {
 
 // Responsive Skeleton component
 const DetermineLevelPageSkeleton = () => {
+  const skeletonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (skeletonRef.current) {
+      const elements = skeletonRef.current.querySelectorAll(".animate-pulse");
+      gsap.fromTo(elements, 
+        { opacity: 0.3 },
+        { 
+          opacity: 1, 
+          duration: 1.5, 
+          repeat: -1, 
+          yoyo: true,
+          stagger: 0.1,
+          ease: "power1.inOut"
+        }
+      );
+    }
+  }, []);
+
   return (
-    <div className="container mx-auto space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl">
+    <div ref={skeletonRef} className="container mx-auto space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl">
       <Card>
         <CardHeader className="flex flex-col justify-between gap-3 sm:gap-4 p-4 sm:p-6 md:flex-row md:items-center">
           <div>
-            <Skeleton className="mb-2 h-6 sm:h-8 w-32 sm:w-48" />
-            <Skeleton className="h-3 sm:h-4 w-48 sm:w-72" />
+            <Skeleton className="mb-2 h-6 sm:h-8 w-32 sm:w-48 animate-pulse" />
+            <Skeleton className="h-3 sm:h-4 w-48 sm:w-72 animate-pulse" />
           </div>
-          <Skeleton className="h-9 sm:h-10 w-full sm:w-48" />
+          <Skeleton className="h-9 sm:h-10 w-full sm:w-48 animate-pulse" />
         </CardHeader>
         <CardContent className="p-3 sm:p-4 md:p-6">
           <div className="mb-4 sm:mb-6 flex flex-col justify-between gap-3 sm:gap-4 rounded-lg border bg-background p-3 sm:p-4 sm:flex-row sm:items-center">
-            <Skeleton className="h-5 sm:h-7 w-32 sm:w-40" />
-            <Skeleton className="h-9 sm:h-10 w-full sm:w-[180px]" />
+            <Skeleton className="h-5 sm:h-7 w-32 sm:w-40 animate-pulse" />
+            <Skeleton className="h-9 sm:h-10 w-full sm:w-[180px] animate-pulse" />
           </div>
 
           {/* Desktop skeleton */}
