@@ -50,6 +50,43 @@ const AboutPageClient = ({ data }: AboutPageProps) => {
     content.why_different_image?.value ?? "/images/labtop.png";
   const missionImage = content.mission_image?.value ?? "/images/labtop1.png";
 
+    useEffect(() => {
+    const createParticle = () => {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      document.body.appendChild(particle);
+      
+      const startX = Math.random() * window.innerWidth;
+      const startY = window.innerHeight + 50;
+      
+      gsap.set(particle, {
+        position: 'fixed',
+        width: '6px',
+        height: '6px',
+        backgroundColor: Math.random() > 0.5 ? '#074182' : '#e78b48',
+        borderRadius: '50%',
+        left: startX,
+        top: startY,
+        opacity: 0.6,
+        zIndex: 0,
+        pointerEvents: 'none',
+      });
+  
+      gsap.to(particle, {
+        y: -window.innerHeight - 100,
+        x: `random(-100, 100)`,
+        opacity: 0,
+        duration: `random(8, 12)`,
+        ease: "none",
+        onComplete: () => particle.remove(),
+      });
+    };
+  
+    const particleInterval = setInterval(createParticle, 1000);
+  
+    return () => clearInterval(particleInterval);
+  }, []);
+
   useEffect(() => {
     const ctx = gsap.context(() => {
       // Set initial states
