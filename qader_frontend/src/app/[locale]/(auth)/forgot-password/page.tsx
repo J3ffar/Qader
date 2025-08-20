@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react"; // Added useEffect
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +16,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { gsap } from "gsap";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,10 +63,18 @@ export default function ForgotPasswordPage() {
   const tCommon = useTranslations("Common");
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<Step>("request");
-  const [identifier, setIdentifier] = useState<string>(""); // Used for display text
+  const [identifier, setIdentifier] = useState<string>("");
   const [resetTokenState, setResetTokenState] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // GSAP Animation Refs
+  const cardRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const CurrentRequestOtpSchema = useMemo(
     () => createRequestOtpSchema(tAuth),
@@ -86,7 +95,7 @@ export default function ForgotPasswordPage() {
   });
   const verifyOtpForm = useForm<VerifyOtpFormValues>({
     resolver: zodResolver(CurrentVerifyOtpSchema),
-    defaultValues: { identifier: "", otp: "" }, // identifier will be populated
+    defaultValues: { identifier: "", otp: "" },
   });
   const resetPasswordForm = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(CurrentResetPasswordSchema),
@@ -97,18 +106,190 @@ export default function ForgotPasswordPage() {
     },
   });
 
+  // GSAP Animation Functions
+  const animateStepTransition = (direction: 'forward' | 'backward' = 'forward') => {
+    const tl = gsap.timeline();
+    
+    // Animate out current content
+    tl.to([headerRef.current, contentRef.current], {
+      opacity: 0,
+      x: direction === 'forward' ? -30 : 30,
+      duration: 0.3,
+      ease: "power2.inOut",
+    })
+    .to(formRef.current, {
+      scale: 0.95,
+      opacity: 0,
+      duration: 0.2,
+      ease: "power2.inOut",
+    }, "-=0.1")
+    .call(() => {
+      // Content will update here due to React re-render
+    })
+    .to([headerRef.current, contentRef.current], {
+      opacity: 1,
+      x: 0,
+      duration: 0.4,
+      ease: "power2.out",
+    }, "+=0.1")
+    .to(formRef.current, {
+      scale: 1,
+      opacity: 1,
+      duration: 0.3,
+      ease: "back.out(1.7)",
+    }, "-=0.2");
+  };
+
+  const animateBackButton = (show: boolean) => {
+    if (!backButtonRef.current) return;
+    
+    if (show) {
+      gsap.fromTo(backButtonRef.current, 
+        { 
+          scale: 0,
+          opacity: 0,
+          rotation: -180 
+        },
+        {
+          scale: 1,
+          opacity: 1,
+          rotation: 0,
+          duration: 0.5,
+          ease: "back.out(1.7)",
+        }
+      );
+    } else {
+      gsap.to(backButtonRef.current, {
+        scale: 0,
+        opacity: 0,
+        duration: 0.3,
+        ease: "power2.inOut",
+      });
+    }
+  };
+
+  const animateFormElements = () => {
+    const formElements = formRef.current?.querySelectorAll('.form-element');
+    if (formElements) {
+      gsap.fromTo(formElements,
+        { 
+          opacity: 0, 
+          y: 20,
+          scale: 0.95
+        },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.5,
+          stagger: 0.1,
+          ease: "power2.out",
+        }
+      );
+    }
+  };
+
+  const animateOTPSlots = () => {
+    const otpSlots = document.querySelectorAll('[data-slot]');
+    if (otpSlots.length > 0) {
+      gsap.fromTo(otpSlots,
+        { 
+          scale: 0,
+          opacity: 0,
+          rotation: 180
+        },
+        {
+          scale: 1,
+          opacity: 1,
+          rotation: 0,
+          duration: 0.6,
+          stagger: 0.1,
+          ease: "back.out(1.7)",
+          delay: 0.2
+        }
+      );
+    }
+  };
+
+  // Initial page load animation
+  useEffect(() => {
+    const tl = gsap.timeline();
+    
+    // Set initial states
+    gsap.set(cardRef.current, { scale: 0.8, opacity: 0, y: 50 });
+    gsap.set([headerRef.current, contentRef.current, footerRef.current], { 
+      opacity: 0, 
+      y: 30 
+    });
+    
+    // Animate in
+    tl.to(cardRef.current, {
+      scale: 1,
+      opacity: 1,
+      y: 0,
+      duration: 0.6,
+      ease: "back.out(1.7)",
+    })
+    .to([headerRef.current, contentRef.current, footerRef.current], {
+      opacity: 1,
+      y: 0,
+      duration: 0.5,
+      stagger: 0.1,
+      ease: "power2.out",
+    }, "-=0.3")
+    .call(() => {
+      animateFormElements();
+    });
+
+  }, []);
+
+  // Animate step changes
+  useEffect(() => {
+    if (currentStep !== "request") {
+      animateBackButton(true);
+    }
+    
+    // Animate form elements when step changes
+    const timer = setTimeout(() => {
+      animateFormElements();
+      if (currentStep === "verify") {
+        animateOTPSlots();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [currentStep]);
+
   const requestOtpMutation = useMutation({
     mutationKey: REQUEST_OTP_KEY,
     mutationFn: requestOtp,
     onSuccess: (data, variables) => {
       toast.success(data.detail || tAuth("activationLinkSent"));
-      setIdentifier(variables.identifier); // Set for display in verify step
-      verifyOtpForm.setValue("identifier", variables.identifier); // Crucially set identifier for verify form
-      verifyOtpForm.setValue("otp", ""); // Clear any old OTP
-      setCurrentStep("verify");
-      requestOtpForm.reset();
+      setIdentifier(variables.identifier);
+      verifyOtpForm.setValue("identifier", variables.identifier);
+      verifyOtpForm.setValue("otp", "");
+      
+      // Animate transition
+      animateStepTransition('forward');
+      setTimeout(() => {
+        setCurrentStep("verify");
+        requestOtpForm.reset();
+      }, 300);
     },
     onError: (error: any) => {
+      // Error shake animation gsap.to(
+      gsap.to(formRef.current, {
+         x: 0,
+        duration: 0.5,
+        ease: "power2.inOut",
+        keyframes: [
+          { x: -10 },
+          { x: 10 },
+          { x: -10 },
+          { x: 10 },
+          { x: 0 },]
+      });
+      
       if (error.data?.identifier) {
         requestOtpForm.setError("identifier", {
           type: "server",
@@ -127,17 +308,34 @@ export default function ForgotPasswordPage() {
       toast.success(data.detail || tAuth("otpVerified"));
       setResetTokenState(data.reset_token);
       resetPasswordForm.setValue("reset_token", data.reset_token);
-      setCurrentStep("reset");
-      verifyOtpForm.reset(); // Clear OTP form including identifier and otp
+      
+      // Animate transition
+      animateStepTransition('forward');
+      setTimeout(() => {
+        setCurrentStep("reset");
+        verifyOtpForm.reset();
+      }, 300);
     },
     onError: (error: any) => {
+      // Error shake animation
+      gsap.to(formRef.current, {
+         x: 0,
+        duration: 0.5,
+        ease: "power2.inOut",
+        keyframes: [
+          { x: -10 },
+          { x: 10 },
+          { x: -10 },
+          { x: 10 },
+          { x: 0 },]
+      });
+      
       if (error.data?.otp) {
         verifyOtpForm.setError("otp", {
           type: "server",
           message: error.data.otp.join(", "),
         });
       } else if (error.data?.identifier) {
-        // This error might occur if the identifier becomes invalid between steps, though unlikely
         toast.error(
           `${tAuth("identifierInvalid")}: ${error.data.identifier.join(", ")}`
         );
@@ -154,8 +352,21 @@ export default function ForgotPasswordPage() {
     mutationFn: resetPasswordWithOtp,
     onSuccess: (data) => {
       toast.success(data.detail || tAuth("passwordResetSuccess"));
-      router.push(PATHS.LOGIN);
-      // Reset all forms and states
+      
+      // Success animation
+      gsap.to(cardRef.current, {
+        scale: 1.05,
+        duration: 0.2,
+        yoyo: true,
+        repeat: 1,
+        ease: "power2.inOut",
+        onComplete: () => {
+          router.push(PATHS.LOGIN);
+        }
+      });
+      
+      // Reset all forms and states {
+      scale:
       requestOtpForm.reset();
       verifyOtpForm.reset();
       resetPasswordForm.reset();
@@ -164,6 +375,19 @@ export default function ForgotPasswordPage() {
       setResetTokenState("");
     },
     onError: (error: any) => {
+      // Error shake animation
+      gsap.to(formRef.current, {
+         x: 0,
+        duration: 0.5,
+        ease: "power2.inOut",
+        keyframes: [
+          { x: -10 },
+          { x: 10 },
+          { x: -10 },
+          { x: 10 },
+          { x: 0 },]
+      });
+      
       if (error.data?.new_password) {
         resetPasswordForm.setError("new_password", {
           type: "server",
@@ -186,61 +410,74 @@ export default function ForgotPasswordPage() {
     },
   });
 
-  const onRequestOtpSubmit = (data: RequestOtpFormValues) =>
+  const onRequestOtpSubmit = (data: RequestOtpFormValues) => {
     requestOtpMutation.mutate(data);
+  };
 
-  // Memoize onVerifyOtpSubmit if it were to be used in a useEffect dependency array,
-  // but for handleSubmit it's not strictly necessary.
-  // However, to prevent re-creation on every render for the onComplete callback,
-  // it's good practice.
   const onVerifyOtpSubmit = React.useCallback(
     (data: VerifyOtpFormValues) => {
-      // console.log("Verifying OTP with data:", data); // For debugging if needed
       verifyOtpMutation.mutate(data);
     },
-    [verifyOtpMutation] // Add other stable dependencies if any are used inside
+    [verifyOtpMutation]
   );
 
-  const onResetPasswordSubmit = (data: ResetPasswordFormValues) =>
+  const onResetPasswordSubmit = (data: ResetPasswordFormValues) => {
     resetPasswordMutation.mutate(data);
+  };
 
   const goBack = () => {
-    if (currentStep === "verify") {
-      setCurrentStep("request");
-      verifyOtpForm.reset(); // Clear OTP form
-      // requestOtpForm retains its last typed values which is fine
-    } else if (currentStep === "reset") {
-      setCurrentStep("verify");
-      // Don't reset verifyOtpForm.identifier, it's still needed if they want to retry OTP
-      // verifyOtpForm.setValue("otp", ""); // Clear only OTP if needed, or let user edit
-      // resetPasswordForm is reset to clear password fields but keep the token
-      resetPasswordForm.reset({
-        reset_token: resetTokenState, // Preserve the token
-        new_password: "",
-        new_password_confirm: "",
-      });
-    }
+    animateStepTransition('backward');
+    
+    setTimeout(() => {
+      if (currentStep === "verify") {
+        setCurrentStep("request");
+        verifyOtpForm.reset();
+      } else if (currentStep === "reset") {
+        setCurrentStep("verify");
+        resetPasswordForm.reset({
+          reset_token: resetTokenState,
+          new_password: "",
+          new_password_confirm: "",
+        });
+      }
+    }, 300);
   };
 
   const dir = tCommon("dir") as "ltr" | "rtl";
 
   return (
     <div className="flex items-center justify-center p-4" dir={dir}>
-      <Card className="w-full max-w-md bg-background shadow">
+      <Card ref={cardRef} className="w-full max-w-md bg-background shadow">
         {currentStep !== "request" && (
           <Button
+            ref={backButtonRef}
             variant="ghost"
-            size="icon" // Making it an icon button for cleaner look
+            size="icon"
             onClick={goBack}
-            className="absolute left-4 top-4 m-2 h-8 w-8 rtl:left-auto rtl:right-4" // Adjusted size
+            className="absolute left-4 top-4 m-2 h-8 w-8 rtl:left-auto rtl:right-4"
             aria-label={tAuth("goBack")}
+            onMouseEnter={(e) => {
+              gsap.to(e.currentTarget, {
+                scale: 1.1,
+                duration: 0.2,
+                ease: "power2.out"
+              });
+            }}
+            onMouseLeave={(e) => {
+              gsap.to(e.currentTarget, {
+                scale: 1,
+                duration: 0.2,
+                ease: "power2.out"
+              });
+            }}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
         )}
+        
         {currentStep === "request" && (
           <>
-            <CardHeader>
+            <CardHeader ref={headerRef}>
               <CardTitle className="text-2xl font-semibold">
                 {tAuth("forgotPasswordTitle")}
               </CardTitle>
@@ -248,18 +485,17 @@ export default function ForgotPasswordPage() {
                 {tAuth("forgotPasswordRequestSubtitle")}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent ref={contentRef}>
               <form
+                ref={formRef}
                 onSubmit={requestOtpForm.handleSubmit(onRequestOtpSubmit)}
-                className="space-y-6" // Increased spacing
+                className="space-y-6"
               >
-                <div>
+                <div className="form-element">
                   <Label htmlFor="fp-identifier" className="font-medium">
                     {tAuth("forgotPasswordIdentifierLabel")}
                   </Label>
                   <div className="relative mt-1.5">
-                    {" "}
-                    {/* Adjusted margin */}
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                     <Input
                       id="fp-identifier"
@@ -267,6 +503,20 @@ export default function ForgotPasswordPage() {
                       {...requestOtpForm.register("identifier")}
                       className="pl-10 rtl:pr-10"
                       aria-describedby="identifier-error"
+                      onFocus={(e) => {
+                        gsap.to(e.currentTarget, {
+                          scale: 1.02,
+                          duration: 0.2,
+                          ease: "power2.out"
+                        });
+                      }}
+                      onBlur={(e) => {
+                        gsap.to(e.currentTarget, {
+                          scale: 1,
+                          duration: 0.2,
+                          ease: "power2.out"
+                        });
+                      }}
                     />
                   </div>
                   {requestOtpForm.formState.errors.identifier && (
@@ -280,8 +530,34 @@ export default function ForgotPasswordPage() {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="form-element w-full"
                   disabled={requestOtpMutation.isPending}
+                  onMouseEnter={(e) => {
+                    if (!requestOtpMutation.isPending) {
+                      gsap.to(e.currentTarget, {
+                        scale: 1.05,
+                        duration: 0.2,
+                        ease: "power2.out"
+                      });
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    gsap.to(e.currentTarget, {
+                      scale: 1,
+                      duration: 0.2,
+                      ease: "power2.out"
+                    });
+                  }}
+                  onClick={(e) => {
+                    // Button press animation
+                    gsap.to(e.currentTarget, {
+                      scale: 0.95,
+                      duration: 0.1,
+                      yoyo: true,
+                      repeat: 1,
+                      ease: "power2.inOut"
+                    });
+                  }}
                 >
                   {requestOtpMutation.isPending ? (
                     <>
@@ -296,9 +572,10 @@ export default function ForgotPasswordPage() {
             </CardContent>
           </>
         )}
+        
         {currentStep === "verify" && (
           <>
-            <CardHeader>
+            <CardHeader ref={headerRef}>
               <CardTitle className="text-2xl font-semibold">
                 {tAuth("forgotPasswordVerifyTitle")}
               </CardTitle>
@@ -308,10 +585,9 @@ export default function ForgotPasswordPage() {
                 })}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent ref={contentRef}>
               <form
-                // We don't need onSubmit here if onComplete handles submission
-                // onSubmit={verifyOtpForm.handleSubmit(onVerifyOtpSubmit)}
+                ref={formRef}
                 className="flex flex-col items-center space-y-6"
               >
                 <Controller
@@ -319,8 +595,8 @@ export default function ForgotPasswordPage() {
                   control={verifyOtpForm.control}
                   render={({ field, fieldState }) => (
                     <div
-                      dir="ltr" // Crucial: OTP input itself should be LTR
-                      className="flex w-full flex-col items-center"
+                      dir="ltr"
+                      className="form-element flex w-full flex-col items-center"
                     >
                       <Label htmlFor="fp-otp" className="sr-only">
                         {tAuth("forgotPasswordOtpLabel")}
@@ -329,12 +605,19 @@ export default function ForgotPasswordPage() {
                         id="fp-otp"
                         maxLength={6}
                         value={field.value}
-                        onChange={field.onChange}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          // Animate slots on input
+                          const activeSlot = document.querySelector(`[data-slot="${value.length}"]`);
+                          if (activeSlot) {
+                            gsap.fromTo(activeSlot, 
+                              { scale: 1.2 }, 
+                              { scale: 1, duration: 0.2, ease: "power2.out" }
+                            );
+                          }
+                        }}
                         onBlur={field.onBlur}
-                        // ref={field.ref} // InputOTP should handle its own ref internally
                         onComplete={() => {
-                          // Auto-submit when OTP is fully entered
-                          // Ensure mutation is not already pending to prevent double submissions
                           if (!verifyOtpMutation.isPending) {
                             verifyOtpForm.handleSubmit(onVerifyOtpSubmit)();
                           }
@@ -364,15 +647,42 @@ export default function ForgotPasswordPage() {
                     </div>
                   )}
                 />
-                {/* Keep the manual submit button as a fallback or if auto-submit is not desired */}
                 <Button
-                  type="button" // Changed to button if auto-submit is primary
+                  type="button"
                   onClick={verifyOtpForm.handleSubmit(onVerifyOtpSubmit)}
-                  className="w-full"
+                  className="form-element w-full"
                   disabled={
                     verifyOtpMutation.isPending ||
                     verifyOtpForm.watch("otp")?.length !== 6
                   }
+                  onMouseEnter={(e) => {
+                    if (!verifyOtpMutation.isPending && verifyOtpForm.watch("otp")?.length === 6) {
+                      gsap.to(e.currentTarget, {
+                        scale: 1.05,
+                        duration: 0.2,
+                        ease: "power2.out"
+                      });
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    gsap.to(e.currentTarget, {
+                      scale: 1,
+                      duration: 0.2,
+                      ease: "power2.out"
+                    });
+                  }}
+                  onClickCapture={(e) => {
+                    // Button press animation
+                    if (!verifyOtpMutation.isPending && verifyOtpForm.watch("otp")?.length === 6) {
+                      gsap.to(e.currentTarget, {
+                        scale: 0.95,
+                        duration: 0.1,
+                        yoyo: true,
+                        repeat: 1,
+                        ease: "power2.inOut"
+                      });
+                    }
+                  }}
                 >
                   {verifyOtpMutation.isPending ? (
                     <>
@@ -387,9 +697,10 @@ export default function ForgotPasswordPage() {
             </CardContent>
           </>
         )}
+        
         {currentStep === "reset" && (
           <>
-            <CardHeader>
+            <CardHeader ref={headerRef}>
               <CardTitle className="text-2xl font-semibold">
                 {tAuth("forgotPasswordResetTitle")}
               </CardTitle>
@@ -397,12 +708,13 @@ export default function ForgotPasswordPage() {
                 {tAuth("forgotPasswordResetSubtitle")}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent ref={contentRef}>
               <form
+                ref={formRef}
                 onSubmit={resetPasswordForm.handleSubmit(onResetPasswordSubmit)}
                 className="space-y-4"
               >
-                <div>
+                <div className="form-element">
                   <Label htmlFor="fp-new_password" className="font-medium">
                     {tAuth("forgotPasswordNewPasswordLabel")}
                   </Label>
@@ -413,12 +725,36 @@ export default function ForgotPasswordPage() {
                       type={showPassword ? "text" : "password"}
                       placeholder={tAuth("passwordPlaceholder")}
                       {...resetPasswordForm.register("new_password")}
-                      className="pl-10 pr-10 rtl:pl-10 rtl:pr-10" // Ensure correct padding for icon and toggle
+                      className="pl-10 pr-10 rtl:pl-10 rtl:pr-10"
                       aria-describedby="new-password-error"
+                      onFocus={(e) => {
+                        gsap.to(e.currentTarget, {
+                          scale: 1.02,
+                          duration: 0.2,
+                          ease: "power2.out"
+                        });
+                      }}
+                      onBlur={(e) => {
+                        gsap.to(e.currentTarget, {
+                          scale: 1,
+                          duration: 0.2,
+                          ease: "power2.out"
+                        });
+                      }}
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={(e) => {
+                        setShowPassword(!showPassword);
+                        // Animate eye icon
+                        gsap.to(e.currentTarget, {
+                          scale: 1.2,
+                          duration: 0.1,
+                          yoyo: true,
+                          repeat: 1,
+                          ease: "power2.inOut"
+                        });
+                      }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rtl:left-3 rtl:right-auto"
                       aria-label={
                         showPassword
@@ -442,7 +778,7 @@ export default function ForgotPasswordPage() {
                     </p>
                   )}
                 </div>
-                <div>
+                <div className="form-element">
                   <Label
                     htmlFor="fp-new_password_confirm"
                     className="font-medium"
@@ -454,16 +790,38 @@ export default function ForgotPasswordPage() {
                     <Input
                       id="fp-new_password_confirm"
                       type={showConfirmPassword ? "text" : "password"}
-                      placeholder={tAuth("passwordPlaceholder")} // Assuming same placeholder
+                      placeholder={tAuth("passwordPlaceholder")}
                       {...resetPasswordForm.register("new_password_confirm")}
                       className="pl-10 pr-10 rtl:pl-10 rtl:pr-10"
                       aria-describedby="confirm-password-error"
+                      onFocus={(e) => {
+                        gsap.to(e.currentTarget, {
+                          scale: 1.02,
+                          duration: 0.2,
+                          ease: "power2.out"
+                        });
+                      }}
+                      onBlur={(e) => {
+                        gsap.to(e.currentTarget, {
+                          scale: 1,
+                          duration: 0.2,
+                          ease: "power2.out"
+                        });
+                      }}
                     />
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
+                      onClick={(e) => {
+                        setShowConfirmPassword(!showConfirmPassword);
+                        // Animate eye icon
+                        gsap.to(e.currentTarget, {
+                          scale: 1.2,
+                          duration: 0.1,
+                          yoyo: true,
+                          repeat: 1,
+                          ease: "power2.inOut"
+                        });
+                      }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rtl:left-3 rtl:right-auto"
                       aria-label={
                         showConfirmPassword
@@ -492,8 +850,36 @@ export default function ForgotPasswordPage() {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="form-element w-full"
                   disabled={resetPasswordMutation.isPending}
+                  onMouseEnter={(e) => {
+                    if (!resetPasswordMutation.isPending) {
+                      gsap.to(e.currentTarget, {
+                        scale: 1.05,
+                        duration: 0.2,
+                        ease: "power2.out"
+                      });
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    gsap.to(e.currentTarget, {
+                      scale: 1,
+                      duration: 0.2,
+                      ease: "power2.out"
+                    });
+                  }}
+                  onClick={(e) => {
+                    // Button press animation
+                    if (!resetPasswordMutation.isPending) {
+                      gsap.to(e.currentTarget, {
+                        scale: 0.95,
+                        duration: 0.1,
+                        yoyo: true,
+                        repeat: 1,
+                        ease: "power2.inOut"
+                      });
+                    }
+                  }}
                 >
                   {resetPasswordMutation.isPending ? (
                     <>
@@ -508,16 +894,48 @@ export default function ForgotPasswordPage() {
             </CardContent>
           </>
         )}
-        <CardFooter className="block border-t px-6 text-center text-sm">
-          {" "}
-          {/* Added border and padding */}
+        
+        <CardFooter ref={footerRef} className="block border-t px-6 text-center text-sm">
           {currentStep === "request" ? (
-            <Link href={PATHS.HOME} className="text-primary hover:underline">
-              {tAuth("forgotPasswordBackToLogin")}{" "}
-              {/* Changed text for login context */}
+            <Link 
+              href={PATHS.HOME} 
+              className="text-primary hover:underline transition-colors duration-200"
+              onMouseEnter={(e) => {
+                gsap.to(e.currentTarget, {
+                  scale: 1.05,
+                  duration: 0.2,
+                  ease: "power2.out"
+                });
+              }}
+              onMouseLeave={(e) => {
+                gsap.to(e.currentTarget, {
+                  scale: 1,
+                  duration: 0.2,
+                  ease: "power2.out"
+                });
+              }}
+            >
+              {tAuth("forgotPasswordBackToLogin")}
             </Link>
           ) : (
-            <Link href={PATHS.HOME} className="text-primary hover:underline">
+            <Link 
+              href={PATHS.HOME} 
+              className="text-primary hover:underline transition-colors duration-200"
+              onMouseEnter={(e) => {
+                gsap.to(e.currentTarget, {
+                  scale: 1.05,
+                  duration: 0.2,
+                  ease: "power2.out"
+                });
+              }}
+              onMouseLeave={(e) => {
+                gsap.to(e.currentTarget, {
+                  scale: 1,
+                  duration: 0.2,
+                  ease: "power2.out"
+                });
+              }}
+            >
               {tAuth("forgotPasswordBackToLogin")}
             </Link>
           )}
