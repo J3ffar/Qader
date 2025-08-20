@@ -27,6 +27,12 @@ import {
   Flame,
   Target,
   BookOpenCheck,
+  Star,
+  Trophy,
+  Gift,
+  Zap,
+  Plus,
+  Coins,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -42,6 +48,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import ScorePieChart from "@/components/features/platform/study/determine-level/ScorePieChart";
 import { useAuthActions, useAuthStore } from "@/store/auth.store";
 import { UserProfile } from "@/types/api/auth.types";
@@ -63,6 +70,14 @@ interface QualitativeLevelInfo {
   text: string;
   colorClass: string;
   IconComponent: React.ElementType;
+}
+
+interface PointsBreakdown {
+  category: string;
+  points: number;
+  description: string;
+  icon: React.ElementType;
+  colorClass: string;
 }
 
 const getQualitativeLevelInfo = (
@@ -107,6 +122,120 @@ const getQualitativeLevelInfo = (
   };
 };
 
+const PointsAnimation: React.FC<{ points: number; delay?: number }> = ({ 
+  points, 
+  delay = 0 
+}) => {
+  const [animatedPoints, setAnimatedPoints] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const duration = 2000; // 2 seconds
+      const steps = 60;
+      const increment = points / steps;
+      let current = 0;
+
+      const interval = setInterval(() => {
+        current += increment;
+        if (current >= points) {
+          setAnimatedPoints(points);
+          clearInterval(interval);
+        } else {
+          setAnimatedPoints(Math.floor(current));
+        }
+      }, duration / steps);
+
+      return () => clearInterval(interval);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [points, delay]);
+
+  return (
+    <span className="font-bold text-2xl text-yellow-600">
+      +{animatedPoints.toLocaleString()}
+    </span>
+  );
+};
+
+const PointsBreakdownCard: React.FC<{
+  breakdown: PointsBreakdown[];
+  totalPoints: number;
+}> = ({ breakdown, totalPoints }) => {
+  const t = useTranslations("Study.determineLevel.score");
+  const [showAnimation, setShowAnimation] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowAnimation(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Card className="overflow-hidden border-2 border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950 dark:to-amber-950">
+      <CardHeader className="text-center pb-4">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Trophy className="h-6 w-6 text-yellow-600" />
+          <CardTitle className="text-xl">{t("pointsEarned")}</CardTitle>
+        </div>
+        <div className="flex items-center justify-center gap-3">
+          <Coins className="h-8 w-8 text-yellow-600" />
+          {showAnimation ? (
+            <PointsAnimation points={totalPoints} />
+          ) : (
+            <span className="font-bold text-2xl text-yellow-600">
+              +{totalPoints.toLocaleString()}
+            </span>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="text-center mb-4">
+          <h4 className="font-semibold text-sm text-muted-foreground mb-2">
+            {t("pointsBreakdown")}
+          </h4>
+        </div>
+        {breakdown.map((item, index) => (
+          <div
+            key={item.category}
+            className={`flex items-center justify-between p-3 rounded-lg bg-white/50 dark:bg-black/20 border transition-all duration-300 ${
+              showAnimation ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
+            }`}
+            style={{ transitionDelay: `${index * 200}ms` }}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${item.colorClass}`}>
+                <item.icon className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">{item.category}</p>
+                <p className="text-xs text-muted-foreground">{item.description}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Plus className="h-3 w-3 text-yellow-600" />
+              <span className="font-bold text-yellow-600">
+                {item.points.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        ))}
+        
+        <Separator className="my-4" />
+        
+        <div className="flex items-center justify-between p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border-2 border-yellow-300 dark:border-yellow-700">
+          <div className="flex items-center gap-2">
+            <Star className="h-5 w-5 text-yellow-600" />
+            <span className="font-semibold">{t("totalPoints")}</span>
+          </div>
+          <span className="font-bold text-xl text-yellow-600">
+            +{totalPoints.toLocaleString()}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const LevelAssessmentScorePage = () => {
   const params = useParams();
   const router = useRouter();
@@ -117,18 +246,6 @@ const LevelAssessmentScorePage = () => {
   const locale = params.locale as string;
 
   const attemptId = params.attemptId as string;
-
-  const [timeTaken, setTimeTaken] = useState<any>(null);
-  useEffect(() => {
-    const savedTime = localStorage.getItem(`test_time_${attemptId}`);
-    if (savedTime) {
-      try {
-        setTimeTaken(JSON.parse(savedTime));
-      } catch (error) {
-        console.error('Error parsing saved time:', error);
-      }
-    }
-  }, [attemptId]);
 
   // Get auth state and actions for updating global user profile ---
   const { user } = useAuthStore();
@@ -233,7 +350,6 @@ const LevelAssessmentScorePage = () => {
       const data = combinedData as UserTestAttemptCompletionResponse;
       const answeredCount = data.answered_question_count;
       const correctCount = data.correct_answers_in_test_count;
-      const totalQuestions = data.total_questions || data.answered_question_count || 5;
       return {
         isFallback: false,
         overallScore: data.score.overall,
@@ -243,8 +359,7 @@ const LevelAssessmentScorePage = () => {
         smart_analysis: data.smart_analysis,
         badges_won: data.badges_won,
         streak_info: data.streak_info,
-        // totalQuestions: data.total_questions,
-         totalQuestions: totalQuestions,
+        totalQuestions: data.total_questions,
         correctAnswers: correctCount,
         answeredQuestionsCount: answeredCount,
         incorrectAnswers: answeredCount - correctCount,
@@ -252,8 +367,9 @@ const LevelAssessmentScorePage = () => {
         totalPointsEarned:
           (data.points_from_test_completion_event ?? 0) +
           (data.points_from_correct_answers_this_test ?? 0),
-        // timeTakenMinutes: null,
-        timeTakenMinutes: timeTaken,
+        pointsFromCompletion: data.points_from_test_completion_event ?? 0,
+        pointsFromCorrectAnswers: data.points_from_correct_answers_this_test ?? 0,
+        timeTakenMinutes: null,
       };
     }
 
@@ -265,14 +381,6 @@ const LevelAssessmentScorePage = () => {
     const correctCount = data.questions.filter(
       (q) => q.user_answer_details?.is_correct === true
     ).length;
-
-    let timeTakenMinutes = null;
-    if (totalQuestions > 0) {
-      if (totalQuestions <= 5) { timeTakenMinutes = 15; }
-      else if (totalQuestions <= 10) { timeTakenMinutes = 30; }
-      else if (totalQuestions <= 20) { timeTakenMinutes = 60; }
-      else { timeTakenMinutes = Math.round(totalQuestions * 3); }
-    }
 
     return {
       isFallback: true,
@@ -288,10 +396,56 @@ const LevelAssessmentScorePage = () => {
       incorrectAnswers: answeredCount - correctCount,
       skippedAnswers: totalQuestions - answeredCount,
       totalPointsEarned: 0,
-      timeTakenMinutes: timeTakenMinutes,
-      // timeTakenMinutes: data.time_taken_minutes ?? null,
+      pointsFromCompletion: 0,
+      pointsFromCorrectAnswers: 0,
+      timeTakenMinutes: data.time_taken_minutes ?? null,
     };
-  }, [combinedData, timeTaken]);
+  }, [combinedData]);
+
+  // Calculate points breakdown
+  const pointsBreakdown: PointsBreakdown[] = useMemo(() => {
+    if (!displayData || displayData.totalPointsEarned === 0) return [];
+
+    const breakdown: PointsBreakdown[] = [];
+
+    if (displayData.pointsFromCompletion > 0) {
+      breakdown.push({
+        category: t("completionBonus"),
+        points: displayData.pointsFromCompletion,
+        description: t("completionBonusDesc"),
+        icon: Gift,
+        colorClass: "bg-gradient-to-r from-blue-500 to-blue-600",
+      });
+    }
+
+    if (displayData.pointsFromCorrectAnswers > 0) {
+      breakdown.push({
+        category: t("correctAnswersPoints"),
+        points: displayData.pointsFromCorrectAnswers,
+        description: t("correctAnswersPointsDesc", { 
+          count: displayData.correctAnswers 
+        }),
+        icon: Zap,
+        colorClass: "bg-gradient-to-r from-green-500 to-green-600",
+      });
+    }
+
+    // Add bonus for high performance
+    if (displayData.overallScore && displayData.overallScore >= 90) {
+      const bonusPoints = Math.floor(displayData.totalPointsEarned * 0.1);
+      if (bonusPoints > 0) {
+        breakdown.push({
+          category: t("excellenceBonus"),
+          points: bonusPoints,
+          description: t("excellenceBonusDesc"),
+          icon: Star,
+          colorClass: "bg-gradient-to-r from-yellow-500 to-yellow-600",
+        });
+      }
+    }
+
+    return breakdown;
+  }, [displayData, t]);
 
   if (isLoading) return <ScorePageSkeleton />;
 
@@ -370,20 +524,62 @@ const LevelAssessmentScorePage = () => {
         </CardHeader>
 
         <CardContent className="space-y-8 pt-6">
-          {(totalPointsEarned > 0 ||
-            (badges_won && badges_won.length > 0) ||
-            streak_info) && (
+          {/* Enhanced Points Display Section */}
+          {totalPointsEarned > 0 && (
             <>
-              <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-3">
-                {totalPointsEarned > 0 && (
-                  <Card className="p-4">
-                    <Sparkles className="mx-auto mb-2 h-8 w-8 text-yellow-500" />
-                    <p className="text-sm text-muted-foreground">
-                      {t("pointsEarned")}
-                    </p>
-                    <p className="text-xl font-bold">{totalPointsEarned}</p>
-                  </Card>
-                )}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PointsBreakdownCard 
+                  breakdown={pointsBreakdown} 
+                  totalPoints={totalPointsEarned}
+                />
+                
+                {/* Other gamification elements */}
+                <div className="space-y-4">
+                  {streak_info && (
+                    <Card className="p-4 text-center border-orange-200 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950">
+                      <Flame className="mx-auto mb-2 h-8 w-8 text-orange-500" />
+                      <p className="text-sm text-muted-foreground">
+                        {t("currentStreak")}
+                      </p>
+                      <p className="text-xl font-bold">
+                        {streak_info.current_days} {t("days")}
+                        {streak_info.updated && (
+                          <CheckCircle className="ms-1 inline-block h-5 w-5 text-green-500" />
+                        )}
+                      </p>
+                    </Card>
+                  )}
+                  
+                  {badges_won && badges_won.length > 0 && (
+                    <Card className="p-4 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950">
+                      <Award className="mx-auto mb-2 h-8 w-8 text-indigo-500" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {t("badgesUnlocked")}
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {badges_won.map((badge) => (
+                          <Badge
+                            key={badge.slug}
+                            variant="secondary"
+                            className="text-xs"
+                            title={badge.description}
+                          >
+                            {badge.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          {/* Rest of the original gamification display for cases where totalPointsEarned is 0 */}
+          {totalPointsEarned === 0 && (streak_info || (badges_won && badges_won.length > 0)) && (
+            <>
+              <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2">
                 {streak_info && (
                   <Card className="p-4">
                     <Flame className="mx-auto mb-2 h-8 w-8 text-orange-500" />
@@ -399,7 +595,7 @@ const LevelAssessmentScorePage = () => {
                   </Card>
                 )}
                 {badges_won && badges_won.length > 0 && (
-                  <Card className="p-4 sm:col-span-2 lg:col-span-1">
+                  <Card className="p-4">
                     <Award className="mx-auto mb-2 h-8 w-8 text-indigo-500" />
                     <p className="text-sm text-muted-foreground">
                       {t("badgesUnlocked")}
@@ -426,9 +622,8 @@ const LevelAssessmentScorePage = () => {
           <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
             <Card className="p-4">
               <Clock className="mx-auto mb-2 h-8 w-8 text-primary" />
-              <span className="text-xl font-semibold">{timeTaken?.displayText || "غير متوفر"}</span>
-              {/* <p className="text-sm text-muted-foreground">{t("timeTaken")}</p> */}
-              {/* {timeTakenMinutes !== null ? (
+              <p className="text-sm text-muted-foreground">{t("timeTaken")}</p>
+              {timeTakenMinutes !== null ? (
                 <p className="text-xl font-bold">
                   {timeTakenMinutes} {t("minutes")}
                 </p>
@@ -436,7 +631,7 @@ const LevelAssessmentScorePage = () => {
                 <p className="text-lg font-semibold text-muted-foreground">
                   {tCommon("status.notAvailableShort")}
                 </p>
-              )} */}
+              )}
             </Card>
             <Card className="p-4">
               <levelInfo.IconComponent
@@ -606,16 +801,56 @@ const ScorePageSkeleton = () => {
           <Skeleton className="mx-auto h-16 w-36 rounded-full" />
         </CardHeader>
         <CardContent className="space-y-8 pt-6">
-          <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, i) => (
-              <Card key={`gamify-skel-${i}`} className="p-4">
+          {/* Enhanced Points Section Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-2 border-yellow-200">
+              <CardHeader className="text-center pb-4">
+                <Skeleton className="mx-auto mb-2 h-6 w-32" />
+                <Skeleton className="mx-auto h-8 w-24" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Skeleton className="mx-auto mb-4 h-4 w-24" />
+                {[...Array(3)].map((_, i) => (
+                  <div key={`points-skel-${i}`} className="flex items-center justify-between p-3 rounded-lg bg-white/50">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-5 w-12" />
+                  </div>
+                ))}
+                <Skeleton className="h-px w-full my-4" />
+                <div className="p-3 bg-yellow-100 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="space-y-4">
+              <Card className="p-4 text-center">
                 <Skeleton className="mx-auto mb-2 h-8 w-8 rounded-full" />
                 <Skeleton className="mx-auto mb-1 h-4 w-3/4" />
                 <Skeleton className="mx-auto h-6 w-1/2" />
               </Card>
-            ))}
+              <Card className="p-4">
+                <Skeleton className="mx-auto mb-2 h-8 w-8 rounded-full" />
+                <Skeleton className="mx-auto mb-2 h-4 w-3/4" />
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+              </Card>
+            </div>
           </div>
+          
           <Skeleton className="h-px w-full" />
+          
           <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
               <Card key={`core-skel-${i}`} className="p-4">
@@ -648,4 +883,3 @@ const ScorePageSkeleton = () => {
 };
 
 export default LevelAssessmentScorePage;
-
