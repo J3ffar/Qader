@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import PartnersModal from "./PartnersModal";
 import type { PartnersPageData } from "@/types/api/content.types";
 
 // Register ScrollTrigger plugin
@@ -16,8 +15,6 @@ interface PartnersClientProps {
 }
 
 const PartnersClient: React.FC<PartnersClientProps> = ({ data }) => {
-  const [showPopup, setShowPopup] = useState(false);
-  
   // Refs for animations
   const pageRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
@@ -52,6 +49,13 @@ const PartnersClient: React.FC<PartnersClientProps> = ({ data }) => {
     "نقدم تجربة فريدة لدعم طلابك وتحقيق أفضل النتائج.";
   const whyPartnerImage =
     pageContent?.why_partner_image?.value ?? "/images/logo.png";
+
+  // Handle direct form submission
+  const handlePartnerRequest = (partner: typeof partnerCategories[0]) => {
+    if (partner.google_form_link) {
+      window.open(partner.google_form_link, "_blank");
+    }
+  };
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -350,7 +354,7 @@ const PartnersClient: React.FC<PartnersClientProps> = ({ data }) => {
           return (
             <div
               key={partner.id}
-              // ref={(el) => { cardRefs.current[index] = el; }}
+              ref={(el) => { cardRefs.current[index] = el; }}
               className="flex flex-col gap-4 justify-center items-center p-4 bg-[#f7fafe] rounded-3xl border border-[#cfe4fc] dark:border-gray-700 hover:border-[#56769b] dark:bg-[#0B1739] transition delay-150 duration-300 ease-in-out text-center cursor-pointer transform-gpu will-change-transform relative overflow-hidden"
               style={{
                 transformStyle: "preserve-3d",
@@ -370,7 +374,7 @@ const PartnersClient: React.FC<PartnersClientProps> = ({ data }) => {
               <h3 className="text-2xl font-bold relative z-10">{partner.name}</h3>
               <p className="relative z-10">{partner.description}</p>
               <button
-                onClick={() => setShowPopup(true)}
+                onClick={() => handlePartnerRequest(partner)}
                 className="w-full mt-auto flex justify-center gap-2 py-3 px-2 rounded-lg bg-[#074182] text-[#FDFDFD] font-semibold hover:bg-[#053061] transition-all relative z-10 overflow-hidden group transform-gpu"
               >
                 <span className="relative z-10">قدم طلب شراكة</span>
@@ -405,12 +409,6 @@ const PartnersClient: React.FC<PartnersClientProps> = ({ data }) => {
           />
         </div>
       </div>
-
-      <PartnersModal
-        partnerCategories={partnerCategories}
-        show={showPopup}
-        onClose={() => setShowPopup(false)}
-      />
     </div>
   );
 };
