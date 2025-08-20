@@ -17,34 +17,46 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 
-// Schema uses new API field names, ensuring correct data submission.
-const emergencyActivationSchema = z.object({
-  days_until_test: z.coerce
-    .number()
-    .min(0, { message: "Days must be 0 or more" })
-    .max(365, { message: "Too many days" }),
-  available_time_hours: z.coerce
-    .number()
-    .min(1, { message: "Must be at least 1 hour" })
-    .max(24, { message: "Max is 24 hours" }),
-});
-
-type FormValues = z.infer<typeof emergencyActivationSchema>;
-
 interface Props {
   onSubmit: (data: FormValues) => void;
   isPending: boolean;
+  maxHours?: number;
+  maxDays?: number;
+  minDays?: number;
 }
+
+// Create schema function that accepts validation limits
+const createEmergencyActivationSchema = (maxHours = 16, maxDays = 14, minDays = 1) => {
+  return z.object({
+    days_until_test: z.coerce
+      .number()
+      .min(minDays, { message: `يجب أن يكون عدد الأيام المتبقية للامتحان ${minDays} يوم على الأقل` })
+      .max(maxDays, { message: `لا يمكن أن يتجاوز عدد الأيام المتبقية للامتحان ${maxDays} يوم` }),
+    available_time_hours: z.coerce
+      .number()
+      .min(1, { message: "يجب أن تكون ساعات الدراسة المتاحة ساعة واحدة على الأقل" })
+      .max(maxHours, { message: `لا يمكن أن تتجاوز ساعات الدراسة المتاحة ${maxHours} ساعة في اليوم` }),
+  });
+};
+
+type FormValues = z.infer<ReturnType<typeof createEmergencyActivationSchema>>;
 
 export default function EmergencyModeActivitationForm({
   onSubmit,
   isPending,
+  maxHours = 16,
+  maxDays = 14,
+  minDays = 1,
 }: Props) {
   const t = useTranslations("Study.emergencyMode.setup");
+  
+  // Create schema with validation limits
+  const emergencyActivationSchema = createEmergencyActivationSchema(maxHours, maxDays, minDays);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(emergencyActivationSchema),
     defaultValues: {
-      days_until_test: 1,
+      days_until_test: minDays,
       available_time_hours: 1,
     },
   });
@@ -69,6 +81,9 @@ export default function EmergencyModeActivitationForm({
               <FormItem className="flex flex-col bg-gray-100 dark:bg-card border rounded-xl w-full md:w-1/2 p-0">
                 <FormLabel className="font-semibold text-sm mx-4 my-5 rtl:text-right">
                   {t("remainingDaysLabel")}
+                  <span className="text-xs text-muted-foreground block mt-1">
+                    (الحد الأدنى: {minDays} يوم، الحد الأقصى: {maxDays} يوم)
+                  </span>
                 </FormLabel>
                 <FormControl>
                   <div className="bg-background flex items-center justify-center gap-4 p-4 flex-1 rounded-b-xl">
@@ -77,9 +92,9 @@ export default function EmergencyModeActivitationForm({
                       variant="outline"
                       size="icon"
                       onClick={() =>
-                        setValue("days_until_test", Math.max(0, days - 1))
+                        setValue("days_until_test", Math.max(minDays, days - 1))
                       }
-                      disabled={days <= 0}
+                      disabled={days <= minDays}
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -87,18 +102,23 @@ export default function EmergencyModeActivitationForm({
                       type="number"
                       className="w-20 h-10 text-center font-bold text-lg"
                       value={days}
-                      onChange={(e) =>
-                        setValue("days_until_test", Number(e.target.value))
-                      }
+                      min={minDays}
+                      max={maxDays}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        if (value >= minDays && value <= maxDays) {
+                          setValue("days_until_test", value);
+                        }
+                      }}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
                       onClick={() =>
-                        setValue("days_until_test", Math.min(365, days + 1))
+                        setValue("days_until_test", Math.min(maxDays, days + 1))
                       }
-                      disabled={days >= 365}
+                      disabled={days >= maxDays}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -117,6 +137,9 @@ export default function EmergencyModeActivitationForm({
               <FormItem className="flex flex-col bg-gray-100 dark:bg-card border rounded-xl w-full md:w-1/2 p-0">
                 <FormLabel className="font-semibold text-sm mx-4 my-5 rtl:text-right">
                   {t("availableHoursLabel")}
+                  <span className="text-xs text-muted-foreground block mt-1">
+                    (الحد الأدنى: 1 ساعة، الحد الأقصى: {maxHours} ساعة)
+                  </span>
                 </FormLabel>
                 <FormControl>
                   <div className="bg-background flex items-center justify-center gap-4 p-4 flex-1 rounded-b-xl">
@@ -146,12 +169,14 @@ export default function EmergencyModeActivitationForm({
                         type="number"
                         className="w-20 h-10 text-center font-bold text-lg"
                         value={hours}
-                        onChange={(e) =>
-                          setValue(
-                            "available_time_hours",
-                            Number(e.target.value)
-                          )
-                        }
+                        min={1}
+                        max={maxHours}
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          if (value >= 1 && value <= maxHours) {
+                            setValue("available_time_hours", value);
+                          }
+                        }}
                       />
                     </div>
 
@@ -162,10 +187,10 @@ export default function EmergencyModeActivitationForm({
                       onClick={() =>
                         setValue(
                           "available_time_hours",
-                          Math.min(24, hours + 1)
+                          Math.min(maxHours, hours + 1)
                         )
                       }
-                      disabled={hours >= 24}
+                      disabled={hours >= maxHours}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
