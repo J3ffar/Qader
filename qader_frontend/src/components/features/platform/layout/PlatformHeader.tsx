@@ -22,6 +22,8 @@ import StreakDropdown from "./platform-header/StreakDropdown";
 import GiftDropdown from "./platform-header/GiftDropdown";
 import NotificationsDropdown from "./platform-header/NotificationsDropdown";
 import UserProfileDropdown from "./platform-header/UserProfileDropdown";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import Link from "next/link";
 
 interface PlatformHeaderProps {
   isSidebarOpen: boolean; // Renamed from isOpen for clarity if it refers to a sidebar
@@ -142,24 +144,13 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
       >
         <div className="flex flex-col-reverse items-center justify-around gap-6 p-4 lg:h-[70px] lg:flex-row lg:gap-0">
           {/* Search Bar */}
-          <div className="flex w-full flex-1 items-center justify-center lg:justify-start lg:w-auto">
-            <div className="flex w-full max-w-md items-center overflow-hidden rounded-lg bg-card dark:bg-transparent">
-              <div className="flex w-full max-w-sm items-center overflow-hidden shadow-md m-2 border rounded-lg mx-auto lg:mx-4  bg-card dark:bg-transparent">
-                <MagnifyingGlassIcon className="h-5 w-5 text-muted-foreground ltr:ml-2 rtl:mr-2" />
-                <input
-                  type="text"
-                  placeholder={tNav("searchPlaceholder")}
-                  className="flex-1 bg-transparent p-2 placeholder:text-muted-foreground focus:outline-none ltr:text-left rtl:text-right"
-                />
-              </div>
-              <button className="ml-2 mr-2 rounded-lg bg-primary p-2 text-primary-foreground transition hover:bg-primary/70">
-                <MagnifyingGlassIcon className="h-6 w-6" />
-              </button>
-            </div>
+          <div className=" bg-primary px-4 py-2 text-white">
+            <Link href="/">العودة إلى الصفحة الرئيسية</Link>
           </div>
 
           {/* Icons: Points, Streak, Gift */}
           <div className="max-sm:hidden flex items-center gap-4 mx-2">
+             <ThemeToggle />
             {/* Streak (Stars) */}
             <span
               ref={streakTriggerRef}
