@@ -1,629 +1,790 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  XCircle,
-  Loader2,
-  Send,
-  HelpCircle,
-  Check,
-} from "lucide-react";
+import { PencilLine, ListFilter } from "lucide-react";
+import { gsap } from "gsap";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
-import { StarButton } from "@/components/shared/StarButton";
 
-import {
-  resumeTestAttempt,
-  submitAnswer,
-  completeTestAttempt,
-  cancelTestAttempt,
-} from "@/services/study.service";
+import { getTestAttempts, cancelTestAttempt } from "@/services/study.service";
 import { PATHS } from "@/constants/paths";
-import type {
-  UserTestAttemptResume,
-  UnifiedQuestion,
-  SubmitAnswerPayload,
-  UserTestAttemptCompletionResponse,
-  SubmitAnswerResponse,
+import {
+  PaginatedUserTestAttempts,
+  UserTestAttemptList,
 } from "@/types/api/study.types";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { AttemptActionButtons } from "./_components/AttemptActionButtons";
+import { DataTablePagination } from "@/components/shared/DataTablePagination";
 import { queryKeys } from "@/constants/queryKeys";
-import { QuestionRenderer } from "@/components/shared/QuestionRenderer";
-import { RichContentViewer } from "@/components/shared/RichContentViewer";
+import { useParams } from "next/navigation";
 
-type OptionKey = "A" | "B" | "C" | "D";
-interface UserSelections {
-  [questionId: number]: OptionKey | undefined;
-}
+// Constants
+const PAGE_SIZE = 20;
 
-const TEST_DURATION_SECONDS = 30 * 60;
+// =================================================================
+// HELPER FUNCTIONS
+// =================================================================
 
-const LevelAssessmentAttemptPage = () => {
-  const params = useParams();
-  const router = useRouter();
+const getBadgeStyle = (levelKey?: string): string => {
+  if (!levelKey)
+    return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200";
+  switch (levelKey) {
+    case "excellent":
+      return "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100";
+    case "veryGood":
+      return "bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-100";
+    case "good":
+      return "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100";
+    case "weak":
+      return "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100";
+    case "notApplicable":
+    default:
+      return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200";
+  }
+};
+
+const mapScoreToLevelKey = (score: number | null | undefined): string => {
+  if (score === null || score === undefined) {
+    return "notApplicable";
+  }
+  if (score >= 90) return "excellent";
+  if (score >= 80) return "veryGood";
+  if (score >= 65) return "good";
+  return "weak";
+};
+
+// =================================================================
+// COMPONENT IMPLEMENTATION
+// =================================================================
+
+const LevelAssessmentPage = () => {
+  const t = useTranslations("Study.determineLevel");
+  const tBadge = useTranslations("Study.determineLevel.badgeColors");
+  const tActions = useTranslations("Study.determineLevel.actions");
   const queryClient = useQueryClient();
-  const t = useTranslations("Study.determineLevel.quiz");
-  const tCommon = useTranslations("Common");
-  const locale = params.locale as string;
-  const attemptId = params.attemptId as string;
 
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [userSelections, setUserSelections] = useState<UserSelections>({});
-  const [timeElapsed, setTimeElapsed] = useState(0); // Timer counts up from 00:00
-  const [isTimeUp, setIsTimeUp] = useState(false);
-  const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
-  const [localStarred, setLocalStarred] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const [questionStartTime, setQuestionStartTime] = useState<number>(0);
-  const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set()); // Track answered questions
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<"date" | "percentage">("date");
 
-  useEffect(() => {
-    setDirection(document.documentElement.dir as "ltr" | "rtl");
-  }, []);
+  // Animation refs
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const mobileRef = useRef<HTMLDivElement>(null);
+  const paginationRef = useRef<HTMLDivElement>(null);
+  const noDataRef = useRef<HTMLDivElement>(null);
+  const animationTimelineRef = useRef<gsap.core.Timeline | null>(null);
+
+  const ordering = sortBy === "date" ? "-date" : "-score_percentage";
 
   const {
-    data: attemptData,
-    isLoading: isLoadingAttempt,
-    error: attemptError,
-    isSuccess,
-  } = useQuery<UserTestAttemptResume, Error>({
-    queryKey: queryKeys.tests.resume(attemptId),
-    queryFn: () => resumeTestAttempt(attemptId),
-    enabled: !!attemptId,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const questions: UnifiedQuestion[] = useMemo(
-    () => attemptData?.questions || [],
-    [attemptData]
-  );
-
-  useEffect(() => {
-    if (isSuccess && attemptData) {
-      if (attemptData.total_questions === attemptData.answered_question_count) {
-        handleCompleteTest(false, true);
-        return;
-      }
-
-      const initialSelections: UserSelections = {};
-      const initialAnswered = new Set<number>();
-      let firstUnansweredIndex = -1;
-
-      attemptData.questions.forEach((q, index) => {
-        if (q.user_answer_details?.selected_choice) {
-          initialSelections[q.id] = q.user_answer_details.selected_choice;
-          initialAnswered.add(q.id);
-        } else if (firstUnansweredIndex === -1) {
-          firstUnansweredIndex = index;
-        }
-      });
-
-      setUserSelections(initialSelections);
-      setAnsweredQuestions(initialAnswered);
-      setCurrentQuestionIndex(
-        firstUnansweredIndex !== -1 ? firstUnansweredIndex : 0
-      );
-      setIsReady(true);
-    }
-  }, [isSuccess, attemptData]);
-
-  const currentQuestion: UnifiedQuestion | undefined =
-    questions[currentQuestionIndex];
-
-  useEffect(() => {
-    if (isReady && currentQuestion) {
-      setQuestionStartTime(Date.now());
-      setLocalStarred(currentQuestion.is_starred);
-    }
-  }, [currentQuestionIndex, isReady, currentQuestion]);
-
-  // Timer logic - counting UP from 00:00
-  useEffect(() => {
-    if (!isReady || isLoadingAttempt || isTimeUp) return;
-    if (timeElapsed >= TEST_DURATION_SECONDS) {
-      setIsTimeUp(true);
-      toast.warning(t("timeOver"), { duration: 5000 });
-      handleCompleteTest(true);
-      return;
-    }
-    const timerId = setInterval(() => setTimeElapsed((prev) => prev + 1), 1000);
-    return () => clearInterval(timerId);
-  }, [timeElapsed, isLoadingAttempt, isReady, isTimeUp]);
-
-  const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(
-      2,
-      "0"
-    )}`;
-  };
-
-  const submitAnswerMutation = useMutation({
-    mutationFn: (payload: SubmitAnswerPayload & { attemptId: string }) =>
-      submitAnswer(payload.attemptId, {
-        question_id: payload.question_id,
-        selected_answer: payload.selected_answer,
-        time_taken_seconds: payload.time_taken_seconds,
+    data: attemptsData,
+    isLoading,
+    isFetching,
+    error,
+  } = useQuery<PaginatedUserTestAttempts, Error>({
+    queryKey: queryKeys.tests.list({
+      attempt_type: "level_assessment",
+      page,
+      ordering,
+    }),
+    queryFn: () =>
+      getTestAttempts({
+        attempt_type: "level_assessment",
+        page,
+        ordering,
       }),
-    onSuccess: (data: SubmitAnswerResponse, variables) => {
-      const queryKey = queryKeys.tests.resume(variables.attemptId);
-      
-      queryClient.setQueryData<UserTestAttemptResume>(queryKey, (oldData) => {
-        if (!oldData) return undefined;
-
-        const wasAlreadyAnswered =
-          oldData.questions.find((q) => q.id === data.question.id)
-            ?.user_answer_details !== null;
-
-        const newQuestions = oldData.questions.map((q) =>
-          q.id === data.question.id ? data.question : q
-        );
-
-        return {
-          ...oldData,
-          questions: newQuestions,
-          answered_question_count: wasAlreadyAnswered
-            ? oldData.answered_question_count
-            : oldData.answered_question_count + 1,
-        };
-      });
-
-      // Update answered questions set
-      setAnsweredQuestions(prev => new Set([...prev, variables.question_id]));
-    },
-    onError: (error: any, variables) => {
-      const errorMsg = getApiErrorMessage(error, tCommon("errors.generic"));
-      toast.error(
-        t("api.answerSubmitError", {
-          questionId: variables.question_id,
-          error: errorMsg,
-        })
-      );
-    },
   });
 
-  const completeTestMutation = useMutation<
-    UserTestAttemptCompletionResponse,
-    Error,
-    string
-  >({
-    mutationFn: completeTestAttempt,
-    onSuccess: (data, attemptId) => {
-      toast.success(t("api.testCompletedSuccess"));
-      queryClient.setQueryData(
-        queryKeys.tests.completionResult(attemptId),
-        data
-      );
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.tests.lists(),
-      });
-      router.push(PATHS.STUDY.DETERMINE_LEVEL.SCORE(attemptId));
-    },
-    onError: (error: any) => {
-      const errorMsg = getApiErrorMessage(error, tCommon("errors.generic"));
-      toast.error(t("api.testCompleteError", { error: errorMsg }));
-    },
-  });
-
-  const cancelTestMutation = useMutation({
+  const cancelAttemptMutation = useMutation({
     mutationFn: cancelTestAttempt,
-    onSuccess: () => {
-      toast.success(t("api.testCancelledSuccess"));
+    onSuccess: (_, attemptId) => {
+      toast.success(tActions("cancelDialog.successToast", { attemptId }));
       queryClient.invalidateQueries({ queryKey: queryKeys.tests.lists() });
-      queryClient.removeQueries({
-        queryKey: queryKeys.tests.detail(attemptId),
-      });
-      router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST);
     },
-    onError: (error: any) => {
-      const errorMsg = getApiErrorMessage(error, tCommon("errors.generic"));
-      toast.error(t("api.testCancelError", { error: errorMsg }));
+    onError: (err: any) => {
+      const errorMessage = getApiErrorMessage(
+        err,
+        tActions("cancelDialog.errorToastGeneric")
+      );
+      toast.error(errorMessage);
     },
   });
 
-  const handleSelectAnswer = (selectedOption: OptionKey) => {
-    if (currentQuestion) {
-      setUserSelections((prev) => ({
-        ...prev,
-        [currentQuestion.id]: selectedOption,
-      }));
-    }
-  };
+  const { attempts, pageCount, canPreviousPage, canNextPage } = useMemo(() => {
+    const results = attemptsData?.results ?? [];
 
-  const submitCurrentAnswer = async (
-    questionId: number,
-    selectedAnswer: OptionKey | undefined
-  ) => {
-    if (selectedAnswer && !answeredQuestions.has(questionId)) {
-      const timeTakenSeconds = Math.round(
-        (Date.now() - questionStartTime) / 1000
-      );
-      await submitAnswerMutation.mutateAsync({
-        attemptId,
-        question_id: questionId,
-        selected_answer: selectedAnswer,
-        time_taken_seconds: timeTakenSeconds,
+    const enhancedAttempts = results.map((attempt) => ({
+      ...attempt,
+      quantitative_level_key: mapScoreToLevelKey(
+        attempt.performance?.quantitative
+      ),
+      verbal_level_key: mapScoreToLevelKey(attempt.performance?.verbal),
+    }));
+
+    return {
+      attempts: enhancedAttempts,
+      pageCount: attemptsData?.count
+        ? Math.ceil(attemptsData.count / PAGE_SIZE)
+        : 1,
+      canPreviousPage: !!attemptsData?.previous,
+      canNextPage: !!attemptsData?.next,
+    };
+  }, [attemptsData]);
+
+  // GSAP Animations
+  useEffect(() => {
+    if (isLoading) return;
+
+    // Kill any existing timeline
+    if (animationTimelineRef.current) {
+      animationTimelineRef.current.kill();
+    }
+
+    // Create main timeline
+    const tl = gsap.timeline({
+      defaults: { ease: "power3.out" }
+    });
+    animationTimelineRef.current = tl;
+
+    // Set initial states
+    gsap.set([cardRef.current], { 
+      opacity: 0, 
+      y: 30,
+      scale: 0.95
+    });
+
+    if (headerRef.current) {
+      gsap.set(headerRef.current.children, { 
+        opacity: 0, 
+        x: -20 
       });
     }
-  };
 
-  const handleNext = async () => {
-    if (currentQuestion && userSelections[currentQuestion.id]) {
-      await submitCurrentAnswer(
-        currentQuestion.id,
-        userSelections[currentQuestion.id]
-      );
+    if (controlsRef.current) {
+      gsap.set(controlsRef.current, { 
+        opacity: 0, 
+        y: 20 
+      });
     }
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
-    } else {
-      handleCompleteTest();
+
+    // Main card animation
+    tl.to(cardRef.current, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 0.6,
+      ease: "back.out(1.7)"
+    });
+
+    // Header content animation
+    if (headerRef.current) {
+      tl.to(headerRef.current.children, {
+        opacity: 1,
+        x: 0,
+        duration: 0.4,
+        stagger: 0.1,
+        ease: "power2.out"
+      }, "-=0.3");
     }
-  };
 
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex((prev) => prev - 1);
+    // Controls animation
+    if (controlsRef.current) {
+      tl.to(controlsRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 0.4
+      }, "-=0.2");
     }
-  };
 
-  const handleCompleteTest = async (
-    autoSubmittedDueToTimeUp = false,
-    forceComplete = false
-  ) => {
-    if (
-      currentQuestion &&
-      userSelections[currentQuestion.id] &&
-      !autoSubmittedDueToTimeUp &&
-      !forceComplete &&
-      !answeredQuestions.has(currentQuestion.id)
-    ) {
-      await submitCurrentAnswer(
-        currentQuestion.id,
-        userSelections[currentQuestion.id]
-      );
+    // Table rows animation (desktop)
+    if (tableRef.current) {
+      const rows = tableRef.current.querySelectorAll("tbody tr");
+      gsap.set(rows, { opacity: 0, x: -30 });
+      
+      tl.to(rows, {
+        opacity: 1,
+        x: 0,
+        duration: 0.3,
+        stagger: 0.05,
+        ease: "power2.out"
+      }, "-=0.1");
+
+      // Add hover animations to rows
+      rows.forEach((row) => {
+        row.addEventListener("mouseenter", () => {
+          gsap.to(row, {
+            scale: 1.02,
+            backgroundColor: "rgba(59, 130, 246, 0.05)",
+            duration: 0.2,
+            ease: "power2.out"
+          });
+        });
+
+        row.addEventListener("mouseleave", () => {
+          gsap.to(row, {
+            scale: 1,
+            backgroundColor: "transparent",
+            duration: 0.2,
+            ease: "power2.out"
+          });
+        });
+      });
     }
-    completeTestMutation.mutate(attemptId);
+
+    // Mobile accordion animation
+    if (mobileRef.current) {
+      const items = mobileRef.current.querySelectorAll("[data-state]");
+      gsap.set(items, { opacity: 0, y: 20 });
+      
+      tl.to(items, {
+        opacity: 1,
+        y: 0,
+        duration: 0.3,
+        stagger: 0.08,
+        ease: "power2.out"
+      }, "-=0.1");
+    }
+
+    // Pagination animation
+    if (paginationRef.current) {
+      gsap.set(paginationRef.current, { opacity: 0, y: 20 });
+      tl.to(paginationRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 0.4
+      });
+    }
+
+    // Cleanup
+    return () => {
+      if (animationTimelineRef.current) {
+        animationTimelineRef.current.kill();
+      }
+    };
+  }, [isLoading, attempts, page]);
+
+  // No data animation
+  useEffect(() => {
+    if (!attemptsData?.count && noDataRef.current) {
+      const tl = gsap.timeline();
+      
+      const img = noDataRef.current.querySelector("img");
+      const texts = noDataRef.current.querySelectorAll("h2, p, button");
+      
+      gsap.set([img, texts], { opacity: 0 });
+      gsap.set(img, { scale: 0.5, rotation: -10 });
+      gsap.set(texts, { y: 30 });
+      
+      tl.to(img, {
+        opacity: 1,
+        scale: 1,
+        rotation: 0,
+        duration: 0.8,
+        ease: "back.out(1.7)"
+      })
+      .to(texts, {
+        opacity: 1,
+        y: 0,
+        duration: 0.5,
+        stagger: 0.1,
+        ease: "power3.out"
+      }, "-=0.4");
+
+      // Floating animation for image
+      gsap.to(img, {
+        y: -10,
+        duration: 2,
+        repeat: -1,
+        yoyo: true,
+        ease: "power1.inOut"
+      });
+    }
+  }, [attemptsData?.count]);
+
+  // Badge animation on hover
+  useEffect(() => {
+    const badges = document.querySelectorAll("span[class*='rounded-md']");
+    badges.forEach((badge) => {
+      badge.addEventListener("mouseenter", () => {
+        gsap.to(badge, {
+          scale: 1.1,
+          duration: 0.2,
+          ease: "power2.out"
+        });
+      });
+
+      badge.addEventListener("mouseleave", () => {
+        gsap.to(badge, {
+          scale: 1,
+          duration: 0.2,
+          ease: "power2.out"
+        });
+      });
+    });
+  }, [attempts]);
+
+  const handleSortChange = (value: "date" | "percentage") => {
+    // Animate the sort change
+    gsap.to([tableRef.current, mobileRef.current], {
+      opacity: 0,
+      y: 10,
+      duration: 0.2,
+      onComplete: () => {
+        setPage(1);
+        setSortBy(value);
+        gsap.to([tableRef.current, mobileRef.current], {
+          opacity: 1,
+          y: 0,
+          duration: 0.3
+        });
+      }
+    });
   };
 
-  const handleCancelTest = () => {
-    cancelTestMutation.mutate(attemptId);
-  };
+  if (isLoading) {
+    return <DetermineLevelPageSkeleton />;
+  }
 
-  // Calculate progress based on answered questions
-  const answeredCount = answeredQuestions.size;
-  const progressValue = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
-
-  // RENDER LOGIC
-  if (isLoadingAttempt || !isReady) return <QuizPageSkeleton />;
-  if (attemptError || !attemptData) {
+  if (error) {
     return (
-      <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertTriangle className="h-5 w-5" />
-          <AlertTitle>{tCommon("errors.fetchFailedTitle")}</AlertTitle>
-          <AlertDescription>
-            {getApiErrorMessage(attemptError, tCommon("errors.generic"))}
+      <div className="container mx-auto p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl">
+        <Alert variant="destructive" className="mx-auto max-w-2xl">
+          <AlertTitle className="text-base sm:text-lg">{t("errors.fetchFailedTitle")}</AlertTitle>
+          <AlertDescription className="text-sm sm:text-base">
+            {getApiErrorMessage(error, t("errors.fetchFailedDescription"))}
           </AlertDescription>
         </Alert>
-        <Button
-          onClick={() => router.back()}
-          variant="outline"
-          className="mt-6"
-        >
-          {locale === "ar" ? (
-            <ArrowRight className="me-2 h-4 w-4" />
-          ) : (
-            <ArrowLeft className="me-2 h-4 w-4" />
-          )}
-          {tCommon("back")}
-        </Button>
       </div>
     );
   }
 
-  if (!currentQuestion) {
+  const hasNoAttemptsAtAll = !attemptsData?.count;
+
+  if (hasNoAttemptsAtAll) {
     return (
-      <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
-        <Alert variant="default" className="max-w-md">
-          <AlertTriangle className="h-5 w-5" />
-          <AlertTitle>{t("noQuestionsTitle")}</AlertTitle>
-          <AlertDescription>{t("noQuestionsDescription")}</AlertDescription>
-        </Alert>
-        <Button
-          onClick={() => router.push(PATHS.STUDY.DETERMINE_LEVEL.LIST)}
-          variant="outline"
-          className="mt-6"
-        >
-          {locale === "ar" ? (
-            <ArrowRight className="me-2 h-4 w-4" />
-          ) : (
-            <ArrowLeft className="me-2 h-4 w-4" />
-          )}
-          {tCommon("backToList")}
+      <div ref={noDataRef} className="flex min-h-[calc(100vh-100px)] sm:min-h-[calc(100vh-150px)] flex-col items-center justify-center p-4 text-center">
+        <Image
+          src="/images/search.png"
+          width={120}
+          height={120}
+          alt={t("noAttemptsTitle")}
+          className="mb-4 sm:mb-6 w-20 h-20 sm:w-[120px] sm:h-[120px]"
+        />
+        <h2 className="mb-2 text-xl sm:text-2xl font-[700] dark:text-white">
+          {t("noAttemptsTitle")}
+        </h2>
+        <p className="mb-4 sm:mb-6 max-w-xs sm:max-w-md text-sm sm:text-base text-muted-foreground dark:text-gray-300">
+          {t("noAttemptsDescription")}
+        </p>
+        <Button asChild size="lg" className="w-full sm:w-auto md:w-[250px]">
+          <Link href={PATHS.STUDY.DETERMINE_LEVEL.START}>
+            <PencilLine className="me-2 h-4 w-4 sm:h-5 sm:w-5 rtl:me-0 rtl:ms-2" />
+            {t("startTest")}
+          </Link>
         </Button>
       </div>
     );
   }
 
-  const isCurrentQuestionAnswered = answeredQuestions.has(currentQuestion.id);
+  const {locale} = useParams();
 
   return (
-    <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
-      <Card className="w-full max-w-4xl shadow-xl dark:bg-[#0B1739]">
-        <CardHeader dir={locale === "en" ? "ltr" : "rtl"} className="pb-4">
-          <div className="mb-3 flex items-center justify-between">
-            <CardTitle className="text-2xl md:text-3xl font-bold">
-              {answeredCount}/{questions.length}
-            </CardTitle>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center text-lg">
-                <Clock className="me-1.5 h-5 w-5 rtl:me-0 rtl:ms-1.5" />
-                <span className="font-medium">{formatTime(timeElapsed)}</span>
-              </div>
-              <StarButton
-                questionId={currentQuestion.id}
-                isStarred={localStarred}
-                onStarChange={(newState) => setLocalStarred(newState)}
-                disabled={false}
-                attemptId={attemptId}
-              />
-              <ConfirmationDialog
-                triggerButton={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <XCircle className="h-4 w-4" />
-                    <span className="ms-1.5 hidden sm:inline">{t("endTest")}</span>
-                  </Button>
-                }
-                title={t("cancelDialog.title")}
-                description={t("cancelDialog.description")}
-                confirmActionText={t("cancelDialog.confirmButton")}
-                cancelActionText={tCommon("no")}
-                onConfirm={handleCancelTest}
-                isConfirming={cancelTestMutation.isPending}
-                confirmButtonVariant="destructive"
-              />
-            </div>
-          </div>
-          <Progress value={progressValue} className="mt-2 h-2 w-full" />
-        </CardHeader>
-
-        <CardContent className="min-h-[400px] py-6">
-          <div className="mb-8">
-            <div className="flex items-start justify-between mb-2">
-              <h3 className="text-lg font-medium text-muted-foreground">
-                {t("question")} {currentQuestionIndex + 1}
-              </h3>
-              {isCurrentQuestionAnswered && (
-                <div className="flex items-center gap-1 text-green-600">
-                  <Check className="h-4 w-4" />
-                  <span className="text-sm font-medium">{t("answered")}</span>
-                </div>
-              )}
-            </div>
-            <QuestionRenderer
-              questionText={currentQuestion.question_text}
-              imageUrl={currentQuestion.image}
-            />
-          </div>
-
-          {currentQuestion.options ? (
-            <RadioGroup
-              value={userSelections[currentQuestion.id] || ""}
-              onValueChange={(value: string) =>
-                handleSelectAnswer(value as OptionKey)
-              }
-              className="grid grid-cols-1 md:grid-cols-2 gap-4"
-              dir={direction}
-            >
-              {Object.entries(currentQuestion.options).map(([key, text]) => {
-                const optionKey = key as OptionKey;
-                const isSelected = userSelections[currentQuestion.id] === optionKey;
-                
-                return (
-                  <Label
-                    key={optionKey}
-                    htmlFor={`${currentQuestion.id}-${optionKey}`}
-                    className={`
-                      relative flex cursor-pointer items-center p-4 rounded-lg border-2 
-                      transition-all duration-200 min-h-[80px]
-                      ${isSelected 
-                        ? 'border-primary bg-primary/10 shadow-md' 
-                        : 'border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:bg-accent'
-                      }
-                      ${isCurrentQuestionAnswered ? 'opacity-80 cursor-not-allowed' : ''}
-                    `}
-                  >
-                    <RadioGroupItem
-                      value={optionKey}
-                      id={`${currentQuestion.id}-${optionKey}`}
-                      className="border-2 border-primary text-primary me-3 rtl:me-0 rtl:ms-3"
-                      disabled={isCurrentQuestionAnswered}
-                    />
-                    <div className="flex-1">
-                      <RichContentViewer
-                        htmlContent={text}
-                        className="prose dark:prose-invert max-w-none text-base"
-                      />
-                    </div>
-                    {isSelected && (
-                      <div className="absolute top-2 end-2 rtl:end-auto rtl:start-2">
-                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                      </div>
-                    )}
-                  </Label>
-                );
-              })}
-            </RadioGroup>
-          ) : (
-            <Alert variant="destructive">
-              <HelpCircle className="h-5 w-5" />
-              <AlertTitle>{t("questionLoadError.title")}</AlertTitle>
-              <AlertDescription>
-                {t("questionLoadError.description", {
-                  questionId: currentQuestion.id,
-                })}
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-
-        <CardFooter
-          dir={locale === "en" ? "ltr" : "rtl"}
-          className="flex flex-col items-center justify-between gap-3 pt-6 sm:flex-row"
+    <div ref={containerRef} className="container mx-auto space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl">
+      <Card ref={cardRef} className="dark:bg-[#0B1739] dark:border-[#7E89AC] border-2">
+        <CardHeader 
+          ref={headerRef}
+          dir={locale === "en" ? "ltr" : "rtl"} 
+          className="flex flex-col justify-between gap-3 sm:gap-4 p-4 sm:p-6 md:flex-row md:items-center"
         >
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={
-              currentQuestionIndex === 0 ||
-              completeTestMutation.isPending ||
-              cancelTestMutation.isPending
-            }
-            className="w-full sm:w-auto"
-          >
-            {locale === "ar" ? (
-              <ChevronRight className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
-            ) : (
-              <ChevronLeft className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
-            )}
-            {t("previous")}
+          <div className="space-y-1">
+            <CardTitle className="text-xl sm:text-2xl font-bold">
+              {t("title")}
+            </CardTitle>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {t("description")}
+            </p>
+          </div>
+          <Button asChild className="text-white w-full sm:w-auto" size="default">
+            <Link href={PATHS.STUDY.DETERMINE_LEVEL.START}>
+              <PencilLine className="me-2 h-4 w-4 sm:h-5 sm:w-5 rtl:me-0 rtl:ms-2" />
+              {t("retakeTest")}
+            </Link>
           </Button>
-          
-          {currentQuestionIndex < questions.length - 1 ? (
-            <Button
-              onClick={handleNext}
-              disabled={
-                !userSelections[currentQuestion.id] ||
-                !currentQuestion.options ||
-                completeTestMutation.isPending ||
-                cancelTestMutation.isPending ||
-                (submitAnswerMutation.isPending &&
-                  submitAnswerMutation.variables?.question_id === currentQuestion?.id)
-              }
-              className="w-full sm:w-auto"
-            >
-              {submitAnswerMutation.isPending &&
-                submitAnswerMutation.variables?.question_id === currentQuestion?.id && (
-                  <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
-                )}
-              {t("next")}
-              {locale === "ar" ? (
-                <ChevronLeft className="ms-2 h-5 w-5 rtl:me-2 rtl:ms-0" />
-              ) : (
-                <ChevronRight className="ms-2 h-5 w-5 rtl:me-2 rtl:ms-0" />
-              )}
-            </Button>
-          ) : (
-            <ConfirmationDialog
-              triggerButton={
-                <Button
-                  className="w-full sm:w-auto"
-                  disabled={
-                    !userSelections[currentQuestion.id] ||
-                    !currentQuestion.options ||
-                    completeTestMutation.isPending ||
-                    cancelTestMutation.isPending ||
-                    (submitAnswerMutation.isPending &&
-                      submitAnswerMutation.variables?.question_id === currentQuestion?.id)
-                  }
-                >
-                  {completeTestMutation.isPending && (
-                    <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
-                  )}
-                  <Check className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
-                  {t("submitAnswers")}
-                </Button>
-              }
-              title={t("completeDialog.title")}
-              description={t("completeDialog.description")}
-              confirmActionText={t("completeDialog.confirmButton")}
-              cancelActionText={tCommon("no")}
-              onConfirm={() => handleCompleteTest(false)}
-              isConfirming={completeTestMutation.isPending}
-              confirmButtonVariant="default"
-            />
-          )}
-        </CardFooter>
-      </Card>
-    </div>
-  );
-};
-
-const QuizPageSkeleton = ({ message }: { message?: string }) => {
-  return (
-    <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
-      <Card className="w-full max-w-4xl">
-        <CardHeader className="pb-4">
-          <div className="mb-3 flex items-center justify-between">
-            <Skeleton className="h-8 w-20" />
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-6 w-16" />
-              <Skeleton className="h-8 w-8" />
-              <Skeleton className="h-8 w-24" />
+        </CardHeader>
+        
+        <CardContent dir={locale === "en" ? "ltr" : "rtl"} className="p-3 sm:p-4 md:p-6">
+          {/* Sort Controls */}
+          <div ref={controlsRef} className="mb-4 sm:mb-6 flex flex-col justify-between gap-3 sm:gap-4 rounded-lg border bg-card p-3 sm:p-4 sm:flex-row sm:items-center dark:bg-[#0B1739]">
+            <h3 className="text-base sm:text-lg font-semibold">
+              {t("attemptsLogTitle")}
+            </h3>
+            <div className="flex items-center gap-2">
+              <ListFilter className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+              <Select
+                value={sortBy}
+                onValueChange={handleSortChange}
+                dir={
+                  typeof document !== "undefined"
+                    ? (document.documentElement.dir as "rtl" | "ltr")
+                    : "ltr"
+                }
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder={t("sortBy")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date">{t("latestDate")}</SelectItem>
+                  <SelectItem value="percentage">
+                    {t("highestPercentage")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <Skeleton className="mt-2 h-2 w-full" />
-        </CardHeader>
-        <CardContent className="min-h-[400px] py-6">
-          {message ? (
-            <p className="text-center text-muted-foreground">{message}</p>
-          ) : (
-            <>
-              <div className="mb-8">
-                <Skeleton className="mb-2 h-6 w-32" />
-                <Skeleton className="h-8 w-3/4" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[...Array(4)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center p-4 rounded-lg border-2"
+
+          {/* Desktop/Tablet Table - Show from md breakpoint */}
+          <div ref={tableRef} className="hidden rounded-xl border overflow-x-auto md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className={cn(locale === "en" ? "text-left" : "text-right", "whitespace-nowrap")}>
+                    {t("attemptsTable.date")}
+                  </TableHead>
+                  <TableHead className="text-center whitespace-nowrap">
+                    {t("attemptsTable.numQuestions")}
+                  </TableHead>
+                  <TableHead className="text-center whitespace-nowrap">
+                    {t("attemptsTable.percentage")}
+                  </TableHead>
+                  <TableHead className="text-center whitespace-nowrap min-w-[120px]">
+                    {t("attemptsTable.quantitativePerformance")}
+                  </TableHead>
+                  <TableHead className="text-center whitespace-nowrap min-w-[120px]">
+                    {t("attemptsTable.verbalPerformance")}
+                  </TableHead>
+                  <TableHead className="text-center whitespace-nowrap">
+                    {t("attemptsTable.status")}
+                  </TableHead>
+                  <TableHead className="w-[200px] lg:w-[280px] text-center whitespace-nowrap">
+                    {t("attemptsTable.actions")}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {attempts.map((attempt) => (
+                  <TableRow
+                    key={attempt.attempt_id}
+                    className={cn({
+                      "opacity-60": attempt.status === "abandoned",
+                    })}
                   >
-                    <Skeleton className="h-5 w-5 rounded-full me-3" />
-                    <Skeleton className="h-6 flex-1" />
-                  </div>
+                    <TableCell className="whitespace-nowrap">
+                      {new Date(attempt.date).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {attempt.num_questions}
+                    </TableCell>
+                    <TableCell className="text-center font-medium">
+                      {attempt.score_percentage !== null
+                        ? `${attempt.score_percentage.toFixed(0)}%`
+                        : attempt.status === "started"
+                        ? t("attemptsTable.statusInProgress")
+                        : "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span
+                        className={cn(
+                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium transition-transform",
+                          getBadgeStyle(attempt.quantitative_level_key)
+                        )}
+                      >
+                        {tBadge(attempt.quantitative_level_key)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span
+                        className={cn(
+                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium transition-transform",
+                          getBadgeStyle(attempt.verbal_level_key)
+                        )}
+                      >
+                        {tBadge(attempt.verbal_level_key)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span
+                        className={cn(
+                          "inline-block rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium transition-transform",
+                          {
+                            "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100":
+                              attempt.status === "completed",
+                            "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100":
+                              attempt.status === "started",
+                            "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100":
+                              attempt.status === "abandoned",
+                          }
+                        )}
+                      >
+                        {attempt.status_display || attempt.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <AttemptActionButtons
+                        attempt={attempt}
+                        cancelAttemptMutation={cancelAttemptMutation}
+                      />
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </div>
-            </>
-          )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Accordion - Show only on mobile */}
+          <div ref={mobileRef} className="space-y-2 sm:space-y-3 md:hidden">
+            <Accordion type="single" collapsible className="w-full space-y-2">
+              {attempts.map((attempt) => (
+                <AccordionItem
+                  value={`item-${attempt.attempt_id}`}
+                  key={attempt.attempt_id}
+                  className="rounded-lg border dark:border-gray-700 overflow-hidden"
+                  disabled={attempt.status === "abandoned"}
+                >
+                  <AccordionTrigger className="p-3 sm:p-4 hover:no-underline disabled:opacity-60">
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <div className="text-start rtl:text-right space-y-1">
+                        <p className="text-sm sm:text-base font-medium">
+                          {new Date(attempt.date).toLocaleDateString(
+                            undefined,
+                            { year: "numeric", month: "short", day: "numeric" }
+                          )}
+                        </p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          {t("attemptsTable.percentage")}:{" "}
+                          <span className="font-medium">
+                            {attempt.score_percentage !== null
+                              ? `${attempt.score_percentage.toFixed(0)}%`
+                              : attempt.status === "started"
+                              ? t("attemptsTable.statusInProgress")
+                              : "-"}
+                          </span>
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          "flex-shrink-0 rounded-md px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium",
+                          {
+                            "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100":
+                              attempt.status === "completed",
+                            "bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100":
+                              attempt.status === "started",
+                            "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100":
+                              attempt.status === "abandoned",
+                          }
+                        )}
+                      >
+                        {attempt.status_display || attempt.status}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="p-3 sm:p-4 pt-0">
+                    <div className="space-y-2 text-xs sm:text-sm">
+                      <div className="flex justify-between items-center">
+                        <strong>{t("attemptsTable.numQuestions")}:</strong>
+                        <span>{attempt.num_questions}</span>
+                      </div>
+                      <div className="flex justify-between items-center gap-2">
+                        <strong className="flex-shrink-0">
+                          {t("attemptsTable.quantitativePerformance")}:
+                        </strong>
+                        <span
+                          className={cn(
+                            "rounded-md px-1.5 py-0.5 text-xs",
+                            getBadgeStyle(attempt.quantitative_level_key)
+                          )}
+                        >
+                          {tBadge(attempt.quantitative_level_key)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center gap-2">
+                        <strong className="flex-shrink-0">
+                          {t("attemptsTable.verbalPerformance")}:
+                        </strong>
+                        <span
+                          className={cn(
+                            "rounded-md px-1.5 py-0.5 text-xs",
+                            getBadgeStyle(attempt.verbal_level_key)
+                          )}
+                        >
+                          {tBadge(attempt.verbal_level_key)}
+                        </span>
+                      </div>
+                      <div className="mt-3 pt-3 border-t">
+                        <AttemptActionButtons
+                          attempt={attempt}
+                          cancelAttemptMutation={cancelAttemptMutation}
+                        />
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+
+          {/* Pagination */}
+          <div ref={paginationRef}>
+            <DataTablePagination
+              page={page}
+              pageCount={pageCount}
+              setPage={setPage}
+              canPreviousPage={canPreviousPage}
+              canNextPage={canNextPage}
+              isFetching={isFetching}
+              className="mt-4"
+            />
+          </div>
         </CardContent>
-        <CardFooter className="flex flex-col items-center justify-between gap-3 pt-6 sm:flex-row">
-          <Skeleton className="h-10 w-full sm:w-28" />
-          <Skeleton className="h-10 w-full sm:w-28" />
-        </CardFooter>
       </Card>
     </div>
   );
 };
 
-export default LevelAssessmentAttemptPage;
+// Responsive Skeleton component
+const DetermineLevelPageSkeleton = () => {
+  const skeletonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (skeletonRef.current) {
+      const elements = skeletonRef.current.querySelectorAll(".animate-pulse");
+      gsap.fromTo(elements, 
+        { opacity: 0.3 },
+        { 
+          opacity: 1, 
+          duration: 1.5, 
+          repeat: -1, 
+          yoyo: true,
+          stagger: 0.1,
+          ease: "power1.inOut"
+        }
+      );
+    }
+  }, []);
+
+  return (
+    <div ref={skeletonRef} className="container mx-auto space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl">
+      <Card>
+        <CardHeader className="flex flex-col justify-between gap-3 sm:gap-4 p-4 sm:p-6 md:flex-row md:items-center">
+          <div>
+            <Skeleton className="mb-2 h-6 sm:h-8 w-32 sm:w-48 animate-pulse" />
+            <Skeleton className="h-3 sm:h-4 w-48 sm:w-72 animate-pulse" />
+          </div>
+          <Skeleton className="h-9 sm:h-10 w-full sm:w-48 animate-pulse" />
+        </CardHeader>
+        <CardContent className="p-3 sm:p-4 md:p-6">
+          <div className="mb-4 sm:mb-6 flex flex-col justify-between gap-3 sm:gap-4 rounded-lg border bg-background p-3 sm:p-4 sm:flex-row sm:items-center">
+            <Skeleton className="h-5 sm:h-7 w-32 sm:w-40 animate-pulse" />
+            <Skeleton className="h-9 sm:h-10 w-full sm:w-[180px] animate-pulse" />
+          </div>
+
+          {/* Desktop skeleton */}
+          <div className="hidden rounded-xl border md:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {[...Array(7)].map((_, i) => (
+                    <TableHead key={i}>
+                      <Skeleton className="h-4 sm:h-5 w-20 sm:w-24" />
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...Array(3)].map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <Skeleton className="h-4 sm:h-5 w-16 sm:w-20" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Skeleton className="mx-auto h-4 sm:h-5 w-8 sm:w-10" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Skeleton className="mx-auto h-4 sm:h-5 w-8 sm:w-10" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 sm:h-6 w-14 sm:w-16" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 sm:h-6 w-14 sm:w-16" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Skeleton className="mx-auto h-5 sm:h-6 w-16 sm:w-20" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Skeleton className="mx-auto h-8 sm:h-9 w-28 sm:w-32" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile skeleton */}
+          <div className="space-y-2 sm:space-y-3 md:hidden">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={`skeleton-mobile-${i}`}
+                className="flex items-center justify-between rounded-lg border p-3 sm:p-4 dark:border-gray-700"
+              >
+                <div className="text-start rtl:text-right space-y-1">
+                  <Skeleton className="h-4 sm:h-5 w-20 sm:w-24" />
+                  <Skeleton className="h-3 sm:h-4 w-28 sm:w-32" />
+                </div>
+                <Skeleton className="h-5 sm:h-6 w-16 sm:w-20" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default LevelAssessmentPage;
