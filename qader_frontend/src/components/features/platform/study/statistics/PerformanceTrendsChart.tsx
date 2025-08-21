@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { BarChart3, LineChart as LineChartIcon } from "lucide-react";
+import { BarChart3, LineChart as LineChartIcon, ChevronDown } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -27,14 +27,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import type { UserStatistics } from "@/types/api/study.types";
 
 interface Props {
@@ -51,9 +51,9 @@ const TEST_TYPE_COLORS: Record<string, string> = {
 };
 
 // Clean data processing function
-const processChartData = (trends: Props["trends"], filter: string) => {
+const processChartData = (trends: Props["trends"], selectedTypes: string[]) => {
   const dataMap = new Map<string, any>();
-  const testTypesToProcess = filter === "all" ? Object.keys(trends) : [filter];
+  const testTypesToProcess = selectedTypes.length === 0 ? Object.keys(trends) : selectedTypes;
 
   testTypesToProcess.forEach((testType) => {
     if (!trends[testType]) return;
@@ -174,22 +174,141 @@ const PerformanceIndicator = ({
   </div>
 );
 
+// Multi-select component
+const MultiSelectFilter = ({
+  availableTypes,
+  selectedTypes,
+  onSelectionChange,
+  disabled,
+  t,
+  tCommon,
+}: {
+  availableTypes: string[];
+  selectedTypes: string[];
+  onSelectionChange: (types: string[]) => void;
+  disabled: boolean;
+  t: any;
+  tCommon: any;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleTypeToggle = (type: string, checked: boolean) => {
+    if (checked) {
+      onSelectionChange([...selectedTypes, type]);
+    } else {
+      onSelectionChange(selectedTypes.filter(t => t !== type));
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTypes.length === availableTypes.length) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange([...availableTypes]);
+    }
+  };
+
+  const getButtonText = () => {
+    if (selectedTypes.length === 0) {
+      return t("charts.filterPlaceholder");
+    } else if (selectedTypes.length === availableTypes.length) {
+      return t("charts.allTestTypes");
+    } else if (selectedTypes.length === 1) {
+      return tCommon(`testTypes.${selectedTypes[0]}`);
+    } else {
+      return `${selectedTypes.length} ${t("charts.typesSelected")}`;
+    }
+  };
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={isOpen}
+          disabled={disabled}
+          className="w-full min-w-[180px] justify-between sm:w-auto"
+        >
+          <span className="truncate">{getButtonText()}</span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[280px] p-2" align="end">
+        <div className="space-y-2">
+          {/* Select All option */}
+          <div className="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
+            <Checkbox
+              id="select-all"
+              checked={selectedTypes.length === availableTypes.length}
+              onCheckedChange={handleSelectAll}
+              className="h-4 w-4"
+            />
+            <label
+              htmlFor="select-all"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              {t("charts.selectAll")}
+            </label>
+          </div>
+          
+          <div className="border-t pt-2">
+            {availableTypes.map((type) => (
+              <div
+                key={type}
+                className="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+              >
+                <Checkbox
+                  id={type}
+                  checked={selectedTypes.includes(type)}
+                  onCheckedChange={(checked) => handleTypeToggle(type, checked as boolean)}
+                  className="h-4 w-4"
+                />
+                <div className="flex items-center gap-2 flex-1">
+                  <div
+                    className="h-2 w-2 rounded-full flex-shrink-0"
+                    style={{
+                      backgroundColor: TEST_TYPE_COLORS[type] || TEST_TYPE_COLORS.default,
+                    }}
+                  />
+                  <label
+                    htmlFor={type}
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 truncate"
+                  >
+                    {tCommon(`testTypes.${type}`)}
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 export function PerformanceTrendsChart({ trends, isLoading = false }: Props) {
   const t = useTranslations("Study.statistics");
   const tCommon = useTranslations("Common");
 
   const availableTestTypes = useMemo(() => Object.keys(trends || {}), [trends]);
-  const [selectedTestType, setSelectedTestType] = useState("all");
+  const [selectedTestTypes, setSelectedTestTypes] = useState<string[]>(availableTestTypes);
+
+  // Update selected types when available types change
+  React.useEffect(() => {
+    if (availableTestTypes.length > 0 && selectedTestTypes.length === 0) {
+      setSelectedTestTypes(availableTestTypes);
+    }
+  }, [availableTestTypes, selectedTestTypes.length]);
 
   const chartData = useMemo(
-    () => processChartData(trends || {}, selectedTestType),
-    [trends, selectedTestType]
+    () => processChartData(trends || {}, selectedTestTypes),
+    [trends, selectedTestTypes]
   );
 
-  const linesToRender =
-    selectedTestType === "all" ? availableTestTypes : [selectedTestType];
+  const linesToRender = selectedTestTypes.length === 0 ? availableTestTypes : selectedTestTypes;
 
-  // ✨ NEW: Improved and more accurate summary statistics logic
+  // Improved summary statistics logic
   const summaryStats = useMemo(() => {
     if (!chartData || chartData.length === 0) return null;
 
@@ -208,7 +327,6 @@ export function PerformanceTrendsChart({ trends, isLoading = false }: Props) {
       .map((type) => latestEntry[type])
       .filter((v): v is number => v != null);
 
-    // UX Fix: Averages the latest scores if multiple are present, instead of showing just one
     const latestAvg =
       latestScores.length > 0
         ? latestScores.reduce((s, v) => s + v, 0) / latestScores.length
@@ -230,32 +348,14 @@ export function PerformanceTrendsChart({ trends, isLoading = false }: Props) {
             </CardTitle>
             <CardDescription>{t("pageDescription")}</CardDescription>
           </div>
-          <Select
-            value={selectedTestType}
-            onValueChange={setSelectedTestType}
+          <MultiSelectFilter
+            availableTypes={availableTestTypes}
+            selectedTypes={selectedTestTypes}
+            onSelectionChange={setSelectedTestTypes}
             disabled={isLoading}
-          >
-            <SelectTrigger className="w-full min-w-[180px] sm:w-auto">
-              <SelectValue placeholder={t("charts.filterPlaceholder")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("charts.allTestTypes")}</SelectItem>
-              {availableTestTypes.map((type) => (
-                <SelectItem key={type} value={type}>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-2 w-2 rounded-full"
-                      style={{
-                        backgroundColor:
-                          TEST_TYPE_COLORS[type] || TEST_TYPE_COLORS.default,
-                      }}
-                    />
-                    {tCommon(`testTypes.${type}`)}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            t={t}
+            tCommon={tCommon}
+          />
         </div>
 
         <AnimatePresence>
@@ -366,7 +466,6 @@ export function PerformanceTrendsChart({ trends, isLoading = false }: Props) {
                         strokeWidth: 2,
                         fill: "hsl(var(--background))",
                       }}
-                      // ✨ NEW: Animate line drawing on load
                       isAnimationActive={true}
                       animationDuration={700}
                       connectNulls={false}
