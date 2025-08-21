@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, Loader2, X, Lightbulb, BookOpen, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 import { useEmergencyModeStore } from "@/store/emergency.store";
@@ -50,6 +50,13 @@ interface QuestionDisplayEmergencyProps {
   onLastAnswered: () => void;
 }
 
+// Helper function to extract clean text from HTML
+const extractTextFromHTML = (htmlString: string): string => {
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = htmlString;
+  return tempDiv.textContent || tempDiv.innerText || "";
+};
+
 export function QuestionDisplayEmergency({
   question,
   currentQuestionNumber,
@@ -67,12 +74,18 @@ export function QuestionDisplayEmergency({
   const [feedback, setFeedback] = useState<EmergencyModeAnswerResponse | null>(
     null
   );
+  const [showHint, setShowHint] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [showSolution, setShowSolution] = useState(false);
 
   // Reset component state when a new question is passed in
   useEffect(() => {
     setSelectedAnswer(null);
     setIsAnswered(false);
     setFeedback(null);
+    setShowHint(false);
+    setShowExplanation(false);
+    setShowSolution(false);
   }, [question.id]);
 
   const { mutate: submitAnswer, isPending } = useMutation({
@@ -103,7 +116,6 @@ export function QuestionDisplayEmergency({
   };
 
   const handleNext = () => {
-    // UPDATED LOGIC HERE
     if (isLastQuestion) {
       onLastAnswered();
     } else {
@@ -175,7 +187,95 @@ export function QuestionDisplayEmergency({
             );
           })}
         </RadioGroup>
+
+        {/* Helper Buttons */}
+        <div className="flex flex-wrap gap-2 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowHint(!showHint)}
+            className="flex items-center gap-2"
+          >
+            <Lightbulb className="h-4 w-4" />
+            تلميح
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowExplanation(!showExplanation)}
+            className="flex items-center gap-2"
+          >
+            <BookOpen className="h-4 w-4" />
+            شرح
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSolution(!showSolution)}
+            className="flex items-center gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            إظهار الحل
+          </Button>
+        </div>
+
+        {/* Helper Content */}
+        <AnimatePresence>
+          {showHint && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-4"
+            >
+              <Alert>
+                <Lightbulb className="h-4 w-4" />
+                <AlertTitle>تلميح</AlertTitle>
+                <AlertDescription>
+                  {/* Add hint content here - you might need to add this to your question type */}
+                  {question.hint || "لا يوجد تلميح متاح لهذا السؤال"}
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+          
+          {showExplanation && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-4"
+            >
+              <Alert>
+                <BookOpen className="h-4 w-4" />
+                <AlertTitle>شرح</AlertTitle>
+                <AlertDescription>
+                  {/* Add explanation content here */}
+                  {question.detailed_explanation || "لا يوجد شرح تفصيلي متاح"}
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+          
+          {showSolution && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-4"
+            >
+              <Alert className="border-green-500">
+                <Eye className="h-4 w-4" />
+                <AlertTitle>الحل</AlertTitle>
+                <AlertDescription>
+                  الإجابة الصحيحة: {arabicOptionMap[question.correct_answer as AnswerOption]} - {extractTextFromHTML(question.options[question.correct_answer as AnswerOption])}
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </CardContent>
+      
       <CardFooter className="flex-col items-stretch space-y-4">
         <AnimatePresence>
           {isAnswered && feedback && (
@@ -193,10 +293,12 @@ export function QuestionDisplayEmergency({
                 ) : (
                   <X className="h-4 w-4" />
                 )}
-                <AlertTitle>{feedback.feedback}</AlertTitle>
+                <AlertTitle>
+                  {extractTextFromHTML(feedback.feedback)}
+                </AlertTitle>
                 {feedback.explanation && (
                   <AlertDescription className="mt-2">
-                    {feedback.explanation}
+                    {extractTextFromHTML(feedback.explanation)}
                   </AlertDescription>
                 )}
               </Alert>
