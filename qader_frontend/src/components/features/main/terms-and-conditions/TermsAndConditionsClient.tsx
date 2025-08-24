@@ -20,7 +20,7 @@ const TermsAndConditionsClient = ({ content }: { content: Page<any> | null }) =>
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
   const tocItemsRef = useRef<HTMLLIElement[]>([]);
-  const tabsRef:any = useRef<HTMLDivElement>(null);
+  const tabsRef: any = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -34,6 +34,11 @@ const TermsAndConditionsClient = ({ content }: { content: Page<any> | null }) =>
       title: h.textContent || "",
     }));
     setToc(items);
+
+    // Set the first section as active by default
+    if (items.length > 0) {
+      setActiveSection(items[0].id);
+    }
 
     // Initial GSAP animations
     const tl = gsap.timeline();
@@ -160,18 +165,34 @@ const TermsAndConditionsClient = ({ content }: { content: Page<any> | null }) =>
           }
         );
       });
+
+      // Scroll to first section on page load
+      if (toc.length > 0) {
+        setTimeout(() => {
+          scrollToId(toc[0].id, false); // false means no smooth animation on initial load
+        }, 1000);
+      }
     }, 500);
 
   }, [toc]);
 
-  const scrollToId = (id: string) => {
+  const scrollToId = (id: string, smooth: boolean = true) => {
     const element = document.getElementById(id);
     if (element) {
-      gsap.to(window, {
-        duration: 1,
-        scrollTo: { y: element, offsetY: 100 },
-        ease: "power2.inOut"
-      });
+      if (smooth) {
+        gsap.to(window, {
+          duration: 1,
+          scrollTo: { y: element, offsetY: 100 },
+          ease: "power2.inOut"
+        });
+      } else {
+        // Immediate scroll for initial page load
+        window.scrollTo({
+          top: element.offsetTop - 100,
+          behavior: 'auto'
+        });
+      }
+      setActiveSection(id);
     }
   };
 
