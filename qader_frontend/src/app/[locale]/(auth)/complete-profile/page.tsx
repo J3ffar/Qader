@@ -29,7 +29,7 @@ import {
   RewardStoreItem,
   StoreItemGamificaiton,
 } from "@/types/api/gamification.types";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, XMarkIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO, subDays } from "date-fns";
 import dayjs from "dayjs";
@@ -48,6 +48,12 @@ const RewardsDashboard = () => {
   const testPointsCardRef = useRef(null);
   const storeHeaderRef = useRef(null);
   const storeItemsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const examScoresRef = useRef(null);
+
+  // New state for exam testing
+  const [showExamTesting, setShowExamTesting] = useState(false);
+  const [examScores, setExamScores] = useState<number[]>([]);
+  const [currentScore, setCurrentScore] = useState<string>("");
 
   const today = dayjs().format("YYYY-MM-DD");
   const weekStart = dayjs().startOf("week").format("YYYY-MM-DD");
@@ -353,7 +359,7 @@ const RewardsDashboard = () => {
     useQuery<PurchasedItemResponse>({
       queryKey: ["getMyPurchasedItems"],
       queryFn: getMyPurchasedItems,
-    });
+  });
   const { data: storeData, isLoading: isLoadingStore } = useQuery<
     RewardStoreItem[]
   >({
@@ -383,6 +389,34 @@ const RewardsDashboard = () => {
           is_purchased: item.is_purchased,
         }))
       : defaultStoreItems;
+
+  // Handler functions for exam scores
+  const handleAddScore = () => {
+    const score = parseInt(currentScore);
+    if (!isNaN(score) && score >= 0 && score <= 100) {
+      setExamScores([...examScores, score]);
+      setCurrentScore("");
+    } else {
+      toast.error("الرجاء إدخال درجة صحيحة بين 0 و 100");
+    }
+  };
+
+  const handleRemoveScore = (index: number) => {
+    setExamScores(examScores.filter((_, i) => i !== index));
+  };
+
+  const handleSaveScores = () => {
+    // Here you would typically save the scores to your backend
+    toast.success(`تم حفظ ${examScores.length} درجات الاختبار بنجاح`);
+    // You can add API call here to save the scores
+    // saveExamScores(examScores);
+  };
+
+  const calculateAverage = () => {
+    if (examScores.length === 0) return 0;
+    const sum = examScores.reduce((acc, score) => acc + score, 0);
+    return (sum / examScores.length).toFixed(1);
+  };
 
   // GSAP Animations
   useLayoutEffect(() => {
@@ -441,6 +475,20 @@ const RewardsDashboard = () => {
             duration: 0.7,
             delay: 0.6,
             ease: "back.out(1.7)"
+          }
+        );
+      }
+
+      // Exam scores box animation
+      if (examScoresRef.current && showExamTesting) {
+        gsap.fromTo(examScoresRef.current,
+          { opacity: 0, y: 30, scale: 0.95 },
+          { 
+            opacity: 1, 
+            y: 0,
+            scale: 1, 
+            duration: 0.5,
+            ease: "power2.out"
           }
         );
       }
@@ -529,7 +577,7 @@ const RewardsDashboard = () => {
     });
 
     return () => ctx.revert();
-  }, [isLoadingBadges, isLoadingStore, isLoadingPointsTotal]);
+  }, [isLoadingBadges, isLoadingStore, isLoadingPointsTotal, showExamTesting]);
 
   const handlePurchase = async () => {
     if (!selectedReward) return;
@@ -587,6 +635,134 @@ const RewardsDashboard = () => {
       <h1 ref={titleRef} className="text-4xl pr-3 font-bold leading-9">
         مكافآت المذاكرة والمسابقات
       </h1>
+      
+      {/* Test Your Abilities Section */}
+      <div className="border rounded-2xl p-5 dark:bg-[#0B1739] bg-white">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-[#074182] dark:text-[#3D93F5]">
+            هل تختبر قدراتك؟
+          </h2>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowExamTesting(true)}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                showExamTesting 
+                  ? "bg-[#074182] text-white" 
+                  : "border border-[#074182] text-[#074182] hover:bg-[#f5faff]"
+              }`}
+            >
+              نعم
+            </button>
+            <button
+              onClick={() => setShowExamTesting(false)}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                !showExamTesting 
+                  ? "bg-gray-500 text-white" 
+                  : "border border-gray-500 text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              لا
+            </button>
+          </div>
+        </div>
+
+        {/* Exam Scores Input Box */}
+        {showExamTesting && (
+          <div ref={examScoresRef} className="mt-6 p-6 bg-gray-50 dark:bg-[#081028] rounded-xl">
+            <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-white">
+              أدخل درجات الاختبارات السابقة
+            </h3>
+            
+            {/* Input Section */}
+            <div className="flex gap-3 mb-4">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={currentScore}
+                onChange={(e) => setCurrentScore(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddScore()}
+                placeholder="أدخل الدرجة (0-100)"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#074182] dark:bg-[#0B1739] dark:border-gray-600 dark:text-white"
+              />
+              <button
+                onClick={handleAddScore}
+                className="px-4 py-2 bg-[#074182] text-white rounded-lg hover:bg-[#053866] flex items-center gap-2"
+              >
+                <PlusIcon className="w-5 h-5" />
+                إضافة
+              </button>
+            </div>
+
+            {/* Scores List */}
+            {examScores.length > 0 && (
+              <div className="space-y-3 mb-4">
+                <div className="font-medium text-gray-700 dark:text-gray-300">
+                  الدرجات المدخلة:
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {examScores.map((score, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between px-3 py-2 bg-white dark:bg-[#0B1739] border border-gray-200 dark:border-gray-600 rounded-lg group"
+                    >
+                      <span className="font-medium text-lg">
+                        {score}
+                        <span className="text-sm text-gray-500 mr-1">%</span>
+                      </span>
+                      <button
+                        onClick={() => handleRemoveScore(index)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Statistics */}
+                <div className="flex gap-6 mt-4 p-4 bg-white dark:bg-[#0B1739] rounded-lg">
+                  <div>
+                    <span className="text-gray-500 text-sm">عدد الاختبارات:</span>
+                    <span className="font-bold text-xl mr-2 text-[#074182] dark:text-[#3D93F5]">
+                      {examScores.length}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 text-sm">المتوسط:</span>
+                    <span className="font-bold text-xl mr-2 text-[#074182] dark:text-[#3D93F5]">
+                      {calculateAverage()}%
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 text-sm">أعلى درجة:</span>
+                    <span className="font-bold text-xl mr-2 text-green-600">
+                      {examScores.length > 0 ? Math.max(...examScores) : 0}%
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 text-sm">أقل درجة:</span>
+                    <span className="font-bold text-xl mr-2 text-red-600">
+                      {examScores.length > 0 ? Math.min(...examScores) : 0}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="flex justify-center mt-4">
+                  <button
+                    onClick={handleSaveScores}
+                    className="px-8 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    حفظ الدرجات
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-6 justify-center">
         {/* Achievement and Weekly Stars Section */}
         <div className="min-w-[300px] space-y-6 font-sans text-right">
