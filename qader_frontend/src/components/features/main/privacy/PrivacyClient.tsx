@@ -19,7 +19,7 @@ const PrivacyClient = ({ content }: { content: Page<any> | null }) => {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
   const tocItemsRef = useRef<HTMLLIElement[]>([]);
-  const tabsRef:any = useRef<HTMLDivElement>(null);
+  const tabsRef: any = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -33,6 +33,11 @@ const PrivacyClient = ({ content }: { content: Page<any> | null }) => {
       title: h.textContent || "",
     }));
     setToc(items);
+
+    // Set the first section as active by default
+    if (items.length > 0) {
+      setActiveSection(items[0].id);
+    }
 
     // Initial GSAP animations
     const tl = gsap.timeline();
@@ -140,18 +145,53 @@ const PrivacyClient = ({ content }: { content: Page<any> | null }) => {
           }
         );
       });
+
+      // Animate lists and other content
+      const lists = document.querySelectorAll("article ul, article ol");
+      lists.forEach((list) => {
+        gsap.fromTo(list,
+          { x: 30, opacity: 0 },
+          {
+            x: 0,
+            opacity: 1,
+            duration: 0.6,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: list,
+              start: "top 85%",
+              once: true
+            }
+          }
+        );
+      });
+
+      // Scroll to first section on page load
+      if (toc.length > 0) {
+        setTimeout(() => {
+          scrollToId(toc[0].id, false); // false means no smooth animation on initial load
+        }, 1000);
+      }
     }, 500);
 
   }, [toc]);
 
-  const scrollToId = (id: string) => {
+  const scrollToId = (id: string, smooth: boolean = true) => {
     const element = document.getElementById(id);
     if (element) {
-      gsap.to(window, {
-        duration: 1,
-        scrollTo: { y: element, offsetY: 100 },
-        ease: "power2.inOut"
-      });
+      if (smooth) {
+        gsap.to(window, {
+          duration: 1,
+          scrollTo: { y: element, offsetY: 100 },
+          ease: "power2.inOut"
+        });
+      } else {
+        // Immediate scroll for initial page load
+        window.scrollTo({
+          top: element.offsetTop - 100,
+          behavior: 'auto'
+        });
+      }
+      setActiveSection(id);
     }
   };
 
@@ -227,7 +267,7 @@ const PrivacyClient = ({ content }: { content: Page<any> | null }) => {
           {/* Navigation Tabs */}
           <div ref={tabsRef} className="flex justify-around border-b border-gray-200 dark:border-gray-700 mb-4">
             <Link
-              href="/terms-and-conditions"
+              href="/conditions"
               className="text-lg font-bold pb-2 px-2 text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors duration-300 relative group"
             >
               الشروط والأحكام
@@ -263,7 +303,7 @@ const PrivacyClient = ({ content }: { content: Page<any> | null }) => {
                   onClick={() => scrollToId(item.id)}
                   onMouseEnter={(e) => handleTocHover(e, true)}
                   onMouseLeave={(e) => handleTocHover(e, false)}
-                  className={`text-right w-full p-2 rounded-lg relative overflow-hidden ${
+                  className={`text-right w-full p-2 rounded-lg relative overflow-hidden transition-colors duration-300 ${
                     activeSection === item.id 
                       ? 'text-[#2F80ED] bg-blue-50 dark:bg-blue-900/20 font-semibold' 
                       : 'hover:text-[#2F80ED]'
