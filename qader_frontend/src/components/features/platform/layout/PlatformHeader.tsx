@@ -142,13 +142,15 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
         className="sticky top-0 z-40 flex h-auto dark:bg-[#091029] flex-col border-b-[0.5px] border-border bg-background px-5 shadow-sm transition-all duration-300 dark:border-gray-700 max-md:py-3"
         // style={navbarStyle} // Re-evaluate this styling approach
       >
+        
         <div className="flex flex-col-reverse items-center justify-around gap-6 p-4 lg:h-[70px] lg:flex-row lg:gap-0">
           {/* Search Bar */}
           <div className=" bg-primary px-4 py-2 text-white">
             <Link href="/">العودة إلى الصفحة الرئيسية</Link>
           </div>
 
-          {/* Icons: Points, Streak, Gift */}
+         <div className="flex flex-col-reverse items-center justify-around gap-6 p-0 lg:h-[70px] lg:flex-row lg:gap-0">
+           {/* Icons: Points, Streak, Gift */}
           <div className="max-sm:hidden flex items-center gap-4 mx-2">
              <ThemeToggle />
             {/* Streak (Stars) */}
@@ -317,6 +319,7 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
               <ChevronDownIcon className="h-5 w-5 text-muted-foreground" />
             </div>
           </div>
+         </div>
         </div>
 
         {/* Dropdowns Area */}
