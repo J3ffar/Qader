@@ -208,7 +208,7 @@ export function StartChallengeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[890px]">
         <DialogHeader className="pb-0">
           <DialogTitle className="text-center text-xl font-bold text-[#1e4a8b]">
             تحدي جديد
