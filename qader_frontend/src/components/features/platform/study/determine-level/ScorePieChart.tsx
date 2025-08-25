@@ -15,6 +15,7 @@ interface ScoreDataPoint {
   name: string;
   value: number;
   color: string;
+  percentage?: number;
 }
 
 interface ScorePieChartProps {
@@ -29,19 +30,32 @@ const ScorePieChart: React.FC<ScorePieChartProps> = ({
   const t = useTranslations("Study.determineLevel.score");
 
   const data: ScoreDataPoint[] = [];
+  let total = 0;
+
+  // Calculate total first
+  if (verbalScore !== null && verbalScore !== undefined) {
+    total += verbalScore;
+  }
+  if (quantitativeScore !== null && quantitativeScore !== undefined) {
+    total += quantitativeScore;
+  }
+
+  // Build data with percentages
   if (verbalScore !== null && verbalScore !== undefined) {
     data.push({
       name: t("verbalSection"),
       value: verbalScore,
       color: "#E6B11D",
-    }); // Yellowish for Verbal
+      percentage: total > 0 ? (verbalScore / total) * 100 : 0,
+    });
   }
   if (quantitativeScore !== null && quantitativeScore !== undefined) {
     data.push({
       name: t("quantitativeSection"),
       value: quantitativeScore,
       color: "#074182",
-    }); // Blue for Quantitative
+      percentage: total > 0 ? (quantitativeScore / total) * 100 : 0,
+    });
   }
 
   // If no data, render nothing or a placeholder
@@ -52,37 +66,52 @@ const ScorePieChart: React.FC<ScorePieChartProps> = ({
       </div>
     );
   }
-  // If only one score is available, pie chart might not be ideal, but Recharts handles it.
-  // Or, display it differently. For now, let Recharts handle it.
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          labelLine={false}
-          label={({ name, percent }) =>
-            `${name}: ${(percent * 100).toFixed(0)}%`
-          }
-          outerRadius={80}
-          innerRadius={50} // For a donut chart effect
-          fill="#8884d8"
-          dataKey="value"
-          stroke="hsl(var(--background))" // Add a stroke matching background for better separation
-          strokeWidth={2}
-        >
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} />
-          ))}
-        </Pie>
-        <Tooltip
-          formatter={(value: number, name: string) => [`${value}%`, name]}
-        />
-        <Legend />
-      </PieChart>
-    </ResponsiveContainer>
+    <div className="w-full">
+      {/* Score percentages displayed directly */}
+      <div className="mb-4 flex justify-center gap-6 text-sm">
+        {data.map((item, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <div
+              className="h-3 w-3 rounded-full"
+              style={{ backgroundColor: item.color }}
+            />
+            <span className="font-medium">{item.name}:</span>
+            <span className="font-bold">
+              {item.value}% 
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Pie Chart */}
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+            outerRadius={80}
+            innerRadius={50} // For a donut chart effect
+            fill="#8884d8"
+            dataKey="value"
+            stroke="hsl(var(--background))" // Add a stroke matching background for better separation
+            strokeWidth={2}
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip
+            formatter={(value: number, name: string) => [`${value}%`, name]}
+          />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
   );
 };
 
