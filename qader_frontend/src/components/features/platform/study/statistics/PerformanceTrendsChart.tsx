@@ -248,7 +248,7 @@ const MultiSelectFilter = ({
               htmlFor="select-all"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              {t("charts.selectAll")}
+              الكل
             </label>
           </div>
           
@@ -286,7 +286,7 @@ const MultiSelectFilter = ({
     </Popover>
   );
 };
-
+ 
 export function PerformanceTrendsChart({ trends, isLoading = false }: Props) {
   const t = useTranslations("Study.statistics");
   const tCommon = useTranslations("Common");
