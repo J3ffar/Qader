@@ -22,6 +22,7 @@ import {
   Info,
   ListCollapse,
   MoreHorizontal,
+  Lightbulb, // New icon for hints
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -444,11 +445,11 @@ const LevelAssessmentReviewPage = () => {
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="correct"
-                aria-label={  "الأسئلة الصحيحة"}
+                aria-label={"الأسئلة الصحيحة"}
                 className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
               >
                 <ThumbsUp className="h-4 w-4" /> 
-                <span className="hidden sm:inline">{ "الصحيحة"}</span>
+                <span className="hidden sm:inline">{"الصحيحة"}</span>
                 <span className="sm:hidden">الصحيحة</span>
                 ({correctQuestions.length})
               </ToggleGroupItem>
@@ -460,11 +461,13 @@ const LevelAssessmentReviewPage = () => {
       {/* Main Question Review Area */}
       {currentQuestionData ? (
         <div className="space-y-6">
+          {/* Enhanced ReviewQuestionCard with Hint */}
           <ReviewQuestionCard
             questionData={currentQuestionData}
             questionNumber={currentQuestionIndex + 1}
             totalQuestionsInFilter={filteredQuestions.length}
             attemptId={attemptId}
+            showHintFirst={true} // NEW: Flag to show hint first
           />
           
           {/* Enhanced Navigation with Pagination */}
@@ -613,10 +616,23 @@ const ReviewPageSkeleton = () => {
               </div>
             ))}
           </div>
+          {/* NEW: Hint Skeleton */}
+          <div className="rounded-md border border-amber-200 bg-amber-50/50 p-3 dark:border-amber-800 dark:bg-amber-950/20">
+            <div className="flex items-start gap-2">
+              <Lightbulb className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-4 w-16" /> {/* "Hint" label */}
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+          </div>
           <Skeleton className="mt-4 h-12 w-full rounded-md" />{" "}
-          {/* Accordion 1 */}
+          {/* Accordion 1 - Explanation */}
           <Skeleton className="mt-2 h-12 w-full rounded-md" />{" "}
-          {/* Accordion 2 */}
+          {/* Accordion 2 - Way to resolve */}
+          <Skeleton className="mt-2 h-12 w-full rounded-md" />{" "}
+          {/* Accordion 3 - Question details */}
         </CardContent>
       </Card>
 
