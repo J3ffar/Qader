@@ -9,6 +9,7 @@ import {
   Info,
   Brain,
   BookText,
+  Lightbulb, // NEW: Added for hint
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ interface ReviewQuestionCardProps {
   questionNumber: number;
   totalQuestionsInFilter: number;
   attemptId: string;
+  showHintFirst?: boolean; // NEW: Optional prop to control hint display
 }
 
 type OptionKey = "A" | "B" | "C" | "D";
@@ -46,6 +48,7 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
   questionNumber,
   totalQuestionsInFilter,
   attemptId,
+  showHintFirst = true, // NEW: Default to showing hint first
 }) => {
   const t = useTranslations("Study.review");
   const locale = useLocale();
@@ -67,6 +70,7 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
     subsection,
     skill,
     user_answer_details,
+    hint, // NEW: Extract hint from questionData
   } = questionData;
 
   const user_selected_choice = user_answer_details?.selected_choice;
@@ -175,6 +179,26 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
         </div>
 
         <Accordion type="multiple" className="w-full space-y-2 pt-2">
+          {/* NEW: Hint Section - Appears First study.review */}
+          {showHintFirst && hint && (
+            <AccordionItem
+              value="hint"
+              className="rounded-md border bg-amber-500/5 dark:bg-amber-500/10"
+            >
+              <AccordionTrigger className="px-4 py-3 text-base font-semibold text-amber-700 hover:no-underline dark:text-amber-300">
+                <Lightbulb className="me-2 h-5 w-5" />
+                تلميح  
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <RichContentViewer
+                  htmlContent={hint}
+                  className="prose dark:prose-invert max-w-none text-base leading-relaxed"
+                />
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* Existing Explanation Section */}
           {explanation && (
             <AccordionItem
               value="explanation"
@@ -192,6 +216,8 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
               </AccordionContent>
             </AccordionItem>
           )}
+
+          {/* Existing Solution Method Section */}
           {solution_method_summary && (
             <AccordionItem
               value="solution"
@@ -209,6 +235,8 @@ const ReviewQuestionCard: React.FC<ReviewQuestionCardProps> = ({
               </AccordionContent>
             </AccordionItem>
           )}
+
+          {/* Existing Details Section */}
           <AccordionItem
             value="details"
             className="rounded-md border bg-gray-500/5 dark:bg-gray-500/10"
