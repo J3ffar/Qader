@@ -37,9 +37,14 @@ export function CommunityNavTabs() {
 
   return (
     <Tabs value={activeTabValue} dir="rtl">
-      <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+      <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 bg-muted/50">
         {navTabs.map((tab) => (
-          <TabsTrigger key={tab.value} value={tab.value} asChild>
+          <TabsTrigger 
+            key={tab.value} 
+            value={tab.value} 
+            asChild
+            className="data-[state=active]:bg-[#074082] data-[state=active]:text-white data-[state=active]:shadow-sm hover:bg-muted/80 transition-colors"
+          >
             <Link href={tab.path}>{tab.label}</Link>
           </TabsTrigger>
         ))}
