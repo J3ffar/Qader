@@ -1,4 +1,3 @@
-// qader_frontend/src/components/features/platform/study/traditional-learning/TraditionalLearningSession.tsx
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -51,6 +50,11 @@ export interface QuestionState {
   eliminatedOptions?: OptionKey[];
 }
 
+// Define interface for extended feedback data with points
+interface ExtendedFeedbackData extends FeedbackData {
+  pointsEarned?: number;
+}
+
 export default function TraditionalLearningSession({
   attemptId,
 }: {
@@ -68,9 +72,10 @@ export default function TraditionalLearningSession({
   const [sessionStats, setSessionStats] = useState({
     correct: 0,
     incorrect: 0,
+    totalPoints: 0, // NEW: Added total points tracking
   });
   const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
-  const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null);
+  const [feedbackData, setFeedbackData] = useState<ExtendedFeedbackData | null>(null);
 
   // NEW: State for time tracking per question
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
@@ -100,12 +105,13 @@ export default function TraditionalLearningSession({
     ? questionStates[currentQuestion.id]
     : undefined;
 
-  // NEW: Effect to initialize state from fetched resume data
+  // FIXED: Updated useEffect with proper type checking for points_earned
   useEffect(() => {
     if (attemptData) {
       const initialStates: Record<number, QuestionState> = {};
       let correctCount = 0;
       let incorrectCount = 0;
+      let pointsCount = 0; // NEW: Initialize points counter
 
       attemptData.questions.forEach((q) => {
         if (q.user_answer_details) {
@@ -114,15 +120,25 @@ export default function TraditionalLearningSession({
             selectedAnswer: q.user_answer_details.selected_choice,
             // You can extend this to include hints, explanations if they are part of resume data
           };
+          
           if (q.user_answer_details.is_correct) {
             correctCount++;
+            // FIX: Handle points_earned properly - check if it exists on the response
+            // If points_earned doesn't exist in the API response, use default value of 10
+            const pointsEarned = (q.user_answer_details as any).points_earned || 10;
+            pointsCount += pointsEarned;
           } else {
             incorrectCount++;
           }
         }
       });
+      
       setQuestionStates(initialStates);
-      setSessionStats({ correct: correctCount, incorrect: incorrectCount });
+      setSessionStats({ 
+        correct: correctCount, 
+        incorrect: incorrectCount,
+        totalPoints: pointsCount // NEW: Set initial points
+      });
     }
   }, [attemptData]);
 
@@ -131,9 +147,9 @@ export default function TraditionalLearningSession({
     if (currentQuestion) {
       setQuestionStartTime(Date.now());
     }
-  }, [currentQuestionIndex]);
+  }, [currentQuestionIndex, currentQuestion]);
 
-  // MODIFIED: Updated mutation with time tracking and optimistic updates
+  // FIXED: Updated mutation with proper points tracking and type handling
   const submitAnswerMutation = useMutation({
     mutationFn: (payload: {
       questionId: number;
@@ -149,6 +165,11 @@ export default function TraditionalLearningSession({
       const apiQuestion = data.question;
       const isCorrect = apiQuestion.user_answer_details?.is_correct ?? false;
       const correctAnswerKey = apiQuestion.correct_answer;
+      
+      // FIX: Safely access points_earned with type assertion and default value
+      const pointsEarned = isCorrect 
+        ? ((apiQuestion.user_answer_details as any)?.points_earned || 10) 
+        : 0;
 
       // Update local component state for immediate feedback
       setQuestionStates((prev) => ({
@@ -159,17 +180,25 @@ export default function TraditionalLearningSession({
         },
       }));
 
+      // UPDATED: Include points in session stats
       setSessionStats((prev) => ({
         ...prev,
         correct: isCorrect ? prev.correct + 1 : prev.correct,
         incorrect: !isCorrect ? prev.incorrect + 1 : prev.incorrect,
+        totalPoints: prev.totalPoints + pointsEarned, // NEW: Update total points
       }));
 
       setFeedbackData({
         isCorrect,
         correctAnswerText: apiQuestion.options[correctAnswerKey],
         explanation: apiQuestion.explanation,
+        pointsEarned, // NEW: Include points in feedback (optional)
       });
+
+      // Show points toast notification for correct answers
+      if (isCorrect && pointsEarned > 0) {
+        toast.success(`+${pointsEarned} نقاط! 🎉`);
+      }
 
       // KEY FIX: Manually update the React Query cache
       queryClient.setQueryData<UserTestAttemptResume>(
@@ -247,6 +276,7 @@ export default function TraditionalLearningSession({
       setCurrentQuestionIndex((prev) => prev - 1);
     }
   };
+  
   const handleFeedbackDialogClose = () => {
     setFeedbackData(null);
   };
@@ -356,16 +386,17 @@ export default function TraditionalLearningSession({
             )}
           </main>
           <aside className="space-y-6 lg:col-span-1">
-            {/* NEW: Display session stats */}
+            {/* UPDATED: Display session stats with points */}
             <SessionStats
               correct={sessionStats.correct}
               incorrect={sessionStats.incorrect}
+              totalPoints={sessionStats.totalPoints}
             />
             {currentQuestion && (
               <>
                 <PracticeControls
                   attemptId={attemptId}
-                  question={currentQuestion} // Pass the full question object
+                  question={currentQuestion}
                   questionState={currentQuestionState}
                   setQuestionStates={setQuestionStates}
                 />
