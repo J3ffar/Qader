@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Edit3 } from "lucide-react";
+import { User, Edit3, UserCircle, UserCircle2, Trophy } from "lucide-react";
 import { useRef, useState } from "react";
 import { UserProfile } from "@/types/api/auth.types";
 import ChangePasswordDialog from "./ChangePasswordDialog";
@@ -41,18 +41,43 @@ import { cn } from "@/lib/utils";
 const accountSettingsSchema = z.object({
   full_name: z.string().min(3, "Full name must be at least 3 characters."),
   preferred_name: z.string().optional(),
+  username: z.string().min(3, "Username must be at least 3 characters.")
+    .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, dashes, and underscores"),
   profile_picture: z.instanceof(File).optional(),
 });
 
 type AccountSettingsValues = z.infer<typeof accountSettingsSchema>;
 
 interface AccountSettingsFormProps {
-  user: UserProfile;
+  user: UserProfile & {
+    username?: string;
+    gender?: 'male' | 'female';
+    highest_score?: number;
+  };
 }
+
+// Gender Icon Component
+const GenderIcon = ({ gender }: { gender?: 'male' | 'female' }) => {
+  if (!gender) return null;
+  
+  if (gender === 'male') {
+    return (
+      <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+        <UserCircle className="h-5 w-5" />
+      </div>
+    );
+  }
+  
+  return (
+    <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400">
+      <UserCircle2 className="h-5 w-5" />
+    </div>
+  );
+};
 
 export default function AccountSettingsForm({
   user,
-}: AccountSettingsFormProps) {
+}: any) {
   const t = useTranslations("Study.settings.account");
   const queryClient = useQueryClient();
   const { updateUserProfile: updateUserInStore } = useAuthStore();
@@ -67,6 +92,7 @@ export default function AccountSettingsForm({
     defaultValues: {
       full_name: user.full_name || "",
       preferred_name: user.preferred_name || "",
+      username: user.username || "",
     },
   });
 
@@ -97,6 +123,7 @@ export default function AccountSettingsForm({
   function onSubmit(data: AccountSettingsValues) {
     const formData = new FormData();
     formData.append("full_name", data.full_name);
+    formData.append("username", data.username);
     if (data.preferred_name) {
       formData.append("preferred_name", data.preferred_name);
     }
@@ -155,9 +182,12 @@ export default function AccountSettingsForm({
                 control={form.control}
                 name="full_name"
                 render={({ field }) => (
-                  <FormItem  dir={locale === "ar" ? "rtl" : "ltr"}>
-                    <FormLabel >{t("fullName.label")}</FormLabel>
-                    <FormControl >
+                  <FormItem dir={locale === "ar" ? "rtl" : "ltr"}>
+                    <FormLabel className="flex items-center gap-2">
+                      {t("fullName.label")}
+                      <GenderIcon gender={user.gender} />
+                    </FormLabel>
+                    <FormControl>
                       <Input
                         placeholder={t("fullName.placeholder")}
                         {...field}
@@ -168,6 +198,27 @@ export default function AccountSettingsForm({
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem dir={locale === "ar" ? "rtl" : "ltr"}>
+                    <FormLabel>
+                      {locale === "ar" ? "اسم المستخدم" : "Username"}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={locale === "ar" ? "أدخل اسم المستخدم" : "Enter username"}
+                        {...field}
+                        className={cn(locale === "ar" ? "text-right" : "text-left")}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <FormField
                 control={form.control}
                 name="preferred_name"
@@ -186,7 +237,31 @@ export default function AccountSettingsForm({
                 )}
               />
               
-              <FormItem dir={locale === "ar" ? "rtl" : "ltr"} className='cursor-not-allowed' >
+              <FormItem dir={locale === "ar" ? "rtl" : "ltr"}>
+                <FormLabel className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-yellow-500" />
+                  {locale === "ar" ? "أعلى درجة من القدرات" : "Highest Score"}
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Input 
+                      value={user.highest_score || 0}
+                      disabled 
+                      className={cn(
+                        "bg-muted/50 font-semibold text-lg",
+                        locale === "ar" ? "text-right" : "text-left"
+                      )}
+                    />
+                    <div className="absolute inset-y-0 end-3 flex items-center pointer-events-none">
+                      <span className="text-sm text-muted-foreground">
+                        {locale === "ar" ? "نقطة" : "points"}
+                      </span>
+                    </div>
+                  </div>
+                </FormControl>
+              </FormItem>
+              
+              <FormItem dir={locale === "ar" ? "rtl" : "ltr"} className='cursor-not-allowed'>
                 <FormLabel>{t("email.label")}</FormLabel>
                 <FormControl>
                   <Input className={cn(locale === "ar" ? "text-right" : "text-left")} value={user.email} disabled />
