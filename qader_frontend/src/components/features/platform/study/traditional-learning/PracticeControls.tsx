@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Lightbulb, Eye, FileQuestion, XCircle } from "lucide-react";
+import { Lightbulb, FileQuestion, XCircle } from "lucide-react";
 
 import {
   getHintForQuestion,
@@ -66,36 +66,33 @@ export const PracticeControls: React.FC<Props> = ({
     onSuccess: (data) => {
       if (data.hint) {
         updateQuestionState({ revealedHint: data.hint });
-        toast.info(t("api.hintSuccess"));
+        toast.info("تم عرض التلميح");
       } else {
-        toast.info(t("api.hintNotAvailable"));
+        toast.info("لا يوجد تلميح متاح لهذا السؤال");
       }
     },
-    onError: (err) => toast.error(getApiErrorMessage(err, t("api.hintError"))),
+    onError: (err) => toast.error(getApiErrorMessage(err, "خطأ في عرض التلميح")),
   });
 
-  const explanationMutation = useMutation({
-    mutationFn: () => revealExplanationForQuestion(attemptId, questionId),
+  // UPDATED: Combined mutation for explanation and answer reveal
+  const explanationAndAnswerMutation = useMutation({
+    mutationFn: async () => {
+      // First get the explanation
+      const explanationData = await revealExplanationForQuestion(attemptId, questionId);
+      // Then reveal the answer
+      const answerData = await revealCorrectAnswerForQuestion(attemptId, questionId);
+      return { explanation: explanationData.explanation, correctAnswer: answerData.correct_answer };
+    },
     onSuccess: (data) => {
-      if (data.explanation) {
-        updateQuestionState({ revealedExplanation: data.explanation });
-        toast.info(t("api.explanationRevealSuccess"));
-      } else {
-        toast.info(t("api.explanationNotAvailable"));
-      }
+      // Update both explanation and revealed answer in state
+      updateQuestionState({ 
+        revealedExplanation: data.explanation || "",
+        revealedAnswer: data.correctAnswer 
+      });
+      toast.success("تم عرض طريقة الحل والإجابة الصحيحة");
     },
     onError: (err) =>
-      toast.error(getApiErrorMessage(err, t("api.explanationRevealError"))),
-  });
-
-  const answerMutation = useMutation({
-    mutationFn: () => revealCorrectAnswerForQuestion(attemptId, questionId),
-    onSuccess: (data) => {
-      updateQuestionState({ revealedAnswer: data.correct_answer });
-      toast.success(t("api.answerRevealSuccess"));
-    },
-    onError: (err) =>
-      toast.error(getApiErrorMessage(err, t("api.answerRevealError"))),
+      toast.error(getApiErrorMessage(err, "خطأ في عرض الحل")),
   });
 
   const eliminateMutation = useMutation({
@@ -123,15 +120,13 @@ export const PracticeControls: React.FC<Props> = ({
           usedElimination: true,
           eliminatedOptions: [...alreadyEliminated, optionToEliminate],
         });
-        toast.success(t("api.eliminateSuccess"));
+        toast.success("تم حذف إجابة خاطئة");
       } else {
-        // This case should ideally not be reachable if the button is disabled correctly,
-        // but it's good practice to handle it.
-        toast.info(t("api.noOptionsToEliminate"));
+        toast.info("لا توجد إجابات أخرى يمكن حذفها");
       }
     },
     onError: (err) =>
-      toast.error(getApiErrorMessage(err, t("api.eliminateError"))),
+      toast.error(getApiErrorMessage(err, "خطأ في حذف الإجابة")),
   });
 
   // --- Render Logic ---
@@ -143,6 +138,7 @@ export const PracticeControls: React.FC<Props> = ({
       </CardHeader>
       <CardContent className="flex flex-col space-y-3">
         <TooltipProvider>
+          {/* Button 1: Get Hint */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -153,43 +149,45 @@ export const PracticeControls: React.FC<Props> = ({
                   hintMutation.isPending || !!questionState?.revealedHint
                 }
               >
-                <Lightbulb className="me-3 h-5 w-5 text-yellow-500" />{" "}
-                {t("controls.hint")}
+                <Lightbulb className="me-3 h-5 w-5 text-yellow-500" />
+                الحصول على تلميح
               </Button>
             </TooltipTrigger>
             <TooltipContent>
               <p>
                 {questionState?.revealedHint
                   ? questionState.revealedHint
-                  : t("controls.hint")}
+                  : "اضغط للحصول على تلميح"}
               </p>
             </TooltipContent>
           </Tooltip>
 
+          {/* Button 2: Combined - Show Solution Method and Reveal Correct Answer */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => explanationMutation.mutate()}
+                onClick={() => explanationAndAnswerMutation.mutate()}
                 disabled={
-                  explanationMutation.isPending ||
-                  !!questionState?.revealedExplanation
+                  explanationAndAnswerMutation.isPending ||
+                  (!!questionState?.revealedExplanation && !!questionState?.revealedAnswer)
                 }
               >
-                <FileQuestion className="me-3 h-5 w-5 text-green-500" />{" "}
-                {t("controls.showSolution")}
+                <FileQuestion className="me-3 h-5 w-5 text-green-500" />
+                عرض طريقة الحل و الكشف عن الإجابة الصحيحة
               </Button>
             </TooltipTrigger>
             <TooltipContent>
               <p>
-                {questionState?.revealedExplanation
-                  ? commonT("explanationRevealed")
-                  : t("controls.showSolution")}
+                {(questionState?.revealedExplanation && questionState?.revealedAnswer)
+                  ? "تم عرض الحل والإجابة"
+                  : "اضغط لعرض طريقة الحل والإجابة الصحيحة"}
               </p>
             </TooltipContent>
           </Tooltip>
 
+          {/* Button 3: Eliminate Answer */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -204,33 +202,16 @@ export const PracticeControls: React.FC<Props> = ({
                   !!questionState?.usedElimination // Assuming one-time use per question
                 }
               >
-                <XCircle className="me-3 h-5 w-5 text-orange-500" />{" "}
-                {t("controls.eliminate")}
+                <XCircle className="me-3 h-5 w-5 text-orange-500" />
+                حذف إجابة خاطئة
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{t("controls.eliminate")}</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => answerMutation.mutate()}
-                disabled={
-                  isAnswered ||
-                  answerMutation.isPending ||
-                  !!questionState?.revealedAnswer
-                }
-              >
-                <Eye className="me-3 h-5 w-5 text-blue-500" />{" "}
-                {t("controls.showAnswer")}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t("controls.showAnswer")}</p>
+              <p>
+                {questionState?.eliminatedOptions && questionState.eliminatedOptions.length >= 2
+                  ? "تم استخدام الحد الأقصى من الحذف"
+                  : "اضغط لحذف إجابة خاطئة واحدة"}
+              </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
