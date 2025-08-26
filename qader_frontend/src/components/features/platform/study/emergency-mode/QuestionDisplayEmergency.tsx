@@ -434,7 +434,7 @@ export function QuestionDisplayEmergency({
                   <AlertTitle>شرح الحل</AlertTitle>
                   <AlertDescription>
                     <RichContentViewer
-                      htmlContent={question.explanation || question.detailed_explanation || "لا يوجد شرح تفصيلي متاح"}
+                      htmlContent={question.explanation || "لا يوجد شرح تفصيلي متاح"}
                     />
                   </AlertDescription>
                 </Alert>
