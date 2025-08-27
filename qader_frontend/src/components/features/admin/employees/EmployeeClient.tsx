@@ -79,6 +79,12 @@ export default function EmployeeClient() {
   const [statusFilter, setStatusFilter] = useState<boolean | undefined>(
     undefined
   );
+  const [subscriptionFilter, setSubscriptionFilter] = useState<any>(
+    undefined
+  );
+  const [roleFilter, setRoleFilter] = useState<string | undefined>(
+    undefined
+  );
 
   const [dialogState, setDialogState] = useState<{
     type: "view" | "edit" | null;
@@ -95,17 +101,19 @@ export default function EmployeeClient() {
   const { data, isLoading, isError, error, isPlaceholderData, isFetching } =
     useQuery({
       queryKey: queryKeys.admin.users.list({
-        roles: employeeRoles,
+        roles: roleFilter ? [roleFilter] : employeeRoles,
         page: currentPage,
         search: searchTerm,
         is_active: statusFilter,
+        is_subscribed: subscriptionFilter,
       }),
       queryFn: () =>
         getAdminUsers({
-          role: employeeRoles,
+          role: roleFilter ? [roleFilter] : employeeRoles,
           page: currentPage,
           search: searchTerm,
           user__is_active: statusFilter,
+         
         }),
       placeholderData: (previousData) => previousData,
       staleTime: 5 * 1000,
@@ -146,7 +154,8 @@ export default function EmployeeClient() {
               className="max-w-sm"
               onChange={(e) => debouncedSearch(e.target.value)}
             />
-            <div className="flex items-center gap-2">
+            <div className="flex  items-center gap-2">
+              {/* Status Filter */}
               <Select
                 value={
                   statusFilter === undefined ? "all" : statusFilter.toString()
@@ -159,7 +168,7 @@ export default function EmployeeClient() {
                 }}
               >
                 <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder={t("filter")} />
+                  <SelectValue placeholder={t("filterStatus")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("allStatuses")}</SelectItem>
@@ -167,6 +176,51 @@ export default function EmployeeClient() {
                   <SelectItem value="false">
                     {t("statuses.inactive")}
                   </SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Subscription Filter */}
+              <Select
+                value={
+                  subscriptionFilter === undefined 
+                    ? "all" 
+                    : subscriptionFilter.toString()
+                }
+                onValueChange={(value) => {
+                  setSubscriptionFilter(
+                    value === "all" ? undefined : value === "true"
+                  );
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder={t("filterSubscription")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع المشتركين</SelectItem>
+                  <SelectItem value="true">مشترك</SelectItem>
+                  <SelectItem value="false">غير مشترك</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Role Filter */}
+              <Select
+                value={roleFilter || "all"}
+                onValueChange={(value) => {
+                  setRoleFilter(value === "all" ? undefined : value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder={t("filterRole")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع الأدوار</SelectItem>
+                  <SelectItem value="admin">{tRoles("admin")}</SelectItem>
+                  <SelectItem value="sub_admin">{tRoles("sub_admin")}</SelectItem>
+                  <SelectItem value="teacher">{tRoles("teacher")}</SelectItem>
+                  <SelectItem value="trainer">{tRoles("trainer")}</SelectItem>
+                  <SelectItem value="student">{tRoles("student")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
