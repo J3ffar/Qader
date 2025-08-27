@@ -9,7 +9,7 @@ export default function AdminSupportPage() {
     // 1. h-full flex flex-col: This makes the page a full-height container.
     // The header will take its natural height, and SupportInboxLayout will fill the rest.
     <div className="h-full flex flex-col">
-      <CardHeader className="flex-shrink-0">
+      <CardHeader className="flex-shrink-0 pb-5">
         <CardTitle>{t("title")}</CardTitle>
         <CardDescription>{t("description")}</CardDescription>
       </CardHeader>
