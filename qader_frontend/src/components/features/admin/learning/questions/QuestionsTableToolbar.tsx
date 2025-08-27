@@ -31,13 +31,13 @@ export function QuestionsTableToolbar({
 }: QuestionsTableToolbarProps) {
   const [search, setSearch] = useState(currentFilters.search ?? "");
   const [selectedSection, setSelectedSection] = useState<string>(
-    currentFilters.section ?? ""
+    currentFilters.subsection__section__id ?? ""
   );
   const [selectedSubsection, setSelectedSubsection] = useState<string>(
-    currentFilters.subsection ?? ""
+    currentFilters.subsection__id ?? ""
   );
   const [selectedSkill, setSelectedSkill] = useState<string>(
-    currentFilters.skill ?? ""
+    currentFilters.skill__id ?? ""
   );
 
   const debouncedSearch = useDebounce(search, 500);
@@ -69,6 +69,34 @@ export function QuestionsTableToolbar({
     enabled: !!selectedSubsection,
   });
 
+  const handleSectionChange = (value: string) => {
+    const newSection = value === "all" ? "" : value;
+    setSelectedSection(newSection);
+    setSelectedSubsection("");
+    setSelectedSkill("");
+    onFilterChange({
+      subsection__section__id: newSection || null,
+      subsection__id: null,
+      skill__id: null,
+    });
+  };
+
+  const handleSubsectionChange = (value: string) => {
+    const newSubsection = value === "all" ? "" : value;
+    setSelectedSubsection(newSubsection);
+    setSelectedSkill("");
+    onFilterChange({ 
+      subsection__id: newSubsection || null, 
+      skill__id: null 
+    });
+  };
+
+  const handleSkillChange = (value: string) => {
+    const newSkill = value === "all" ? "" : value;
+    setSelectedSkill(newSkill);
+    onFilterChange({ skill__id: newSkill || null });
+  };
+
   const handleClearFilters = () => {
     setSearch("");
     setSelectedSection("");
@@ -76,17 +104,17 @@ export function QuestionsTableToolbar({
     setSelectedSkill("");
     onFilterChange({
       search: null,
-      section: null,
-      subsection: null,
-      skill: null,
+      subsection__section__id: null,
+      subsection__id: null,
+      skill__id: null,
     });
   };
 
-  const isFiltered =
-    !currentFilters.search ||
-    !currentFilters.section ||
-    !currentFilters.subsection ||
-    !currentFilters.skill;
+  const hasActiveFilters = 
+    search || 
+    selectedSection || 
+    selectedSubsection || 
+    selectedSkill;
 
   return (
     <div className="flex items-center gap-2 p-4 border-b flex-wrap">
@@ -98,24 +126,17 @@ export function QuestionsTableToolbar({
       />
 
       <Select
-        value={selectedSection}
-        onValueChange={(value) => {
-          const newSection = value || "";
-          setSelectedSection(newSection);
-          setSelectedSubsection("");
-          setSelectedSkill("");
-          onFilterChange({
-            section: newSection || null,
-            subsection: null,
-            skill: null,
-          });
-        }}
+        value={selectedSection || "all"}
+        onValueChange={handleSectionChange}
         dir="rtl"
       >
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="كل الأقسام الرئيسية" />
+          <SelectValue placeholder="اختر القسم الرئيسي" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="all" className="font-medium">
+            كل الأقسام الرئيسية
+          </SelectItem>
           {sections?.results.map((s) => (
             <SelectItem key={s.id} value={s.id.toString()}>
               {s.name}
@@ -125,20 +146,18 @@ export function QuestionsTableToolbar({
       </Select>
 
       <Select
-        value={selectedSubsection}
-        onValueChange={(value) => {
-          const newSubsection = value || "";
-          setSelectedSubsection(newSubsection);
-          setSelectedSkill("");
-          onFilterChange({ subsection: newSubsection || null, skill: null });
-        }}
+        value={selectedSubsection || "all"}
+        onValueChange={handleSubsectionChange}
         disabled={!selectedSection}
         dir="rtl"
       >
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="كل الأقسام الفرعية" />
+          <SelectValue placeholder="اختر القسم الفرعي" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="all" className="font-medium">
+            كل الأقسام الفرعية
+          </SelectItem>
           {subsections?.results.map((s) => (
             <SelectItem key={s.id} value={s.id.toString()}>
               {s.name}
@@ -148,19 +167,18 @@ export function QuestionsTableToolbar({
       </Select>
 
       <Select
-        value={selectedSkill}
-        onValueChange={(value) => {
-          const newSkill = value || "";
-          setSelectedSkill(newSkill);
-          onFilterChange({ skill: newSkill || null });
-        }}
+        value={selectedSkill || "all"}
+        onValueChange={handleSkillChange}
         disabled={!selectedSubsection}
         dir="rtl"
       >
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="كل المهارات" />
+          <SelectValue placeholder="اختر المهارة" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="all" className="font-medium">
+            كل المهارات
+          </SelectItem>
           {skills?.results.map((s) => (
             <SelectItem key={s.id} value={s.id.toString()}>
               {s.name}
@@ -169,7 +187,7 @@ export function QuestionsTableToolbar({
         </SelectContent>
       </Select>
 
-      {isFiltered && (
+      {hasActiveFilters && (
         <Button
           variant="ghost"
           onClick={handleClearFilters}
