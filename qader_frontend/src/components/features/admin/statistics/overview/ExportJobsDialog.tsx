@@ -233,8 +233,18 @@ export function ExportJobsDialog({
         >
           <div className="flex justify-between items-center mb-4">
             <TabsList>
-              <TabsTrigger value="current">هذا النوع</TabsTrigger>
-              <TabsTrigger value="all">الكل</TabsTrigger>
+              <TabsTrigger 
+                value="current"
+                className="data-[state=active]:bg-[#074182] data-[state=active]:text-white"
+              >
+                هذا النوع
+              </TabsTrigger>
+              <TabsTrigger 
+                value="all"
+                className="data-[state=active]:bg-[#074182] data-[state=active]:text-white"
+              >
+                الكل
+              </TabsTrigger>
             </TabsList>
             <Button
               variant="outline"
