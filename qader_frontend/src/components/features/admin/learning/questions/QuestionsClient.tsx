@@ -54,10 +54,12 @@ export function QuestionsClient() {
     setSelectedQuestionId(id);
     setIsFormOpen(true);
   };
+  
   const handleDelete = (id: number) => {
     setSelectedQuestionId(id);
     setIsDeleteOpen(true);
   };
+  
   const handleView = (id: number) => {
     setSelectedQuestionId(id);
     setIsViewOpen(true);
@@ -68,6 +70,20 @@ export function QuestionsClient() {
     setIsDeleteOpen(false);
     setIsViewOpen(false);
     setSelectedQuestionId(null);
+  };
+
+  const handleExport = () => {
+    // Add your export logic here
+    console.log("Exporting questions...");
+    // You can implement CSV export, Excel export, or any other format
+    // Example: exportQuestionsToCSV(data?.results);
+  };
+
+  const handleImport = () => {
+    // Add your import logic here
+    console.log("Importing questions...");
+    // You can implement file upload and import logic
+    // Example: triggerFileUpload();
   };
 
   const columns = useMemo(() => getColumns(), []);
@@ -108,14 +124,28 @@ export function QuestionsClient() {
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-2xl font-bold tracking-tight">الأسئلة</h2>
-        <Button
-          onClick={() => {
-            setSelectedQuestionId(null);
-            setIsFormOpen(true);
-          }}
-        >
-          إضافة سؤال
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+          >
+            تصدير البيانات
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleImport}
+          >
+            استيراد البيانات
+          </Button>
+          <Button
+            onClick={() => {
+              setSelectedQuestionId(null);
+              setIsFormOpen(true);
+            }}
+          >
+            إضافة سؤال
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-md border">
