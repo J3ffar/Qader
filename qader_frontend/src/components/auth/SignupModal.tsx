@@ -285,7 +285,7 @@ const SignupModal: React.FC<SignupModalProps> = ({
                 )}
               </div>
 
-              <div className="flex items-start space-x-2 pt-1 rtl:space-x-reverse">
+              <div className="flex items-start space-x-2 gap-2 pt-1 rtl:space-x-reverse">
                 <Controller
                   name="termsAccepted"
                   control={control}
