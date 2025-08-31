@@ -115,13 +115,13 @@ const AboutSection = ({ data }: AboutSectionProps) => {
           opacity: 0,
           x: 100, // CHANGED: Start from right
           y: 30,
-          clipPath: "inset(0 100% 0 0)"
+          clipPath: "inset(0 0 0 100%)"
         },
         {
           opacity: 1,
           x: 0, // CHANGED: Move to center
           y: 0,
-          clipPath: "inset(0 0% 0 0)",
+          clipPath: "inset(0 0 0 0%)",
           duration: 0.6, // CHANGED: Slightly faster duration
           ease: "power2.out"
         },
@@ -278,7 +278,7 @@ const AboutSection = ({ data }: AboutSectionProps) => {
         {/* Video / Image Section */}
         <div 
           ref={videoRef}
-          className="w-full max-w-[500px] aspect-video h-[500px] rounded-lg overflow-hidden relative transform-gpu will-change-transform"
+          className="w-full max-w-[500px] h-[400px] aspect-video  rounded-lg overflow-hidden relative transform-gpu will-change-transform bg-transparent"
           style={{ perspective: "1000px" }}
         >
           {/* Animated overlay effect */}
@@ -304,10 +304,10 @@ const AboutSection = ({ data }: AboutSectionProps) => {
               src={placeholderImage}
               alt="عرض تقديمي عن منصة قادر"
               width={300}
-              height={338} 
+              height={500} 
               layout="responsive"
               priority
-              className="w-full h-auto rounded-lg object-cover"
+              className="w-full h-[500px] rounded-lg object-cover"
             />
           )}
         </div>
