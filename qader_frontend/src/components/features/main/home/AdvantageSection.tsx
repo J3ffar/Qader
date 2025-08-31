@@ -58,7 +58,7 @@ const AdvantageSection = ({ data }: AdvantageProps) => {
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 120%",
+          start: "top 150%",
           end: "bottom 25%",
           toggleActions: "play none none reverse",
         },
@@ -142,7 +142,7 @@ const AdvantageSection = ({ data }: AdvantageProps) => {
               snap: { textContent: 1 },
               scrollTrigger: {
                 trigger: item,
-                start: "top 120%",
+                start: "top 150%",
                 toggleActions: "play none none none",
               },
               onUpdate: function() {
