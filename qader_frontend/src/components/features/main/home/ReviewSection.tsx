@@ -32,11 +32,11 @@ const ReviewCard = ({ review, index }: { review: Review; index: number }) => {
         y: 0,
         rotateX: 0,
         duration: 0.8,
-        delay: index * 0.15, // Stagger effect
+  
         ease: "power3.out",
         scrollTrigger: {
           trigger: cardRef.current,
-          start: "top 120%",
+          start: "top 150%",
           end: "bottom 15%",
           toggleActions: "play none none reverse",
         }
@@ -49,7 +49,7 @@ const ReviewCard = ({ review, index }: { review: Review; index: number }) => {
         repeat: -1,
         yoyo: true,
         ease: "sine.inOut",
-        delay: 1 + index * 0.2
+        
       });
 
       // Quote marks animation
@@ -116,7 +116,7 @@ const ReviewCard = ({ review, index }: { review: Review; index: number }) => {
   return (
     <div
       ref={cardRef}
-      className={`w-full shadow-xl rounded-2xl flex flex-col justify-start items-center text-center border-r-8 p-6 sm:p-8 border-r-[#e78b48] transition-all delay-150 duration-300 ease-in-out hover:bg-[#E7F1FE4D] dark:hover:bg-[#053061] hover:border-r-[#074182] hover:shadow-2xl bg-card text-card-foreground transform-gpu will-change-transform relative overflow-hidden`}
+      className={`w-full shadow-xl rounded-2xl flex flex-col justify-start items-center text-center border-r-8 p-6 sm:p-8 border-r-[#e78b48] transition-all delay-150 duration-300 ease-in-out hover:bg-[#E7F1FE4D] dark:hover:bg-[#053061] hover:border-r-[#074182] hover:shadow-2xl bg-card text-card-foreground transform-gpu will-change-transform relative overflow-hidden pt-10`}
       style={{ transformStyle: "preserve-3d" }}
     >
       {/* Animated background gradient */}
@@ -166,7 +166,7 @@ const ReviewSection = ({ data }: ReviewProps) => {
       const headerTl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 120%",
+          start: "top 150%",
           end: "bottom 20%",
           toggleActions: "play none none reverse",
         }
