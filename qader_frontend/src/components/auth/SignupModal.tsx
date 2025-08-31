@@ -142,7 +142,7 @@ const SignupModal: React.FC<SignupModalProps> = ({
       <DialogContent className="flex max-w-md flex-col overflow-hidden p-0 md:max-w-3xl md:flex-row">
         {/* Form Side */}
         <div className="flex w-full items-center justify-center p-6 sm:p-8 md:w-1/2">
-          <div className="w-full space-y-6">
+          {/* <div className="w-full space-y-6">
             <DialogHeader className="text-center">
               <DialogTitle className="text-3xl font-bold">
                 {tAuth("welcome")}
@@ -152,7 +152,6 @@ const SignupModal: React.FC<SignupModalProps> = ({
               </p>
             </DialogHeader>
 
-            {/* General non-field error from mutation (if not field-specific and no detail) */}
             {signupMutation.error &&
               !(signupMutation.error as any).data?.detail &&
               !Object.keys(signupDefaultValues).some(
@@ -168,12 +167,10 @@ const SignupModal: React.FC<SignupModalProps> = ({
               )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {/* Full Name Field */}
               <div>
                 <Label htmlFor="signup-modal-fullname">
                   {tAuth("fullName")}
                 </Label>{" "}
-                {/* Unique ID */}
                 <div className="relative mt-1">
                   <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                   <Input
@@ -192,10 +189,8 @@ const SignupModal: React.FC<SignupModalProps> = ({
                 )}
               </div>
 
-              {/* Email Field */}
               <div>
                 <Label htmlFor="signup-modal-email">{tAuth("email")}</Label>{" "}
-                {/* Unique ID */}
                 <div className="relative mt-1">
                   <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                   <Input
@@ -214,12 +209,10 @@ const SignupModal: React.FC<SignupModalProps> = ({
                 )}
               </div>
 
-              {/* Password Field */}
               <div>
                 <Label htmlFor="signup-modal-password">
                   {tAuth("password")}
                 </Label>{" "}
-                {/* Unique ID */}
                 <div className="relative mt-1">
                   <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                   <Input
@@ -227,7 +220,7 @@ const SignupModal: React.FC<SignupModalProps> = ({
                     type={showPassword ? "text" : "password"}
                     placeholder={tAuth("passwordPlaceholder")}
                     {...register("password")}
-                    className="pl-10 pr-10 rtl:pl-10 rtl:pr-10" // Space for icon on both sides potentially
+                    className="pl-10 pr-10 rtl:pl-10 rtl:pr-10" 
                     aria-invalid={errors.password ? "true" : "false"}
                   />
                   <button
@@ -254,18 +247,16 @@ const SignupModal: React.FC<SignupModalProps> = ({
                 )}
               </div>
 
-              {/* Confirm Password Field */}
               <div>
                 <Label htmlFor="signup-modal-confirm-password">
                   {tAuth("confirmPassword")}
                 </Label>{" "}
-                {/* Unique ID */}
                 <div className="relative mt-1">
                   <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                   <Input
                     id="signup-modal-confirm-password"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder={tAuth("passwordPlaceholder")} // Reusing password placeholder
+                    placeholder={tAuth("passwordPlaceholder")} 
                     {...register("password_confirm")}
                     className="pl-10 pr-10 rtl:pl-10 rtl:pr-10"
                     aria-invalid={errors.password_confirm ? "true" : "false"}
@@ -294,7 +285,6 @@ const SignupModal: React.FC<SignupModalProps> = ({
                 )}
               </div>
 
-              {/* Terms and Conditions Checkbox */}
               <div className="flex items-start space-x-2 pt-1 rtl:space-x-reverse">
                 <Controller
                   name="termsAccepted"
@@ -315,7 +305,7 @@ const SignupModal: React.FC<SignupModalProps> = ({
                   htmlFor="termsAcceptedSignupModal"
                   className="cursor-pointer text-sm font-normal leading-snug text-muted-foreground"
                 >
-                  {tAuth("agreeTo")}{" "}
+                  {tAuth("agreeTo")}{""}
                   <Link
                     href={"/terms-and-conditions"} 
                     className="font-medium text-primary hover:underline"
@@ -329,12 +319,10 @@ const SignupModal: React.FC<SignupModalProps> = ({
               {errors.termsAccepted && (
                 <p className="-mt-4 text-xs text-red-500">
                   {" "}
-                  {/* Adjusted margin for tighter layout */}
                   {errors.termsAccepted.message}
                 </p>
               )}
 
-              {/* Submit Button */}
               <Button
                 type="submit"
                 className="w-full"
@@ -346,32 +334,48 @@ const SignupModal: React.FC<SignupModalProps> = ({
               </Button>
             </form>
 
-            {/* Switch to Login */}
+          
             <p className="text-center text-sm text-muted-foreground">
               {tAuth("alreadyHaveAccount")}{" "}
               {onSwitchToLogin ? (
                 <button
                   type="button"
                   onClick={() => {
-                    onClose(); // Close current modal
-                    if (onSwitchToLogin) onSwitchToLogin(); // Open login modal
+                    onClose(); 
+                    if (onSwitchToLogin) onSwitchToLogin(); 
                   }}
                   className="font-medium text-primary hover:underline"
                 >
                   {tAuth("login")}
                 </button>
               ) : (
-                // Fallback if onSwitchToLogin is not provided (e.g. if this modal can be opened directly from a page)
                 <Link
-                  href={PATHS.LOGIN} // Simple path
+                  href={PATHS.LOGIN} 
                   className="font-medium text-primary hover:underline"
-                  onClick={onClose} // Close modal if navigating away via link
+                  onClick={onClose} 
                 >
                   {tAuth("login")}
                 </Link>
               )}
             </p>
+          </div> */}
+
+          <div className="w-full space-y-6">
+            <div className="font-bold md:text-3xl text-xl text-[#074182] text-center">
+              نعتذر حاليا !
+            </div>
+            <div className="font-bold md:text-2xl text-xl  text-center ">
+              لا يمكن إنشاء حساب إلا من خلال التعاقدات مع المدارس
+            </div>
+
+            <div className=" flex justify-center items-center">
+              <a href="/partner" className="flex justify-center gap-2 min-[1120px]:py-3 sm:w-[180px] w-[100px] p-2 rounded-[8px] bg-[#074182] dark:bg-[#074182] text-[#FDFDFD] font-[600] hover:bg-[#074182DF] dark:hover:bg-[#074182DF] transition-all cursor-pointer hover:scale-105 active:scale-95 transform-gpu">
+              صفحة التعاقد
+            </a>
+            </div>
           </div>
+
+
         </div>
 
         {/* Image Side */}
