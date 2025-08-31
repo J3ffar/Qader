@@ -210,7 +210,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
               </div>
 
               <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                <div className="flex items-center space-x-2 gap-1 rtl:space-x-reverse">
                   <Checkbox
                     id="rememberMeLoginModal"
                     {...register("rememberMe")}
