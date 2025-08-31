@@ -894,6 +894,10 @@ export default function ForgotPasswordPage() {
             </CardContent>
           </>
         )}
+
+        <div className=" text-destructive pr-5 pl-3 mb-4 mt-[-10px]">
+          إذا واجهت مشكلة يمكنك حذف الكوكيز أو حذف ملفات تعريف الإرتباط في المتصفح أو تغيير المتصفح
+        </div>
         
         <CardFooter ref={footerRef} className="block border-t px-6 text-center text-sm">
           {currentStep === "request" ? (
