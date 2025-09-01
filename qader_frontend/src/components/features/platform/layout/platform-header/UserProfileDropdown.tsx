@@ -65,11 +65,7 @@ const UserProfileDropdown = forwardRef<
       icon: Cog6ToothIcon,
       href: `/${locale}${PATHS.STUDY.SETTINGS.HOME}`,
     }, // Updated path
-    {
-      label: t("emergencyMode"),
-      icon: ExclamationCircleIcon,
-      href: `/${locale}${PATHS.STUDY.EMERGENCY_MODE}`,
-    }, // Updated path
+ // Updated path
     {
       label: t("adminSupport"),
       icon: QuestionMarkCircleIcon,
@@ -131,12 +127,7 @@ const UserProfileDropdown = forwardRef<
           </Button>
         ))}
 
-        <div className="flex w-full items-center justify-between gap-2 border-b border-t px-4 py-3 text-sm">
-          <p className="flex items-center gap-3">
-            <Squares2X2Icon className="h-5 w-5" /> {t("themes")}
-          </p>
-          <ThemeToggle /> {/* Use the globally defined ThemeToggle */}
-        </div>
+       
 
         <Button
           variant="ghost"
