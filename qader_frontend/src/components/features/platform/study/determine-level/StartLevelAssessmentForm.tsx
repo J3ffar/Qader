@@ -247,7 +247,7 @@ const StartLevelAssessmentForm: React.FC = () => {
                       <div
                         key={subsection.slug}
                         className={cn(
-                          "rounded-lg p-3 text-center text-sm select-none border",
+                          "rounded-lg p-3 text-center flex justify-center items-center text-sm select-none border",
                           isSectionSelected
                             ? "border-primary/50 bg-primary/10 font-medium"
                             : "border-gray-300 dark:border-gray-600 bg-muted/50 text-muted-foreground"
