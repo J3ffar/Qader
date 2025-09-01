@@ -369,7 +369,7 @@ const SignupModal: React.FC<SignupModalProps> = ({
             </div>
 
             <div className=" flex justify-center items-center">
-              <a href="/partner" className="flex justify-center gap-2 min-[1120px]:py-3 sm:w-[180px] w-[100px] p-2 rounded-[8px] bg-[#074182] dark:bg-[#074182] text-[#FDFDFD] font-[600] hover:bg-[#074182DF] dark:hover:bg-[#074182DF] transition-all cursor-pointer hover:scale-105 active:scale-95 transform-gpu">
+              <a href="/partners" className="flex justify-center gap-2 min-[1120px]:py-3 sm:w-[180px] w-[100px] p-2 rounded-[8px] bg-[#074182] dark:bg-[#074182] text-[#FDFDFD] font-[600] hover:bg-[#074182DF] dark:hover:bg-[#074182DF] transition-all cursor-pointer hover:scale-105 active:scale-95 transform-gpu">
               صفحة التعاقد
             </a>
             </div>
