@@ -9,6 +9,7 @@ import {
   GiftIcon,
   BellIcon,
   ChevronDownIcon,
+  CheckIcon,
 } from "@heroicons/react/24/outline"; // Assuming Heroicons are still desired, Lucide could be an alternative
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,7 +36,26 @@ type DropdownId =
   | "gift"
   | "notifications"
   | "userProfile"
-  | null; // Renamed for clarity
+  | "exams"
+  | null; // Added "exams" for the new dropdown
+
+// Define exam types
+type ExamType = "qudurat" | "tahsili" | "step" | "itc" | "cbc" | "petroleum" | "toefl" | "mawhiba";
+
+const examOptions = {
+  available: [
+    { id: "qudurat" as ExamType, label: "إختبار القدرات", available: true },
+    { id: "tahsili" as ExamType, label: "إختبار التحصيلي", available: true },
+  ],
+  comingSoon: [
+    { id: "step" as ExamType, label: "إختبار STEP", available: false },
+    { id: "itc" as ExamType, label: "إختبار ITC", available: false },
+    { id: "cbc" as ExamType, label: "إختبار CBC", available: false },
+    { id: "petroleum" as ExamType, label: "إختبار قبول البترول", available: false },
+    { id: "toefl" as ExamType, label: "إختبار TOEFL", available: false },
+    { id: "mawhiba" as ExamType, label: "إختبار موهبة", available: false },
+  ]
+};
 
 // forwardRef is used if this component needs to be a ref target itself.
 // If not, it can be removed. For now, assuming it might be useful.
@@ -49,6 +69,9 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
     const [giftActiveSection, setGiftActiveSection] = useState<
       "invite" | "store"
     >("invite");
+    
+    // State for selected exam
+    const [selectedExam, setSelectedExam] = useState<ExamType>("qudurat");
 
     // Refs for triggers
     const streakTriggerRef = useRef<HTMLSpanElement>(null);
@@ -56,6 +79,7 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
     const giftTriggerRef = useRef<HTMLSpanElement>(null);
     const notificationsTriggerRef = useRef<HTMLSpanElement>(null);
     const userProfileTriggerRef = useRef<HTMLDivElement>(null);
+    const examsTriggerRef = useRef<HTMLDivElement>(null);
 
     // Refs for dropdowns
     const streakDropdownRef = useRef<HTMLDivElement>(null);
@@ -63,12 +87,18 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
     const giftDropdownRef = useRef<HTMLDivElement>(null);
     const notificationsDropdownRef = useRef<HTMLDivElement>(null);
     const userProfileDropdownRef = useRef<HTMLDivElement>(null);
+    const examsDropdownRef = useRef<HTMLDivElement>(null);
 
     const handleToggleDropdown = (id: NonNullable<DropdownId>) => {
       setActiveDropdownId((prevId) => (prevId === id ? null : id));
     };
 
     const closeAllDropdowns = () => {
+      setActiveDropdownId(null);
+    };
+
+    const handleSelectExam = (examId: ExamType) => {
+      setSelectedExam(examId);
       setActiveDropdownId(null);
     };
 
@@ -102,6 +132,12 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
       closeAllDropdowns,
       activeDropdownId === "userProfile"
     );
+    useOnClickOutside(
+      examsDropdownRef,
+      examsTriggerRef,
+      closeAllDropdowns,
+      activeDropdownId === "exams"
+    );
 
     const getInitials = (name: string | undefined | null): string => {
       if (!name) return "Q";
@@ -113,17 +149,10 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
         .toUpperCase();
     };
 
-    // Style might need adjustment based on actual sidebar implementation details
-    // This needs to be robust and consider the overall layout structure.
-    const navbarStyle = {
-      // Example: Assuming sidebar width is passed or from CSS variables
-      // left: isSidebarOpen ? "var(--sidebar-width-open)" : "var(--sidebar-width-closed)",
-      // right: "0px",
-      // For simplicity, if it's dynamically positioned from the parent, these might not be needed here.
-      // The positioning with 'right: 110px/50px' and 'left: 0px' seems unusual
-      // and suggests it overlays the sidebar, which might be complex.
-      // A more common pattern: parent layout defines regions, header fills its designated region.
-      // If the values like 110px and 50px are fixed, they could be Tailwind arbitrary values or CSS vars.
+    // Get current selected exam label
+    const getSelectedExamLabel = () => {
+      const allExams = [...examOptions.available, ...examOptions.comingSoon];
+      return allExams.find(exam => exam.id === selectedExam)?.label || "إختيار إختبار";
     };
 
     useEffect(() => {
@@ -140,13 +169,92 @@ const PlatformHeader = forwardRef<HTMLDivElement, PlatformHeaderProps>(
       <div
         ref={ref} // Apply the forwarded ref here
         className="sticky top-0 z-40 flex h-auto dark:bg-[#091029] flex-col border-b-[0.5px] border-border bg-background px-5 shadow-sm transition-all duration-300 dark:border-gray-700 max-md:py-3"
-        // style={navbarStyle} // Re-evaluate this styling approach
       >
         
-        <div className="flex flex-col-reverse items-center justify-around gap-6 p-4 lg:h-[70px] lg:flex-row lg:gap-0">
+        <div className="flex flex-col-reverse items-center justify-between gap-6 p-4 lg:h-[70px] lg:flex-row lg:gap-0">
           {/* Search Bar */}
-          <div className=" bg-primary px-4 py-2 text-white">
-            <Link href="/">العودة إلى الصفحة الرئيسية</Link>
+          <div className="flex items-center justify-center gap-3">
+            <div className="bg-primary px-3 py-2 text-white text-[14px] rounded-[8px] hover:bg-primary/90 transition-all">
+              <Link href="/">العودة إلى الرئيسية</Link>
+            </div>
+            
+            {/* Exam Dropdown */}
+            <div className="relative">
+              <div
+                ref={examsTriggerRef}
+                onClick={() => handleToggleDropdown("exams")}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 text-[14px] rounded-[8px] border cursor-pointer transition-all",
+                  activeDropdownId === "exams" 
+                    ? "bg-muted dark:bg-muted/50 border-primary" 
+                    : "hover:bg-muted dark:hover:bg-muted/50"
+                )}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && handleToggleDropdown("exams")}
+              >
+                <span>{getSelectedExamLabel()}</span>
+                <ChevronDownIcon className={cn(
+                  "h-4 w-4 transition-transform",
+                  activeDropdownId === "exams" && "rotate-180"
+                )} />
+              </div>
+              
+              {/* Dropdown Menu */}
+              {activeDropdownId === "exams" && (
+                <div
+                  ref={examsDropdownRef}
+                  className="absolute top-full mt-2 w-[250px] rounded-lg border bg-background shadow-lg z-50 overflow-hidden"
+                >
+                  <div className="p-2">
+                    {/* Currently Selected */}
+                    <div className="text-xs text-muted-foreground px-2 py-1 mb-1">
+                      المختار حاليا
+                    </div>
+                    
+                    {/* Available Exams */}
+                    {examOptions.available.map((exam) => (
+                      <div
+                        key={exam.id}
+                        onClick={() => handleSelectExam(exam.id)}
+                        className={cn(
+                          "flex items-center justify-between px-3 py-2 rounded-md cursor-pointer transition-all",
+                          selectedExam === exam.id 
+                            ? "bg-primary/10 text-primary" 
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <span className="text-sm">{exam.label}</span>
+                        {selectedExam === exam.id && (
+                          <CheckIcon className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                    ))}
+                    
+                    {/* Divider */}
+                    <div className="my-2 border-t border-border" />
+                    
+                    {/* Coming Soon Section */}
+                    <div className="text-xs text-muted-foreground px-2 py-1 mb-1">
+                      قريباً
+                    </div>
+                    
+                    {/* Coming Soon Exams */}
+                    {examOptions.comingSoon.map((exam) => (
+                      <div
+                        key={exam.id}
+                        className="flex items-center justify-between px-3 py-2 rounded-md opacity-50 cursor-not-allowed"
+                      >
+                        <span className="text-sm text-muted-foreground">{exam.label}</span>
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
+                          قريباً
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
          <div className="flex flex-col-reverse items-center justify-around gap-6 p-0 lg:h-[70px] lg:flex-row lg:gap-0">
