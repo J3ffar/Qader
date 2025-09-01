@@ -206,7 +206,7 @@ const StudyPage = () => {
     <div className="flex min-h-screen dark:bg-[#081028] text-white">
       {/* Sidebar */}
       <div
-        className="flex flex-col bg-[#074182] dark:bg-[#081028] relative transition-all duration-300 ease-in-out border-l-[1px] border-gray-300"
+        className="flex flex-col bg-[#074182] dark:bg-[#081028] relative transition-all duration-300 ease-in-out border-l-[1px] border-gray-300 pb-10"
         style={{ width: isOpen ? 220 : 100 }}
       >
         {/* Toggle button */}
