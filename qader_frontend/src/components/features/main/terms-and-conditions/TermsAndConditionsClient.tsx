@@ -169,29 +169,19 @@ const TermsAndConditionsClient = ({ content }: { content: Page<any> | null }) =>
       // Scroll to first section on page load
       if (toc.length > 0) {
         setTimeout(() => {
-          scrollToId(toc[0].id, false); // false means no smooth animation on initial load
+          scrollToId(toc[0].id);
         }, 1000);
       }
     }, 500);
 
   }, [toc]);
 
-  const scrollToId = (id: string, smooth: boolean = true) => {
+  // Fixed scrollToId function using native browser API (like Code 1)
+  const scrollToId = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      if (smooth) {
-        gsap.to(window, {
-          duration: 1,
-          scrollTo: { y: element, offsetY: 100 },
-          ease: "power2.inOut"
-        });
-      } else {
-        // Immediate scroll for initial page load
-        window.scrollTo({
-          top: element.offsetTop - 100,
-          behavior: 'auto'
-        });
-      }
+      // Use native scrollIntoView for reliable scrolling
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
       setActiveSection(id);
     }
   };
