@@ -120,7 +120,7 @@ const ErrorReportModal: React.FC<ErrorReportModalProps> = ({
       setProblemType("");
       setDescription("");
       onOpenChange(false);
-      toast.success("تم إرسال التقرير بنجاح");
+      // You might want to show a success toast here
     }, 1000);
   };
 
@@ -134,27 +134,15 @@ const ErrorReportModal: React.FC<ErrorReportModalProps> = ({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="subject">موضوع</Label>
-            <Input
-              id="subject"
-              value={subject}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSubject(e.target.value)}
-              placeholder="أدخل موضوع المشكلة"
-              dir="rtl"
-            />
-          </div>
+          
           <div className="grid gap-2">
             <Label htmlFor="problemType">نوع المشكلة</Label>
             <Select value={problemType} onValueChange={setProblemType}>
               <SelectTrigger id="problemType">
-                <SelectValue placeholder="اختر نوع المشكلة" />
+                <SelectValue placeholder="مشكلة في السؤال" />
               </SelectTrigger>
               <SelectContent dir="rtl">
-                <SelectItem value="technical">تقني</SelectItem>
-                <SelectItem value="question_issue">مشكلة في السؤال</SelectItem>
-                <SelectItem value="suggestion">إقتراح</SelectItem>
-                <SelectItem value="other">أخرى</SelectItem>
+                <SelectItem value="question_issue" defaultChecked>مشكلة في السؤال</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -163,7 +151,7 @@ const ErrorReportModal: React.FC<ErrorReportModalProps> = ({
             <Textarea
               id="description"
               value={description}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder="اشرح المشكلة بالتفصيل..."
               className="min-h-[100px]"
               dir="rtl"
