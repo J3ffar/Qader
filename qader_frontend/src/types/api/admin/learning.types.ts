@@ -48,10 +48,13 @@ export interface AdminQuestionUsageByTestType {
   traditional: number;
 }
 
+
+
 export interface AdminQuestion {
   id: number;
   question_text: string;
   image: string | null;
+  article?: string | null;
   options: AdminQuestionOptions;
   difficulty: number;
   is_active: boolean;
@@ -108,8 +111,10 @@ export interface AdminQuestionCreateUpdate {
   subsection_id: number;
   is_active?: boolean;
   skill_id?: number | null;
-  image_upload?: File | null; // RENAMED from 'image' to 'image_upload'
+  image?: File | null;
+  article?: string | null;
   explanation?: string | null;
   hint?: string | null;
   solution_method_summary?: string | null;
 }
+
