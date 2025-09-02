@@ -15,6 +15,7 @@ import type {
   AdminQuestionCreateUpdate,
 } from "@/types/api/admin/learning.types";
 
+
 // This converts a standard object to FormData
 export const objectToFormData = (obj: Record<string, any>): FormData => {
   const formData = new FormData();
@@ -114,17 +115,18 @@ export const getAdminQuestions = (params: Record<string, any> = {}) =>
 export const getAdminQuestionDetail = (id: number) =>
   apiClient<AdminQuestion>(API_ENDPOINTS.ADMIN.LEARNING.QUESTION_DETAIL(id));
 
-export const createAdminQuestion = (data: AdminQuestionCreateUpdate) => {
-  const formData = objectToFormData(data);
+export const createAdminQuestion = (data: AdminQuestionCreateUpdate | FormData) => {
+  const formData = data instanceof FormData ? data : objectToFormData(data);
   return apiClient<AdminQuestion>(API_ENDPOINTS.ADMIN.LEARNING.QUESTIONS, {
     method: "POST",
     body: formData,
   });
 };
 
+
 export const updateAdminQuestion = (
   id: number,
-  data: Partial<AdminQuestionCreateUpdate> & { image?: null }
+  data: Partial<AdminQuestionCreateUpdate> | FormData
 ) => {
   const isMultipart = data instanceof FormData;
 
@@ -177,3 +179,4 @@ export const getAdminAllSkills = (subsectionId?: number) => {
     { params }
   );
 };
+
