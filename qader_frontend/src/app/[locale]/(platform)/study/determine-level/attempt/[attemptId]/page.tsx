@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -18,8 +16,24 @@ import {
   Loader2,
   Send,
   HelpCircle,
+  Check,
 } from "lucide-react";
-
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,16 +49,18 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import ConfirmationDialog from "@/components/shared/ConfirmationDialog";
 import { StarButton } from "@/components/shared/StarButton";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 import {
-  resumeTestAttempt, // MODIFIED
+  resumeTestAttempt,
   submitAnswer,
   completeTestAttempt,
   cancelTestAttempt,
 } from "@/services/study.service";
 import { PATHS } from "@/constants/paths";
 import type {
-  UserTestAttemptResume, // MODIFIED
+  UserTestAttemptResume,
   UnifiedQuestion,
   SubmitAnswerPayload,
   UserTestAttemptCompletionResponse,
@@ -62,6 +78,119 @@ interface UserSelections {
 
 const TEST_DURATION_SECONDS = 30 * 60;
 
+// Error Report Modal Component
+interface ErrorReportModalProps {
+  questionId: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const ErrorReportModal: React.FC<ErrorReportModalProps> = ({
+  questionId,
+  open,
+  onOpenChange,
+}) => {
+  const [subject, setSubject] = useState("");
+  const [problemType, setProblemType] = useState("");
+  const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    
+    // Here you would typically send the error report to your API
+    const reportData = {
+      questionId,
+      subject,
+      problemType,
+      description,
+      timestamp: new Date().toISOString(),
+    };
+    
+    // Simulate API call
+    console.log("Submitting error report:", reportData);
+    
+    // You would replace this with actual API call:
+    // await submitErrorReport(reportData);
+    
+    setTimeout(() => {
+      setIsSubmitting(false);
+      // Reset form
+      setSubject("");
+      setProblemType("");
+      setDescription("");
+      onOpenChange(false);
+      toast.success("تم إرسال التقرير بنجاح");
+    }, 1000);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]" dir="rtl">
+        <DialogHeader>
+          <DialogTitle>إبلاغ عن خطأ</DialogTitle>
+          <DialogDescription>
+            ساعدنا في تحسين المحتوى بالإبلاغ عن أي مشكلة واجهتها
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="subject">موضوع</Label>
+            <Input
+              id="subject"
+              value={subject}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSubject(e.target.value)}
+              placeholder="أدخل موضوع المشكلة"
+              dir="rtl"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="problemType">نوع المشكلة</Label>
+            <Select value={problemType} onValueChange={setProblemType}>
+              <SelectTrigger id="problemType">
+                <SelectValue placeholder="اختر نوع المشكلة" />
+              </SelectTrigger>
+              <SelectContent dir="rtl">
+                <SelectItem value="technical">تقني</SelectItem>
+                <SelectItem value="question_issue">مشكلة في السؤال</SelectItem>
+                <SelectItem value="suggestion">إقتراح</SelectItem>
+                <SelectItem value="other">أخرى</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="description">وصف المشكلة</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
+              placeholder="اشرح المشكلة بالتفصيل..."
+              className="min-h-[100px]"
+              dir="rtl"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
+            إلغاء
+          </Button>
+          <Button
+            type="submit"
+            onClick={handleSubmit}
+            disabled={!subject || !problemType || !description || isSubmitting}
+          >
+            {isSubmitting ? "جاري الإرسال..." : "إرسال"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const LevelAssessmentAttemptPage = () => {
   const params = useParams();
@@ -74,27 +203,19 @@ const LevelAssessmentAttemptPage = () => {
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userSelections, setUserSelections] = useState<UserSelections>({});
-  const [timeLeft, setTimeLeft] = useState(TEST_DURATION_SECONDS);
+  const [timeElapsed, setTimeElapsed] = useState(0); // Timer counts up from 00:00
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
   const [localStarred, setLocalStarred] = useState(false);
-  const [isReady, setIsReady] = useState(false); // NEW: State to prevent premature rendering
-
-  // NEW: State for time tracking per question
+  const [isReady, setIsReady] = useState(false);
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
-
-  // إضافة state لتسجيل وقت بداية الاختبار
-  const [testStartTime, setTestStartTime] = useState<number | null>(null);
-
-  // Debug logs to help diagnose why the page is empty
-  console.log("[DEBUG] Render: isLoadingAttempt, isReady, attemptId", { attemptId });
-
+  const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set()); // Track answered questions
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
   useEffect(() => {
     setDirection(document.documentElement.dir as "ltr" | "rtl");
   }, []);
 
-  // MODIFIED: Use the new `resumeTestAttempt` service function
   const {
     data: attemptData,
     isLoading: isLoadingAttempt,
@@ -108,52 +229,43 @@ const LevelAssessmentAttemptPage = () => {
     refetchOnWindowFocus: false,
   });
 
-  // Log after fetching attemptData
-  useEffect(() => {
-    console.log("[DEBUG] useQuery", { isLoadingAttempt, isReady, attemptData, attemptError });
-  }, [isLoadingAttempt, isReady, attemptData, attemptError]);
-
   const questions: UnifiedQuestion[] = useMemo(
     () => attemptData?.questions || [],
     [attemptData]
   );
 
-  // MODIFIED: Enhanced useEffect to handle resume logic
   useEffect(() => {
-    console.log("[DEBUG] useEffect (resume logic)", { isSuccess, attemptData });
     if (isSuccess && attemptData) {
       if (attemptData.total_questions === attemptData.answered_question_count) {
-        // All questions answered, but not completed. Force completion.
         handleCompleteTest(false, true);
         return;
       }
 
       const initialSelections: UserSelections = {};
+      const initialAnswered = new Set<number>();
       let firstUnansweredIndex = -1;
 
       attemptData.questions.forEach((q, index) => {
         if (q.user_answer_details?.selected_choice) {
           initialSelections[q.id] = q.user_answer_details.selected_choice;
+          initialAnswered.add(q.id);
         } else if (firstUnansweredIndex === -1) {
           firstUnansweredIndex = index;
         }
       });
 
       setUserSelections(initialSelections);
+      setAnsweredQuestions(initialAnswered);
       setCurrentQuestionIndex(
         firstUnansweredIndex !== -1 ? firstUnansweredIndex : 0
       );
       setIsReady(true);
-      
-      // تسجيل وقت بداية الاختبار
-      setTestStartTime(Date.now());
     }
   }, [isSuccess, attemptData]);
 
   const currentQuestion: UnifiedQuestion | undefined =
     questions[currentQuestionIndex];
 
-  // NEW: useEffect to start the timer for a new question
   useEffect(() => {
     if (isReady && currentQuestion) {
       setQuestionStartTime(Date.now());
@@ -161,18 +273,18 @@ const LevelAssessmentAttemptPage = () => {
     }
   }, [currentQuestionIndex, isReady, currentQuestion]);
 
-  // Timer logic remains the same...
+  // Timer logic - counting UP from 00:00
   useEffect(() => {
     if (!isReady || isLoadingAttempt || isTimeUp) return;
-    if (timeLeft <= 0) {
+    if (timeElapsed >= TEST_DURATION_SECONDS) {
       setIsTimeUp(true);
       toast.warning(t("timeOver"), { duration: 5000 });
       handleCompleteTest(true);
       return;
     }
-    const timerId = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    const timerId = setInterval(() => setTimeElapsed((prev) => prev + 1), 1000);
     return () => clearInterval(timerId);
-  }, [timeLeft, isLoadingAttempt, isReady, isTimeUp]);
+  }, [timeElapsed, isLoadingAttempt, isReady, isTimeUp]);
 
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -191,39 +303,30 @@ const LevelAssessmentAttemptPage = () => {
         time_taken_seconds: payload.time_taken_seconds,
       }),
     onSuccess: (data: SubmitAnswerResponse, variables) => {
-      // `data` is the response from the API, which includes the updated question object.
-      // `variables` is what we sent to the mutation.
       const queryKey = queryKeys.tests.resume(variables.attemptId);
-
-      // Use setQueryData to update the cache for the resume endpoint
+      
       queryClient.setQueryData<UserTestAttemptResume>(queryKey, (oldData) => {
-        // If for some reason the cache is empty, do nothing.
-        if (!oldData) {
-          return undefined;
-        }
+        if (!oldData) return undefined;
 
-        // Check if this question was already answered before this submission.
         const wasAlreadyAnswered =
           oldData.questions.find((q) => q.id === data.question.id)
             ?.user_answer_details !== null;
 
-        // Create a new array of questions, replacing the one we just answered
-        // with the updated version from the API response.
         const newQuestions = oldData.questions.map((q) =>
           q.id === data.question.id ? data.question : q
         );
 
-        // Return the new state for the cache.
-        // It's crucial to return a new object to trigger a re-render.
         return {
           ...oldData,
           questions: newQuestions,
-          // Increment the answered count only if it was a new answer.
           answered_question_count: wasAlreadyAnswered
             ? oldData.answered_question_count
             : oldData.answered_question_count + 1,
         };
       });
+
+      // Update answered questions set
+      setAnsweredQuestions(prev => new Set([...prev, variables.question_id]));
     },
     onError: (error: any, variables) => {
       const errorMsg = getApiErrorMessage(error, tCommon("errors.generic"));
@@ -284,12 +387,11 @@ const LevelAssessmentAttemptPage = () => {
     }
   };
 
-  // MODIFIED: Function to handle answer submission with timing
   const submitCurrentAnswer = async (
     questionId: number,
     selectedAnswer: OptionKey | undefined
   ) => {
-    if (selectedAnswer) {
+    if (selectedAnswer && !answeredQuestions.has(questionId)) {
       const timeTakenSeconds = Math.round(
         (Date.now() - questionStartTime) / 1000
       );
@@ -303,7 +405,7 @@ const LevelAssessmentAttemptPage = () => {
   };
 
   const handleNext = async () => {
-    if (currentQuestion) {
+    if (currentQuestion && userSelections[currentQuestion.id]) {
       await submitCurrentAnswer(
         currentQuestion.id,
         userSelections[currentQuestion.id]
@@ -312,7 +414,6 @@ const LevelAssessmentAttemptPage = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     } else {
-      // User is on the last question, clicking Next should trigger completion flow
       handleCompleteTest();
     }
   };
@@ -331,37 +432,24 @@ const LevelAssessmentAttemptPage = () => {
       currentQuestion &&
       userSelections[currentQuestion.id] &&
       !autoSubmittedDueToTimeUp &&
-      !forceComplete
+      !forceComplete &&
+      !answeredQuestions.has(currentQuestion.id)
     ) {
       await submitCurrentAnswer(
         currentQuestion.id,
         userSelections[currentQuestion.id]
       );
     }
-    
-    // حساب الوقت المستغرق قبل إكمال الاختبار
-    if (testStartTime) {
-      const timeTaken = Date.now() - testStartTime;
-      const minutes = Math.floor(timeTaken / 60000);
-      const seconds = Math.floor((timeTaken % 60000) / 1000);
-      
-      // حفظ الوقت في localStorage مع تنسيق جديد
-      localStorage.setItem(`test_time_${attemptId}`, JSON.stringify({
-        minutes,
-        seconds,
-        total_seconds: Math.floor(timeTaken / 1000),
-        formatted: `${minutes}:${seconds.toString().padStart(2, '0')}`,
-        // إضافة تنسيق جديد للعرض
-        displayText: `${minutes} دقيقة ${seconds} ثانية`
-      }));
-    }
-    
     completeTestMutation.mutate(attemptId);
   };
 
   const handleCancelTest = () => {
     cancelTestMutation.mutate(attemptId);
   };
+
+  // Calculate progress based on answered questions
+  const answeredCount = answeredQuestions.size;
+  const progressValue = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
 
   // RENDER LOGIC
   if (isLoadingAttempt || !isReady) return <QuizPageSkeleton />;
@@ -415,58 +503,21 @@ const LevelAssessmentAttemptPage = () => {
     );
   }
 
-  const progressValue = ((currentQuestionIndex + 1) / questions.length) * 100;
+  const isCurrentQuestionAnswered = answeredQuestions.has(currentQuestion.id);
 
   return (
     <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
-      
-      <Card className="w-full max-w-3xl shadow-xl dark:bg-[#0B1739]">
+      <Card className="w-full max-w-4xl shadow-xl dark:bg-[#0B1739]">
         <CardHeader dir={locale === "en" ? "ltr" : "rtl"} className="pb-4">
           <div className="mb-3 flex items-center justify-between">
-            <CardTitle className="text-xl md:text-2xl">{t("title")}</CardTitle>
-            <ConfirmationDialog
-              triggerButton={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <XCircle className="me-1.5 h-4 w-4 rtl:me-0 rtl:ms-1.5" />
-                  {t("endTest")}
-                </Button>
-              }
-              title={t("cancelDialog.title")}
-              description={t("cancelDialog.description")}
-              confirmActionText={t("cancelDialog.confirmButton")}
-              cancelActionText={tCommon("no")}
-              onConfirm={handleCancelTest}
-              isConfirming={cancelTestMutation.isPending}
-              confirmButtonVariant="destructive"
-            />
-          </div>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-          
-            <span>
-              {t("question")} {currentQuestionIndex + 1} {t("outOf")}{" "}
-              {questions.length}
-            </span>
-            <div className="flex items-center">
-              <Clock className="me-1.5 h-4 w-4 rtl:me-0 rtl:ms-1.5" />
-              <span>{formatTime(timeLeft)}</span>
-            </div>
-          </div>
-          <Progress value={progressValue} className="mt-2 h-2 w-full" />
-        </CardHeader>
-
-        <CardContent className="min-h-[250px] py-6">
-          <div className="flex items-start gap-4 mb-6">
-            <div className="flex-1">
-              <QuestionRenderer
-                questionText={currentQuestion.question_text}
-                imageUrl={currentQuestion.image}
-              />
-            </div>
-            <div className="flex-shrink-0 pt-2">
+            <CardTitle className="text-2xl md:text-3xl font-bold">
+              {answeredCount}/{questions.length}
+            </CardTitle>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center text-lg">
+                <Clock className="me-1.5 h-5 w-5 rtl:me-0 rtl:ms-1.5" />
+                <span className="font-medium">{formatTime(timeElapsed)}</span>
+              </div>
               <StarButton
                 questionId={currentQuestion.id}
                 isStarred={localStarred}
@@ -474,7 +525,56 @@ const LevelAssessmentAttemptPage = () => {
                 disabled={false}
                 attemptId={attemptId}
               />
+              <ConfirmationDialog
+                triggerButton={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    <span className="ms-1.5 hidden sm:inline">{t("endTest")}</span>
+                  </Button>
+                }
+                title={t("cancelDialog.title")}
+                description={t("cancelDialog.description")}
+                confirmActionText={t("cancelDialog.confirmButton")}
+                cancelActionText={tCommon("no")}
+                onConfirm={handleCancelTest}
+                isConfirming={cancelTestMutation.isPending}
+                confirmButtonVariant="destructive"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsErrorModalOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                <span>إبلاغ عن خطأ</span>
+              </Button>
             </div>
+          </div>
+          <Progress value={progressValue} className="mt-2 h-2 w-full" />
+        </CardHeader>
+
+        <CardContent className="min-h-[400px] py-6">
+          <div className="mb-8">
+            <div className="flex items-start justify-between mb-2">
+              <h3 className="text-lg font-medium text-muted-foreground">
+                {t("question")} {currentQuestionIndex + 1}
+              </h3>
+              {isCurrentQuestionAnswered && (
+                <div className="flex items-center gap-1 text-green-600">
+                  <Check className="h-4 w-4" />
+                  <span className="text-sm font-medium">{t("answered")}</span>
+                </div>
+              )}
+            </div>
+            <QuestionRenderer
+              questionText={currentQuestion.question_text}
+              imageUrl={currentQuestion.image}
+            />
           </div>
 
           {currentQuestion.options ? (
@@ -483,26 +583,44 @@ const LevelAssessmentAttemptPage = () => {
               onValueChange={(value: string) =>
                 handleSelectAnswer(value as OptionKey)
               }
-              className="space-y-3 mt-8"
+              className="grid grid-cols-1 md:grid-cols-2 gap-4"
               dir={direction}
             >
               {Object.entries(currentQuestion.options).map(([key, text]) => {
                 const optionKey = key as OptionKey;
+                const isSelected = userSelections[currentQuestion.id] === optionKey;
+                
                 return (
                   <Label
                     key={optionKey}
                     htmlFor={`${currentQuestion.id}-${optionKey}`}
-                    className="has-[input:checked]:border-primary has-[input:checked]:bg-primary has-[input-checked]:text-primary-foreground flex cursor-pointer items-center space-x-3 rounded-md border p-3 text-base transition-colors hover:bg-accent rtl:space-x-reverse"
+                    className={`
+                      relative flex cursor-pointer items-center p-4 rounded-lg border-2 
+                      transition-all duration-200 min-h-[80px]
+                      ${isSelected 
+                        ? 'border-primary bg-primary/10 shadow-md' 
+                        : 'border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:bg-accent'
+                      }
+                      ${isCurrentQuestionAnswered ? 'opacity-80 cursor-not-allowed' : ''}
+                    `}
                   >
                     <RadioGroupItem
                       value={optionKey}
                       id={`${currentQuestion.id}-${optionKey}`}
-                      className="border-primary text-primary"
+                      className="border-2 border-primary text-primary me-3 rtl:me-0 rtl:ms-3"
+                      disabled={isCurrentQuestionAnswered}
                     />
-                    <RichContentViewer
-                      htmlContent={text}
-                      className="prose dark:prose-invert max-w-none flex-1"
-                    />
+                    <div className="flex-1">
+                      <RichContentViewer
+                        htmlContent={text}
+                        className="prose dark:prose-invert max-w-none text-base"
+                      />
+                    </div>
+                    {isSelected && (
+                      <div className="absolute top-2 end-2 rtl:end-auto rtl:start-2">
+                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                      </div>
+                    )}
                   </Label>
                 );
               })}
@@ -541,6 +659,7 @@ const LevelAssessmentAttemptPage = () => {
             )}
             {t("previous")}
           </Button>
+          
           {currentQuestionIndex < questions.length - 1 ? (
             <Button
               onClick={handleNext}
@@ -550,14 +669,12 @@ const LevelAssessmentAttemptPage = () => {
                 completeTestMutation.isPending ||
                 cancelTestMutation.isPending ||
                 (submitAnswerMutation.isPending &&
-                  submitAnswerMutation.variables?.question_id ===
-                    currentQuestion?.id)
+                  submitAnswerMutation.variables?.question_id === currentQuestion?.id)
               }
               className="w-full sm:w-auto"
             >
               {submitAnswerMutation.isPending &&
-                submitAnswerMutation.variables?.question_id ===
-                  currentQuestion?.id && (
+                submitAnswerMutation.variables?.question_id === currentQuestion?.id && (
                   <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
                 )}
               {t("next")}
@@ -578,14 +695,13 @@ const LevelAssessmentAttemptPage = () => {
                     completeTestMutation.isPending ||
                     cancelTestMutation.isPending ||
                     (submitAnswerMutation.isPending &&
-                      submitAnswerMutation.variables?.question_id ===
-                        currentQuestion?.id)
+                      submitAnswerMutation.variables?.question_id === currentQuestion?.id)
                   }
                 >
                   {completeTestMutation.isPending && (
                     <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
                   )}
-                  <Send className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
+                  <Check className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
                   {t("submitAnswers")}
                 </Button>
               }
@@ -600,6 +716,13 @@ const LevelAssessmentAttemptPage = () => {
           )}
         </CardFooter>
       </Card>
+
+      {/* Error Report Modal */}
+      <ErrorReportModal
+        questionId={currentQuestion.id}
+        open={isErrorModalOpen}
+        onOpenChange={setIsErrorModalOpen}
+      />
     </div>
   );
 };
@@ -607,32 +730,35 @@ const LevelAssessmentAttemptPage = () => {
 const QuizPageSkeleton = ({ message }: { message?: string }) => {
   return (
     <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
-      <Card className="w-full max-w-3xl">
+      <Card className="w-full max-w-4xl">
         <CardHeader className="pb-4">
           <div className="mb-3 flex items-center justify-between">
-            <Skeleton className="h-7 w-1/2" />
-            <Skeleton className="h-8 w-24" />
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <Skeleton className="h-5 w-1/3" />
-            <Skeleton className="h-5 w-1/4" />
+            <Skeleton className="h-8 w-20" />
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-8 w-8" />
+              <Skeleton className="h-8 w-24" />
+            </div>
           </div>
           <Skeleton className="mt-2 h-2 w-full" />
         </CardHeader>
-        <CardContent className="min-h-[250px] py-6">
+        <CardContent className="min-h-[400px] py-6">
           {message ? (
             <p className="text-center text-muted-foreground">{message}</p>
           ) : (
             <>
-              <Skeleton className="mb-6 h-6 w-3/4" />
-              <div className="space-y-4">
+              <div className="mb-8">
+                <Skeleton className="mb-2 h-6 w-32" />
+                <Skeleton className="h-8 w-3/4" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[...Array(4)].map((_, i) => (
                   <div
                     key={i}
-                    className="flex items-center space-x-3 rtl:space-x-reverse"
+                    className="flex items-center p-4 rounded-lg border-2"
                   >
-                    <Skeleton className="h-5 w-5 rounded-full" />
-                    <Skeleton className="h-10 flex-1 rounded-md" />
+                    <Skeleton className="h-5 w-5 rounded-full me-3" />
+                    <Skeleton className="h-6 flex-1" />
                   </div>
                 ))}
               </div>
@@ -649,4 +775,3 @@ const QuizPageSkeleton = ({ message }: { message?: string }) => {
 };
 
 export default LevelAssessmentAttemptPage;
-
