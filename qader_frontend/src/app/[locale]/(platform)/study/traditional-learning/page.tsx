@@ -90,6 +90,24 @@ export default function TraditionalLearningHubPage() {
     };
   }, [attemptsData]);
 
+  // Helper function to format dates in Arabic
+  const formatDateInArabic = (dateString: string, includeTime: boolean = true) => {
+    const date = new Date(dateString);
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      ...(includeTime && {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      })
+    };
+    
+    return date.toLocaleString('ar-DZ', options);
+  };
+
   // GSAP Animation Effect
   useEffect(() => {
     if (!containerRef.current) return;
@@ -216,7 +234,7 @@ export default function TraditionalLearningHubPage() {
                     )}
                   >
                     <TableCell>
-                      {new Date(attempt.date).toLocaleString()}
+                      {formatDateInArabic(attempt.date, true)}
                     </TableCell>
                     <TableCell className="text-center">
                       {attempt.num_questions}
@@ -262,7 +280,7 @@ export default function TraditionalLearningHubPage() {
                   <AccordionTrigger className="p-4 hover:no-underline">
                     <div className="flex w-full items-center justify-between">
                       <p className="font-medium">
-                        {new Date(attempt.date).toLocaleDateString()}
+                        {formatDateInArabic(attempt.date, false)}
                       </p>
                       <span
                         className={cn(
@@ -283,6 +301,10 @@ export default function TraditionalLearningHubPage() {
                   </AccordionTrigger>
                   <AccordionContent className="p-4 pt-0">
                     <div className="space-y-4">
+                      <p>
+                        <strong>{t("table.date")}:</strong>{" "}
+                        {formatDateInArabic(attempt.date, true)}
+                      </p>
                       <p>
                         <strong>{t("table.numQuestions")}:</strong>{" "}
                         {attempt.num_questions}
