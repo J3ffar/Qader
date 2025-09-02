@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Loader2, Minus, Sparkles } from "lucide-react";
+import { Loader2, Minus, Sparkles, Check } from "lucide-react";
 import { gsap } from "gsap";
 
 import { Button } from "@/components/ui/button";
@@ -23,12 +23,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getLearningSections } from "@/services/learning.service";
 import { startTraditionalPractice } from "@/services/study.service";
@@ -40,6 +34,7 @@ import type {
 } from "@/types/api/learning.types";
 import { queryKeys } from "@/constants/queryKeys";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface FormValues {
   selectedSubsections: Record<string, boolean>;
@@ -58,9 +53,24 @@ const FormSkeleton = () => {
           <Skeleton className="h-4 w-2/3" />
         </CardHeader>
         <CardContent className="space-y-3 p-6">
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2].map((i) => (
+              <div
+                key={i}
+                className="rounded-2xl border p-6 space-y-4 dark:border-gray-700"
+              >
+                <div className="flex items-start justify-between">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-6 w-6 rounded-full" />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
       <Card className="overflow-hidden w-full max-w-none border-2">
@@ -95,7 +105,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
   const sectionsCardRef = useRef<HTMLDivElement>(null);
   const optionsCardRef = useRef<HTMLDivElement>(null);
   const submitButtonRef = useRef<HTMLDivElement>(null);
-  const accordionItemsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const sectionCardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const optionItemsRef = useRef<(HTMLDivElement | null)[]>([]);
 
   const {
@@ -187,22 +197,22 @@ const TraditionalLearningConfigForm: React.FC = () => {
           duration: 0.5,
         }, "-=0.3");
 
-      // Animate accordion items with stagger
-      const validAccordionItems = accordionItemsRef.current.filter(item => item !== null);
-      if (validAccordionItems.length > 0) {
+      // Animate section cards with stagger
+      const validSectionCards = sectionCardsRef.current.filter(item => item !== null);
+      if (validSectionCards.length > 0) {
         gsap.fromTo(
-          validAccordionItems,
+          validSectionCards,
           {
             opacity: 0,
-            x: -30,
+            y: 30,
             scale: 0.95
           },
           {
             opacity: 1,
-            x: 0,
+            y: 0,
             scale: 1,
-            duration: 0.4,
-            stagger: 0.08,
+            duration: 0.5,
+            stagger: 0.1,
             delay: 0.3,
             ease: "power2.out"
           }
@@ -232,7 +242,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
       }
 
       // Add hover animations for interactive elements
-      validAccordionItems.forEach(item => {
+      validSectionCards.forEach(item => {
         if (!item) return;
         
         item.addEventListener('mouseenter', () => {
@@ -299,7 +309,7 @@ const TraditionalLearningConfigForm: React.FC = () => {
     onError: (error) => {
       toast.error(getApiErrorMessage(error, t("api.startError")));
       
-      // Shake animation on error - Fixed: using single number instead of array
+      // Shake animation on error
       gsap.to(formRef.current, {
         x: 0,
         duration: 0.5,
@@ -356,17 +366,14 @@ const TraditionalLearningConfigForm: React.FC = () => {
           <CardTitle>{t("sectionsTitle")}</CardTitle>
           <CardDescription>{t("sectionsDescription")}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           {errors.selectedSubsections && (
-            <p className="mb-4 text-sm font-medium text-destructive animate-pulse">
+            <p className="text-sm font-medium text-destructive animate-pulse">
               {errors.selectedSubsections.message as ReactNode}
             </p>
           )}
-          <Accordion
-            type="multiple"
-            defaultValue={sections.map((s) => s.slug)}
-            className="w-full space-y-3 grid lg:grid-cols-2 grid-cols-1 gap-3"
-          >
+
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
             {sections.map((section, index) => {
               const allSubSelected = section.subsections.every(
                 (sub) => selectedSubsectionsWatched[sub.slug]
@@ -374,77 +381,96 @@ const TraditionalLearningConfigForm: React.FC = () => {
               const someSubSelected = section.subsections.some(
                 (sub) => selectedSubsectionsWatched[sub.slug]
               );
-              const mainCheckboxState = allSubSelected
-                ? "checked"
-                : someSubSelected
-                ? "indeterminate"
-                : "unchecked";
+              const isSectionSelected = allSubSelected;
+              const isPartiallySelected = someSubSelected && !allSubSelected;
 
               return (
-                <AccordionItem
-                  ref={(el) => {
-                    accordionItemsRef.current[index] = el;
-                  }}
-                  value={section.slug}
+                <div
                   key={section.slug}
-                  className="rounded-lg border accordion-item"
+                  ref={(el) => {
+                    sectionCardsRef.current[index] = el;
+                  }}
+                  className={cn(
+                    "w-full max-w-full rounded-2xl border-2 p-6 shadow-md transition-all duration-200",
+                    isSectionSelected
+                      ? "border-primary bg-primary/5 dark:bg-[#074182]/50"
+                      : isPartiallySelected
+                      ? "border-primary/50 bg-primary/2 dark:bg-[#074182]/20"
+                      : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
+                  )}
                 >
-                  <AccordionTrigger className="p-4 hover:no-underline">
+                  <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex items-center space-x-3 gap-2 rtl:space-x-reverse">
                       <Checkbox
                         id={`section-${section.slug}`}
-                        checked={mainCheckboxState === "checked"}
-                        data-state={mainCheckboxState}
+                        checked={isSectionSelected}
+                        data-state={isPartiallySelected ? "indeterminate" : isSectionSelected ? "checked" : "unchecked"}
                         onCheckedChange={(checked) =>
                           handleMainSectionChange(section, checked === true)
                         }
                         className={
-                          mainCheckboxState === "indeterminate"
+                          isPartiallySelected
                             ? "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:text-primary-foreground"
                             : ""
                         }
                         aria-label={`Select all in ${section.name}`}
                       >
-                        {mainCheckboxState === "indeterminate" && (
+                        {isPartiallySelected && (
                           <Minus className="h-4 w-4" />
                         )}
                       </Checkbox>
-                      <label
-                        htmlFor={`section-${section.slug}`}
-                        className="cursor-pointer font-bold"
-                      >
+                      <h3 className="font-semibold text-lg sm:text-xl">
                         {section.name}
-                      </label>
+                      </h3>
                     </div>
-                  </AccordionTrigger>
+                    <div
+                      className={cn(
+                        "flex-shrink-0 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all",
+                        isSectionSelected
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : isPartiallySelected
+                          ? "bg-primary/50 border-primary text-primary-foreground"
+                          : "bg-transparent border-muted-foreground"
+                      )}
+                      aria-hidden="true"
+                    >
+                      {isSectionSelected && <Check className="h-4 w-4" />}
+                      {isPartiallySelected && !isSectionSelected && <Minus className="h-3 w-3" />}
+                    </div>
+                  </div>
 
-                  <AccordionContent className="grid grid-cols-2 gap-x-8 gap-y-3 p-4 pt-0">
-                    {section.subsections.map((sub) => (
-                      <Controller
-                        key={sub.slug}
-                        name={`selectedSubsections.${sub.slug}`}
-                        control={control}
-                        defaultValue={false}
-                        render={({ field }) => (
-                          <button
-                            type="button"
-                            onClick={() => field.onChange(!field.value)}
-                            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer transform hover:scale-105 ${
-                              field.value
-                                ? "bg-primary text-white border-primary shadow-lg"
-                                : "border border-gray-300 hover:border-primary font-normal hover:shadow-md"
-                            }`}
-                          >
-                            {sub.name}
-                          </button>
-                        )}
-                      />
-                    ))}
-                  </AccordionContent>
-                </AccordionItem>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {section.subsections.map((subsection) => {
+                      const isSubsectionSelected = selectedSubsectionsWatched[subsection.slug] || false;
+                      
+                      return (
+                        <Controller
+                          key={subsection.slug}
+                          name={`selectedSubsections.${subsection.slug}`}
+                          control={control}
+                          defaultValue={false}
+                          render={({ field }) => (
+                            <button
+                              type="button"
+                              onClick={() => field.onChange(!field.value)}
+                              className={cn(
+                                "rounded-lg p-3 text-center flex justify-center items-center text-sm select-none border transition-all duration-200 cursor-pointer",
+                                isSubsectionSelected
+                                  ? "border-primary/50 bg-primary/10 font-medium text-primary"
+                                  : "border-gray-300 dark:border-gray-600 bg-muted/50 text-muted-foreground hover:border-primary/50 hover:bg-primary/5"
+                              )}
+                            >
+                              {subsection.name}
+                            </button>
+                          )}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
-          </Accordion>
+          </div>
         </CardContent>
       </Card>
 
@@ -478,8 +504,8 @@ const TraditionalLearningConfigForm: React.FC = () => {
                     type="button"
                     variant="outline"
                     onClick={(e) => {
-                      field.onChange(Math.max((field.value || 0) - 1, 0));
-                      // Add a little bounce animation - Fixed: proper type checking
+                      field.onChange(Math.max((field.value || 0) - 1, 1));
+                      // Add a little bounce animation
                       const target = e.currentTarget;
                       if (target) {
                         gsap.to(target, {
@@ -500,16 +526,21 @@ const TraditionalLearningConfigForm: React.FC = () => {
                     value={field.value || ""}
                     onChange={(e) => {
                       const value = parseInt(e.target.value, 10);
-                      field.onChange(isNaN(value) ? "" : Math.max(value, 0));
+                      field.onChange(isNaN(value) ? "" : Math.max(value, 1));
                     }}
-                    className="w-16 text-center text-lg font-semibold border rounded px-2 py-1"
+                    onBlur={() => {
+                      // Validate on blur to clamp value between 1 and 50
+                      const value = Math.max(1, Math.min(50, field.value || 20));
+                      field.onChange(value);
+                    }}
+                    className="w-16 text-center text-lg font-semibold border rounded-md px-2 py-1 dark:bg-transparent dark:border-gray-600"
                   />
                   <Button
                     type="button"
                     variant="outline"
                     onClick={(e) => {
-                      field.onChange((field.value || 0) + 1);
-                      // Add a little bounce animation - Fixed: proper type checking
+                      field.onChange(Math.min((field.value || 0) + 1, 50));
+                      // Add a little bounce animation
                       const target = e.currentTarget;
                       if (target) {
                         gsap.to(target, {
