@@ -191,27 +191,24 @@ const PointsBreakdownCard: React.FC<{
       <CardContent className="space-y-3">
         <div className="text-center mb-4">
           <h4 className="font-semibold text-sm text-muted-foreground mb-2">
-            {t("pointsBreakdown")}
+           
           </h4>
         </div>
         {breakdown.map((item, index) => (
           <div
             key={item.category}
-            className={`flex items-center justify-between p-3 rounded-lg bg-white/50 dark:bg-black/20 border transition-all duration-300 ${
+            className={`flex items-center justify-center gap-4 p-3 rounded-lg bg-white/50 dark:bg-black/20 border transition-all duration-300 ${
               showAnimation ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
             }`}
             style={{ transitionDelay: `${index * 200}ms` }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center gap-3">
               <div className={`p-2 rounded-full ${item.colorClass}`}>
                 <item.icon className="h-4 w-4 text-white" />
               </div>
-              <div>
-                <p className="font-medium text-sm">{item.category}</p>
-                <p className="text-xs text-muted-foreground">{item.description}</p>
-              </div>
+             
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2">
               <Plus className="h-3 w-3 text-yellow-600" />
               <span className="font-bold text-yellow-600">
                 {item.points.toLocaleString()}
@@ -219,13 +216,14 @@ const PointsBreakdownCard: React.FC<{
             </div>
           </div>
         ))}
+
+        {/* totalPoints */}
         
         <Separator className="my-4" />
         
-        <div className="flex items-center justify-between p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border-2 border-yellow-300 dark:border-yellow-700">
+        <div className="flex items-center justify-center p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border-2 border-yellow-300 dark:border-yellow-700">
           <div className="flex items-center gap-2">
             <Star className="h-5 w-5 text-yellow-600" />
-            <span className="font-semibold">{t("totalPoints")}</span>
           </div>
           <span className="font-bold text-xl text-yellow-600">
             +{totalPoints.toLocaleString()}
@@ -410,23 +408,21 @@ const LevelAssessmentScorePage = () => {
 
     if (displayData.pointsFromCompletion > 0) {
       breakdown.push({
-        category: t("completionBonus"),
+        category: "",
         points: displayData.pointsFromCompletion,
-        description: t("completionBonusDesc"),
+        description: "", //pointsBreakdown
         icon: Gift,
-        colorClass: "bg-gradient-to-r from-blue-500 to-blue-600",
+        colorClass: "bg-gradient-to-r from-blue-500 to-blue-600 flex justify-center items-center",
       });
     }
 
     if (displayData.pointsFromCorrectAnswers > 0) {
       breakdown.push({
-        category: t("correctAnswersPoints"),
+        category: "",
         points: displayData.pointsFromCorrectAnswers,
-        description: t("correctAnswersPointsDesc", { 
-          count: displayData.correctAnswers 
-        }),
+        description: "",
         icon: Zap,
-        colorClass: "bg-gradient-to-r from-green-500 to-green-600",
+        colorClass: "bg-gradient-to-r from-green-500 to-green-600 flex justify-center items-center",
       });
     }
 
@@ -618,6 +614,8 @@ const LevelAssessmentScorePage = () => {
               <Separator />
             </>
           )}
+
+          {/* completionBonus */}
 
           <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
             <Card className="p-4">
