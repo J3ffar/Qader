@@ -175,7 +175,7 @@ export const PracticeControls: React.FC<Props> = ({
                 }
               >
                 <FileQuestion className="me-3 h-5 w-5 text-green-500" />
-                عرض طريقة الحل و الكشف عن الإجابة الصحيحة
+                عرض طريقة الحل 
               </Button>
             </TooltipTrigger>
             <TooltipContent>
