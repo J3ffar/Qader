@@ -1,5 +1,4 @@
 "use client";
-
 import React from "react";
 import { useTranslations } from "next-intl";
 import {
@@ -79,7 +78,7 @@ const ScorePieChart: React.FC<ScorePieChartProps> = ({
             />
             <span className="font-medium">{item.name}:</span>
             <span className="font-bold">
-              {item.value}% 
+              {item.value}%
             </span>
           </div>
         ))}
@@ -93,7 +92,7 @@ const ScorePieChart: React.FC<ScorePieChartProps> = ({
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+            label={({ value }) => `${value}%`}
             outerRadius={80}
             innerRadius={50} // For a donut chart effect
             fill="#8884d8"
