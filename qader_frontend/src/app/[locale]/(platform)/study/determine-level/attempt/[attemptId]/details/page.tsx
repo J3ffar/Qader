@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale"; 
 import {
   ArrowLeft,
   ArrowRight,
@@ -149,13 +150,15 @@ const LevelAssessmentDetailsPage = () => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
               <InfoCard title={t("status")} value={status_display} />
               <InfoCard
-                title={t("testDate")}
-                value={format(new Date(date), "PPP")}
-              />
+  title={t("testDate")}
+  value={format(new Date(date), "PPP", {
+    locale: locale === "ar" ? ar : undefined
+  })}
+/>
               <InfoCard
                 title={t("scoreVerbal")}
                 value={
-                  score_verbal !== null ? `${score_verbal.toFixed(0)}%` : "N/A"
+                  score_verbal !== null ? `${score_verbal.toFixed(0)}%` : "لا يوجد"
                 }
               />
               <InfoCard
@@ -163,7 +166,7 @@ const LevelAssessmentDetailsPage = () => {
                 value={
                   score_quantitative !== null
                     ? `${score_quantitative.toFixed(0)}%`
-                    : "N/A"
+                    : "لا يوجد"
                 }
               />
             </div>
@@ -188,14 +191,14 @@ const LevelAssessmentDetailsPage = () => {
                   value={configuration_snapshot.num_questions_selected}
                   Icon={Hash}
                 />
-                <InfoCard
+                {/* <InfoCard
                   title={t("sections")}
                   value={
                     configuration_snapshot.sections_requested?.join(", ") ||
-                    "N/A"
+                    "لا يوجد"
                   }
                   Icon={ListChecks}
-                />
+                /> */}
               </div>
             </div>
           )}
