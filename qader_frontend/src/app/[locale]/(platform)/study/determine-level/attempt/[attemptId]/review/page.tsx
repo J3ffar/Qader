@@ -429,7 +429,7 @@ const LevelAssessmentReviewPage = () => {
                 className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
               >
                 <HelpCircleIcon className="h-4 w-4" /> 
-                <span className="hidden sm:inline">{t("skippedOnlyOpt")}</span>
+                <span className="hidden sm:inline">المتجاوزة</span>
                 <span className="sm:hidden">المتجاوزة</span>
                 ({skippedQuestions.length})
               </ToggleGroupItem>
@@ -439,7 +439,7 @@ const LevelAssessmentReviewPage = () => {
                 className="flex-1 justify-center gap-1.5 px-2 sm:px-3"
               >
                 <ThumbsDown className="h-4 w-4" /> 
-                <span className="hidden sm:inline">{t("incorrectOnlyOpt")}</span>
+                <span className="hidden sm:inline">الخاطئة</span>
                 <span className="sm:hidden">الخاطئة</span>
                 ({incorrectQuestions.length})
               </ToggleGroupItem>
