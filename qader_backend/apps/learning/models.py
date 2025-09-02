@@ -19,7 +19,7 @@ class TimeStampedModel(models.Model):
 
 
 # --- Main Learning Structure Models ---
-
+ 
 
 class LearningSection(TimeStampedModel):
     """
@@ -279,6 +279,7 @@ class Question(TimeStampedModel):
         blank=True,  # Allows the field to be blank in forms/admin
         help_text=_("Optional image to accompany the question text."),
     )
+    article = models.TextField(null=True, blank=True)
     option_a: str = models.TextField(_("Option A"))
     option_b: str = models.TextField(_("Option B"))
     option_c: str = models.TextField(_("Option C"))
@@ -356,7 +357,6 @@ class Question(TimeStampedModel):
 
 
 # --- Intermediate Model for Starred Questions ---
-
 
 class UserStarredQuestion(TimeStampedModel):
     """Links users to questions they have starred/bookmarked."""
