@@ -55,10 +55,10 @@ import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Circle, Sigma } from "lucide-react";
 import { SearchableCombobox } from "@/components/shared/form/SearchableCombobox"; // <--- IMPORT a new component
-// import { RichTextEditor } from "@/components/shared/RichTextEditor";
 import { EquationTutorialDialog } from "./EquationTutorialDialog";
 import * as z from "zod";
 import dynamic from "next/dynamic";
+import { convert } from "html-to-text";
 
 const RichTextEditorSkeleton = () => (
   <div className="flex flex-col">
@@ -79,6 +79,7 @@ const RichTextEditor = dynamic(
     loading: () => <RichTextEditorSkeleton />,
   }
 );
+
 
 const difficultyLevels = [
   { value: 1, label: "1 - سهل جداً" },
@@ -111,10 +112,24 @@ const formSchema = z.object({
   skill_id: z.coerce.number().nullable().optional(),
   is_active: z.boolean(),
   image_upload: z.any().optional(),
-  explanation: z.string().optional().nullable(),
-  hint: z.string().optional().nullable(),
-  solution_method_summary: z.string().optional().nullable(),
-});
+  article: z.string().nullable().optional(),
+  attachment_type: z.enum(["image", "article"], {
+    required_error: "يجب اختيار نوع المرفق (صورة أو مقالة).",
+  }).optional(),
+  explanation: z.string().nullable().optional(), 
+    hint: z.string().nullable().optional(), 
+    solution_method_summary: z.string().nullable().optional(),
+  }).refine(
+    (data) => {
+      return !(data.image && data.article);
+    },
+    {
+      message: "يمكن تحميل صورة أو مقالة فقط، وليس كلاهما.",
+      path: ["attachment_type"],
+    }
+  );
+
+
 type QuestionFormValues = z.infer<typeof formSchema>;
 const defaultFormValues: Partial<QuestionFormValues> = {
   question_text: "",
@@ -187,6 +202,9 @@ interface QuestionFormProps {
   isEditMode: boolean;
   isPending: boolean;
   imagePreview: string | null;
+  setImagePreview: React.Dispatch<React.SetStateAction<string | null>>; 
+  setArticlePreview: React.Dispatch<React.SetStateAction<string | null>>;
+  // setArticlePreview={setArticlePreview};
   // All data is passed down as props
   sections: AdminSectionsListResponse;
   subsections?: AdminSubSectionsListResponse;
@@ -219,6 +237,8 @@ function QuestionFormComponent({
   isEditMode,
   isPending,
   imagePreview,
+  setImagePreview,
+  setArticlePreview,
   sections,
   subsections,
   skills,
@@ -403,6 +423,41 @@ function QuestionFormComponent({
                     </FormItem>
                   )}
                 />
+
+
+
+
+                <FormField
+                  control={form.control}
+                  name="attachment_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نوع المرفق</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue("image_upload", null);
+                          form.setValue("article", null);
+                          setImagePreview(null);
+                          setArticlePreview(null);
+                        }}
+                        value={field.value}
+                        dir="rtl"
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر نوع المرفق" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="image">صورة</SelectItem>
+                          <SelectItem value="article">مقالة</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="image_upload"
@@ -413,7 +468,7 @@ function QuestionFormComponent({
                         <div className="mt-2 relative w-fit">
                           <img
                             src={imagePreview}
-                            alt="معاينة"
+                            alt="معاينة الصورة"
                             className="max-h-40 rounded-md border"
                           />
                           <Button
@@ -433,6 +488,24 @@ function QuestionFormComponent({
                           accept="image/*"
                           onChange={handleImageChange}
                           className="pt-2 file:text-sm file:font-medium"
+                          disabled={form.watch("attachment_type") !== "image"}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="article"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel> المقالة (اختياري) </FormLabel>
+                      <FormControl>
+                        <RichTextEditor
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          placeholder="اكتب نص المقالة هنا..."
                         />
                       </FormControl>
                       <FormMessage />
@@ -496,7 +569,7 @@ function QuestionFormComponent({
                   emptyMessage="لم يتم العثور على مهارة."
                   disabled={!form.watch("subsection_id")}
                   isLoading={isLoadingSkills}
-                  // No onValueChange needed here as it's the last in the chain
+                // No onValueChange needed here as it's the last in the chain
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
@@ -639,8 +712,8 @@ function QuestionFormComponent({
             {isPending
               ? "جاري الحفظ..."
               : isEditMode
-              ? "حفظ التغييرات"
-              : "إنشاء السؤال"}
+                ? "حفظ التغييرات"
+                : "إنشاء السؤال"}
           </Button>
         </DialogFooter>
       </form>
@@ -667,7 +740,7 @@ export function QuestionFormDialog({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [isInitialLoading, setIsInitialLoading] = useState(isEditMode);
-
+  const [articlePreview, setArticlePreview] = useState<string | null>(null);
   const { data: question, isLoading: isLoadingQuestion } = useQuery({
     queryKey: queryKeys.admin.learning.questions.detail(questionId!),
     queryFn: () => getAdminQuestionDetail(questionId!),
@@ -707,9 +780,11 @@ export function QuestionFormDialog({
     if (isOpen) {
       if (isEditMode && question) {
         // Step 1: Set state to trigger dependent queries
+        console.log("Question data from API:", question);
         setSelectedSection(question.section.id);
         setSelectedSubsection(question.subsection.id);
-        setImagePreview(question.image);
+        setImagePreview(question.image || null);
+        setArticlePreview(question.article || null);
 
         // Step 2: Populate the form with the question's data
         form.reset({
@@ -734,48 +809,65 @@ export function QuestionFormDialog({
         setSelectedSection(undefined);
         setSelectedSubsection(undefined);
         setImagePreview(null);
+        setArticlePreview(null);
       }
     }
   }, [isOpen, isEditMode, question, form]);
 
   const mutation = useMutation({
-    mutationFn: (values: QuestionFormValues) => {
-      if (isEditMode) {
-        const payload: Partial<AdminQuestionCreateUpdate> & { image?: null } = {
-          ...values,
-        };
+  mutationFn: (values: QuestionFormValues) => {
+    console.log("Raw article value:", values.article);
+    console.log("Converted article:", values.article ? convert(values.article, { wordwrap: null }) : null);
+    const payload: Partial<AdminQuestionCreateUpdate> = {
+      ...values,
+      question_text: convert(values.question_text, { wordwrap: null }),
+      option_a: values.option_a ? convert(values.option_a, { wordwrap: null }) : undefined,
+      option_b: values.option_b ? convert(values.option_b, { wordwrap: null }) : undefined,
+      option_c: values.option_c ? convert(values.option_c, { wordwrap: null }) : undefined,
+      option_d: values.option_d ? convert(values.option_d, { wordwrap: null }) : undefined,
+      explanation: values.explanation ? convert(values.explanation, { wordwrap: null }) : null,
+      hint: values.hint ? convert(values.hint, { wordwrap: null }) : null,
+      solution_method_summary: values.solution_method_summary ? convert(values.solution_method_summary, { wordwrap: null }) : null,
+      subsection_id: values.subsection_id,
+      // section_id: values.section_id,
+      skill_id: values.skill_id ?? null,
+      is_active: values.is_active ?? true,
+      image: values.image_upload || null,
+      // article: values.article ? convert(values.article, { wordwrap: null }) : null,
+      article: values.article || null,
+    };
 
-        if (payload.image_upload instanceof File) {
-          const formData = objectToFormData(payload);
-          return updateAdminQuestion(questionId, formData as any);
-        }
-        if (payload.image_upload === null) {
-          payload.image = null;
-          payload.image_upload = null;
-        }
-
-        return updateAdminQuestion(questionId, payload);
-      } else {
-        const payload: AdminQuestionCreateUpdate = values;
-        return createAdminQuestion(payload);
+    if (isEditMode) {
+      if (payload.image instanceof File) {
+        const formData = objectToFormData(payload);
+        return updateAdminQuestion(questionId!, formData);
       }
-    },
-    onSuccess: () => {
-      toast.success(`تم ${isEditMode ? "تحديث" : "إنشاء"} السؤال بنجاح!`);
+      if (payload.image === null) {
+        payload.image = null;
+      }
+      return updateAdminQuestion(questionId!, payload);
+    } else {
+      const formData = objectToFormData(payload);
+      return createAdminQuestion(formData);
+    }
+  },
+  onSuccess: () => {
+    toast.success(`تم ${isEditMode ? "تحديث" : "إنشاء"} السؤال بنجاح!`);
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.admin.learning.questions.lists(),
+    });
+    if (isEditMode) {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.learning.questions.lists(),
+        queryKey: queryKeys.admin.learning.questions.detail(questionId),
       });
-      if (isEditMode) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.admin.learning.questions.detail(questionId),
-        });
-      }
-      handleClose();
-    },
-    onError: (error) => {
-      toast.error(getApiErrorMessage(error, "فشل حفظ السؤال."));
-    },
-  });
+    }
+    handleClose();
+  },
+  onError: (error) => {
+    toast.error(getApiErrorMessage(error, "فشل حفظ السؤال."));
+  },
+});
+
   // --- Handlers ---
   const onSubmit = (values: QuestionFormValues) => mutation.mutate(values);
   const handleClose = () => {
@@ -784,17 +876,21 @@ export function QuestionFormDialog({
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImagePreview(URL.createObjectURL(file));
-      form.setValue("image_upload", file);
-    }
-  };
+  const file = e.target.files?.[0];
+  if (file) {
+    setImagePreview(URL.createObjectURL(file));
+    form.setValue("image_upload", file);
+    form.setValue("article", null);
+    form.setValue("attachment_type", "image");
+    setArticlePreview(null);
+  }
+};
 
-  const handleRemoveImage = () => {
-    setImagePreview(null);
-    form.setValue("image_upload", null);
-  };
+const handleRemoveImage = () => {
+  setImagePreview(null);
+  form.setValue("image_upload", null);
+  form.setValue("attachment_type", undefined);
+};
   // --- THE MASTER LOADING CONDITION ---
   const isDataReadyForEdit =
     isEditMode &&
@@ -841,6 +937,8 @@ export function QuestionFormDialog({
             isEditMode={isEditMode}
             isPending={mutation.isPending}
             imagePreview={imagePreview}
+            setImagePreview={setImagePreview} 
+          setArticlePreview={setArticlePreview}
             sections={sections!}
             subsections={subsections}
             skills={skills}
@@ -855,3 +953,5 @@ export function QuestionFormDialog({
     </Dialog>
   );
 }
+
+
