@@ -125,6 +125,7 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
             "id",
             "question_text",
             "image",
+            'article',
             "options",  # Frontend-friendly dict of options
             "difficulty",
             "hint",
@@ -189,6 +190,10 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
         ret.setdefault("is_starred", getattr(instance, "user_has_starred", False))
         return ret
 
+    def validate(self, data):
+        if data.get('image_upload') and data.get('article'):
+            raise serializers.ValidationError("يمكن اختيار صورة أو مقالة فقط، وليس كلاهما.")
+        return data
 
 # --- Star/Unstar Action Serializer ---
 
