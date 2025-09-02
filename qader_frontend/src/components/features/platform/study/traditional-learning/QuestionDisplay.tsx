@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { CheckCircle, Info, Lightbulb, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { CheckCircle, Info, Lightbulb, XCircle, Clock, AlertTriangle, Check } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -142,27 +142,15 @@ const ErrorReportModal: React.FC<ErrorReportModalProps> = ({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="subject">موضوع</Label>
-            <Input
-              id="subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="أدخل موضوع المشكلة"
-              dir="rtl"
-            />
-          </div>
+          
           <div className="grid gap-2">
             <Label htmlFor="problemType">نوع المشكلة</Label>
             <Select value={problemType} onValueChange={setProblemType}>
               <SelectTrigger id="problemType">
-                <SelectValue placeholder="اختر نوع المشكلة" />
+                <SelectValue placeholder="مشكلة في السؤال" />
               </SelectTrigger>
               <SelectContent dir="rtl">
-                <SelectItem value="technical">تقني</SelectItem>
-                <SelectItem value="question_issue">مشكلة في السؤال</SelectItem>
-                <SelectItem value="suggestion">إقتراح</SelectItem>
-                <SelectItem value="other">أخرى</SelectItem>
+                <SelectItem value="question_issue" defaultChecked>مشكلة في السؤال</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -210,15 +198,43 @@ export const QuestionDisplay: React.FC<Props> = ({
   const t = useTranslations("Study.traditionalLearning.session");
   const [localStarred, setLocalStarred] = useState(question.is_starred);
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  
+  // New state for handling answer confirmation
+  const [selectedAnswer, setSelectedAnswer] = useState<OptionKey | null>(null);
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
   // Update localStarred when question changes
   useEffect(() => {
     setLocalStarred(question.is_starred);
   }, [question.id, question.is_starred]);
 
+  // Reset confirmation state when question changes
+  useEffect(() => {
+    setSelectedAnswer(null);
+    setIsConfirmed(false);
+  }, [question.id]);
+
   const isAnswered =
     questionState?.status === "correct" ||
     questionState?.status === "incorrect";
+
+  const handleAnswerSelection = (value: OptionKey) => {
+    if (!isAnswered && !isConfirmed) {
+      setSelectedAnswer(value);
+    }
+  };
+
+  const handleConfirmAnswer = () => {
+    if (selectedAnswer && !isConfirmed) {
+      setIsConfirmed(true);
+      onSelectAnswer(selectedAnswer);
+    }
+  };
+
+  const handleChangeAnswer = () => {
+    setSelectedAnswer(null);
+    setIsConfirmed(false);
+  };
 
   return (
     <>
@@ -252,15 +268,17 @@ export const QuestionDisplay: React.FC<Props> = ({
         </CardHeader>
         <CardContent>
           <RadioGroup
-            value={questionState?.selectedAnswer || ""}
-            onValueChange={(value) => onSelectAnswer(value as OptionKey)}
+            value={isConfirmed ? (questionState?.selectedAnswer || "") : (selectedAnswer || "")}
+            onValueChange={(value) => handleAnswerSelection(value as OptionKey)}
             className="grid grid-cols-1 gap-3 md:grid-cols-2"
             dir={direction}
-            disabled={isAnswered}
+            disabled={isAnswered || isConfirmed}
           >
             {Object.entries(question.options).map(([key, text]) => {
               const optionKey = key as OptionKey;
-              const isSelected = questionState?.selectedAnswer === optionKey;
+              const isSelected = isConfirmed ? 
+                (questionState?.selectedAnswer === optionKey) : 
+                (selectedAnswer === optionKey);
               const isCorrectOption = question.correct_answer === optionKey;
               const isEliminated =
                 questionState?.eliminatedOptions?.includes(optionKey);
@@ -270,7 +288,7 @@ export const QuestionDisplay: React.FC<Props> = ({
               let variant: "default" | "correct" | "incorrect" = "default";
               if (isAnswered) {
                 if (isCorrectOption) variant = "correct";
-                else if (isSelected) variant = "incorrect";
+                else if (questionState?.selectedAnswer === optionKey) variant = "incorrect";
               }
 
               const uniqueId = `${question.id}-${optionKey}`;
@@ -281,7 +299,7 @@ export const QuestionDisplay: React.FC<Props> = ({
                   htmlFor={uniqueId}
                   className={cn(
                     "flex items-center space-x-3 rtl:space-x-reverse rounded-md border p-4 transition-all",
-                    isAnswered || isEliminated
+                    (isAnswered || isEliminated || isConfirmed)
                       ? "cursor-not-allowed opacity-60"
                       : "cursor-pointer hover:bg-accent",
                     isEliminated && "bg-muted line-through",
@@ -298,7 +316,7 @@ export const QuestionDisplay: React.FC<Props> = ({
                   <RadioGroupItem
                     value={optionKey}
                     id={uniqueId}
-                    disabled={isEliminated}
+                    disabled={isEliminated || isConfirmed}
                     className="hidden"
                   />
                   <div className="flex ml-3 border h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground">
@@ -312,6 +330,37 @@ export const QuestionDisplay: React.FC<Props> = ({
               );
             })}
           </RadioGroup>
+
+          {/* Confirmation Button Section */}
+          {selectedAnswer && !isAnswered && !isConfirmed && (
+            <div className="mt-4 flex flex-col gap-3 items-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-2">
+                  لقد اخترت الإجابة: <strong className="text-foreground">{arabicOptionMap[selectedAnswer]}</strong>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  تأكد من إجابتك قبل التأكيد - لن تتمكن من تغييرها لاحقاً
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleConfirmAnswer}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  size="sm"
+                >
+                  <Check className="me-2 h-4 w-4" />
+                  تأكيد الإجابة
+                </Button>
+                <Button 
+                  onClick={handleChangeAnswer}
+                  variant="outline"
+                  size="sm"
+                >
+                  تغيير الإجابة
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* --- Post-Answer Feedback Section --- */}
           {isAnswered && (
