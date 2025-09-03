@@ -512,11 +512,11 @@ const LevelAssessmentPage = () => {
                     })}
                   >
                     <TableCell className="whitespace-nowrap">
-                      {new Date(attempt.date).toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {new Date(attempt.date).toLocaleDateString(locale === "ar" ? "ar" : "en", { 
+  year: "numeric", 
+  month: "short", 
+  day: "numeric" 
+})}
                     </TableCell>
                     <TableCell className="text-center">
                       {attempt.num_questions}
