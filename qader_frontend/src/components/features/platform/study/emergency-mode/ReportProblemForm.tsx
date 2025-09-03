@@ -98,7 +98,7 @@ export default function ReportProblemForm({
                 </FormControl>
                 <SelectContent>
                   {problemTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
+                    <SelectItem key={type} value={type} dir="rtl">
                       {t(type)}
                     </SelectItem>
                   ))}
