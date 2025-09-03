@@ -14,6 +14,9 @@ import { QuestionRenderer } from "@/components/shared/QuestionRenderer";
 import { RichContentViewer } from "@/components/shared/RichContentViewer";
 import { StarButton } from "@/components/shared/StarButton";
 import { useConversationStore } from "@/store/conversation.store";
+import Image from "next/image";
+import logo from "../../../../../../../public/images/logoside.png"
+
 
 type OptionKey = "A" | "B" | "C" | "D";
 
@@ -63,7 +66,7 @@ export const QuestionMessage: React.FC<Props> = ({
     <div className="flex items-start gap-4">
       <Avatar className="h-9 w-9">
         <AvatarFallback>
-          <Bot />
+                      <Image src={logo} width={36} height={36} alt="" className=" rounded-full object-contain" />
         </AvatarFallback>
       </Avatar>
       <div className="w-full max-w-xl rounded-lg border bg-card p-4 space-y-4">
