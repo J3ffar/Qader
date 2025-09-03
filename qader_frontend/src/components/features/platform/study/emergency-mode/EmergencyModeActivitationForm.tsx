@@ -34,9 +34,19 @@ const createEmergencyActivationSchema = (maxHours = 16, maxDays = 14, minDays = 
       .max(maxDays, { message: `لا يمكن أن يتجاوز عدد الأيام المتبقية للامتحان ${maxDays} يوم` }),
     available_time_hours: z.coerce
       .number()
-      .min(1, { message: "يجب أن تكون ساعات الدراسة المتاحة ساعة واحدة على الأقل" })
+      .min(0, { message: "يجب أن تكون الساعات صفر على الأقل" })
       .max(maxHours, { message: `لا يمكن أن تتجاوز ساعات الدراسة المتاحة ${maxHours} ساعة في اليوم` }),
-  });
+    available_time_minutes: z.coerce
+      .number()
+      .min(0, { message: "يجب أن تكون الدقائق صفر على الأقل" })
+      .max(59, { message: "لا يمكن أن تتجاوز الدقائق 59 دقيقة" }),
+  }).refine(
+    (data) => data.available_time_hours > 0 || data.available_time_minutes > 0,
+    {
+      message: "يجب أن يكون الوقت المتاح أكثر من صفر",
+      path: ["available_time_hours"],
+    }
+  );
 };
 
 type FormValues = z.infer<ReturnType<typeof createEmergencyActivationSchema>>;
@@ -58,12 +68,14 @@ export default function EmergencyModeActivitationForm({
     defaultValues: {
       days_until_test: minDays,
       available_time_hours: 1,
+      available_time_minutes: 0,
     },
   });
 
   const { watch, setValue } = form;
   const days = watch("days_until_test");
   const hours = watch("available_time_hours");
+  const minutes = watch("available_time_minutes");
 
   return (
     <Form {...form}>
@@ -138,7 +150,7 @@ export default function EmergencyModeActivitationForm({
                 <FormLabel className="font-semibold text-sm mx-4 my-5 rtl:text-right">
                   {t("availableHoursLabel")}
                   <span className="text-xs text-muted-foreground block mt-1">
-                    (الحد الأدنى: 1 ساعة، الحد الأقصى: {maxHours} ساعة)
+                    (الحد الأقصى: {maxHours} ساعة، 59 دقيقة)
                   </span>
                 </FormLabel>
                 <FormControl>
@@ -147,19 +159,31 @@ export default function EmergencyModeActivitationForm({
                       type="button"
                       variant="outline"
                       size="icon"
-                      onClick={() =>
-                        setValue("available_time_hours", Math.max(1, hours - 1))
-                      }
-                      disabled={hours <= 1}
+                      onClick={() => {
+                        if (minutes > 0) {
+                          setValue("available_time_minutes", minutes - 1);
+                        } else if (hours > 0) {
+                          setValue("available_time_hours", hours - 1);
+                          setValue("available_time_minutes", 59);
+                        }
+                      }}
+                      disabled={hours <= 0 && minutes <= 0}
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
                     <div className="flex items-center gap-2 justify-center">
                       <Input
                         type="number"
-                        value="00"
-                        readOnly
                         className="w-20 h-10 text-center font-bold text-lg"
+                        value={minutes.toString().padStart(2, '0')}
+                        min={0}
+                        max={59}
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          if (value >= 0 && value <= 59) {
+                            setValue("available_time_minutes", value);
+                          }
+                        }}
                       />
                       <span className="text-2xl font-bold text-black flex flex-col items-center">
                         <span className="leading-none">.</span>
@@ -168,12 +192,12 @@ export default function EmergencyModeActivitationForm({
                       <Input
                         type="number"
                         className="w-20 h-10 text-center font-bold text-lg"
-                        value={hours}
-                        min={1}
+                        value={hours.toString().padStart(2, '0')}
+                        min={0}
                         max={maxHours}
                         onChange={(e) => {
                           const value = Number(e.target.value);
-                          if (value >= 1 && value <= maxHours) {
+                          if (value >= 0 && value <= maxHours) {
                             setValue("available_time_hours", value);
                           }
                         }}
@@ -184,13 +208,15 @@ export default function EmergencyModeActivitationForm({
                       type="button"
                       variant="outline"
                       size="icon"
-                      onClick={() =>
-                        setValue(
-                          "available_time_hours",
-                          Math.min(maxHours, hours + 1)
-                        )
-                      }
-                      disabled={hours >= maxHours}
+                      onClick={() => {
+                        if (minutes < 59) {
+                          setValue("available_time_minutes", minutes + 1);
+                        } else if (hours < maxHours) {
+                          setValue("available_time_hours", hours + 1);
+                          setValue("available_time_minutes", 0);
+                        }
+                      }}
+                      disabled={hours >= maxHours && minutes >= 59}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
