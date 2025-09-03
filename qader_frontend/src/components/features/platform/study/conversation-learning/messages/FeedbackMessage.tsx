@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Bot, CheckCircle, Info, XCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-
+import logo from "../../../../../../../public/images/logoside.png"
 import { ConversationTestResult } from "@/types/api/conversation.types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { RichContentViewer } from "@/components/shared/RichContentViewer";
+import Image from "next/image";
 
 export const FeedbackMessage = ({
   result,
@@ -29,7 +30,7 @@ export const FeedbackMessage = ({
     <div className="flex items-start gap-4">
       <Avatar className="h-9 w-9">
         <AvatarFallback>
-          <Bot />
+          <Image src={logo} width={36} height={36} alt="" className=" rounded-full object-contain" />
         </AvatarFallback>
       </Avatar>
       <Card className="w-full max-w-xl">
