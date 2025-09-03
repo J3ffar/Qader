@@ -1,100 +1,46 @@
-"use client";
+import React from "react";
+import { Bot, User } from "lucide-react";
+import { ConversationMessage } from "@/types/api/conversation.types";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import logo from "../../../../../../../public/images/logoside.png"
+import Image from "next/image";
 
-import React, { useRef, useEffect } from "react";
-import { useTranslations } from "next-intl";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useConversationStore } from "@/store/conversation.store";
-import { submitConversationTestAnswer } from "@/services/conversation.service";
-import { CustomMessageType } from "@/types/api/conversation.types";
-
-import { TextMessage } from "./messages/TextMessage";
-import { QuestionMessage } from "./messages/QuestionMessage";
-import { FeedbackMessage } from "./messages/FeedbackMessage";
-
-export const MessageList = () => {
-  const t = useTranslations("Study.conversationalLearning");
-  const { messages, sessionId, addMessage, setIsSending, isSending } =
-    useConversationStore();
-  const queryClient = useQueryClient();
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isSending]);
-
-  const submitAnswerMutation = useMutation({
-    mutationFn: (payload: {
-      questionId: number;
-      selectedAnswer: "A" | "B" | "C" | "D";
-    }) => {
-      if (!sessionId) throw new Error("Session ID is missing");
-      return submitConversationTestAnswer(sessionId, {
-        question_id: payload.questionId,
-        selected_answer: payload.selectedAnswer,
-      });
-    },
-    onMutate: () => setIsSending(true),
-    onSuccess: (data) => {
-      addMessage({ type: "feedback", content: data, sender: "ai" });
-    },
-    onError: () => {
-      /* Handled in ConversationLearningClient */
-    },
-    onSettled: () => setIsSending(false),
-  });
-
-  const handleSubmitAnswer = (
-    questionId: number,
-    selectedAnswer: "A" | "B" | "C" | "D"
-  ) => {
-    submitAnswerMutation.mutate({ questionId, selectedAnswer });
-  };
-
-  const renderMessage = (msg: CustomMessageType, index: number) => {
-    switch (msg.type) {
-      case "text":
-        return (
-          <TextMessage
-            key={`text-${msg.content.id ?? "no_id"}-${index}`}
-            message={msg.content}
-          />
-        );
-      case "question":
-        // For questions, we need to pass down the submission handler
-        return (
-          <QuestionMessage
-            key={`q-${msg.content.question.id ?? "no_id"}-${index}`}
-            content={msg.content}
-            onSubmitAnswer={handleSubmitAnswer}
-            isSubmitting={submitAnswerMutation.isPending}
-          />
-        );
-      case "feedback":
-        return (
-          <FeedbackMessage
-            key={`fb-${msg.content.id ?? "no_id"}-${index}`}
-            result={msg.content}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
+export const TextMessage = ({ message }: { message: ConversationMessage }) => {
+  const isUser = message.sender_type === "user";
   return (
-    <div className="flex-1 overflow-y-auto max-md:px-0 p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        {messages.map(renderMessage)}
-        {isSending && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-muted-foreground" />
-            <div className="h-2 w-2 animate-pulse rounded-full bg-muted-foreground [animation-delay:0.2s]" />
-            <div className="h-2 w-2 animate-pulse rounded-full bg-muted-foreground [animation-delay:0.4s]" />
-            <span>{t("aiTyping")}</span>
-          </div>
+    <div
+      className={cn(
+        "flex items-start gap-4",
+        isUser ? "justify-end" : "justify-start"
+      )}
+    >
+      {!isUser && (
+        <Avatar className="h-9 w-9">
+          <AvatarFallback>
+                      <Image src={logo} width={36} height={36} alt="" className=" rounded-full object-contain" />
+
+          </AvatarFallback>
+        </Avatar>
+      )}
+      <div
+        className={cn(
+          "max-w-xl rounded-lg px-4 py-2",
+          isUser ? "bg-primary text-primary-foreground" : "bg-muted"
         )}
-        <div ref={scrollRef} />
+      >
+        <div className="prose prose-sm dark:prose-invert max-w-none">
+          <ReactMarkdown>{message.message_text}</ReactMarkdown>
+        </div>
       </div>
+      {isUser && (
+        <Avatar className="h-9 w-9">
+          <AvatarFallback>
+            <User />
+          </AvatarFallback>
+        </Avatar>
+      )}
     </div>
   );
 };
