@@ -36,7 +36,7 @@ export function EmergencyModeSetup() {
   const t = useTranslations("Study.emergencyMode.setup");
   const tSession = useTranslations("Study.emergencyMode.session");
   
-  // Refs for animation targets
+  // Refs for animation targets t()
   const containerRef:any = useRef<HTMLDivElement>(null);
   const mainCardRef:any = useRef<HTMLDivElement>(null);
   const reportCardRef:any = useRef<HTMLDivElement>(null);
@@ -63,7 +63,7 @@ export function EmergencyModeSetup() {
         ease: "power2.out"
       });
       
-      toast.success(t("sessionStartedToast"));
+      toast.success("لقد بدأت الجلسة بنجاح");
       startNewSession(data.session_id, data.suggested_plan);
     },
     onError: (error) => {
