@@ -68,7 +68,7 @@ class QuestionAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             None,
-            {"fields": ("subsection", "skill", "question_text", "is_active", "image","article")},
+            {"fields": ("subsection", "skill", "question_text", "is_active", "image")},
         ),
         ("Options", {"fields": ("option_a", "option_b", "option_c", "option_d")}),
         ("Answer & Explanation", {"fields": ("correct_answer", "explanation")}),
@@ -91,4 +91,3 @@ class UserStarredQuestionAdmin(admin.ModelAdmin):
         return obj.question.id
 
     question_id.short_description = "Question ID"
-
