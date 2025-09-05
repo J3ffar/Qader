@@ -2,6 +2,7 @@ from rest_framework import serializers
 from typing import TYPE_CHECKING, Dict, Any, Optional
 
 from ..models import (
+    TestType,
     LearningSection,
     LearningSubSection,
     Skill,
@@ -13,15 +14,29 @@ if TYPE_CHECKING:
     from apps.study.models import UserQuestionAttempt
 
 
-# --- Learning Structure Serializers ---
+# --- NEW: Test Type Serializer ---
+
+
+class TestTypeSerializer(serializers.ModelSerializer):
+    """Serializer for the TestType model."""
+
+    class Meta:
+        model = TestType
+        fields = ["id", "name", "slug", "description", "status", "order"]
+
+
+# --- Learning Structure Serializers (Updated) ---
 
 
 class SkillSerializer(serializers.ModelSerializer):
     """Serializer for Skill model (basic details)."""
 
+    # ADDED: To show the direct parent section
+    section_id = serializers.IntegerField(source="section.id", read_only=True)
+
     class Meta:
         model = Skill
-        fields = ["id", "name", "slug", "description"]
+        fields = ["id", "name", "slug", "description", "section_id"]  # MODIFIED
         read_only_fields = fields
 
 
@@ -44,17 +59,6 @@ class LearningSubSectionDetailSerializer(LearningSubSectionSerializer):
         read_only_fields = fields
 
 
-class LearningSectionSerializer(serializers.ModelSerializer):
-    """Serializer for LearningSection, including nested subsections."""
-
-    subsections = LearningSubSectionSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = LearningSection
-        fields = ["id", "name", "slug", "description", "order", "subsections"]
-        read_only_fields = fields
-
-
 class LearningSectionBasicSerializer(serializers.ModelSerializer):
     """Basic serializer for LearningSection (ID, Name, Slug)."""
 
@@ -64,7 +68,37 @@ class LearningSectionBasicSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-# --- Unified Question Serializer ---
+class TestTypeBasicSerializer(serializers.ModelSerializer):
+    """Basic serializer for TestType."""
+
+    class Meta:
+        model = TestType
+        fields = ["id", "name", "slug"]
+        read_only_fields = fields
+
+
+class LearningSectionSerializer(serializers.ModelSerializer):
+    """Serializer for LearningSection, including nested subsections and parent test type."""
+
+    subsections = LearningSubSectionSerializer(many=True, read_only=True)
+    # ADDED: Nest parent TestType info
+    test_type = TestTypeBasicSerializer(read_only=True)
+
+    class Meta:
+        model = LearningSection
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "order",
+            "test_type",
+            "subsections",
+        ]  # MODIFIED
+        read_only_fields = fields
+
+
+# --- Unified Question Serializer (Updated) ---
 
 
 class UserAnswerDetailsSerializer(serializers.Serializer):
@@ -114,9 +148,10 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
     is_starred = serializers.BooleanField(
         source="user_has_starred", read_only=True, default=False
     )
-
-    # User's answer details for this question in a specific test attempt context
     user_answer_details = serializers.SerializerMethodField()
+
+    article = serializers.SerializerMethodField()
+    audio_url = serializers.FileField(source="audio_file", read_only=True)
 
     class Meta:
         model = Question
@@ -125,12 +160,14 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
             "id",
             "question_text",
             "image",
-            "options",  # Frontend-friendly dict of options
+            "article",
+            "audio_url",
+            "options",
             "difficulty",
             "hint",
             "solution_method_summary",
-            # Detailed/Sensitive Information (for detail/review views)
-            "correct_answer",  # The choice key, e.g., "A"
+            # Detailed/Sensitive Information
+            "correct_answer",
             "explanation",
             # Relational Context
             "section",
@@ -138,12 +175,11 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
             "skill",
             # User-Specific Context
             "is_starred",
-            "user_answer_details",  # Contains selected_choice, is_correct, etc.
+            "user_answer_details",
         ]
         read_only_fields = fields
 
     def get_options(self, obj: Question) -> Dict[str, str]:
-        """Constructs a dictionary of all answer options."""
         return {
             "A": obj.option_a,
             "B": obj.option_b,
@@ -151,22 +187,22 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
             "D": obj.option_d,
         }
 
+    def get_article(self, obj: Question) -> Optional[Dict[str, str]]:
+        """Constructs a dictionary for the article if it exists."""
+        if obj.article_title and obj.article_content:
+            return {"title": obj.article_title, "content": obj.article_content}
+        return None
+
     def _get_user_attempt_from_context(
         self, obj: Question
     ) -> Optional["UserQuestionAttempt"]:
-        """Helper to safely get the specific UserQuestionAttempt for this question from context."""
         user_attempts_map = self.context.get("user_attempts_map", {})
         return user_attempts_map.get(obj.id)
 
     def get_user_answer_details(self, obj: Question) -> Optional[Dict[str, Any]]:
-        """
-        Populates the user's answer details from the context.
-        Returns None if no attempt context is provided.
-        """
         user_attempt = self._get_user_attempt_from_context(obj)
         if not user_attempt:
             return None
-
         details_data = {
             "selected_choice": user_attempt.selected_answer,
             "is_correct": (
@@ -183,18 +219,9 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def to_representation(self, instance: Question) -> Dict[str, Any]:
-        """Ensure default=False for is_starred if annotation is missing."""
         ret = super().to_representation(instance)
-        # The 'source' attribute handles this, but as a fallback, ensure the key exists.
         ret.setdefault("is_starred", getattr(instance, "user_has_starred", False))
         return ret
-
-    def validate(self, data):
-        # if data.get("image_upload") and data.get("article"):
-        #     raise serializers.ValidationError(
-        #         "يمكن اختيار صورة أو مقالة فقط، وليس كلاهما."
-        #     )
-        return data
 
 
 # --- Star/Unstar Action Serializer ---

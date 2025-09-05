@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import (
+    TestType,
     LearningSection,
     LearningSubSection,
     Skill,
@@ -8,29 +9,37 @@ from .models import (
 )
 
 
+@admin.register(TestType)
+class TestTypeAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "slug", "status", "order", "created_at")
+    search_fields = ("name",)
+    prepopulated_fields = {"slug": ("name",)}
+
+
 @admin.register(LearningSection)
 class LearningSectionAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "slug", "order", "created_at")
-    search_fields = ("name",)
+    list_display = ("id", "name", "test_type", "slug", "order", "created_at")
+    list_filter = ("test_type",)
+    search_fields = ("name", "test_type__name")
     prepopulated_fields = {"slug": ("name",)}
 
 
 @admin.register(LearningSubSection)
 class LearningSubSectionAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "section", "slug", "order", "created_at")
-    list_filter = ("section",)
+    list_filter = ("section__test_type", "section")
     search_fields = ("name", "section__name")
     prepopulated_fields = {"slug": ("section", "name")}
-    list_select_related = ("section",)
+    list_select_related = ("section", "section__test_type")
 
 
 @admin.register(Skill)
 class SkillAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "subsection", "slug", "created_at")
-    list_filter = ("subsection__section", "subsection")
-    search_fields = ("name", "subsection__name")
-    prepopulated_fields = {"slug": ("subsection", "name")}
-    list_select_related = ("subsection__section", "subsection")
+    list_display = ("id", "name", "section", "subsection", "slug", "created_at")
+    list_filter = ("section__test_type", "section", "subsection")
+    search_fields = ("name", "section__name", "subsection__name")
+    prepopulated_fields = {"slug": ("name",)}
+    list_select_related = ("section__test_type", "section", "subsection")
 
 
 @admin.register(Question)
@@ -45,6 +54,7 @@ class QuestionAdmin(admin.ModelAdmin):
         "created_at",
     )
     list_filter = (
+        "subsection__section__test_type",
         "subsection__section",
         "subsection",
         "skill",
@@ -61,14 +71,30 @@ class QuestionAdmin(admin.ModelAdmin):
         "explanation",
         "hint",
     )
-    list_select_related = ("subsection__section", "subsection", "skill")
+    list_select_related = (
+        "subsection__section__test_type",
+        "subsection__section",
+        "subsection",
+        "skill",
+    )
     raw_id_fields = (
         "starred_by",
     )  # Better performance for ManyToMany with many users/questions
     fieldsets = (
         (
             None,
-            {"fields": ("subsection", "skill", "question_text", "is_active", "image")},
+            {
+                "fields": (
+                    "subsection",
+                    "skill",
+                    "question_text",
+                    "is_active",
+                    "image",
+                    "article_title",
+                    "article_content",
+                    "audio_file",
+                )
+            },
         ),
         ("Options", {"fields": ("option_a", "option_b", "option_c", "option_d")}),
         ("Answer & Explanation", {"fields": ("correct_answer", "explanation")}),

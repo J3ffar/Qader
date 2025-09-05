@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError  # NEW
 from django.db import models
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -7,10 +8,7 @@ from django.db.models import Exists, OuterRef
 # --- Abstract Base Models ---
 
 
-# Consider moving TimeStampedModel to a shared 'common' or 'core' app if used elsewhere.
 class TimeStampedModel(models.Model):
-    """Abstract base model with auto-updating created_at and updated_at fields."""
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -18,20 +16,20 @@ class TimeStampedModel(models.Model):
         abstract = True
 
 
-# --- Main Learning Structure Models ---
-
-
-class LearningSection(TimeStampedModel):
+class TestType(TimeStampedModel):
     """
-    Represents the main branches of study (e.g., Verbal, Quantitative).
-    Accessible via API: /api/v1/learning/sections/
+    Represents the highest-level category for all content (e.g., General Aptitude, SAT).
     """
+
+    class TestTypeStatus(models.TextChoices):
+        ACTIVE = "active", _("Active")
+        COMING_SOON = "coming_soon", _("Coming Soon")
 
     name: str = models.CharField(
         _("Name"),
         max_length=100,
         unique=True,
-        help_text=_("The primary name of the learning section (e.g., Verbal Section)."),
+        help_text=_("The primary name of the test type (e.g., General Aptitude)."),
     )
     slug: str = models.SlugField(
         _("Slug"),
@@ -46,41 +44,93 @@ class LearningSection(TimeStampedModel):
         _("Description"),
         blank=True,
         null=True,
-        help_text=_("Optional description of the learning section."),
+        help_text=_("Optional description of the test type."),
+    )
+    status: str = models.CharField(
+        _("Status"),
+        max_length=20,
+        choices=TestTypeStatus.choices,
+        default=TestTypeStatus.ACTIVE,
+        db_index=True,
+        help_text=_("Controls visibility for users ('Coming Soon' or 'Active')."),
     )
     order: int = models.PositiveIntegerField(
         _("Order"),
         default=0,
-        help_text=_(
-            "Determines the display order in lists (lower numbers appear first)."
-        ),
+        help_text=_("Determines the display order in lists."),
     )
 
     class Meta:
-        verbose_name = _("Learning Section")
-        verbose_name_plural = _("Learning Sections")
+        verbose_name = _("Test Type")
+        verbose_name_plural = _("Test Types")
         ordering = ["order", "name"]
 
     def __str__(self) -> str:
         return self.name
 
     def save(self, *args, **kwargs) -> None:
-        """Overrides save method to auto-generate slug if blank."""
         if not self.slug:
             self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+# --- Main Learning Structure Models ---
+
+
+class LearningSection(TimeStampedModel):
+    """
+    Represents the main branches of study (e.g., Verbal, Quantitative),
+    now linked to a specific TestType.
+    """
+
+    test_type: TestType = models.ForeignKey(
+        TestType,
+        related_name="learning_sections",
+        on_delete=models.PROTECT,  # Prevent deleting a TestType if sections are linked
+        verbose_name=_("Test Type"),
+        help_text=_("The parent Test Type this section belongs to."),
+        null=True,
+        blank=True,
+    )
+    name: str = models.CharField(
+        _("Name"), max_length=100, help_text=_("e.g., Verbal Section")
+    )
+    slug: str = models.SlugField(_("Slug"), max_length=120, unique=True, blank=True)
+    description: str | None = models.TextField(_("Description"), blank=True, null=True)
+    order: int = models.PositiveIntegerField(_("Order"), default=0)
+
+    class Meta:
+        verbose_name = _("Learning Section")
+        verbose_name_plural = _("Learning Sections")
+        ordering = [
+            "test_type__order",
+            "order",
+            "name",
+        ]  # MODIFIED: Order by parent first
+        unique_together = (
+            "test_type",
+            "name",
+        )  # MODIFIED: Name must be unique within a TestType
+
+    def __str__(self) -> str:
+        test_type_name = self.test_type.name if self.test_type else "(Inactive)"
+        return f"{test_type_name} - {self.name}"
+
+    def save(self, *args, **kwargs) -> None:
+        if not self.slug:
+            self.slug = slugify(f"{self.test_type.slug}-{self.name}")
         super().save(*args, **kwargs)
 
 
 class LearningSubSection(TimeStampedModel):
     """
     Represents categories within a main section (e.g., Reading Comprehension within Verbal).
-    Accessible via API: /api/v1/learning/subsections/
     """
 
     section: LearningSection = models.ForeignKey(
         LearningSection,
         related_name="subsections",
-        on_delete=models.CASCADE,  # Deleting a Section also deletes its SubSections
+        on_delete=models.CASCADE,
         verbose_name=_("Section"),
         help_text=_("The parent Learning Section this sub-section belongs to."),
     )
@@ -124,19 +174,16 @@ class LearningSubSection(TimeStampedModel):
         verbose_name = _("Learning Sub-Section")
         verbose_name_plural = _("Learning Sub-Sections")
         ordering = ["section__order", "order", "name"]
-        unique_together = ("section", "name")  # Name must be unique within a section
+        unique_together = ("section", "name")
 
     def __str__(self) -> str:
         status = "" if self.is_active else " (Inactive)"
-        return f"{self.section.name} - {self.name}{status}"
+        return f"{self.section} - {self.name}{status}"
 
     def save(self, *args, **kwargs) -> None:
-        """Overrides save method to auto-generate slug if blank."""
         if not self.slug:
-            # Ensure uniqueness and clarity in generated slugs
             base_slug = slugify(f"{self.section.slug}-{self.name}")
             self.slug = base_slug
-            # Simple uniqueness check (consider more robust slug uniqueness generation if needed)
             num = 1
             while (
                 LearningSubSection.objects.filter(slug=self.slug)
@@ -150,16 +197,27 @@ class LearningSubSection(TimeStampedModel):
 
 class Skill(TimeStampedModel):
     """
-    Represents specific skills tested within a subsection (e.g., Identifying Main Idea).
-    Accessible via API: /api/v1/learning/skills/
+    Represents specific skills. Can be linked directly to a Section
+    or more granularly to a Sub-Section.
     """
 
-    subsection: LearningSubSection = models.ForeignKey(
+    section: LearningSection = models.ForeignKey(
+        LearningSection,
+        related_name="skills",
+        on_delete=models.CASCADE,
+        verbose_name=_("Parent Section"),
+        help_text=_("The parent Learning Section this skill belongs to."),
+        null=True,
+        blank=True,
+    )
+    subsection: LearningSubSection | None = models.ForeignKey(
         LearningSubSection,
         related_name="skills",
-        on_delete=models.CASCADE,  # Deleting a SubSection deletes its Skills
-        verbose_name=_("Sub-Section"),
-        help_text=_("The parent Learning Sub-Section this skill belongs to."),
+        on_delete=models.CASCADE,
+        verbose_name=_("Sub-Section (Optional)"),
+        null=True,
+        blank=True,
+        help_text=_("Optionally refine the skill's category to a sub-section."),
     )
     name: str = models.CharField(
         _("Name"),
@@ -194,18 +252,36 @@ class Skill(TimeStampedModel):
     class Meta:
         verbose_name = _("Skill")
         verbose_name_plural = _("Skills")
-        ordering = ["subsection__section__order", "subsection__order", "name"]
-        unique_together = (("subsection", "name"),)
+        ordering = ["section__order", "subsection__order", "name"]
+        unique_together = (
+            ("section", "subsection", "name"),
+        )  # MODIFIED unique constraint
 
     def __str__(self) -> str:
         status = "" if self.is_active else " (Inactive)"
-        return f"{self.subsection} - {self.name}{status}"
+        parent = self.subsection if self.subsection else self.section
+        if parent:
+            return f"{parent} - {self.name}{status}"
+        return f"{self.name}{status}"
+
+    def clean(self):
+        """Ensure subsection belongs to the parent section."""
+        super().clean()
+        if self.subsection and self.subsection.section != self.section:
+            raise ValidationError(
+                _("The selected Sub-Section does not belong to the selected Section.")
+            )
 
     def save(self, *args, **kwargs) -> None:
-        """Overrides save method to auto-generate slug if blank."""
+        # Run validation before saving
+        self.clean()
         if not self.slug:
-            subsection_slug = getattr(self.subsection, "slug", "default-sub")
-            base_slug = slugify(f"{subsection_slug}-{self.name}")
+            parent_slug = ""
+            if self.subsection:
+                parent_slug = self.subsection.slug
+            elif self.section:
+                parent_slug = self.section.slug
+            base_slug = slugify(f"{parent_slug}-{self.name}")
             self.slug = base_slug
             num = 1
             while Skill.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
@@ -218,15 +294,11 @@ class Skill(TimeStampedModel):
 
 
 class QuestionQuerySet(models.QuerySet):
-    """Custom QuerySet for the Question model."""
-
     def with_user_annotations(self, user):
-        """Annotates the queryset with data specific to a given user."""
         if not user or not user.is_authenticated:
             return self.annotate(
                 user_has_starred=models.Value(False, output_field=models.BooleanField())
             )
-
         starred_subquery = UserStarredQuestion.objects.filter(
             user=user, question_id=OuterRef("pk")
         )
@@ -234,10 +306,7 @@ class QuestionQuerySet(models.QuerySet):
 
 
 class Question(TimeStampedModel):
-    """
-    Stores individual practice or test questions.
-    Accessible via API: /api/v1/learning/questions/
-    """
+    """Stores individual practice or test questions."""
 
     class DifficultyLevel(models.IntegerChoices):
         VERY_EASY = 1, _("Very Easy")
@@ -255,32 +324,34 @@ class Question(TimeStampedModel):
     subsection: LearningSubSection = models.ForeignKey(
         LearningSubSection,
         related_name="questions",
-        on_delete=models.PROTECT,  # Prevent deleting subsection if questions exist
+        on_delete=models.PROTECT,
         verbose_name=_("Sub-Section"),
         db_index=True,
-        help_text=_("The primary sub-section this question belongs to."),
     )
     skill: Skill | None = models.ForeignKey(
         Skill,
         related_name="questions",
-        on_delete=models.SET_NULL,  # Allow skill removal without deleting question
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name=_("Primary Skill"),
         db_index=True,
-        help_text=_("The main skill tested by this question (optional)."),
     )
-    question_text: str = models.TextField(
-        _("Question Text"),
-        help_text=_("The main text or problem statement of the question."),
-    )
+    question_text: str = models.TextField(_("Question Text"))
+
     image: models.ImageField = models.ImageField(
-        _("Image"),
-        upload_to="questions/images/",  # Organizes uploaded images in MEDIA_ROOT/questions/images/
-        null=True,  # Allows the database field to be NULL
-        blank=True,  # Allows the field to be blank in forms/admin
-        help_text=_("Optional image to accompany the question text."),
+        _("Image"), upload_to="questions/images/", null=True, blank=True
     )
+    article_title: str | None = models.CharField(
+        _("Article Title"), max_length=255, null=True, blank=True
+    )
+    article_content: str | None = models.TextField(
+        _("Article/Passage Content"), null=True, blank=True
+    )
+    audio_file: models.FileField = models.FileField(
+        _("Audio File"), upload_to="questions/audio/", null=True, blank=True
+    )
+
     option_a: str = models.TextField(_("Option A"))
     option_b: str = models.TextField(_("Option B"))
     option_c: str = models.TextField(_("Option C"))
@@ -344,10 +415,9 @@ class Question(TimeStampedModel):
     class Meta:
         verbose_name = _("Question")
         verbose_name_plural = _("Questions")
-        ordering = ["subsection", "skill", "id"]  # Default ordering
+        ordering = ["subsection", "skill", "id"]
 
     def __str__(self) -> str:
-        # Truncate long question text for display in Admin or logs
         limit = 80
         truncated_text = (
             f"{self.question_text[:limit]}..."
@@ -355,6 +425,37 @@ class Question(TimeStampedModel):
             else self.question_text
         )
         return f"Q{self.id}: {truncated_text} ({self.subsection.slug})"
+
+    def clean(self):
+        """Enforce content constraints"""
+        super().clean()
+        content_types = [self.image, self.article_content, self.audio_file]
+        # Count how many of these are not None/empty
+        filled_content_types = sum(1 for content in content_types if content)
+        if filled_content_types > 1:
+            raise ValidationError(
+                _(
+                    "A question can only have one type of media content: an image, an article, OR an audio file."
+                )
+            )
+
+        # Enforce linked pair for article
+        if self.article_content and not self.article_title:
+            raise ValidationError(
+                {
+                    "article_title": _(
+                        "An Article Title is required when providing Article Content."
+                    )
+                }
+            )
+        if self.article_title and not self.article_content:
+            raise ValidationError(
+                {
+                    "article_content": _(
+                        "Article Content is required when providing an Article Title."
+                    )
+                }
+            )
 
 
 # --- Intermediate Model for Starred Questions ---
@@ -369,9 +470,7 @@ class UserStarredQuestion(TimeStampedModel):
         related_name="starred_questions_link",
     )
     question = models.ForeignKey(
-        Question,
-        on_delete=models.CASCADE,
-        related_name="starrers_link",
+        Question, on_delete=models.CASCADE, related_name="starrers_link"
     )
     starred_at = models.DateTimeField(
         _("Starred At"), auto_now_add=True, editable=False
@@ -383,8 +482,8 @@ class UserStarredQuestion(TimeStampedModel):
         unique_together = (
             "user",
             "question",
-        )  # Ensure a user can only star a question once
-        ordering = ["-starred_at"]  # Show most recently starred first
+        )
+        ordering = ["-starred_at"]
 
     def __str__(self) -> str:
         return f"{self.user.username} starred Question {self.question_id}"

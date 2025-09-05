@@ -1,5 +1,5 @@
 from typing import Type, Any
-from django.db.models import QuerySet, Exists, OuterRef
+from django.db.models import QuerySet, Exists, OuterRef, Q  # MODIFIED
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
@@ -15,11 +15,10 @@ from drf_spectacular.utils import (
     OpenApiResponse,
 )
 
-from apps.api.permissions import (
-    IsSubscribed,
-)  # Assuming IsSubscribed checks for active subscription
+from apps.api.permissions import IsSubscribed
 from rest_framework.permissions import IsAuthenticated
 from ..models import (
+    TestType,  # NEW
     LearningSection,
     LearningSubSection,
     Skill,
@@ -28,6 +27,7 @@ from ..models import (
 )
 from apps.study.models import UserSkillProficiency
 from .serializers import (
+    TestTypeSerializer,  # NEW
     LearningSectionSerializer,
     LearningSubSectionDetailSerializer,
     LearningSubSectionSerializer,
@@ -39,14 +39,45 @@ from .serializers import (
 
 @extend_schema_view(
     list=extend_schema(
-        summary="List Learning Sections",
-        description="Retrieves a paginated list of main learning sections (e.g., Verbal, Quantitative), ordered by the 'order' field. Requires subscription.",
+        summary="List Test Types",
+        description="Retrieves a list of all available test types (e.g., SAT, TOEFL).",
         tags=["Learning Content"],
     ),
     retrieve=extend_schema(
-        summary="Retrieve Learning Section Details",
-        description="Retrieves details of a specific learning section using its unique slug. Requires subscription.",
+        summary="Retrieve Test Type",
+        description="Retrieves details for a specific test type.",
         tags=["Learning Content"],
+    ),
+)
+class TestTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """API endpoint for listing and retrieving Test Types."""
+
+    queryset = TestType.objects.filter(status=TestType.TestTypeStatus.ACTIVE).order_by(
+        "order"
+    )
+    serializer_class = TestTypeSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = "slug"
+
+
+# --- UPDATED ViewSets with new filtering ---
+
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="List Learning Sections",
+        description="Retrieves a list of main learning sections, now filterable by `test_type__slug`.",
+        parameters=[
+            OpenApiParameter(
+                name="test_type__slug",
+                description="Filter by parent Test Type slug",
+                type=OpenApiTypes.STR,
+            ),
+        ],
+        tags=["Learning Content"],
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve Learning Section Details", tags=["Learning Content"]
     ),
 )
 class LearningSectionViewSet(viewsets.ReadOnlyModelViewSet):
@@ -56,226 +87,116 @@ class LearningSectionViewSet(viewsets.ReadOnlyModelViewSet):
     Requires an active subscription.
     """
 
-    queryset = LearningSection.objects.all().order_by("order")
+    queryset = (
+        LearningSection.objects.select_related("test_type").all().order_by("order")
+    )  # MODIFIED
     serializer_class = LearningSectionSerializer
-    permission_classes = [IsAuthenticated]  # Requires active subscription
+    permission_classes = [IsAuthenticated]
     lookup_field = "slug"
-    filter_backends = [filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ["test_type__slug"]
     ordering_fields = ["order", "name"]
-    ordering = ["order"]  # Default ordering
+    ordering = ["order"]
 
 
 @extend_schema_view(
     list=extend_schema(
         summary="List Learning Sub-Sections",
-        description="Retrieves a paginated list of learning sub-sections (e.g., Reading Comprehension), optionally filtered by the parent section's slug (`section__slug`). Requires subscription.",
+        description="Retrieves a list of learning sub-sections, filterable by `section__slug` or the top-level `section__test_type__slug`.",
         parameters=[
             OpenApiParameter(
-                name="section__slug",
-                description="Filter by parent section slug (e.g., 'verbal')",
-                required=False,
+                name="section__test_type__slug",
+                description="Filter by the grandparent Test Type's slug.",
                 type=OpenApiTypes.STR,
             ),
             OpenApiParameter(
-                name="page", description="Page number", type=OpenApiTypes.INT
-            ),
-            OpenApiParameter(
-                name="page_size", description="Items per page", type=OpenApiTypes.INT
-            ),
-            OpenApiParameter(
-                name="ordering",
-                description="Field to order by (e.g., 'order', 'name')",
+                name="section__slug",
+                description="Filter by parent section slug.",
                 type=OpenApiTypes.STR,
             ),
         ],
         tags=["Learning Content"],
     ),
     retrieve=extend_schema(
-        summary="Retrieve Learning Sub-Section Details",
-        description="Retrieves details of a specific learning sub-section using its unique slug. Requires subscription.",
-        tags=["Learning Content"],
-        responses={200: LearningSubSectionDetailSerializer},
+        summary="Retrieve Learning Sub-Section Details", tags=["Learning Content"]
     ),
 )
 class LearningSubSectionViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    API endpoint for listing and retrieving Learning Sub-Sections.
-    Provides read-only access to categories within main learning sections.
-    Requires an active subscription. Can be filtered by parent section slug.
-    """
-
     queryset = (
         LearningSubSection.objects.filter(is_active=True)
-        .select_related("section")
+        .select_related("section__test_type")
         .all()
         .order_by("section__order", "order")
-    )
+    )  # MODIFIED
     serializer_class = LearningSubSectionSerializer
-    permission_classes = [IsAuthenticated]  # Requires active subscription
+    permission_classes = [IsAuthenticated]
     lookup_field = "slug"
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ["section__slug"]  # Allows filtering like ?section__slug=verbal
+    filterset_fields = ["section__slug", "section__test_type__slug"]
     ordering_fields = ["order", "name"]
-    ordering = ["section__order", "order"]  # Default ordering
+    ordering = ["section__order", "order"]
 
     def get_serializer_class(self) -> Type[BaseSerializer]:
-        """Return appropriate serializer class based on action."""
         if self.action == "retrieve":
-            return (
-                LearningSubSectionDetailSerializer  # Use detail serializer for retrieve
-            )
+            return LearningSubSectionDetailSerializer
         return LearningSubSectionSerializer
 
 
 @extend_schema_view(
     list=extend_schema(
         summary="List Skills",
-        description="Retrieves a paginated list of specific skills (e.g., Solving Linear Equations), optionally filtered by parent sub-section slug (`subsection__slug`) or searched. Requires subscription.",
+        description="Retrieves a list of skills, filterable by various hierarchical levels.",
         parameters=[
             OpenApiParameter(
+                name="section__test_type__slug",
+                description="Filter by the top-level Test Type's slug.",
+                type=OpenApiTypes.STR,
+            ),
+            OpenApiParameter(
+                name="section__slug",
+                description="Filter by parent section slug.",
+                type=OpenApiTypes.STR,
+            ),
+            OpenApiParameter(
                 name="subsection__slug",
-                description="Filter by parent subsection slug (e.g., 'algebra-problems')",
-                required=False,
-                type=OpenApiTypes.STR,
-            ),
-            OpenApiParameter(
-                name="search",
-                description="Search term for skill name or description",
-                required=False,
-                type=OpenApiTypes.STR,
-            ),
-            OpenApiParameter(
-                name="page", description="Page number", type=OpenApiTypes.INT
-            ),
-            OpenApiParameter(
-                name="page_size", description="Items per page", type=OpenApiTypes.INT
-            ),
-            OpenApiParameter(
-                name="ordering",
-                description="Field to order by (e.g., 'name')",
+                description="Filter by parent subsection slug.",
                 type=OpenApiTypes.STR,
             ),
         ],
         tags=["Learning Content"],
     ),
-    retrieve=extend_schema(
-        summary="Retrieve Skill Details",
-        description="Retrieves details of a specific skill using its unique slug. Requires subscription.",
-        tags=["Learning Content"],
-    ),
+    retrieve=extend_schema(summary="Retrieve Skill Details", tags=["Learning Content"]),
 )
 class SkillViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    API endpoint for listing and retrieving Skills.
-    Provides read-only access to specific skills within learning sub-sections.
-    Requires an active subscription. Can be filtered by parent subsection slug and searched.
-    """
-
     queryset = (
-        Skill.objects.select_related("subsection__section")
+        Skill.objects.select_related(
+            "subsection__section__test_type", "section__test_type"
+        )
+        .filter(is_active=True)
         .all()
-        .order_by("subsection__section__order", "subsection__order", "name")
-    )
+    )  # MODIFIED
     serializer_class = SkillSerializer
-    permission_classes = [IsAuthenticated]  # Requires active subscription
+    permission_classes = [IsAuthenticated]
     lookup_field = "slug"
     filter_backends = [
         DjangoFilterBackend,
         filters.OrderingFilter,
         filters.SearchFilter,
     ]
-    filterset_fields = [
-        "subsection__slug"
-    ]  # Allows filtering like ?subsection__slug=algebra-problems
-    search_fields = ["name", "description"]  # Allows searching like ?search=linear
+    filterset_fields = ["subsection__slug", "section__slug", "section__test_type__slug"]
+    search_fields = ["name", "description"]
     ordering_fields = ["name"]
-    ordering = [
-        "subsection__section__order",
-        "subsection__order",
-        "name",
-    ]  # Default ordering
+    ordering = ["section__order", "subsection__order", "name"]
 
 
 @extend_schema_view(
     list=extend_schema(
         summary="List Questions",
-        description="Retrieves a paginated list of questions, excluding answers/explanations. Supports extensive filtering. Requires subscription.",
-        parameters=[
-            OpenApiParameter(
-                name="subsection__slug",
-                description="Filter by subsection slug (e.g., `algebra-problems`)",
-                type=OpenApiTypes.STR,
-            ),
-            OpenApiParameter(
-                name="subsection__slug__in",
-                description="Filter by multiple subsection slugs (e.g., `algebra-problems,geometry`)",
-                type=OpenApiTypes.STR,
-            ),
-            OpenApiParameter(
-                name="skill__slug",
-                description="Filter by skill slug",
-                type=OpenApiTypes.STR,
-            ),
-            OpenApiParameter(
-                name="skill__slug__in",
-                description="Filter by multiple skill slugs",
-                type=OpenApiTypes.STR,
-            ),
-            OpenApiParameter(
-                name="difficulty",
-                description="Filter by difficulty level (1-5)",
-                type=OpenApiTypes.INT,
-            ),
-            OpenApiParameter(
-                name="difficulty__gte",
-                description="Filter by difficulty level (>=)",
-                type=OpenApiTypes.INT,
-            ),
-            OpenApiParameter(
-                name="difficulty__lte",
-                description="Filter by difficulty level (<=)",
-                type=OpenApiTypes.INT,
-            ),
-            OpenApiParameter(
-                name="starred",
-                description="Filter for questions starred by the current user (`true`/`false`)",
-                type=OpenApiTypes.BOOL,
-            ),
-            OpenApiParameter(
-                name="not_mastered",
-                description="Filter for skills the user has not mastered (`true`) - Requires Study App logic",
-                type=OpenApiTypes.BOOL,
-            ),
-            OpenApiParameter(
-                name="search",
-                description="Search term in question text, options, hints",
-                type=OpenApiTypes.STR,
-            ),
-            OpenApiParameter(
-                name="exclude_ids",
-                description="Comma-separated list of question IDs to exclude (e.g., `10,25`)",
-                type=OpenApiTypes.STR,
-            ),
-            OpenApiParameter(
-                name="page", description="Page number", type=OpenApiTypes.INT
-            ),
-            OpenApiParameter(
-                name="page_size", description="Items per page", type=OpenApiTypes.INT
-            ),
-            OpenApiParameter(
-                name="ordering",
-                description="Order results by field (e.g., `difficulty`, `-id`)",
-                type=OpenApiTypes.STR,
-            ),
-        ],
-        responses={200: UnifiedQuestionSerializer(many=True)},
+        description="Retrieves a paginated list of questions. Supports extensive hierarchical filtering.",
         tags=["Learning Content"],
     ),
     retrieve=extend_schema(
-        summary="Retrieve Question Details",
-        description="Retrieves full details for a single question, including the correct answer and explanation. Requires subscription.",
-        responses={200: UnifiedQuestionSerializer},
-        tags=["Learning Content"],
+        summary="Retrieve Question Details", tags=["Learning Content"]
     ),
 )
 class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
@@ -290,32 +211,34 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
     Includes custom actions to `star` and `unstar` questions.
     """
 
-    queryset = Question.objects.filter(
-        is_active=True
-    )  # Base queryset only includes active questions
-    permission_classes = [IsAuthenticated]  # Requires active subscription
+    queryset = Question.objects.filter(is_active=True)
+    permission_classes = [IsAuthenticated]
     filter_backends = [
         DjangoFilterBackend,
         filters.OrderingFilter,
         filters.SearchFilter,
     ]
-    # Define filters precisely using a dictionary for DjangoFilterBackend
+
     filterset_fields = {
+        "subsection__section__test_type__slug": ["exact"],
+        "subsection__section__slug": ["exact", "in"],
         "subsection__slug": ["exact", "in"],
         "skill__slug": ["exact", "in"],
         "difficulty": ["exact", "in", "gte", "lte"],
-        # 'starred' is handled in get_queryset
     }
+
     search_fields = [
+        "id",  # Search by Question ID
         "question_text",
         "option_a",
         "option_b",
         "option_c",
         "option_d",
+        "explanation",
         "hint",
-        "explanation",  # Search explanation as well
         "solution_method_summary",
     ]
+
     ordering_fields = [
         "id",
         "difficulty",
@@ -323,37 +246,26 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
         "subsection__name",
         "skill__name",
     ]
-    ordering = ["id"]  # Default ordering
+    ordering = ["id"]
 
     def get_serializer_class(self) -> Type[BaseSerializer]:
-        """Return appropriate serializer class based on action."""
         if self.action in ["star", "unstar"]:
             return StarActionSerializer
-        # Use the unified serializer for both list and retrieve
         return UnifiedQuestionSerializer
 
     def get_queryset(self) -> QuerySet[Question]:
-        """Applies optimizations and custom filtering."""
-        # Start with the base queryset (already filtered by is_active)
         queryset = super().get_queryset()
         user = self.request.user
+        queryset = queryset.select_related(
+            "subsection__section__test_type", "skill__section"
+        )  # MODIFIED: Optimize query
 
-        # Optimize related object fetching
-        queryset = queryset.select_related("subsection__section", "skill")
-
-        # Annotate with 'user_has_starred' status for the current user if authenticated
         if user.is_authenticated:
             starred_subquery = UserStarredQuestion.objects.filter(
                 user=user, question=OuterRef("pk")
             )
-            # The 'user_has_starred' annotation will be used by the serializer
             queryset = queryset.annotate(user_has_starred=Exists(starred_subquery))
-
-        # --- Custom Filtering Logic ---
-
-        # Filter by 'starred=true' or 'starred=false' based on annotation
-        is_starred_param = self.request.query_params.get("starred", "").lower()
-        if user.is_authenticated:
+            is_starred_param = self.request.query_params.get("starred", "").lower()
             if is_starred_param == "true":
                 queryset = queryset.filter(user_has_starred=True)
             elif is_starred_param == "false":
@@ -456,16 +368,11 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
         permission_classes=[permissions.IsAuthenticated],
     )
     def unstar(self, request: Request, pk: Any = None) -> Response:
-        """Unstars the question identified by pk for the current user."""
-        question = self.get_object()  # Handles 404 if question not found
-        user = request.user
-        # Attempt to delete the star link
+        question = self.get_object()
         deleted_count, _ = UserStarredQuestion.objects.filter(
-            user=user, question=question
+            user=request.user, question=question
         ).delete()
-
         if deleted_count > 0:
-            # Successfully deleted, return 204 No Content
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             # Question exists but wasn't starred by this user, return 404
