@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from apps.learning.models import (
+    TestType,
     LearningSection,
     LearningSubSection,
     Skill,
@@ -9,8 +10,36 @@ from django.db.models import Count
 from apps.study.models import UserQuestionAttempt, UserTestAttempt
 
 
+# --- NEW: Serializer for Admin CRUD on TestType ---
+class AdminTestTypeSerializer(serializers.ModelSerializer):
+    """Serializer for Admin CRUD operations on TestType."""
+
+    class Meta:
+        model = TestType
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "status",
+            "order",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+        extra_kwargs = {
+            "slug": {"required": False},  # Allow blank slug for auto-generation
+        }
+
+
 class AdminLearningSectionSerializer(serializers.ModelSerializer):
     """Serializer for Admin CRUD operations on LearningSection."""
+
+    # MODIFIED: Add relation to TestType
+    test_type_id = serializers.PrimaryKeyRelatedField(
+        queryset=TestType.objects.all(), source="test_type", write_only=True
+    )
+    test_type_name = serializers.CharField(source="test_type.name", read_only=True)
 
     class Meta:
         model = LearningSection
@@ -20,56 +49,27 @@ class AdminLearningSectionSerializer(serializers.ModelSerializer):
             "slug",
             "description",
             "order",
+            "test_type_id",  # Write
+            "test_type_name",  # Read
             "created_at",
             "updated_at",
         ]
-        # Slug is auto-generated if blank, but allow admin override
-        read_only_fields = ["id", "created_at", "updated_at"]
-
-
-class AdminSkillSerializer(serializers.ModelSerializer):
-    """Serializer for Admin CRUD operations on Skill."""
-
-    # Represent related subsection by its ID for writes, include name for reads.
-    subsection_id = serializers.PrimaryKeyRelatedField(
-        queryset=LearningSubSection.objects.all(), source="subsection", write_only=True
-    )
-    subsection_name = serializers.CharField(source="subsection.name", read_only=True)
-    subsection_slug = serializers.CharField(source="subsection.slug", read_only=True)
-
-    class Meta:
-        model = Skill
-        fields = [
-            "id",
-            "name",
-            "slug",
-            "description",
-            "subsection_id",  # Write
-            "subsection_name",  # Read
-            "subsection_slug",  # Read
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = [
-            "id",
-            "created_at",
-            "updated_at",
-            "subsection_name",
-            "subsection_slug",
-        ]
+        read_only_fields = ["id", "created_at", "updated_at", "test_type_name"]
 
 
 class AdminLearningSubSectionSerializer(serializers.ModelSerializer):
     """Serializer for Admin CRUD operations on LearningSubSection."""
 
-    # Represent related section by its ID for writes, include name for reads.
     section_id = serializers.PrimaryKeyRelatedField(
         queryset=LearningSection.objects.all(), source="section", write_only=True
     )
     section_name = serializers.CharField(source="section.name", read_only=True)
     section_slug = serializers.CharField(source="section.slug", read_only=True)
-    # Optionally show skills related to this subsection (read-only)
-    # skills = AdminSkillSerializer(many=True, read_only=True)
+
+    # ADDED: Include parent test type for context in read operations
+    test_type_name = serializers.CharField(
+        source="section.test_type.name", read_only=True
+    )
 
     class Meta:
         model = LearningSubSection
@@ -79,10 +79,11 @@ class AdminLearningSubSectionSerializer(serializers.ModelSerializer):
             "slug",
             "description",
             "order",
-            "section_id",  # Write
-            "section_name",  # Read
-            "section_slug",  # Read
-            # "skills", # Uncomment if needed for detail view
+            "is_active",  # MODIFIED: Added is_active for admin control
+            "section_id",
+            "section_name",
+            "section_slug",
+            "test_type_name",  # Read-only context
             "created_at",
             "updated_at",
         ]
@@ -92,28 +93,67 @@ class AdminLearningSubSectionSerializer(serializers.ModelSerializer):
             "updated_at",
             "section_name",
             "section_slug",
-            "skills",
+            "test_type_name",
         ]
-        extra_kwargs = {
-            "slug": {"required": False},  # Allow blank slug for auto-generation
-        }
+
+
+class AdminSkillSerializer(serializers.ModelSerializer):
+    """Serializer for Admin CRUD operations on Skill."""
+
+    # MODIFIED: section_id is now required
+    section_id = serializers.PrimaryKeyRelatedField(
+        queryset=LearningSection.objects.all(), source="section", write_only=True
+    )
+    section_name = serializers.CharField(source="section.name", read_only=True)
+
+    # MODIFIED: subsection_id is now optional
+    subsection_id = serializers.PrimaryKeyRelatedField(
+        queryset=LearningSubSection.objects.all(),
+        source="subsection",
+        write_only=True,
+        allow_null=True,  # Allow it to be null
+        required=False,  # Don't require it in the payload
+    )
+    subsection_name = serializers.CharField(
+        source="subsection.name", read_only=True, allow_null=True
+    )
+
+    class Meta:
+        model = Skill
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "is_active",  # MODIFIED: Added is_active
+            "section_id",  # Write (Required)
+            "section_name",  # Read
+            "subsection_id",  # Write (Optional)
+            "subsection_name",  # Read
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+            "section_name",
+            "subsection_name",
+        ]
 
     def validate(self, attrs):
-        """Ensure name is unique within the section if provided."""
+        """
+        Ensure that if a subsection is provided, it belongs to the specified section.
+        """
         section = attrs.get("section")
-        name = attrs.get("name")
-        instance = self.instance  # Needed for updates
+        subsection = attrs.get("subsection")
 
-        if section and name:
-            query = LearningSubSection.objects.filter(section=section, name=name)
-            if instance:
-                query = query.exclude(pk=instance.pk)
-            if query.exists():
-                raise serializers.ValidationError(
-                    {
-                        "name": f"A sub-section with this name already exists in the '{section.name}' section."
-                    }
-                )
+        if section and subsection and subsection.section != section:
+            raise serializers.ValidationError(
+                {
+                    "subsection_id": f"The subsection '{subsection.name}' does not belong to the selected section '{section.name}'."
+                }
+            )
         return attrs
 
 
@@ -135,33 +175,25 @@ class _AdminQuestionSkillSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "slug"]
 
 
-# --- Main Admin Question Serializer ---
-
-
 class AdminQuestionSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Admin CRUD on Questions.
-    - Read: Provides a detailed, nested view similar to the user-facing API.
-    - Write: Uses simple primary key IDs for relationships.
-    - Analytics: Includes question usage counts.
-    """
+    """Serializer for Admin CRUD on Questions."""
 
-    # --- Read-only Nested Representations (for GET requests) ---
     section = _AdminQuestionSectionSerializer(
         source="subsection.section", read_only=True
     )
     subsection = _AdminQuestionSubSectionSerializer(read_only=True)
     skill = _AdminQuestionSkillSerializer(read_only=True, allow_null=True)
     options = serializers.SerializerMethodField()
-    image = serializers.ImageField(
-        read_only=True
-    )  # Image is read-only here, write is handled below
+    image_url = serializers.ImageField(
+        source="image", read_only=True
+    )  # MODIFIED: Renamed for clarity
+    audio_url = serializers.FileField(
+        source="audio_file", read_only=True
+    )  # NEW: Read-only audio URL
 
-    # --- Analytics Fields (Read-only) ---
     total_usage_count = serializers.IntegerField(read_only=True, default=0)
     usage_by_test_type = serializers.SerializerMethodField()
 
-    # --- Write-only Fields (for POST/PUT/PATCH requests) ---
     subsection_id = serializers.PrimaryKeyRelatedField(
         queryset=LearningSubSection.objects.all(), source="subsection", write_only=True
     )
@@ -172,18 +204,24 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
         required=False,
         write_only=True,
     )
-    # Allows image uploads on create/update
+
+    # MODIFIED: Updated write fields for new content types
     image_upload = serializers.ImageField(
         source="image", write_only=True, required=False, allow_null=True
+    )
+    audio_upload = serializers.FileField(
+        source="audio_file", write_only=True, required=False, allow_null=True
     )
 
     class Meta:
         model = Question
         fields = [
-            # Core Identification & Content
             "id",
             "question_text",
-            "image",  # Read URL
+            "image_url",
+            "audio_url",
+            "article_title",  # NEW
+            "article_content",  # NEW
             "options",
             "difficulty",
             "is_active",
@@ -191,20 +229,18 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
             "explanation",
             "hint",
             "solution_method_summary",
-            # Relational Context (Read-only)
             "section",
             "subsection",
             "skill",
-            # Analytics (Read-only)
             "total_usage_count",
             "usage_by_test_type",
-            # Timestamps
             "created_at",
             "updated_at",
             # Write-only fields
             "subsection_id",
             "skill_id",
             "image_upload",
+            "audio_upload",  # NEW
             "option_a",
             "option_b",
             "option_c",
@@ -216,7 +252,8 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
             "subsection",
             "skill",
             "options",
-            "image",
+            "image_url",
+            "audio_url",
             "total_usage_count",
             "usage_by_test_type",
             "created_at",
@@ -227,10 +264,12 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
             "option_b": {"write_only": True, "required": True},
             "option_c": {"write_only": True, "required": True},
             "option_d": {"write_only": True, "required": True},
+            # Make new article fields optional in API
+            "article_title": {"required": False, "allow_blank": True},
+            "article_content": {"required": False, "allow_blank": True},
         }
 
     def get_options(self, obj: Question) -> dict:
-        """Constructs a dictionary of all answer options."""
         return {
             "A": obj.option_a,
             "B": obj.option_b,
@@ -239,50 +278,46 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
         }
 
     def get_usage_by_test_type(self, obj: Question) -> dict | None:
-        """
-        Calculates question usage broken down by test type.
-        This method is only executed for 'retrieve' actions to prevent N+1 queries.
-        """
-        # Only calculate this complex field for single-object detail views.
+        # No changes needed here, logic is sound.
         if self.context["view"].action != "retrieve":
             return None
-
-        # Query UserQuestionAttempt, filter by the current question and where a test_attempt exists
         usage_data = (
             UserQuestionAttempt.objects.filter(question=obj, test_attempt__isnull=False)
-            .values(
-                "test_attempt__attempt_type"  # Group by the attempt type from the related UserTestAttempt
-            )
+            .values("test_attempt__attempt_type")
             .annotate(count=Count("id"))
             .order_by()
-        )  # Ungroup to prevent default ordering issues
-
-        # Format the result into the desired dictionary
-        # {'level_assessment': 10, 'practice': 50, ...}
+        )
         usage_dict = {
             item["test_attempt__attempt_type"]: item["count"]
             for item in usage_data
             if item["test_attempt__attempt_type"]
         }
-
-        # Ensure all possible test types are present in the response, even if count is 0
         all_test_types = UserTestAttempt.AttemptType.values
         for test_type in all_test_types:
             usage_dict.setdefault(test_type, 0)
-
         return usage_dict
 
     def validate(self, attrs):
-        """Ensure skill belongs to the chosen subsection during write operations."""
-        # This validation only runs on write (create/update) because 'subsection' and 'skill'
-        # are only present in `attrs` during those operations.
+        # Validate that if a skill is provided, it belongs to the question's subsection
         subsection = attrs.get("subsection")
         skill = attrs.get("skill")
-
-        if subsection and skill and skill.subsection != subsection:
+        if subsection and skill and skill.subsection and skill.subsection != subsection:
             raise serializers.ValidationError(
                 {
                     "skill_id": f"Skill '{skill.name}' does not belong to the selected subsection '{subsection.name}'."
                 }
             )
+
+        # Validate that the model's clean method logic is also enforced here.
+        # This gives faster API feedback.
+        image = attrs.get("image")
+        article_content = attrs.get("article_content")
+        audio_file = attrs.get("audio_file")
+        content_types = [image, article_content, audio_file]
+        filled_content_types = sum(1 for content in content_types if content)
+        if filled_content_types > 1:
+            raise serializers.ValidationError(
+                "A question can only have one type of media content: an image, an article, OR an audio file."
+            )
+
         return attrs

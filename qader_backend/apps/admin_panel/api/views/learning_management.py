@@ -10,12 +10,14 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from django.db.models import ProtectedError
 from apps.learning.models import (
+    TestType,
     LearningSection,
     LearningSubSection,
     Skill,
     Question,
 )
 from ..serializers.learning_management import (
+    AdminTestTypeSerializer,
     AdminLearningSectionSerializer,
     AdminLearningSubSectionSerializer,
     AdminSkillSerializer,
@@ -27,6 +29,39 @@ from ..permissions import (
 from django.db.models import Count
 
 ADMIN_TAG = "Admin Panel - Learning Management"  # Tag for OpenAPI docs
+
+
+# --- NEW: ViewSet for managing Test Types ---
+@extend_schema_view(
+    list=extend_schema(summary="List Test Types (Admin)", tags=[ADMIN_TAG]),
+    create=extend_schema(summary="Create Test Type (Admin)", tags=[ADMIN_TAG]),
+    retrieve=extend_schema(summary="Retrieve Test Type (Admin)", tags=[ADMIN_TAG]),
+    update=extend_schema(summary="Update Test Type (Admin)", tags=[ADMIN_TAG]),
+    partial_update=extend_schema(
+        summary="Partially Update Test Type (Admin)", tags=[ADMIN_TAG]
+    ),
+    destroy=extend_schema(summary="Delete Test Type (Admin)", tags=[ADMIN_TAG]),
+)
+class AdminTestTypeViewSet(viewsets.ModelViewSet):
+    """Admin ViewSet for managing Test Types."""
+
+    queryset = TestType.objects.all().order_by("order", "name")
+    serializer_class = AdminTestTypeSerializer
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
+    lookup_field = "pk"
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = ["status"]
+    search_fields = ["name", "slug", "description"]
+    ordering_fields = ["order", "name", "status", "created_at"]
+
+    def get_permissions(self):
+        # Your permission logic here
+        self.required_permissions = ["api_manage_content"]
+        return [permission() for permission in self.permission_classes]
 
 
 @extend_schema_view(
@@ -44,17 +79,26 @@ ADMIN_TAG = "Admin Panel - Learning Management"  # Tag for OpenAPI docs
 class AdminLearningSectionViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing Learning Sections."""
 
-    queryset = LearningSection.objects.all().order_by(  # pylint: disable=no-member
-        "order", "name"
+    # MODIFIED: Optimized queryset with select_related
+    queryset = (
+        LearningSection.objects.select_related("test_type")
+        .all()
+        .order_by("test_type__order", "order", "name")
     )
     serializer_class = AdminLearningSectionSerializer
     permission_classes = [
         IsAdminUserOrSubAdminWithPermission
     ]  # Only allow Django admin users
     lookup_field = "pk"  # Use PK for admin management
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    # MODIFIED: Add filtering by parent test type
+    filterset_fields = ["test_type__id"]
     search_fields = ["name", "slug", "description"]
-    ordering_fields = ["order", "name", "created_at"]
+    ordering_fields = ["order", "name", "created_at", "test_type__name"]
 
     def get_permissions(self):
         if self.action in ["list", "retrieve"]:
@@ -87,10 +131,9 @@ class AdminLearningSectionViewSet(viewsets.ModelViewSet):
 class AdminLearningSubSectionViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing Learning Sub-Sections."""
 
+    # MODIFIED: Added test_type to select_related for efficiency
     queryset = (
-        LearningSubSection.objects.select_related(  # pylint: disable=no-member
-            "section"
-        )
+        LearningSubSection.objects.select_related("section__test_type")
         .all()
         .order_by("section__order", "order", "name")
     )
@@ -102,7 +145,8 @@ class AdminLearningSubSectionViewSet(viewsets.ModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
-    filterset_fields = ["section__slug", "section__id"]  # Filter by parent section
+    # MODIFIED: Added hierarchical filtering
+    filterset_fields = ["section__test_type__id", "section__id", "is_active"]
     search_fields = ["name", "slug", "description"]
     ordering_fields = ["order", "name", "section__name", "created_at"]
 
@@ -144,10 +188,11 @@ class AdminLearningSubSectionViewSet(viewsets.ModelViewSet):
 class AdminSkillViewSet(viewsets.ModelViewSet):
     """Admin ViewSet for managing Skills."""
 
+    # MODIFIED: Updated queryset for new structure
     queryset = (
-        Skill.objects.select_related("subsection__section")  # pylint: disable=no-member
+        Skill.objects.select_related("section", "subsection")
         .all()
-        .order_by("subsection__section__order", "subsection__order", "name")
+        .order_by("section__order", "subsection__order", "name")
     )
     serializer_class = AdminSkillSerializer
     permission_classes = [IsAdminUserOrSubAdminWithPermission]
@@ -157,12 +202,10 @@ class AdminSkillViewSet(viewsets.ModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
-    filterset_fields = [
-        "subsection__slug",
-        "subsection__id",
-    ]  # Filter by parent subsection
+    # MODIFIED: Updated filtering for new structure
+    filterset_fields = ["section__id", "subsection__id", "is_active"]
     search_fields = ["name", "slug", "description"]
-    ordering_fields = ["name", "subsection__name", "created_at"]
+    ordering_fields = ["name", "section__name", "subsection__name", "created_at"]
 
     def get_permissions(self):
         if self.action in ["list", "retrieve"]:
@@ -197,17 +240,18 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
+    # MODIFIED: Added full hierarchical filtering
     filterset_fields = {
-        "subsection__section__id": ["exact", "in"],
-        "subsection__slug": ["exact", "in"],
-        "subsection__id": ["exact", "in"],
-        "skill__slug": ["exact", "in"],
-        "skill__id": ["exact", "in"],
+        "subsection__section__test_type__id": ["exact"],
+        "subsection__section__id": ["exact"],
+        "subsection__id": ["exact"],
+        "skill__id": ["exact", "in"],  # Allow multiple skills for filtering
         "difficulty": ["exact", "in", "gte", "lte"],
         "is_active": ["exact"],
         "correct_answer": ["exact"],
     }
     search_fields = [
+        "id",  # Added 'id' to search fields as requested
         "question_text",
         "option_a",
         "option_b",
@@ -216,7 +260,6 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         "explanation",
         "hint",
         "solution_method_summary",
-        "id",
     ]
     ordering_fields = [
         "id",
@@ -226,7 +269,7 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         "is_active",
         "subsection__name",
         "skill__name",
-        "total_usage_count",  # Allow ordering by the new annotated field
+        "total_usage_count",
     ]
 
     def get_queryset(self):
@@ -237,8 +280,8 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         # Start with the base queryset
         queryset = Question.objects.all()  # pylint: disable=no-member
 
-        # Optimize by prefetching related data needed by the serializer
-        queryset = queryset.select_related("subsection__section", "skill")
+        # MODIFIED: Added test_type to select_related chain
+        queryset = queryset.select_related("subsection__section__test_type", "skill")
 
         # Annotate with the total number of times the question has been attempted.
         # This is highly efficient as it's a single database operation.
