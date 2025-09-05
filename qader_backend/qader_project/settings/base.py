@@ -384,6 +384,10 @@ SPECTACULAR_SETTINGS = {
             "description": "Endpoints searching for Study Partners.",
         },
         {
+            "name": "Student Community - Partner Requests",
+            "description": "Endpoints handling for Study Requests.",
+        },
+        {
             "name": "Blog",
             "description": "Endpoints for blog posts and advice requests.",
         },
@@ -433,12 +437,13 @@ SPECTACULAR_SETTINGS = {
             "description": "Endpoints for viewing aggregated platform statistics.",
         },
     ],
-    "SWAGGER_UI_SETTINGS": {  # Fine-tune Swagger UI appearance/behavior
+    "SWAGGER_UI_SETTINGS": {
         "deepLinking": True,
         "persistAuthorization": True,
         "displayRequestDuration": True,
         "filter": True,
         "docExpansion": "list",
+        "defaultModelsExpandDepth": -1,
     },
     "PREPROCESSING_HOOKS": [],
     "POSTPROCESSING_HOOKS": [],

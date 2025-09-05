@@ -27,9 +27,9 @@ if "rest_framework.renderers.BrowsableAPIRenderer" not in REST_FRAMEWORK["DEFAUL
     )
 
 # Less strict password hashing for faster tests/dev
-PASSWORD_HASHERS = [
-    "django.contrib.auth.hashers.MD5PasswordHasher",
-]
+# PASSWORD_HASHERS = [
+#     "django.contrib.auth.hashers.MD5PasswordHasher",
+# ]
 
 LOGGING = {
     "version": 1,
