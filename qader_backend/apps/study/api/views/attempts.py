@@ -25,7 +25,7 @@ import random
 
 from apps.api.permissions import IsSubscribed
 from apps.study.models import UserQuestionAttempt, UserTestAttempt, Question
-from apps.study.services import study as study_services
+from apps.study import services as study_services
 from apps.study.api.serializers import (
     attempts as attempt_serializers,
 )  # Use alias for clarity

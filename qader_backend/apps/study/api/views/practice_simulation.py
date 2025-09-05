@@ -11,7 +11,7 @@ from apps.study.api.serializers import practice_simulation as ps_serializers  # 
 from apps.study.api.serializers import (
     attempts as attempt_serializers,
 )  # Unified responses
-from apps.study.services import study as study_services  # Import services
+from apps.study import services as study_services  # Import services
 from apps.api.exceptions import UsageLimitExceeded
 
 logger = logging.getLogger(__name__)

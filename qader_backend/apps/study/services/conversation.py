@@ -16,7 +16,7 @@ from apps.learning.models import Question
 from django.contrib.auth import get_user_model
 
 # Existing imports for non-AI logic
-from .study import get_filtered_questions, update_user_skill_proficiency
+from . import get_filtered_questions, update_user_skill_proficiency
 
 # New import for our AI manager
 from .ai_manager import (

@@ -14,7 +14,7 @@ from apps.study.models import (
     Question,
     UserQuestionAttempt,
 )
-from apps.study.services import study as study_services
+from apps.study import services as study_services
 from apps.learning.api.serializers import UnifiedQuestionSerializer
 from apps.study.api.serializers.emergency import (
     EmergencyModeStartSerializer,

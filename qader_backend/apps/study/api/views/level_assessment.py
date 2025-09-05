@@ -11,7 +11,7 @@ from apps.study.api.serializers import level_assessment as la_serializers  # Ali
 from apps.study.api.serializers import (
     attempts as attempt_serializers,
 )  # Unified responses
-from apps.study.services import study as study_services
+from apps.study import services as study_services
 from apps.api.exceptions import UsageLimitExceeded
 
 logger = logging.getLogger(__name__)
