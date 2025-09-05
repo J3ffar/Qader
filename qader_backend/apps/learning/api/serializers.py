@@ -6,6 +6,8 @@ from ..models import (
     LearningSection,
     LearningSubSection,
     Skill,
+    MediaFile, # NEW
+    Article,   # NEW
     Question,
     UserStarredQuestion,
 )
@@ -98,22 +100,23 @@ class LearningSectionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-# --- Unified Question Serializer (Updated) ---
+# --- NEW: Serializers for Content Libraries ---
+
+class MediaFileSerializer(serializers.ModelSerializer):
+    """Read-only serializer for MediaFile objects."""
+    file_url = serializers.FileField(source="file", read_only=True)
+    class Meta:
+        model = MediaFile
+        fields = ["id", "title", "file_url", "file_type"]
+
+class ArticleSerializer(serializers.ModelSerializer):
+    """Read-only serializer for Article objects."""
+    class Meta:
+        model = Article
+        fields = ["id", "title", "content"]
 
 
-class UserAnswerDetailsSerializer(serializers.Serializer):
-    """
-    A nested serializer to encapsulate user's attempt-specific details for a question.
-    This is not a ModelSerializer and is populated from context.
-    """
-
-    selected_choice = serializers.CharField(allow_null=True, read_only=True)
-    is_correct = serializers.BooleanField(allow_null=True, read_only=True)
-    used_hint = serializers.BooleanField(allow_null=True, read_only=True)
-    used_elimination = serializers.BooleanField(allow_null=True, read_only=True)
-    revealed_answer = serializers.BooleanField(allow_null=True, read_only=True)
-    revealed_explanation = serializers.BooleanField(allow_null=True, read_only=True)
-
+# --- MODIFIED: UnifiedQuestionSerializer ---
 
 class UnifiedQuestionSerializer(serializers.ModelSerializer):
     """
@@ -150,8 +153,9 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
     )
     user_answer_details = serializers.SerializerMethodField()
 
-    article = serializers.SerializerMethodField()
-    audio_url = serializers.FileField(source="audio_file", read_only=True)
+    # NEW: Nested serializers for reusable content
+    media_content = MediaFileSerializer(read_only=True)
+    article = ArticleSerializer(read_only=True)
 
     class Meta:
         model = Question
@@ -159,9 +163,8 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
             # Core Identification & Content
             "id",
             "question_text",
-            "image",
-            "article",
-            "audio_url",
+            "media_content", # REPLACES image, audio_url
+            "article",       # REPLACES old article field
             "options",
             "difficulty",
             "hint",
@@ -186,12 +189,6 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
             "C": obj.option_c,
             "D": obj.option_d,
         }
-
-    def get_article(self, obj: Question) -> Optional[Dict[str, str]]:
-        """Constructs a dictionary for the article if it exists."""
-        if obj.article_title and obj.article_content:
-            return {"title": obj.article_title, "content": obj.article_content}
-        return None
 
     def _get_user_attempt_from_context(
         self, obj: Question

@@ -4,6 +4,8 @@ from .models import (
     LearningSection,
     LearningSubSection,
     Skill,
+    Article,
+    MediaFile,
     Question,
     UserStarredQuestion,
 )
@@ -41,6 +43,17 @@ class SkillAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
     list_select_related = ("section__test_type", "section", "subsection")
 
+@admin.register(Article)
+class ArticleAdmin(admin.ModelAdmin):
+    list_display = ("id", "title", "created_at")
+    search_fields = ("title", "content")
+
+@admin.register(MediaFile)
+class MediaFileAdmin(admin.ModelAdmin):
+    list_display = ("id", "title", "file_type", "created_at")
+    list_filter = ("file_type",)
+    search_fields = ("title",)
+
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
@@ -76,9 +89,13 @@ class QuestionAdmin(admin.ModelAdmin):
         "subsection__section",
         "subsection",
         "skill",
+        "media_content",
+        "article",
     )
     raw_id_fields = (
         "starred_by",
+        "media_content",
+        "article",
     )  # Better performance for ManyToMany with many users/questions
     fieldsets = (
         (
@@ -89,10 +106,8 @@ class QuestionAdmin(admin.ModelAdmin):
                     "skill",
                     "question_text",
                     "is_active",
-                    "image",
-                    "article_title",
-                    "article_content",
-                    "audio_file",
+                    "media_content",
+                    "article",
                 )
             },
         ),

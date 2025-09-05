@@ -1,9 +1,12 @@
 from rest_framework import serializers
+from rest_framework.parsers import MultiPartParser # NEW
 from apps.learning.models import (
     TestType,
     LearningSection,
     LearningSubSection,
     Skill,
+    MediaFile, # NEW
+    Article,   # NEW
     Question,
 )
 from django.db.models import Count
@@ -157,6 +160,23 @@ class AdminSkillSerializer(serializers.ModelSerializer):
         return attrs
 
 
+# --- NEW: Admin CRUD Serializers for Content Libraries ---
+
+class AdminMediaFileSerializer(serializers.ModelSerializer):
+    """Serializer for Admin CRUD on the MediaFile library."""
+    class Meta:
+        model = MediaFile
+        fields = ["id", "title", "file", "file_type", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+class AdminArticleSerializer(serializers.ModelSerializer):
+    """Serializer for Admin CRUD on the Article library."""
+    class Meta:
+        model = Article
+        fields = ["id", "title", "content", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
 class _AdminQuestionSectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = LearningSection
@@ -175,98 +195,62 @@ class _AdminQuestionSkillSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "slug"]
 
 
+# --- MODIFIED: AdminQuestionSerializer ---
 class AdminQuestionSerializer(serializers.ModelSerializer):
-    """Serializer for Admin CRUD on Questions."""
-
-    section = _AdminQuestionSectionSerializer(
-        source="subsection.section", read_only=True
-    )
+    # Read-only Nested Representations
+    section = _AdminQuestionSectionSerializer(source="subsection.section", read_only=True)
     subsection = _AdminQuestionSubSectionSerializer(read_only=True)
     skill = _AdminQuestionSkillSerializer(read_only=True, allow_null=True)
     options = serializers.SerializerMethodField()
-    image_url = serializers.ImageField(
-        source="image", read_only=True
-    )  # MODIFIED: Renamed for clarity
-    audio_url = serializers.FileField(
-        source="audio_file", read_only=True
-    )  # NEW: Read-only audio URL
+    
+    # NEW: Read-only nested objects for GET
+    media_content = AdminMediaFileSerializer(read_only=True)
+    article = AdminArticleSerializer(read_only=True)
 
     total_usage_count = serializers.IntegerField(read_only=True, default=0)
     usage_by_test_type = serializers.SerializerMethodField()
 
-    subsection_id = serializers.PrimaryKeyRelatedField(
-        queryset=LearningSubSection.objects.all(), source="subsection", write_only=True
+    # Write-only Fields
+    subsection_id = serializers.PrimaryKeyRelatedField(queryset=LearningSubSection.objects.all(), source="subsection", write_only=True)
+    skill_id = serializers.PrimaryKeyRelatedField(queryset=Skill.objects.all(), source="skill", allow_null=True, required=False, write_only=True)
+    
+    # NEW: Write-only FKs for linking content from libraries
+    media_content_id = serializers.PrimaryKeyRelatedField(
+        queryset=MediaFile.objects.all(), source="media_content", write_only=True, required=False, allow_null=True
     )
-    skill_id = serializers.PrimaryKeyRelatedField(
-        queryset=Skill.objects.all(),
-        source="skill",
-        allow_null=True,
-        required=False,
-        write_only=True,
-    )
-
-    # MODIFIED: Updated write fields for new content types
-    image_upload = serializers.ImageField(
-        source="image", write_only=True, required=False, allow_null=True
-    )
-    audio_upload = serializers.FileField(
-        source="audio_file", write_only=True, required=False, allow_null=True
+    article_id = serializers.PrimaryKeyRelatedField(
+        queryset=Article.objects.all(), source="article", write_only=True, required=False, allow_null=True
     )
 
     class Meta:
         model = Question
         fields = [
-            "id",
-            "question_text",
-            "image_url",
-            "audio_url",
-            "article_title",  # NEW
-            "article_content",  # NEW
-            "options",
-            "difficulty",
-            "is_active",
-            "correct_answer",
-            "explanation",
-            "hint",
-            "solution_method_summary",
-            "section",
-            "subsection",
-            "skill",
-            "total_usage_count",
-            "usage_by_test_type",
-            "created_at",
-            "updated_at",
+            # Core Identification & Content
+            "id", "question_text",
+            # Read-only Nested Content
+            "media_content", "article",
+            "options", "difficulty", "is_active", "correct_answer", "explanation", "hint",
+            "solution_method_summary", "section", "subsection", "skill",
+            # Analytics
+            "total_usage_count", "usage_by_test_type",
+            # Timestamps
+            "created_at", "updated_at",
             # Write-only fields
-            "subsection_id",
-            "skill_id",
-            "image_upload",
-            "audio_upload",  # NEW
-            "option_a",
-            "option_b",
-            "option_c",
-            "option_d",
+            "subsection_id", "skill_id",
+            "media_content_id", # NEW
+            "article_id",       # NEW
+            "option_a", "option_b", "option_c", "option_d",
         ]
         read_only_fields = [
-            "id",
-            "section",
-            "subsection",
-            "skill",
-            "options",
-            "image_url",
-            "audio_url",
-            "total_usage_count",
-            "usage_by_test_type",
-            "created_at",
-            "updated_at",
+            "id", "section", "subsection", "skill", "options",
+            "media_content", "article", # Make the nested objects read-only
+            "total_usage_count", "usage_by_test_type", "created_at", "updated_at",
         ]
         extra_kwargs = {
             "option_a": {"write_only": True, "required": True},
             "option_b": {"write_only": True, "required": True},
             "option_c": {"write_only": True, "required": True},
             "option_d": {"write_only": True, "required": True},
-            # Make new article fields optional in API
-            "article_title": {"required": False, "allow_blank": True},
-            "article_content": {"required": False, "allow_blank": True},
         }
 
     def get_options(self, obj: Question) -> dict:
@@ -308,16 +292,11 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
                 }
             )
 
-        # Validate that the model's clean method logic is also enforced here.
-        # This gives faster API feedback.
-        image = attrs.get("image")
-        article_content = attrs.get("article_content")
-        audio_file = attrs.get("audio_file")
-        content_types = [image, article_content, audio_file]
-        filled_content_types = sum(1 for content in content_types if content)
-        if filled_content_types > 1:
+        # NEW: Enforce "one content type" rule at the API level
+        media = attrs.get("media_content")
+        article = attrs.get("article")
+        if media and article:
             raise serializers.ValidationError(
-                "A question can only have one type of media content: an image, an article, OR an audio file."
+                "A question cannot be linked to both a Media File and an Article. Please provide only one of 'media_content_id' or 'article_id'."
             )
-
         return attrs

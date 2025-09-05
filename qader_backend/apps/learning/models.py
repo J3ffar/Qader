@@ -305,9 +305,72 @@ class QuestionQuerySet(models.QuerySet):
         return self.annotate(user_has_starred=Exists(starred_subquery))
 
 
-class Question(TimeStampedModel):
-    """Stores individual practice or test questions."""
+# --- NEW: Reusable Content Library Models (Requirement Fulfillment) ---
 
+class MediaFile(TimeStampedModel):
+    """
+    A central library for all reusable media files (images, audio, video).
+    """
+    class FileType(models.TextChoices):
+        IMAGE = 'image', _('Image')
+        AUDIO = 'audio', _('Audio')
+        VIDEO = 'video', _('Video')
+
+    title = models.CharField(
+        _("Title/Name"),
+        max_length=200,
+        help_text=_("A descriptive name for internal use (e.g., 'Pythagorean Theorem Diagram').")
+    )
+    file = models.FileField(
+        _("File"),
+        upload_to="media_library/",
+        help_text=_("The actual uploaded image, audio, or video file.")
+    )
+    file_type = models.CharField(
+        _("File Type"),
+        max_length=10,
+        choices=FileType.choices,
+        help_text=_("The type of media file, used by the frontend for rendering.")
+    )
+
+    class Meta:
+        verbose_name = _("Media File")
+        verbose_name_plural = _("Media Files")
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+class Article(TimeStampedModel):
+    """
+    A central library for all reusable articles or passages.
+    """
+    title = models.CharField(
+        _("Title"),
+        max_length=255,
+        unique=True,
+        help_text=_("The unique title of the article or passage.")
+    )
+    content = models.TextField(
+        _("Content"),
+        help_text=_("The full text content of the article.")
+    )
+
+    class Meta:
+        verbose_name = _("Article")
+        verbose_name_plural = _("Articles")
+        ordering = ['title']
+
+    def __str__(self):
+        return self.title
+
+
+# --- MODIFIED: Question Model ---
+
+class Question(TimeStampedModel):
+    """
+    Stores individual questions, now linked to reusable content.
+    """
     class DifficultyLevel(models.IntegerChoices):
         VERY_EASY = 1, _("Very Easy")
         EASY = 2, _("Easy")
@@ -338,18 +401,27 @@ class Question(TimeStampedModel):
         db_index=True,
     )
     question_text: str = models.TextField(_("Question Text"))
-
-    image: models.ImageField = models.ImageField(
-        _("Image"), upload_to="questions/images/", null=True, blank=True
+    
+    # --- REPLACED Fields with ForeignKeys to Libraries ---
+    # REMOVED: image, article_title, article_content, audio_file
+    
+    media_content = models.ForeignKey(
+        MediaFile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="questions",
+        verbose_name=_("Media Content (Image/Audio/Video)"),
+        help_text=_("Link to a media file from the library. Leave blank if not needed.")
     )
-    article_title: str | None = models.CharField(
-        _("Article Title"), max_length=255, null=True, blank=True
-    )
-    article_content: str | None = models.TextField(
-        _("Article/Passage Content"), null=True, blank=True
-    )
-    audio_file: models.FileField = models.FileField(
-        _("Audio File"), upload_to="questions/audio/", null=True, blank=True
+    article = models.ForeignKey(
+        Article,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="questions",
+        verbose_name=_("Article/Passage"),
+        help_text=_("Link to an article from the library. Leave blank if not needed.")
     )
 
     option_a: str = models.TextField(_("Option A"))
@@ -411,7 +483,6 @@ class Question(TimeStampedModel):
     )
 
     objects = QuestionQuerySet.as_manager()
-
     class Meta:
         verbose_name = _("Question")
         verbose_name_plural = _("Questions")
@@ -419,42 +490,17 @@ class Question(TimeStampedModel):
 
     def __str__(self) -> str:
         limit = 80
-        truncated_text = (
-            f"{self.question_text[:limit]}..."
-            if len(self.question_text) > limit
-            else self.question_text
-        )
-        return f"Q{self.id}: {truncated_text} ({self.subsection.slug})"
-
+        truncated_text = f"{self.question_text[:limit]}..." if len(self.question_text) > limit else self.question_text
+        return f"Q{self.id}: {truncated_text}"
+    
     def clean(self):
-        """Enforce content constraints"""
+        """
+        Enforce the business rule: a question can have media OR an article, but not both.
+        """
         super().clean()
-        content_types = [self.image, self.article_content, self.audio_file]
-        # Count how many of these are not None/empty
-        filled_content_types = sum(1 for content in content_types if content)
-        if filled_content_types > 1:
+        if self.media_content and self.article:
             raise ValidationError(
-                _(
-                    "A question can only have one type of media content: an image, an article, OR an audio file."
-                )
-            )
-
-        # Enforce linked pair for article
-        if self.article_content and not self.article_title:
-            raise ValidationError(
-                {
-                    "article_title": _(
-                        "An Article Title is required when providing Article Content."
-                    )
-                }
-            )
-        if self.article_title and not self.article_content:
-            raise ValidationError(
-                {
-                    "article_content": _(
-                        "Article Content is required when providing an Article Title."
-                    )
-                }
+                _("A question cannot have both Media Content (Image/Audio/Video) and an Article. Please choose one.")
             )
 
 

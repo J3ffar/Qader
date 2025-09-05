@@ -11,6 +11,16 @@ router.register(
     basename="admin-test-type",
 )
 router.register(
+    r"media-files",
+    views.AdminMediaFileViewSet,
+    basename="admin-media-file",
+) # NEW
+router.register(
+    r"articles",
+    views.AdminArticleViewSet,
+    basename="admin-article",
+) # NEW
+router.register(
     r"sections",
     views.AdminLearningSectionViewSet,
     basename="admin-learning-section",

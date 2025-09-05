@@ -22,6 +22,8 @@ from ..models import (
     LearningSection,
     LearningSubSection,
     Skill,
+    MediaFile, # NEW
+    Article,   # NEW
     Question,
     UserStarredQuestion,
 )
@@ -32,6 +34,8 @@ from .serializers import (
     LearningSubSectionDetailSerializer,
     LearningSubSectionSerializer,
     SkillSerializer,
+    MediaFileSerializer, # NEW
+    ArticleSerializer,   # NEW
     UnifiedQuestionSerializer,
     StarActionSerializer,
 )
@@ -189,6 +193,52 @@ class SkillViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ["section__order", "subsection__order", "name"]
 
 
+# --- NEW: Read-only ViewSets for Content Libraries ---
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="List Media Files",
+        description="Retrieves a list of all available media files (images, audio, video).",
+        tags=["Learning Content"],
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve Media File",
+        description="Retrieves details for a specific media file.",
+        tags=["Learning Content"],
+    ),
+)
+class MediaFileViewSet(viewsets.ReadOnlyModelViewSet):
+    """API endpoint for retrieving media files from the library."""
+    queryset = MediaFile.objects.all()
+    serializer_class = MediaFileSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['file_type']
+    search_fields = ['title']
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="List Articles",
+        description="Retrieves a list of all available articles.",
+        tags=["Learning Content"],
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve Article",
+        description="Retrieves details for a specific article.",
+        tags=["Learning Content"],
+    ),
+)
+class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
+    """API endpoint for retrieving articles from the library."""
+    queryset = Article.objects.all()
+    serializer_class = ArticleSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title', 'content']
+
+# --- MODIFIED: QuestionViewSet ---
+
+
 @extend_schema_view(
     list=extend_schema(
         summary="List Questions",
@@ -256,9 +306,13 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self) -> QuerySet[Question]:
         queryset = super().get_queryset()
         user = self.request.user
+        # MODIFIED: Optimize queries for new relationships
         queryset = queryset.select_related(
-            "subsection__section__test_type", "skill__section"
-        )  # MODIFIED: Optimize query
+            "subsection__section__test_type",
+            "skill__section",
+            "media_content", # NEW
+            "article"        # NEW
+        )
 
         if user.is_authenticated:
             starred_subquery = UserStarredQuestion.objects.filter(

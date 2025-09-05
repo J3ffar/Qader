@@ -6,6 +6,7 @@ from rest_framework import (
     status,
     exceptions,
 )
+from rest_framework.parsers import MultiPartParser, FormParser  # NEW
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from django.db.models import ProtectedError
@@ -14,6 +15,8 @@ from apps.learning.models import (
     LearningSection,
     LearningSubSection,
     Skill,
+    MediaFile,  # NEW
+    Article,  # NEW
     Question,
 )
 from ..serializers.learning_management import (
@@ -21,6 +24,8 @@ from ..serializers.learning_management import (
     AdminLearningSectionSerializer,
     AdminLearningSubSectionSerializer,
     AdminSkillSerializer,
+    AdminMediaFileSerializer,  # NEW
+    AdminArticleSerializer,  # NEW
     AdminQuestionSerializer,
 )
 from ..permissions import (
@@ -217,6 +222,52 @@ class AdminSkillViewSet(viewsets.ModelViewSet):
         return [permission() for permission in self.permission_classes]
 
 
+# --- NEW: Admin CRUD Viewsets for Content Libraries ---
+
+
+@extend_schema_view(
+    list=extend_schema(summary="List Media Files (Admin)", tags=[ADMIN_TAG]),
+    create=extend_schema(summary="Upload Media File (Admin)", tags=[ADMIN_TAG]),
+    retrieve=extend_schema(summary="Retrieve Media File (Admin)", tags=[ADMIN_TAG]),
+    update=extend_schema(summary="Update Media File (Admin)", tags=[ADMIN_TAG]),
+    partial_update=extend_schema(
+        summary="Partially Update Media File (Admin)", tags=[ADMIN_TAG]
+    ),
+    destroy=extend_schema(summary="Delete Media File (Admin)", tags=[ADMIN_TAG]),
+)
+class AdminMediaFileViewSet(viewsets.ModelViewSet):
+    """Admin ViewSet for managing the MediaFile library."""
+
+    queryset = MediaFile.objects.all().order_by("-created_at")
+    serializer_class = AdminMediaFileSerializer
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
+    # IMPORTANT: Add parsers to handle file uploads
+    parser_classes = [MultiPartParser, FormParser]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ["file_type"]
+    search_fields = ["title"]
+
+
+@extend_schema_view(
+    list=extend_schema(summary="List Articles (Admin)", tags=[ADMIN_TAG]),
+    create=extend_schema(summary="Create Article (Admin)", tags=[ADMIN_TAG]),
+    retrieve=extend_schema(summary="Retrieve Article (Admin)", tags=[ADMIN_TAG]),
+    update=extend_schema(summary="Update Article (Admin)", tags=[ADMIN_TAG]),
+    partial_update=extend_schema(
+        summary="Partially Update Article (Admin)", tags=[ADMIN_TAG]
+    ),
+    destroy=extend_schema(summary="Delete Article (Admin)", tags=[ADMIN_TAG]),
+)
+class AdminArticleViewSet(viewsets.ModelViewSet):
+    """Admin ViewSet for managing the Article library."""
+
+    queryset = Article.objects.all().order_by("title")
+    serializer_class = AdminArticleSerializer
+    permission_classes = [IsAdminUserOrSubAdminWithPermission]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["title", "content"]
+
+
 @extend_schema_view(
     list=extend_schema(summary="List Questions (Admin)", tags=[ADMIN_TAG]),
     create=extend_schema(summary="Create Question (Admin)", tags=[ADMIN_TAG]),
@@ -273,20 +324,12 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
     ]
 
     def get_queryset(self):
-        """
-        Overrides the default queryset to include prefetching and annotations
-        for performance.
-        """
-        # Start with the base queryset
-        queryset = Question.objects.all()  # pylint: disable=no-member
-
-        # MODIFIED: Added test_type to select_related chain
-        queryset = queryset.select_related("subsection__section__test_type", "skill")
-
-        # Annotate with the total number of times the question has been attempted.
-        # This is highly efficient as it's a single database operation.
+        queryset = Question.objects.all()
+        # MODIFIED: Update select_related for new structure
+        queryset = queryset.select_related(
+            "subsection__section__test_type", "skill", "media_content", "article"
+        )
         queryset = queryset.annotate(total_usage_count=Count("user_attempts"))
-
         return queryset.order_by("-created_at")
 
     def get_permissions(self):
