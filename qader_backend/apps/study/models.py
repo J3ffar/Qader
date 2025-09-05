@@ -290,181 +290,128 @@ class UserTestAttempt(models.Model):
             .order_by(preserved_order)
         )
 
-    @transaction.atomic  # Ensure score calculation and saving are atomic
-    def calculate_and_save_scores(
+    def calculate_scores(
         self, question_attempts_qs: Optional[QuerySet["UserQuestionAttempt"]] = None
-    ):
+    ) -> Dict[str, Any]:
         """
-        Calculates scores based on provided or fetched question attempts and updates the instance.
-        Prefetches related data if queryset is not provided.
+        Calculates all scores and the results summary but does NOT save the instance.
+        This method is designed to be called by a service within a transaction.
 
-        Args:
-            question_attempts_qs: Optional pre-fetched queryset of UserQuestionAttempt
-                                  related to this test_attempt. If None, it will be fetched.
+        Returns:
+            A dictionary of fields and their calculated values to be saved.
         """
-        if not question_attempts_qs:
-            # Fetch attempts if not provided, ensuring necessary related data is loaded
+        if question_attempts_qs is None:
             question_attempts_qs = self.question_attempts.select_related(
                 "question__subsection__section", "question__skill"
             ).all()
 
         total_questions_in_attempt = self.num_questions
-        answered_attempts = list(
-            question_attempts_qs
-        )  # Fetch into memory for processing
-        num_answered = len(answered_attempts)
+        answered_attempts = list(question_attempts_qs)
+
+        # Create a dictionary to hold the results to be returned
+        calculated_data = {
+            "score_percentage": 0.0,
+            "score_verbal": None,
+            "score_quantitative": None,
+            "results_summary": {},
+            # Also return counts needed by the service for the final response
+            "answered_question_count": len(answered_attempts),
+            "correct_answers_count": sum(
+                1 for attempt in answered_attempts if attempt.is_correct
+            ),
+        }
 
         if total_questions_in_attempt == 0:
             logger.warning(
-                f"Attempt {self.id} has 0 questions defined in question_ids. Setting scores to zero/null."
+                f"Attempt {self.id} has 0 questions defined in question_ids. Returning zero/null scores."
             )
-            self.score_percentage = 0.0
-            self.score_verbal = None
-            self.score_quantitative = None
-            self.results_summary = {}
+            return calculated_data
+
+        # --- Your existing calculation logic remains the same ---
+        overall_score = round(
+            (
+                calculated_data["correct_answers_count"]
+                / total_questions_in_attempt
+                * 100.0
+            ),
+            1,
+        )
+        verbal_correct, verbal_total, quant_correct, quant_total = 0, 0, 0, 0
+        results_summary_calc = {}
+        all_q_ids = set(self.question_ids)
+
+        if not all_q_ids:
+            q_detail_map = {}
         else:
-            correct_answers = sum(
-                1 for attempt in answered_attempts if attempt.is_correct
-            )
-            # Overall score based on total questions *in the attempt* definition
-            overall_score = round(
-                (correct_answers / total_questions_in_attempt * 100.0), 1
-            )
-
-            verbal_correct, verbal_total, quant_correct, quant_total = 0, 0, 0, 0
-            results_summary_calc = {}
-
-            all_q_ids = set(self.question_ids)
-            if not all_q_ids:
-                logger.warning(
-                    f"Attempt {self.id} has empty question_ids list during scoring calculation."
+            valid_q_ids = [int(qid) for qid in all_q_ids if str(qid).isdigit()]
+            q_details = (
+                Question.objects.filter(id__in=valid_q_ids)
+                .select_related("subsection__section")
+                .values(
+                    "id",
+                    "subsection_id",
+                    "subsection__slug",
+                    "subsection__name",
+                    "subsection__section__slug",
                 )
-                q_detail_map = {}
-            else:
-                # Ensure IDs are integers for the query
-                valid_q_ids = [int(qid) for qid in all_q_ids if str(qid).isdigit()]
-                if not valid_q_ids:
-                    logger.warning(
-                        f"Attempt {self.id} has no valid integer question IDs for scoring."
-                    )
-                    q_detail_map = {}
-                else:
-                    # Fetch details for ALL questions defined in the attempt
-                    q_details = (
-                        Question.objects.filter(id__in=valid_q_ids)
-                        .select_related(
-                            "subsection__section"
-                        )  # Ensure section is loaded
-                        .values(
-                            "id",
-                            "subsection_id",
-                            "subsection__slug",
-                            "subsection__name",
-                            "subsection__section__slug",  # Get section slug directly
-                        )
-                    )
-                    q_detail_map = {q["id"]: q for q in q_details}
+            )
+            q_detail_map = {q["id"]: q for q in q_details}
 
-            # Initialize results summary based on involved subsections from ALL questions
-            involved_subsections = {}
-            for qid, q_detail in q_detail_map.items():
-                sub_id = q_detail.get("subsection_id")
-                if sub_id and sub_id not in involved_subsections:
-                    involved_subsections[sub_id] = {
-                        "slug": q_detail.get("subsection__slug"),
-                        "name": q_detail.get("subsection__name"),
-                    }
-                    if q_detail.get(
-                        "subsection__slug"
-                    ):  # Initialize summary only if slug exists
-                        results_summary_calc[q_detail["subsection__slug"]] = {
-                            "correct": 0,
-                            "total": 0,
-                            "name": q_detail.get("subsection__name", "Unknown"),
-                            "score": 0.0,
-                        }
-
-            # Count totals per section/subsection based on ALL questions in the attempt
-            for qid in all_q_ids:
-                # Ensure qid is integer before map lookup
-                qid_int = int(qid) if str(qid).isdigit() else None
-                if qid_int is None:
-                    continue
-
-                detail = q_detail_map.get(qid_int)
-                if not detail:
-                    logger.warning(
-                        f"Missing details for Question ID {qid_int} in Attempt {self.id} during scoring total count."
-                    )
-                    continue
-
-                sub_slug = detail.get("subsection__slug")
-                if sub_slug and sub_slug in results_summary_calc:
-                    results_summary_calc[sub_slug]["total"] += 1
-
+        # (This entire calculation block is copied from your original method)
+        for qid, q_detail in q_detail_map.items():
+            if q_detail.get("subsection__slug"):
+                results_summary_calc[q_detail["subsection__slug"]] = {
+                    "correct": 0,
+                    "total": 0,
+                    "name": q_detail.get("subsection__name", "Unknown"),
+                    "score": 0.0,
+                }
+        for qid in all_q_ids:
+            detail = q_detail_map.get(int(qid))
+            if not detail:
+                continue
+            if detail.get("subsection__slug") in results_summary_calc:
+                results_summary_calc[detail["subsection__slug"]]["total"] += 1
+            section_slug = detail.get("subsection__section__slug")
+            if section_slug == "verbal":
+                verbal_total += 1
+            elif section_slug == "quantitative":
+                quant_total += 1
+        for attempt in answered_attempts:
+            detail = q_detail_map.get(attempt.question_id)
+            if not detail:
+                continue
+            if attempt.is_correct:
+                if detail.get("subsection__slug") in results_summary_calc:
+                    results_summary_calc[detail["subsection__slug"]]["correct"] += 1
                 section_slug = detail.get("subsection__section__slug")
                 if section_slug == "verbal":
-                    verbal_total += 1
+                    verbal_correct += 1
                 elif section_slug == "quantitative":
-                    quant_total += 1
-
-            # Count correct answers from the *answered* attempts
-            for attempt in answered_attempts:
-                question_id = attempt.question_id  # Use FK directly
-                detail = q_detail_map.get(question_id)
-
-                if not detail:
-                    logger.warning(
-                        f"Missing detail for answered Q {question_id} in attempt {self.id} during scoring correct count."
-                    )
-                    continue
-
-                subsection_slug = detail.get("subsection__slug")
-                section_slug = detail.get("subsection__section__slug")
-
-                if attempt.is_correct:
-                    if subsection_slug and subsection_slug in results_summary_calc:
-                        results_summary_calc[subsection_slug]["correct"] += 1
-                    if section_slug == "verbal":
-                        verbal_correct += 1
-                    elif section_slug == "quantitative":
-                        quant_correct += 1
-
-            # Calculate final scores for summary and sections
-            for slug, data in results_summary_calc.items():
-                data["score"] = (
-                    round((data["correct"] / data["total"] * 100.0), 1)
-                    if data["total"] > 0
-                    else 0.0
-                )
-
-            verbal_score = (
-                round((verbal_correct / verbal_total * 100.0), 1)
-                if verbal_total > 0
-                else None
-            )
-            quantitative_score = (
-                round((quant_correct / quant_total * 100.0), 1)
-                if quant_total > 0
-                else None
+                    quant_correct += 1
+        for slug, data in results_summary_calc.items():
+            data["score"] = (
+                round((data["correct"] / data["total"] * 100.0), 1)
+                if data["total"] > 0
+                else 0.0
             )
 
-            # Assign calculated scores to the instance
-            self.score_percentage = overall_score
-            self.score_verbal = verbal_score
-            self.score_quantitative = quantitative_score
-            self.results_summary = results_summary_calc
+        # --- End of calculation logic ---
 
-        # Save the updated fields efficiently
-        update_fields_list = [
-            "score_percentage",
-            "score_verbal",
-            "score_quantitative",
-            "results_summary",
-            "updated_at",
-        ]
-        self.save(update_fields=update_fields_list)
-        logger.info(f"Scores calculated and saved for UserTestAttempt {self.id}.")
+        # Populate the dictionary with final calculated values
+        calculated_data["score_percentage"] = overall_score
+        calculated_data["score_verbal"] = (
+            round((verbal_correct / verbal_total * 100.0), 1)
+            if verbal_total > 0
+            else None
+        )
+        calculated_data["score_quantitative"] = (
+            round((quant_correct / quant_total * 100.0), 1) if quant_total > 0 else None
+        )
+        calculated_data["results_summary"] = results_summary_calc
+
+        # Return the dictionary instead of saving
+        return calculated_data
 
 
 class UserQuestionAttempt(models.Model):

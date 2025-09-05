@@ -134,11 +134,20 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
         question_attempts_qs = test_attempt.question_attempts.select_related(
             "question__subsection__section", "question__skill"
         ).all()
-        correct_answers_count = question_attempts_qs.filter(is_correct=True).count()
 
+        score_data = {}
         try:
-            test_attempt.calculate_and_save_scores(
+            score_data = test_attempt.calculate_scores(
                 question_attempts_qs=question_attempts_qs
+            )
+
+            test_attempt.score_percentage = score_data.get("score_percentage")
+            test_attempt.score_verbal = score_data.get("score_verbal")
+            test_attempt.score_quantitative = score_data.get("score_quantitative")
+            test_attempt.results_summary = score_data.get("results_summary")
+
+            logger.info(
+                f"Test attempt {test_attempt.id} scores calculated successfully."
             )
         except Exception as e:
             logger.exception(
@@ -146,13 +155,21 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             )
             test_attempt.status = UserTestAttempt.Status.ERROR
 
-        test_attempt.save(update_fields=["status", "end_time", "updated_at"])
+        update_fields = [
+            "status",
+            "end_time",
+            "updated_at",
+            "score_percentage",
+            "score_verbal",
+            "score_quantitative",
+            "results_summary",
+        ]
+        test_attempt.save(update_fields=update_fields)
+        logger.info(
+            f"Saved all final data for test_attempt {test_attempt.id}. Status is now {test_attempt.status.label}."
+        )
 
-        gamification_results = {
-            "total_points_earned": 0,
-            "badges_won_details": [],
-            "streak_info": {},
-        }
+        gamification_results = {}
         try:
             gamification_results = process_test_completion_gamification(
                 user, test_attempt
@@ -161,6 +178,7 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             logger.exception(
                 f"Error processing gamification for test_attempt {test_attempt.id}: {e}"
             )
+
     finally:
         if signal_disconnected:
             post_save.connect(
@@ -173,6 +191,10 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             )
 
     test_attempt.refresh_from_db()
+
+    # Use the data returned from the calculation for the response
+    correct_answers_count = score_data.get("correct_answers_count", 0)
+    answered_count = score_data.get("answered_question_count", 0)
 
     if test_attempt.attempt_type == UserTestAttempt.AttemptType.LEVEL_ASSESSMENT:
         try:
@@ -211,7 +233,7 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
             "quantitative": test_attempt.score_quantitative,
         },
         "results_summary": test_attempt.results_summary or {},
-        "answered_question_count": question_attempts_qs.count(),
+        "answered_question_count": answered_count,
         "total_questions": test_attempt.num_questions,
         "correct_answers_in_test_count": correct_answers_count,
         "smart_analysis": smart_analysis,
