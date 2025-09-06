@@ -61,7 +61,7 @@ class QuestionAdmin(admin.ModelAdmin):
         "id",
         "__str__",
         "subsection",
-        "skill",
+        "display_skills",
         "difficulty",
         "is_active",
         "created_at",
@@ -70,7 +70,7 @@ class QuestionAdmin(admin.ModelAdmin):
         "subsection__section__test_type",
         "subsection__section",
         "subsection",
-        "skill",
+        "skills",
         "difficulty",
         "is_active",
     )
@@ -88,7 +88,6 @@ class QuestionAdmin(admin.ModelAdmin):
         "subsection__section__test_type",
         "subsection__section",
         "subsection",
-        "skill",
         "media_content",
         "article",
     )
@@ -96,6 +95,7 @@ class QuestionAdmin(admin.ModelAdmin):
         "starred_by",
         "media_content",
         "article",
+        "skills",
     )  # Better performance for ManyToMany with many users/questions
     fieldsets = (
         (
@@ -103,7 +103,7 @@ class QuestionAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "subsection",
-                    "skill",
+                    "skills",
                     "question_text",
                     "is_active",
                     "media_content",
@@ -115,6 +115,11 @@ class QuestionAdmin(admin.ModelAdmin):
         ("Answer & Explanation", {"fields": ("correct_answer", "explanation")}),
         ("Meta", {"fields": ("hint", "solution_method_summary", "difficulty")}),
     )
+
+    def display_skills(self, obj):
+        return ", ".join([skill.name for skill in obj.skills.all()])
+
+    display_skills.short_description = "Skills"
 
 
 @admin.register(UserStarredQuestion)

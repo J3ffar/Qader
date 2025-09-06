@@ -1,8 +1,35 @@
 [
   {
+    "model": "learning.testtype",
+    "pk": 1,
+    "fields": {
+      "name": "اختبار القدرات العامة",
+      "slug": "general-aptitude",
+      "description": "اختبار يقيس القدرات الذهنية والعقلية اللازمة للتعلم الأكاديمي.",
+      "status": "active",
+      "order": 1,
+      "created_at": "2023-10-27T09:50:00Z",
+      "updated_at": "2023-10-27T09:50:00Z"
+    }
+  },
+  {
+    "model": "learning.testtype",
+    "pk": 2,
+    "fields": {
+      "name": "اختبار TOEFL",
+      "slug": "toefl",
+      "description": "اختبار يقيس إتقان اللغة الإنجليزية لغير الناطقين بها.",
+      "status": "coming_soon",
+      "order": 2,
+      "created_at": "2023-10-27T09:50:30Z",
+      "updated_at": "2023-10-27T09:50:30Z"
+    }
+  },
+  {
     "model": "learning.learningsection",
     "pk": 1,
     "fields": {
+      "test_type": 1,
       "name": "القسم اللفظي",
       "slug": "verbal",
       "description": "يختبر القدرات المتعلقة باللغة وفهم النصوص والعلاقات بين الكلمات.",
@@ -15,6 +42,7 @@
     "model": "learning.learningsection",
     "pk": 2,
     "fields": {
+      "test_type": 1,
       "name": "القسم الكمي",
       "slug": "quantitative",
       "description": "يختبر القدرات المتعلقة بالرياضيات وحل المشكلات العددية والهندسية وتحليل البيانات.",
@@ -167,6 +195,7 @@
     "model": "learning.skill",
     "pk": 100,
     "fields": {
+      "section": 1,
       "subsection": 10,
       "name": "تحديد الفكرة الرئيسية",
       "slug": "verbal-reading-comprehension-main-idea",
@@ -180,6 +209,7 @@
     "model": "learning.skill",
     "pk": 101,
     "fields": {
+      "section": 1,
       "subsection": 10,
       "name": "استنتاج المعلومات الضمنية",
       "slug": "verbal-reading-comprehension-inference",
@@ -193,6 +223,7 @@
     "model": "learning.skill",
     "pk": 120,
     "fields": {
+      "section": 1,
       "subsection": 12,
       "name": "تحديد علاقة التضاد",
       "slug": "verbal-verbal-analogy-antonym-relation",
@@ -206,6 +237,7 @@
     "model": "learning.skill",
     "pk": 121,
     "fields": {
+      "section": 1,
       "subsection": 12,
       "name": "تحديد علاقة الجزء من الكل",
       "slug": "verbal-verbal-analogy-part-whole-relation",
@@ -219,6 +251,7 @@
     "model": "learning.skill",
     "pk": 130,
     "fields": {
+      "section": 1,
       "subsection": 13,
       "name": "تحديد الكلمة غير الملائمة للسياق",
       "slug": "verbal-contextual-error-unsuitable-word",
@@ -232,6 +265,7 @@
     "model": "learning.skill",
     "pk": 140,
     "fields": {
+      "section": 1,
       "subsection": 14,
       "name": "تمييز الكلمة المختلفة في الفئة",
       "slug": "verbal-odd-one-out-different-category",
@@ -245,6 +279,7 @@
     "model": "learning.skill",
     "pk": 200,
     "fields": {
+      "section": 2,
       "subsection": 20,
       "name": "حل معادلات الدرجة الأولى",
       "slug": "quantitative-algebra-problems-linear-equations",
@@ -258,6 +293,7 @@
     "model": "learning.skill",
     "pk": 201,
     "fields": {
+      "section": 2,
       "subsection": 20,
       "name": "حل أنظمة معادلات",
       "slug": "quantitative-algebra-problems-systems-of-equations",
@@ -271,6 +307,7 @@
     "model": "learning.skill",
     "pk": 210,
     "fields": {
+      "section": 2,
       "subsection": 21,
       "name": "حساب مساحة المثلث",
       "slug": "quantitative-engineering-problems-triangle-area",
@@ -284,6 +321,7 @@
     "model": "learning.skill",
     "pk": 211,
     "fields": {
+      "section": 2,
       "subsection": 21,
       "name": "حساب مساحة الدائرة",
       "slug": "quantitative-engineering-problems-circle-area",
@@ -297,6 +335,7 @@
     "model": "learning.skill",
     "pk": 212,
     "fields": {
+      "section": 2,
       "subsection": 21,
       "name": "حساب محيط الأشكال الهندسية",
       "slug": "quantitative-engineering-problems-perimeter",
@@ -310,6 +349,7 @@
     "model": "learning.skill",
     "pk": 220,
     "fields": {
+      "section": 2,
       "subsection": 22,
       "name": "حساب النسبة المئوية",
       "slug": "quantitative-arithmetic-problems-percentages",
@@ -323,6 +363,7 @@
     "model": "learning.skill",
     "pk": 221,
     "fields": {
+      "section": 2,
       "subsection": 22,
       "name": "حساب المتوسط الحسابي",
       "slug": "quantitative-arithmetic-problems-average",
@@ -336,6 +377,7 @@
     "model": "learning.skill",
     "pk": 230,
     "fields": {
+      "section": 2,
       "subsection": 23,
       "name": "مقارنة القيم العددية والجبرية",
       "slug": "quantitative-comparisons-algebraic-values",
@@ -349,6 +391,7 @@
     "model": "learning.skill",
     "pk": 240,
     "fields": {
+      "section": 2,
       "subsection": 24,
       "name": "قراءة الأعمدة البيانية",
       "slug": "quantitative-data-analysis-bar-charts",
@@ -363,7 +406,9 @@
     "pk": 1000,
     "fields": {
       "subsection": 10,
-      "skill": 100,
+      "skills": [100],
+      "media_content": null,
+      "article": null,
       "question_text": "النص: 'تعتبر الطاقة الشمسية مصدرًا واعدًا للطاقة النظيفة والمتجددة، وتسعى العديد من الدول للاستثمار فيها لتقليل الاعتماد على الوقود الأحفوري وحماية البيئة.' ما هي الفكرة الرئيسية في النص؟",
       "option_a": "أهمية حماية البيئة.",
       "option_b": "مستقبل الطاقة الشمسية كمصدر بديل ونظيف.",
@@ -384,7 +429,9 @@
     "pk": 1001,
     "fields": {
       "subsection": 12,
-      "skill": 120,
+      "skills": [120],
+      "media_content": null,
+      "article": null,
       "question_text": "ليل : نهار",
       "option_a": "شمس : قمر",
       "option_b": "حار : بارد",
@@ -405,7 +452,9 @@
     "pk": 1002,
     "fields": {
       "subsection": 11,
-      "skill": null,
+      "skills": [],
+      "media_content": null,
+      "article": null,
       "question_text": "يجب على الإنسان أن يكون ..... في أقواله وأفعاله حتى ..... ثقة الآخرين.",
       "option_a": "صادقًا - يكسب",
       "option_b": "حذرًا - يفقد",
@@ -426,7 +475,9 @@
     "pk": 1003,
     "fields": {
       "subsection": 13,
-      "skill": 130,
+      "skills": [130],
+      "media_content": null,
+      "article": null,
       "question_text": "الجملة: 'كان الرجل الكريم مذمومًا بين الناس لكرمه الشديد.' الكلمة التي لا تتناسب مع السياق هي:",
       "option_a": "الكريم",
       "option_b": "مذمومًا",
@@ -447,7 +498,9 @@
     "pk": 1004,
     "fields": {
       "subsection": 14,
-      "skill": 140,
+      "skills": [140],
+      "media_content": null,
+      "article": null,
       "question_text": "ما هي المفردة الشاذة بين الكلمات التالية؟",
       "option_a": "تفاح",
       "option_b": "برتقال",
@@ -468,7 +521,9 @@
     "pk": 1005,
     "fields": {
       "subsection": 11,
-      "skill": null,
+      "skills": [],
+      "media_content": null,
+      "article": null,
       "question_text": "إن القراءة توسع المدارك و..... الفكر، فهي خير ..... للإنسان.",
       "option_a": "تنمي - جليس",
       "option_b": "تحد - صديق",
@@ -489,7 +544,9 @@
     "pk": 1006,
     "fields": {
       "subsection": 12,
-      "skill": 121,
+      "skills": [121],
+      "media_content": null,
+      "article": null,
       "question_text": "فصل : مدرسة",
       "option_a": "غرفة : منزل",
       "option_b": "سيارة : طريق",
@@ -510,7 +567,9 @@
     "pk": 1007,
     "fields": {
       "subsection": 13,
-      "skill": 130,
+      "skills": [130],
+      "media_content": null,
+      "article": null,
       "question_text": "الجملة: 'الجهل نور يضيء دروب الحياة.' الكلمة التي لا تتناسب مع السياق هي:",
       "option_a": "الجهل",
       "option_b": "نور",
@@ -531,7 +590,9 @@
     "pk": 1008,
     "fields": {
       "subsection": 14,
-      "skill": 140,
+      "skills": [140],
+      "media_content": null,
+      "article": null,
       "question_text": "ما هي المفردة الشاذة بين الكلمات التالية؟",
       "option_a": "أسد",
       "option_b": "نمر",
@@ -552,7 +613,9 @@
     "pk": 1009,
     "fields": {
       "subsection": 10,
-      "skill": 101,
+      "skills": [101],
+      "media_content": null,
+      "article": null,
       "question_text": "النص: 'المياه الجوفية هي مصدر هام للشرب والزراعة في العديد من المناطق الجافة، لكن استنزافها يفوق معدل تجددها الطبيعي.' ماذا يمكن استنتاجه من النص حول المياه الجوفية في المناطق الجافة؟",
       "option_a": "أنها مصدر غير متجدد.",
       "option_b": "أنها تتعرض لنقص بسبب الاستهلاك الزائد.",
@@ -573,7 +636,9 @@
     "pk": 2000,
     "fields": {
       "subsection": 20,
-      "skill": 200,
+      "skills": [200],
+      "media_content": null,
+      "article": null,
       "question_text": "إذا كان 3س + 5 = 14، فما قيمة س؟",
       "option_a": "2",
       "option_b": "3",
@@ -594,7 +659,9 @@
     "pk": 2001,
     "fields": {
       "subsection": 21,
-      "skill": 210,
+      "skills": [210],
+      "media_content": null,
+      "article": null,
       "question_text": "مثلث طول قاعدته 10 سم وارتفاعه 5 سم، ما مساحته؟",
       "option_a": "15 سم²",
       "option_b": "25 سم²",
@@ -615,7 +682,9 @@
     "pk": 2002,
     "fields": {
       "subsection": 23,
-      "skill": 230,
+      "skills": [230],
+      "media_content": null,
+      "article": null,
       "question_text": "قارن بين:\nالقيمة الأولى: (5 × 3) + 2\nالقيمة الثانية: 5 × (3 + 2)",
       "option_a": "القيمة الأولى أكبر",
       "option_b": "القيمة الثانية أكبر",
@@ -636,7 +705,9 @@
     "pk": 2003,
     "fields": {
       "subsection": 24,
-      "skill": 240,
+      "skills": [240],
+      "media_content": null,
+      "article": null,
       "question_text": "رسم بياني يوضح أرباح شركة (بالمليون) كالتالي: 2020: 5، 2021: 7، 2022: 6. ما هو متوسط الأرباح خلال هذه السنوات؟",
       "option_a": "5 مليون",
       "option_b": "6 مليون",
@@ -657,7 +728,9 @@
     "pk": 2004,
     "fields": {
       "subsection": 22,
-      "skill": 220,
+      "skills": [220],
+      "media_content": null,
+      "article": null,
       "question_text": "اشترى أحمد جهازًا بقيمة 500 ريال. إذا حصل على خصم 20%، فكم المبلغ الذي دفعه؟",
       "option_a": "100 ريال",
       "option_b": "400 ريال",
@@ -678,7 +751,9 @@
     "pk": 2005,
     "fields": {
       "subsection": 21,
-      "skill": 211,
+      "skills": [211],
+      "media_content": null,
+      "article": null,
       "question_text": "ما مساحة دائرة نصف قطرها 7 سم؟ (اعتبر ط ≈ 22/7)",
       "option_a": "44 سم²",
       "option_b": "77 سم²",
@@ -699,7 +774,9 @@
     "pk": 2006,
     "fields": {
       "subsection": 20,
-      "skill": 201,
+      "skills": [201],
+      "media_content": null,
+      "article": null,
       "question_text": "إذا كان س + ص = 10 و س - ص = 2، فما قيمة س؟",
       "option_a": "4",
       "option_b": "5",
@@ -720,7 +797,9 @@
     "pk": 2007,
     "fields": {
       "subsection": 22,
-      "skill": 220,
+      "skills": [220],
+      "media_content": null,
+      "article": null,
       "question_text": "ما هو 15% من العدد 300؟",
       "option_a": "30",
       "option_b": "45",
@@ -741,7 +820,9 @@
     "pk": 2008,
     "fields": {
       "subsection": 21,
-      "skill": 212,
+      "skills": [212],
+      "media_content": null,
+      "article": null,
       "question_text": "مربع طول ضلعه 4 سم، ما محيطه؟",
       "option_a": "8 سم",
       "option_b": "12 سم",
@@ -762,7 +843,9 @@
     "pk": 2009,
     "fields": {
       "subsection": 23,
-      "skill": 230,
+      "skills": [230],
+      "media_content": null,
+      "article": null,
       "question_text": "قارن بين:\nالقيمة الأولى: 1/2\nالقيمة الثانية: 0.5",
       "option_a": "القيمة الأولى أكبر",
       "option_b": "القيمة الثانية أكبر",
@@ -783,7 +866,9 @@
     "pk": 2010,
     "fields": {
       "subsection": 22,
-      "skill": 221,
+      "skills": [221],
+      "media_content": null,
+      "article": null,
       "question_text": "ما هو متوسط الأعداد التالية: 10، 20، 30؟",
       "option_a": "15",
       "option_b": "20",
@@ -804,7 +889,9 @@
     "pk": 2011,
     "fields": {
       "subsection": 24,
-      "skill": 240,
+      "skills": [240],
+      "media_content": null,
+      "article": null,
       "question_text": "بالاعتماد على جدول المبيعات التالي: \nالمنتج أ: 1500 وحدة\nالمنتج ب: 2000 وحدة\nالمنتج ج: 1000 وحدة\nأي المنتجات حقق أعلى مبيعات؟",
       "option_a": "المنتج أ",
       "option_b": "المنتج ب",
@@ -825,7 +912,9 @@
     "pk": 2012,
     "fields": {
       "subsection": 20,
-      "skill": 200,
+      "skills": [200],
+      "media_content": null,
+      "article": null,
       "question_text": "إذا كان (س - 3)² = 0، فما قيمة س؟",
       "option_a": "-3",
       "option_b": "0",

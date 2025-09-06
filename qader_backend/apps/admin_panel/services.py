@@ -366,9 +366,13 @@ def get_filtered_questions(filters: dict) -> QuerySet[Question]:
     """
     Applies filters to the Question queryset for export, mirroring AdminQuestionViewSet.
     """
-    queryset = Question.objects.select_related(
-        "subsection__section__test_type", "skill", "media_content", "article"
-    ).all()
+    queryset = (
+        Question.objects.select_related(
+            "subsection__section__test_type", "media_content", "article"
+        )
+        .prefetch_related("skills")
+        .all()
+    )
 
     # Apply filters from the 'filters' dictionary passed by the view
     if filters.get("subsection__section__test_type__id"):
@@ -430,7 +434,10 @@ def generate_question_export_file_content(
     sheet.title = "Questions"
     sheet.append(headers)
 
-    for q in queryset.iterator():
+    for q in queryset.iterator(chunk_size=2000):
+        # MODIFIED: Join skill names into a single string
+        skill_names = ", ".join(skill.name for skill in q.skills.all())
+
         sheet.append(
             [
                 q.id,
@@ -444,11 +451,11 @@ def generate_question_export_file_content(
                 q.explanation,
                 q.hint,
                 q.solution_method_summary,
-                q.get_difficulty_display(),
+                q.get_difficulty_display(),  # Human-readable difficulty
                 getattr(q.subsection.section.test_type, "name", ""),
                 getattr(q.subsection.section, "name", ""),
                 getattr(q.subsection, "name", ""),
-                getattr(q.skill, "name", ""),
+                skill_names,  # MODIFIED
                 getattr(q.media_content, "title", ""),
                 getattr(q.article, "title", ""),
             ]
@@ -543,16 +550,25 @@ def process_question_import_file(file_obj, update_strategy: str):
                 name=subsection_name, section=section, defaults={"is_active": True}
             )
 
-            # 4. Get or Create Skill (if provided, linked to the Section and Sub-Section)
-            skill = None
-            skill_name = data.get("Skill Name")
-            if skill_name:
-                skill, created = Skill.objects.get_or_create(
-                    name=skill_name,
-                    section=section,
-                    subsection=subsection,  # Create the skill in the most specific context
-                    defaults={"is_active": True},
-                )
+            # MODIFIED: Logic to handle multiple, comma-separated skills
+            skills_to_set = []
+            skill_names_str = data.get("Skill Name")
+            if skill_names_str:
+                # Split the string by commas and strip whitespace from each name
+                skill_names_list = [
+                    name.strip()
+                    for name in str(skill_names_str).split(",")
+                    if name.strip()
+                ]
+
+                for skill_name in skill_names_list:
+                    skill, created = Skill.objects.get_or_create(
+                        name=skill_name,
+                        section=section,
+                        subsection=subsection,
+                        defaults={"is_active": True},
+                    )
+                    skills_to_set.append(skill)
 
             # --- End of Modified Section ---
 
@@ -597,14 +613,17 @@ def process_question_import_file(file_obj, update_strategy: str):
             question.explanation, question.hint = data["Explanation"], data["Hint"]
             question.solution_method_summary = data["Solution Summary"]
             question.subsection = subsection
-            question.skill, question.media_content, question.article = (
-                skill,
-                media_content,
-                article,
-            )
+            question.media_content = media_content
+            question.article = article
 
             question.full_clean()
             question.save()
+
+            # MODIFIED: Set the M2M relationship *after* the main object is saved
+            if skills_to_set:
+                question.skills.set(skills_to_set)
+            else:
+                question.skills.clear()  # If the cell is empty, remove all skills
 
             if is_update:
                 updated_count += 1

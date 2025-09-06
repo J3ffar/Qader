@@ -142,7 +142,8 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
 
     # Use nested serializers for rich, consistent data
     subsection = LearningSubSectionSerializer(read_only=True)
-    skill = SkillSerializer(read_only=True, required=False)
+    # MODIFIED: From single object to a list
+    skills = SkillSerializer(many=True, read_only=True)
 
     # Reformat options into a more frontend-friendly dictionary
     options = serializers.SerializerMethodField()
@@ -175,7 +176,7 @@ class UnifiedQuestionSerializer(serializers.ModelSerializer):
             # Relational Context
             "section",
             "subsection",
-            "skill",
+            "skills", # MODIFIED: was "skill"
             # User-Specific Context
             "is_starred",
             "user_answer_details",

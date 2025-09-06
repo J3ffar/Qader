@@ -312,7 +312,7 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         "subsection__section__test_type__id": ["exact"],
         "subsection__section__id": ["exact"],
         "subsection__id": ["exact"],
-        "skill__id": ["exact", "in"],  # Allow multiple skills for filtering
+        "skills__id": ["exact", "in"], # MODIFIED: was "skill__id"
         "difficulty": ["exact", "in", "gte", "lte"],
         "is_active": ["exact"],
         "correct_answer": ["exact"],
@@ -335,7 +335,6 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         "updated_at",
         "is_active",
         "subsection__name",
-        "skill__name",
         "total_usage_count",
     ]
 
@@ -343,8 +342,8 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         queryset = Question.objects.all()
         # MODIFIED: Update select_related for new structure
         queryset = queryset.select_related(
-            "subsection__section__test_type", "skill", "media_content", "article"
-        )
+            "subsection__section__test_type", "media_content", "article"
+        ).prefetch_related("skills") # MODIFIED
         queryset = queryset.annotate(total_usage_count=Count("user_attempts"))
         return queryset.order_by("-created_at")
 

@@ -273,7 +273,7 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
         "subsection__section__test_type__slug": ["exact"],
         "subsection__section__slug": ["exact", "in"],
         "subsection__slug": ["exact", "in"],
-        "skill__slug": ["exact", "in"],
+        "skills__slug": ["exact", "in"], # MODIFIED: was "skill__slug"
         "difficulty": ["exact", "in", "gte", "lte"],
     }
 
@@ -294,7 +294,6 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
         "difficulty",
         "created_at",
         "subsection__name",
-        "skill__name",
     ]
     ordering = ["id"]
 
@@ -308,11 +307,8 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         # MODIFIED: Optimize queries for new relationships
         queryset = queryset.select_related(
-            "subsection__section__test_type",
-            "skill__section",
-            "media_content", # NEW
-            "article"        # NEW
-        )
+            "subsection__section__test_type", "media_content", "article"
+        ).prefetch_related("skills") # MODIFIED
 
         if user.is_authenticated:
             starred_subquery = UserStarredQuestion.objects.filter(
@@ -341,7 +337,7 @@ class QuestionViewSet(viewsets.ReadOnlyModelViewSet):
                 user=user, proficiency_score__lt=mastery_threshold
             ).values_list("skill_id", flat=True)
             if weak_skill_ids.exists():
-                queryset = queryset.filter(skill_id__in=list(weak_skill_ids))
+                queryset = queryset.filter(skills__id__in=list(weak_skill_ids))
             else:
                 # If user has no weak skills, return empty or handle as needed
                 queryset = queryset.none()

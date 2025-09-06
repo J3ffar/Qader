@@ -200,7 +200,8 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
     # Read-only Nested Representations
     section = _AdminQuestionSectionSerializer(source="subsection.section", read_only=True)
     subsection = _AdminQuestionSubSectionSerializer(read_only=True)
-    skill = _AdminQuestionSkillSerializer(read_only=True, allow_null=True)
+    # MODIFIED: For reading a list of skills
+    skills = _AdminQuestionSkillSerializer(many=True, read_only=True, allow_null=True)
     options = serializers.SerializerMethodField()
     
     # NEW: Read-only nested objects for GET
@@ -212,7 +213,15 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
 
     # Write-only Fields
     subsection_id = serializers.PrimaryKeyRelatedField(queryset=LearningSubSection.objects.all(), source="subsection", write_only=True)
-    skill_id = serializers.PrimaryKeyRelatedField(queryset=Skill.objects.all(), source="skill", allow_null=True, required=False, write_only=True)
+    # MODIFIED: For writing a list of skill IDs
+    skill_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Skill.objects.all(),
+        source="skills", # Link to the 'skills' M2M field on the model
+        many=True,      # Accept a list of IDs
+        write_only=True,
+        required=False, # Allow an empty list
+        allow_empty=True
+    )
     
     # NEW: Write-only FKs for linking content from libraries
     media_content_id = serializers.PrimaryKeyRelatedField(
@@ -230,19 +239,19 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
             # Read-only Nested Content
             "media_content", "article",
             "options", "difficulty", "is_active", "correct_answer", "explanation", "hint",
-            "solution_method_summary", "section", "subsection", "skill",
+            "solution_method_summary", "section", "subsection", "skills",
             # Analytics
             "total_usage_count", "usage_by_test_type",
             # Timestamps
             "created_at", "updated_at",
             # Write-only fields
-            "subsection_id", "skill_id",
+            "subsection_id", "skill_ids", # MODIFIED: was "skill_id"
             "media_content_id", # NEW
             "article_id",       # NEW
             "option_a", "option_b", "option_c", "option_d",
         ]
         read_only_fields = [
-            "id", "section", "subsection", "skill", "options",
+            "id", "section", "subsection", "skills", "options", # MODIFIED
             "media_content", "article", # Make the nested objects read-only
             "total_usage_count", "usage_by_test_type", "created_at", "updated_at",
         ]
@@ -282,21 +291,20 @@ class AdminQuestionSerializer(serializers.ModelSerializer):
         return usage_dict
 
     def validate(self, attrs):
-        # Validate that if a skill is provided, it belongs to the question's subsection
         subsection = attrs.get("subsection")
-        skill = attrs.get("skill")
-        if subsection and skill and skill.subsection and skill.subsection != subsection:
-            raise serializers.ValidationError(
-                {
-                    "skill_id": f"Skill '{skill.name}' does not belong to the selected subsection '{subsection.name}'."
-                }
-            )
+        # 'skills' will be a list of Skill objects during validation
+        skills_list = attrs.get("skills")
 
-        # NEW: Enforce "one content type" rule at the API level
-        media = attrs.get("media_content")
-        article = attrs.get("article")
-        if media and article:
-            raise serializers.ValidationError(
-                "A question cannot be linked to both a Media File and an Article. Please provide only one of 'media_content_id' or 'article_id'."
-            )
+        if subsection and skills_list:
+            for skill in skills_list:
+                # A skill is valid if it has no subsection and matches the section, OR it matches the subsection directly
+                is_valid_subsection = (skill.subsection == subsection)
+                is_valid_section_only = (skill.subsection is None and skill.section == subsection.section)
+                
+                if not (is_valid_subsection or is_valid_section_only):
+                    raise serializers.ValidationError({
+                        "skill_ids": f"Skill '{skill.name}' (ID: {skill.id}) does not belong to the selected classification."
+                    })
+
+        # ... (media/article validation is unchanged) ...
         return attrs

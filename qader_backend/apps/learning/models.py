@@ -391,14 +391,17 @@ class Question(TimeStampedModel):
         verbose_name=_("Sub-Section"),
         db_index=True,
     )
-    skill: Skill | None = models.ForeignKey(
+    # --- THIS IS THE KEY CHANGE ---
+    # REMOVED: The old ForeignKey to Skill
+    # skill: Skill | None = models.ForeignKey(...) 
+
+    # ADDED: The new ManyToManyField
+    skills = models.ManyToManyField(
         Skill,
         related_name="questions",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name=_("Primary Skill"),
-        db_index=True,
+        blank=True, # A question can have zero skills
+        verbose_name=_("Skills"),
+        help_text=_("The skills tested by this question.")
     )
     question_text: str = models.TextField(_("Question Text"))
     
@@ -486,7 +489,7 @@ class Question(TimeStampedModel):
     class Meta:
         verbose_name = _("Question")
         verbose_name_plural = _("Questions")
-        ordering = ["subsection", "skill", "id"]
+        ordering = ["subsection", "id"] # ordering by skill is no longer practical
 
     def __str__(self) -> str:
         limit = 80
