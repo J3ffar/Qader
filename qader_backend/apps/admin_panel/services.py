@@ -6,8 +6,9 @@ from django.db import transaction
 from django.db.models import Count, QuerySet
 from django.utils import timezone
 from apps.study.models import UserTestAttempt
-from apps.users.models import UserProfile  # NEW IMPORT
+from apps.users.models import UserProfile
 from rest_framework.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 from apps.learning.models import (
     Question,
@@ -393,69 +394,108 @@ def get_filtered_questions(filters: dict) -> QuerySet[Question]:
     return queryset.order_by("id")
 
 
+ARABIC_QUESTION_HEADERS = [
+    "معرف السؤال",
+    "نص السؤال",
+    "نشط",
+    "خيار أ",
+    "خيار ب",
+    "خيار ج",
+    "خيار د",
+    "الإجابة الصحيحة",
+    "الشرح",
+    "تلميح",
+    "ملخص الحل",
+    "مستوى الصعوبة",
+    "نوع الاختبار",
+    "القسم الرئيسي",
+    "القسم الفرعي",
+    "المهارات",
+    "عنوان الوسائط",
+    "عنوان المقال",
+]
+
+ARABIC_DIFFICULTY_TO_INT = {
+    str(_("Very Easy")): 1,
+    str(_("Easy")): 2,
+    str(_("Medium")): 3,
+    str(_("Hard")): 4,
+    str(_("Very Hard")): 5,
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    1: 1,
+    2: 2,
+    3: 3,
+    4: 4,
+    5: 5,
+}
+
+LATIN_TO_ARABIC_CHOICE = {
+    "A": "أ",
+    "B": "ب",
+    "C": "ج",
+    "D": "د",
+}
+
+ARABIC_TO_LATIN_CHOICE = {
+    "أ": "A",
+    "ب": "B",
+    "ج": "C",
+    "د": "D",
+}
+
+
 def generate_question_export_file_content(
     queryset: QuerySet[Question], export_format: str = "xlsx"
 ):
     """
-    Generates a user-friendly Excel (XLSX) file from a question queryset.
+    Generates a user-friendly Excel (XLSX) file for questions with Arabic headers.
     """
-    headers = [
-        "Question ID",
-        "Question Text",
-        "Is Active",
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D",
-        "Correct Answer",
-        "Explanation",
-        "Hint",
-        "Solution Summary",
-        "Difficulty",
-        "Test Type Name",
-        "Section Name",
-        "Sub-Section Name",
-        "Skill Name",
-        "Media Content Title",
-        "Article Title",
-    ]
+    headers = ARABIC_QUESTION_HEADERS  # Use Arabic headers
     filename = (
         f"qader_questions_{timezone.now().strftime('%Y%m%d_%H%M%S')}.{export_format}"
     )
 
     if export_format != "xlsx":
-        raise NotImplementedError(
-            "Only XLSX format is supported for question export for now."
-        )
+        raise NotImplementedError("Only XLSX format is supported for question export.")
 
     output = BytesIO()
     workbook = openpyxl.Workbook()
     sheet = workbook.active
-    sheet.title = "Questions"
+    sheet.title = "الأسئلة"  # Sheet title in Arabic
     sheet.append(headers)
 
+    # Set sheet direction to Right-to-Left for better Arabic readability in Excel
+    sheet.sheet_view.rightToLeft = True
+
     for q in queryset.iterator(chunk_size=2000):
-        # MODIFIED: Join skill names into a single string
         skill_names = ", ".join(skill.name for skill in q.skills.all())
+
+        correct_answer_arabic = LATIN_TO_ARABIC_CHOICE.get(
+            q.correct_answer, q.correct_answer
+        )
 
         sheet.append(
             [
                 q.id,
                 q.question_text,
-                "TRUE" if q.is_active else "FALSE",
+                1 if q.is_active else 0,  # MODIFIED: Use 1/0 for Is Active
                 q.option_a,
                 q.option_b,
                 q.option_c,
                 q.option_d,
-                q.correct_answer,
+                correct_answer_arabic,
                 q.explanation,
                 q.hint,
                 q.solution_method_summary,
-                q.get_difficulty_display(),  # Human-readable difficulty
+                q.get_difficulty_display(),  # Still export the human-readable Arabic name
                 getattr(q.subsection.section.test_type, "name", ""),
                 getattr(q.subsection.section, "name", ""),
                 getattr(q.subsection, "name", ""),
-                skill_names,  # MODIFIED
+                skill_names,
                 getattr(q.media_content, "title", ""),
                 getattr(q.article, "title", ""),
             ]
@@ -471,8 +511,7 @@ def generate_question_export_file_content(
 @transaction.atomic
 def process_question_import_file(file_obj, update_strategy: str):
     """
-    Processes an uploaded Excel file to create or update questions.
-    If classification items (Test Type, Section, etc.) do not exist, they are created automatically.
+    Processes an uploaded Excel file with Arabic headers to create or update questions.
     """
     try:
         workbook = openpyxl.load_workbook(file_obj)
@@ -481,26 +520,8 @@ def process_question_import_file(file_obj, update_strategy: str):
         raise ValidationError(f"Could not read the Excel file. Error: {str(e)}")
 
     headers = [cell.value for cell in sheet[1]]
-    expected_headers = [
-        "Question ID",
-        "Question Text",
-        "Is Active",
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D",
-        "Correct Answer",
-        "Explanation",
-        "Hint",
-        "Solution Summary",
-        "Difficulty",
-        "Test Type Name",
-        "Section Name",
-        "Sub-Section Name",
-        "Skill Name",
-        "Media Content Title",
-        "Article Title",
-    ]
+    expected_headers = ARABIC_QUESTION_HEADERS  # Check against Arabic headers
+
     if headers != expected_headers:
         raise ValidationError(
             {
@@ -513,117 +534,122 @@ def process_question_import_file(file_obj, update_strategy: str):
     errors = []
     created_count = 0
     updated_count = 0
-    difficulty_map = {v: k for k, v in Question.DifficultyLevel.choices}
+
+    # Create a map from header name to its index for robust data access
+    header_map = {header: i for i, header in enumerate(headers)}
 
     for row_idx, row in enumerate(sheet.iter_rows(min_row=2), start=2):
-        data = dict(zip(headers, [cell.value for cell in row]))
-        if not any(data.values()):
+        row_values = [cell.value for cell in row]
+        if not any(row_values):
             continue  # Skip empty rows
 
+        # Helper to get data by Arabic header name
+        def get_data(header_name):
+            return row_values[header_map[header_name]]
+
         try:
-            # --- MODIFIED: Use get_or_create for the entire hierarchy ---
-
-            # 1. Get or Create Test Type
-            test_type_name = data.get("Test Type Name")
+            # --- MODIFIED: Use get_or_create with Arabic headers ---
+            test_type_name = get_data("نوع الاختبار")
             if not test_type_name:
-                raise ValueError("'Test Type Name' is required.")
-            test_type, created = TestType.objects.get_or_create(
-                name=test_type_name,
-                defaults={
-                    "status": TestType.TestTypeStatus.ACTIVE
-                },  # Sensible default if created
-            )
+                raise ValueError("'نوع الاختبار' is required.")
+            test_type, _ = TestType.objects.get_or_create(name=test_type_name)
 
-            # 2. Get or Create Learning Section (linked to the Test Type)
-            section_name = data.get("Section Name")
+            section_name = get_data("القسم الرئيسي")
             if not section_name:
-                raise ValueError("'Section Name' is required.")
-            section, created = LearningSection.objects.get_or_create(
+                raise ValueError("'القسم الرئيسي' is required.")
+            section, _ = LearningSection.objects.get_or_create(
                 name=section_name, test_type=test_type
             )
 
-            # 3. Get or Create Learning Sub-Section (linked to the Section)
-            subsection_name = data.get("Sub-Section Name")
+            subsection_name = get_data("القسم الفرعي")
             if not subsection_name:
-                raise ValueError("'Sub-Section Name' is required.")
-            subsection, created = LearningSubSection.objects.get_or_create(
-                name=subsection_name, section=section, defaults={"is_active": True}
+                raise ValueError("'القسم الفرعي' is required.")
+            subsection, _ = LearningSubSection.objects.get_or_create(
+                name=subsection_name, section=section
             )
 
-            # MODIFIED: Logic to handle multiple, comma-separated skills
             skills_to_set = []
-            skill_names_str = data.get("Skill Name")
+            skill_names_str = get_data("المهارات")
             if skill_names_str:
-                # Split the string by commas and strip whitespace from each name
                 skill_names_list = [
                     name.strip()
                     for name in str(skill_names_str).split(",")
                     if name.strip()
                 ]
-
                 for skill_name in skill_names_list:
-                    skill, created = Skill.objects.get_or_create(
-                        name=skill_name,
-                        section=section,
-                        subsection=subsection,
-                        defaults={"is_active": True},
+                    skill, _ = Skill.objects.get_or_create(
+                        name=skill_name, section=section, subsection=subsection
                     )
                     skills_to_set.append(skill)
 
-            # --- End of Modified Section ---
-
-            # Media and Article are still lookups only. We don't want to auto-create
-            # empty library items. The admin should create these intentionally.
+            media_title = get_data("عنوان الوسائط")
             media_content = (
-                MediaFile.objects.get(title=data["Media Content Title"])
-                if data.get("Media Content Title")
-                else None
-            )
-            article = (
-                Article.objects.get(title=data["Article Title"])
-                if data.get("Article Title")
-                else None
+                MediaFile.objects.get(title=media_title) if media_title else None
             )
 
-            if media_content and article:
-                raise ValueError("Cannot link both Media Content and an Article.")
+            article_title = get_data("عنوان المقال")
+            article = (
+                Article.objects.get(title=article_title) if article_title else None
+            )
+
+            # --- Data Cleaning with Arabic/Numeric values ---
+            difficulty_input = get_data("مستوى الصعوبة")
+            difficulty_value = ARABIC_DIFFICULTY_TO_INT.get(difficulty_input)
+            if difficulty_value is None:
+                raise ValueError(
+                    f"قيمة مستوى الصعوبة غير صالحة: '{difficulty_input}'. يجب أن تكون أحد الخيارات: {list(ARABIC_DIFFICULTY_TO_INT.keys())}"
+                )
+
+            is_active = get_data("نشط") == 1  # Check if value is 1
+
+            correct_answer_input = get_data("الإجابة الصحيحة")
+            correct_answer_latin = ARABIC_TO_LATIN_CHOICE.get(correct_answer_input)
+
+            if correct_answer_latin is None:
+                # Also check if they entered Latin letters directly, for convenience
+                if str(correct_answer_input).upper() in LATIN_TO_ARABIC_CHOICE:
+                    correct_answer_latin = str(correct_answer_input).upper()
+                else:
+                    raise ValueError(
+                        f"قيمة الإجابة الصحيحة غير صالحة: '{correct_answer_input}'. يجب أن تكون أحد الخيارات: أ, ب, ج, د"
+                    )
 
             # --- Create or Update Logic (Unchanged) ---
-            question_id = data.get("Question ID")
+            question_id = get_data("معرف السؤال")
+
             question = (
                 Question.objects.filter(id=question_id).first() if question_id else None
             )
-
             if question and update_strategy == "SKIP":
                 continue
-
             if not question:
                 question = Question()
                 is_update = False
             else:
                 is_update = True
 
-            # Assigning values...
-            question.question_text = data["Question Text"]
-            question.is_active = str(data["Is Active"]).upper() == "TRUE"
-            question.option_a, question.option_b = data["Option A"], data["Option B"]
-            question.option_c, question.option_d = data["Option C"], data["Option D"]
-            question.correct_answer = str(data["Correct Answer"]).upper()
-            question.difficulty = difficulty_map[data["Difficulty"]]
-            question.explanation, question.hint = data["Explanation"], data["Hint"]
-            question.solution_method_summary = data["Solution Summary"]
+            question.question_text = get_data("نص السؤال")
+            question.is_active = is_active
+            question.option_a, question.option_b = get_data("خيار أ"), get_data(
+                "خيار ب"
+            )
+            question.option_c, question.option_d = get_data("خيار ج"), get_data(
+                "خيار د"
+            )
+            question.correct_answer = correct_answer_latin
+            question.difficulty = difficulty_value
+            question.explanation, question.hint = get_data("الشرح"), get_data("تلميح")
+            question.solution_method_summary = get_data("ملخص الحل")
             question.subsection = subsection
-            question.media_content = media_content
-            question.article = article
+            question.media_content, question.article = media_content, article
 
             question.full_clean()
             question.save()
 
-            # MODIFIED: Set the M2M relationship *after* the main object is saved
             if skills_to_set:
                 question.skills.set(skills_to_set)
             else:
-                question.skills.clear()  # If the cell is empty, remove all skills
+                question.skills.clear()
 
             if is_update:
                 updated_count += 1
@@ -635,7 +661,7 @@ def process_question_import_file(file_obj, update_strategy: str):
 
     if errors:
         raise ValidationError(
-            {"detail": "Import failed due to errors.", "errors": errors}
+            {"detail": "فشل الاستيراد بسبب وجود أخطاء.", "errors": errors}
         )
 
     return {"created": created_count, "updated": updated_count}

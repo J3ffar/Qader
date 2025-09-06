@@ -43,6 +43,7 @@ from django.http import HttpResponse
 
 from apps.admin_panel.models import ExportJob
 from apps.admin_panel import services as admin_services
+from ...services import ARABIC_QUESTION_HEADERS  # Import the new constant
 
 from ..serializers.statistics import ExportTaskResponseSerializer
 from rest_framework.reverse import reverse
@@ -312,7 +313,7 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         "subsection__section__test_type__id": ["exact"],
         "subsection__section__id": ["exact"],
         "subsection__id": ["exact"],
-        "skills__id": ["exact", "in"], # MODIFIED: was "skill__id"
+        "skills__id": ["exact", "in"],  # MODIFIED: was "skill__id"
         "difficulty": ["exact", "in", "gte", "lte"],
         "is_active": ["exact"],
         "correct_answer": ["exact"],
@@ -343,7 +344,9 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         # MODIFIED: Update select_related for new structure
         queryset = queryset.select_related(
             "subsection__section__test_type", "media_content", "article"
-        ).prefetch_related("skills") # MODIFIED
+        ).prefetch_related(
+            "skills"
+        )  # MODIFIED
         queryset = queryset.annotate(total_usage_count=Count("user_attempts"))
         return queryset.order_by("-created_at")
 
@@ -481,35 +484,22 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="import-template")
     def get_import_template(self, request):
         """
-        Downloads a blank Excel template with the correct headers for importing questions.
+        Downloads a blank Excel template with Arabic headers for importing questions.
         """
-        # The Python logic here is correct and does not need to change.
-        headers = [
-            "Question ID",
-            "Question Text",
-            "Is Active",
-            "Option A",
-            "Option B",
-            "Option C",
-            "Option D",
-            "Correct Answer",
-            "Explanation",
-            "Hint",
-            "Solution Summary",
-            "Difficulty",
-            "Test Type Name",
-            "Section Name",
-            "Sub-Section Name",
-            "Skill Name",
-            "Media Content Title",
-            "Article Title",
-        ]
+        headers = ARABIC_QUESTION_HEADERS  # Use the constant for consistency
 
         output = BytesIO()
         workbook = openpyxl.Workbook()
         sheet = workbook.active
-        sheet.title = "Questions Import Template"
+        sheet.title = "نموذج استيراد الأسئلة"
         sheet.append(headers)
+
+        # Set sheet to Right-to-Left
+        sheet.sheet_view.rightToLeft = True
+
+        # Add a helpful note in Arabic
+        note_cell = sheet["A2"]
+        note_cell.value = "ملاحظات: لا تغير العناوين. اترك 'معرف السؤال' فارغًا للأسئلة الجديدة. استخدم '1' لـ 'نشط' و '0' لغير نشط. استخدم أ, ب, ج, د للإجابة الصحيحة, ويمكن في مستوى الصعوبة وضع الأرقام من 1 الى 5 لتمثيل الصعوبة (سهل جداً - صعب جداً)."
 
         workbook.save(output)
         output.seek(0)
