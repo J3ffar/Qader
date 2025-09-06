@@ -119,9 +119,8 @@ def generate_ai_question_and_message(
     )
 
     # 2. Generate AI Cheer Message using AIInteractionManager
-    skill_name = (
-        selected_question.skill.name if selected_question.skill else "a relevant topic"
-    )
+    first_skill = selected_question.skills.first()
+    skill_name = first_skill.name if first_skill else "a relevant topic"
     topic_context = skill_name
 
     context_params_for_cheer = {
@@ -214,11 +213,9 @@ def prepare_understanding_test(
     )  # Fallback
 
     if ai_manager.is_available():
-        topic_context = (
-            original_question.skill.name
-            if original_question.skill
-            else "the previous topic"
-        )
+        # MODIFIED: Handle multiple skills, picking the first one for context.
+        first_skill = original_question.skills.first()
+        topic_context = first_skill.name if first_skill else "the previous topic"
         context_params = {"topic_context": topic_context}
 
         system_prompt = ai_manager._construct_system_prompt(
@@ -522,10 +519,11 @@ def select_test_question_for_concept(
         )
         return None
 
-    target_skill = original_question.skill
+    # MODIFIED: The original question can have multiple skills
+    target_skills = original_question.skills.all()
     target_subsection = original_question.subsection
 
-    if not target_skill and not target_subsection:
+    if not target_skills and not target_subsection:
         logger.warning(
             f"Original question {original_question.id} lacks both skill and subsection. Cannot select related test question."
         )
@@ -544,25 +542,23 @@ def select_test_question_for_concept(
         .order_by("-attempted_at")
         .values_list("question_id", flat=True)[:20]
     )  # Limit check
-
-    exclude_ids = set(recent_correct_conv_ids) | {
-        original_question.id
-    }  # Use set for efficiency
+    exclude_ids = set(recent_correct_conv_ids) | {original_question.id}
 
     test_question = None
-    # Prioritize finding a question with the same skill
-    if target_skill:
+    # Prioritize finding a question with at least one of the same skills
+    if target_skills:
+        # MODIFIED: Was filter(skill=target_skill)
         test_question = (
-            Question.objects.filter(skill=target_skill, is_active=True)
+            Question.objects.filter(skills__in=target_skills, is_active=True)
             .exclude(id__in=exclude_ids)
             .order_by("?")
             .first()
-        )  # Random selection
+        )
 
     # Fallback to the same subsection if no skill-match found
     if not test_question and target_subsection:
         logger.info(
-            f"No suitable test question found for Skill ID {target_skill.id if target_skill else 'N/A'}. Falling back to Subsection ID {target_subsection.id}."
+            f"No suitable test question found for Skill IDs {list(target_skills.values_list('id', flat=True)) if target_skills else 'N/A'}. Falling back to Subsection ID {target_subsection.id}."
         )
         test_question = (
             Question.objects.filter(subsection=target_subsection, is_active=True)
@@ -573,11 +569,11 @@ def select_test_question_for_concept(
 
     if test_question:
         logger.info(
-            f"Selected test question {test_question.id} (Skill: {test_question.skill_id}, SubSec: {test_question.subsection_id}) related to original Q:{original_question.id} for user {user.id}."
+            f"Selected test question {test_question.id} (Skills: {list(test_question.skills.values_list('id', flat=True))}, SubSec: {test_question.subsection_id}) related to original Q:{original_question.id} for user {user.id}."
         )
     else:
         logger.warning(
-            f"No suitable *different* test question found related to original Q:{original_question.id} (Skill: {target_skill.id if target_skill else 'N/A'}, SubSec: {target_subsection.id if target_subsection else 'N/A'}) for user {user.id}."
+            f"No suitable *different* test question found related to original Q:{original_question.id} (Skills: {list(target_skills.values_list('id', flat=True)) if target_skills else 'N/A'}, SubSec: {target_subsection.id if target_subsection else 'N/A'}) for user {user.id}."
         )
 
     return test_question
@@ -635,11 +631,13 @@ def record_conversation_test_attempt(
         f"{log_prefix} conversation test attempt {attempt.id} for user {user.username} (ID: {user.id}), Q:{test_question.id}, Session:{session.id}. Correct: {attempt.is_correct}"
     )
 
-    # Update Skill Proficiency
-    if attempt.is_correct is not None:  # Only update if correctness is determined
-        update_user_skill_proficiency(
-            user=user, skill=test_question.skill, is_correct=attempt.is_correct
-        )
+    # Update Skill Proficiency for EACH skill associated with the question
+    if attempt.is_correct is not None:
+        # MODIFIED: Loop through all skills
+        for skill in test_question.skills.all():
+            update_user_skill_proficiency(
+                user=user, skill=skill, is_correct=attempt.is_correct
+            )
     else:
         logger.warning(
             f"Skill proficiency not updated for attempt {attempt.id} as is_correct is None."

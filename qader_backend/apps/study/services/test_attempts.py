@@ -81,9 +81,11 @@ def record_single_answer(
         defaults=attempt_defaults,
     )
 
-    update_user_skill_proficiency(
-        user=user, skill=question.skill, is_correct=question_attempt.is_correct
-    )
+    # MODIFIED: Loop through all skills of the question and update proficiency for each.
+    for skill in question.skills.all():
+        update_user_skill_proficiency(
+            user=user, skill=skill, is_correct=question_attempt.is_correct
+        )
 
     feedback = {
         "question_id": question.id,
@@ -131,9 +133,15 @@ def complete_test_attempt(test_attempt: UserTestAttempt) -> Dict[str, Any]:
         test_attempt.status = UserTestAttempt.Status.COMPLETED
         test_attempt.end_time = timezone.now()
 
-        question_attempts_qs = test_attempt.question_attempts.select_related(
-            "question__subsection__section", "question__skill"
-        ).all()
+        question_attempts_qs = (
+            test_attempt.question_attempts.select_related(
+                "question__subsection__section"
+            )
+            .prefetch_related(
+                "question__skills"  # Correct way to fetch many-to-many related data
+            )
+            .all()
+        )
 
         score_data = {}
         try:

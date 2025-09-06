@@ -61,7 +61,7 @@ def get_filtered_questions(
     if subsections:
         filters &= Q(subsection__slug__in=subsections)
     if skills:
-        filters &= Q(skill__slug__in=skills)
+        filters &= Q(skills__slug__in=skills)
 
     if starred:
         if not user or not user.is_authenticated:
@@ -88,8 +88,10 @@ def get_filtered_questions(
                         "skill_id", flat=True
                     )
                 )
-                not_mastered_filter = Q(skill_id__in=low_prof_skill_ids) | (
-                    Q(skill__isnull=False) & ~Q(skill_id__in=attempted_skill_ids)
+                # MODIFIED: Was Q(skill_id__in=...) and Q(skill__isnull=False)
+                # Now checks if any of the question's skills match the criteria.
+                not_mastered_filter = Q(skills__id__in=low_prof_skill_ids) | (
+                    Q(skills__isnull=False) & ~Q(skills__id__in=attempted_skill_ids)
                 )
                 filters &= not_mastered_filter
             except Exception as e:
@@ -139,7 +141,8 @@ def get_filtered_questions(
     final_queryset = (
         Question.objects.with_user_annotations(user=user)
         .filter(id__in=random_ids)
-        .select_related("subsection", "subsection__section", "skill")
+        .select_related("subsection", "subsection__section")
+        .prefetch_related("skills")  # KEY CHANGE FOR PERFORMANCE
         .order_by(preserved_order)
     )
 

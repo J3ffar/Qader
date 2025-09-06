@@ -355,7 +355,7 @@ class UserTestAttemptAnswerView(generics.GenericAPIView):
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.exception(
-                f"Unexpected error recording answer for attempt {attempt_id}, Q {question.id}, User {request.user.id}: {e}"
+                f"Unexpected error recording answer for attempt {attempt_id}, Q {question_id}, User {request.user.id}: {e}"
             )
             return Response(
                 {"detail": _("An internal error occurred while recording the answer.")},
@@ -635,8 +635,8 @@ class UserTestAttemptReviewView(generics.GenericAPIView):
     def get(self, request, attempt_id, *args, **kwargs):
         test_attempt = self.get_object()
 
-        all_questions_queryset = test_attempt.get_questions_queryset().select_related(
-            "subsection__section", "skill"
+        all_questions_queryset = test_attempt.get_questions_queryset().prefetch_related(
+            "subsection__section", "skills"
         )
         all_question_ids_ordered = list(
             all_questions_queryset.values_list("id", flat=True)

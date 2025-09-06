@@ -286,7 +286,8 @@ class UserTestAttempt(models.Model):
         return (
             Question.objects.with_user_annotations(self.user)
             .filter(pk__in=valid_question_ids)
-            .select_related("subsection", "subsection__section", "skill")
+            .select_related("subsection", "subsection__section")
+            .prefetch_related("skills")
             .order_by(preserved_order)
         )
 
@@ -301,9 +302,11 @@ class UserTestAttempt(models.Model):
             A dictionary of fields and their calculated values to be saved.
         """
         if question_attempts_qs is None:
-            question_attempts_qs = self.question_attempts.select_related(
-                "question__subsection__section", "question__skill"
-            ).all()
+            question_attempts_qs = (
+                self.question_attempts.select_related("question__subsection__section")
+                .prefetch_related("question__skills")
+                .all()
+            )
 
         total_questions_in_attempt = self.num_questions
         answered_attempts = list(question_attempts_qs)

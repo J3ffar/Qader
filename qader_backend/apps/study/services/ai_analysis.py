@@ -49,47 +49,67 @@ def _format_user_answers_for_ai(
     max_questions_to_detail: int = AI_ANALYSIS_MAX_ANSWER_DETAILS,
 ) -> str:
     """Formats user's question attempts into a string for the AI prompt."""
+
     question_attempts = list(
-        user_test_attempt.question_attempts.select_related(
-            "question__subsection", "question__skill"
-        ).all()
+        user_test_attempt.question_attempts.select_related("question__subsection")
+        .prefetch_related("question__skills")
+        .all()
     )
+
     if not question_attempts:
         return _("No specific answer details available for this attempt.")
+
     answer_details_lines = []
     incorrect_attempts = [qa for qa in question_attempts if qa.is_correct is False]
     correct_attempts = [qa for qa in question_attempts if qa.is_correct is True]
+
     for qa in incorrect_attempts:
         if len(answer_details_lines) >= max_questions_to_detail:
             break
         q = qa.question
+
+        skill_names = (
+            ", ".join(skill.name for skill in q.skills.all())
+            if q.skills.exists()
+            else _("N/A")
+        )
+
         line = _(
-            "Question in '{subsection}' (Skill: {skill}): Your answer '{user_ans}', Correct: '{correct_ans}' (Incorrect)."
+            "Question in '{subsection}' (Skills: {skills}): Your answer '{user_ans}', Correct: '{correct_ans}' (Incorrect)."
         ).format(
             subsection=q.subsection.name if q.subsection else _("N/A"),
-            skill=q.skill.name if q.skill else _("N/A"),
+            skills=skill_names,  # Use the joined string of skill names
             user_ans=qa.selected_answer or _("Not Answered"),
             correct_ans=q.correct_answer,
         )
         answer_details_lines.append(line)
+
     remaining_space = max_questions_to_detail - len(answer_details_lines)
     if remaining_space > 0:
         for qa in correct_attempts[: min(remaining_space, 2)]:
             q = qa.question
+
+            skill_names = (
+                ", ".join(skill.name for skill in q.skills.all())
+                if q.skills.exists()
+                else _("N/A")
+            )
             line = _(
-                "Question in '{subsection}' (Skill: {skill}): Your answer '{user_ans}' (Correct)."
+                "Question in '{subsection}' (Skills: {skills}): Your answer '{user_ans}' (Correct)."
             ).format(
                 subsection=q.subsection.name if q.subsection else _("N/A"),
-                skill=q.skill.name if q.skill else _("N/A"),
+                skills=skill_names,  # Use the joined string of skill names
                 user_ans=qa.selected_answer,
             )
             answer_details_lines.append(line)
+
     if len(question_attempts) > len(answer_details_lines) >= max_questions_to_detail:
         answer_details_lines.append(
             _("... (and {num_more} other questions were answered).").format(
                 num_more=len(question_attempts) - len(answer_details_lines)
             )
         )
+
     return (
         "\n".join(answer_details_lines)
         if answer_details_lines
