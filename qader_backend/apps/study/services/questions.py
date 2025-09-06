@@ -2,11 +2,11 @@ import random
 import logging
 from typing import Optional, List
 
-from django.db.models import QuerySet, Q, Case, When, IntegerField
+from django.db.models import QuerySet, Q, Case, When, IntegerField, Prefetch
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from apps.learning.models import Question
+from apps.learning.models import Question, Skill
 from apps.study.models import UserSkillProficiency
 from django.contrib.auth import get_user_model
 
@@ -138,11 +138,15 @@ def get_filtered_questions(
         output_field=IntegerField(),
     )
 
+    skills_prefetch = Prefetch(
+        "skills", queryset=Skill.objects.select_related("section")
+    )
+
     final_queryset = (
         Question.objects.with_user_annotations(user=user)
         .filter(id__in=random_ids)
-        .select_related("subsection", "subsection__section")
-        .prefetch_related("skills")  # KEY CHANGE FOR PERFORMANCE
+        .select_related("subsection__section", "media_content", "article")
+        .prefetch_related(skills_prefetch)
         .order_by(preserved_order)
     )
 
