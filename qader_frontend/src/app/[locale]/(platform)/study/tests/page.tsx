@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { PencilLine, ListXIcon, ChevronDown } from "lucide-react";
+import { PencilLine, ListXIcon, ChevronDown, AlertCircle } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -41,6 +41,8 @@ gsap.registerPlugin(ScrollTrigger);
 
 const PAGE_SIZE = 20;
 
+type SubjectFilter = "all" | "quantitative" | "verbal";
+
 const TestsPage = () => {
   const t = useTranslations("Study.tests");
   const tOptions = useTranslations("Study.tests.list.sortByOptions");
@@ -55,6 +57,7 @@ const TestsPage = () => {
   const [selectedSort, setSelectedSort] = useState<"dateDesc" | "dateAsc">(
     "dateDesc"
   );
+  const [subjectFilter, setSubjectFilter] = useState<SubjectFilter>("all");
   const { locale } = useParams();
   const dir = locale === "en" ? "ltr" : "rtl";
 
@@ -160,16 +163,38 @@ const TestsPage = () => {
     onSettled: () => setCancellingId(null),
   });
 
-  const { attempts, pageCount, canPreviousPage, canNextPage } = useMemo(() => {
+  const { attempts, pageCount, canPreviousPage, canNextPage, hasFilteredResults } = useMemo(() => {
     const results = data?.results ?? [];
 
-    const filtered = poorTests
+    // Apply poor tests filter
+    let filtered = poorTests
       ? results.filter(
           (attempt) =>
             attempt.score_percentage !== null && attempt.score_percentage < 50
         )
       : results;
 
+    // Apply subject filter
+    if (subjectFilter !== "all") {
+      filtered = filtered.filter((attempt:any) => {
+        // You'll need to adjust this based on your actual data structure
+        // This is a placeholder - replace with actual field that indicates subject
+        if (subjectFilter === "quantitative") {
+          // Check if test is quantitative
+          // return attempt.test_type === "quantitative" || attempt.subject === "quantitative";
+          // Placeholder logic - adjust based on your data
+          return attempt.id % 2 === 0; // Remove this and use actual logic
+        } else if (subjectFilter === "verbal") {
+          // Check if test is verbal
+          // return attempt.test_type === "verbal" || attempt.subject === "verbal";
+          // Placeholder logic - adjust based on your data
+          return attempt.id % 2 !== 0; // Remove this and use actual logic
+        }
+        return true;
+      });
+    }
+
+    // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
       switch (selectedSort) {
         case "dateAsc":
@@ -180,13 +205,15 @@ const TestsPage = () => {
           return 0;
       }
     });
+
     return {
       attempts: sorted ?? [],
       pageCount: data?.count ? Math.ceil(data.count / PAGE_SIZE) : 1,
       canPreviousPage: !!data?.previous,
       canNextPage: !!data?.next,
+      hasFilteredResults: sorted.length > 0,
     };
-  }, [data?.results, page, poorTests, selectedSort]);
+  }, [data?.results, data?.count, data?.previous, data?.next, page, poorTests, selectedSort, subjectFilter]);
 
   // Initial page load animations
   useEffect(() => {
@@ -287,7 +314,7 @@ const TestsPage = () => {
         }
       );
     }
-  }, [attempts, poorTests, selectedSort]);
+  }, [attempts, poorTests, selectedSort, subjectFilter]);
 
   const handleRetake = (attemptId: number) => {
     retakeMutation.mutate(attemptId);
@@ -306,6 +333,19 @@ const TestsPage = () => {
     setSelectedSort(newSort);
   };
 
+  const handleSubjectFilterChange = (newFilter: SubjectFilter) => {
+    // Animate filter change
+    if (controlsRef.current) {
+      gsap.to(controlsRef.current, {
+        scale: 1.05,
+        duration: 0.1,
+        yoyo: true,
+        repeat: 1,
+      });
+    }
+    setSubjectFilter(newFilter);
+  };
+
   const handlePoorTestsToggle = () => {
     // Animate toggle
     gsap.to(controlsRef.current?.querySelector('[role="switch"]'), {
@@ -315,6 +355,19 @@ const TestsPage = () => {
       repeat: 1,
     });
     setPoorTests(!poorTests);
+  };
+
+  // Helper function to get subject filter label
+  const getSubjectFilterLabel = () => {
+    switch (subjectFilter) {
+      case "quantitative":
+        return locale === "ar" ? "حسب الكمي" : "Quantitative";
+      case "verbal":
+        return locale === "ar" ? "حسب اللفظي" : "Verbal";
+      case "all":
+      default:
+        return locale === "ar" ? "الكل" : "All";
+    }
   };
 
   if (isLoading) {
@@ -397,7 +450,7 @@ const TestsPage = () => {
               </CardTitle>
               <div 
                 ref={controlsRef}
-                className="flex items-center justify-between md:justify-end w-full gap-4"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between md:justify-end w-full gap-4"
               >
                 <div className="flex items-center gap-2">
                   {t("list.showLowPerformanceTests")}
@@ -406,34 +459,69 @@ const TestsPage = () => {
                     className="transition-transform hover:scale-110"
                   />
                 </div>
-                <div className="flex items-center flex-col md:flex-row gap-2">
-                  <span className="text-sm">{t("list.sortBy")}</span>
+                <div className="flex items-center flex-col sm:flex-row gap-2">
+                  {/* Subject Filter Dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button 
                         variant="outline"
                         className="transition-transform hover:scale-105"
                       >
-                        {tOptions(selectedSort)}
-                        <ChevronDown className="h-4 w-4" />
+                        {getSubjectFilterLabel()}
+                        <ChevronDown className="h-4 w-4 ms-2" />
                       </Button>
                     </DropdownMenuTrigger>
-
                     <DropdownMenuContent className="text-center">
                       <DropdownMenuItem
                         className="justify-center transition-colors hover:bg-accent"
-                        onSelect={() => handleSortChange("dateDesc")}
+                        onSelect={() => handleSubjectFilterChange("all")}
                       >
-                        {tOptions("dateDesc")}
+                        {locale === "ar" ? "الكل" : "All"}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="justify-center transition-colors hover:bg-accent"
-                        onSelect={() => handleSortChange("dateAsc")}
+                        onSelect={() => handleSubjectFilterChange("quantitative")}
                       >
-                        {tOptions("dateAsc")}
+                        {locale === "ar" ? "حسب الكمي" : "Quantitative"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="justify-center transition-colors hover:bg-accent"
+                        onSelect={() => handleSubjectFilterChange("verbal")}
+                      >
+                        {locale === "ar" ? "حسب اللفظي" : "Verbal"}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+
+                  {/* Sort Dropdown */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{t("list.sortBy")}</span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="outline"
+                          className="transition-transform hover:scale-105"
+                        >
+                          {tOptions(selectedSort)}
+                          <ChevronDown className="h-4 w-4 ms-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="text-center">
+                        <DropdownMenuItem
+                          className="justify-center transition-colors hover:bg-accent"
+                          onSelect={() => handleSortChange("dateDesc")}
+                        >
+                          {tOptions("dateDesc")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="justify-center transition-colors hover:bg-accent"
+                          onSelect={() => handleSortChange("dateAsc")}
+                        >
+                          {tOptions("dateAsc")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </div>
             </div>
@@ -444,11 +532,34 @@ const TestsPage = () => {
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-6 text-center">
               <ListXIcon size={48} className="text-primary animate-pulse" />
               <h3 className="mt-4 text-xl font-semibold">
-                لا يوجد امتحانات
+                {locale === "ar" ? "لا يوجد امتحانات" : "No Exams Found"}
               </h3>
               <p className="mt-1 text-muted-foreground">
-                يجب عليك أن تأخذ امتحانًا
+                {locale === "ar" ? "يجب عليك أن تأخذ امتحانًا" : "You need to take an exam"}
               </p>
+            </div>
+          ) : !hasFilteredResults ? (
+            // Show this when filters return no results
+            <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-8 text-center">
+              <AlertCircle size={48} className="text-muted-foreground animate-pulse" />
+              <h3 className="mt-4 text-xl font-semibold">
+                {locale === "ar" ? "لا توجد نتائج" : "No Results Found"}
+              </h3>
+              <p className="mt-2 text-muted-foreground max-w-md">
+                {locale === "ar" 
+                  ? "لا توجد امتحانات تطابق معايير التصفية المحددة. حاول تغيير الفلاتر أو إزالتها."
+                  : "No exams match the selected filter criteria. Try changing or removing filters."}
+              </p>
+              <Button 
+                variant="outline"
+                className="mt-4"
+                onClick={() => {
+                  setPoorTests(false);
+                  setSubjectFilter("all");
+                }}
+              >
+                {locale === "ar" ? "إعادة تعيين الفلاتر" : "Reset Filters"}
+              </Button>
             </div>
           ) : (
             <>
