@@ -300,6 +300,67 @@ REST_FRAMEWORK = {
     },
 }
 
+
+def add_tag_groups(result, generator, request, public):
+    """
+    Adds x-tagGroups so ReDoc can group tags in the sidebar.
+    """
+    result["x-tagGroups"] = [
+        {
+            "name": "User",
+            "tags": [
+                "Authentication",
+                "User Profile",
+                "Notifications",
+                "Chat",
+                "Subscription Plans",
+            ],
+        },
+        {
+            "name": "Learning",
+            "tags": [
+                "Public Content",
+                "Learning Content",
+                "Study - Test Attempts (Core Actions)",
+                "Study - Level Assessment",
+                "Study - Traditional Learning",
+                "Study - Tests (Practice & Simulation)",
+                "Study - Conversational Learning",
+                "Study - Emergency Mode",
+                "Study - Statistics & Progress",
+                "Gamification",
+                "Challenges",
+            ],
+        },
+        {
+            "name": "Community",
+            "tags": [
+                "Student Community",
+                "Student Community - Partner Search",
+                "Student Community - Partner Requests",
+                "Blog",
+                "Support (User)",
+            ],
+        },
+        {
+            "name": "Admin Panel",
+            "tags": [
+                "Admin Panel - User Management",
+                "Admin Panel - User Details",
+                "Admin Panel - Learning Management",
+                "Admin Panel - Gamification Management",
+                "Admin Panel - Content Management",
+                "Admin Panel - Blog",
+                "Admin Panel - Community Management",
+                "Admin Panel - Support Management",
+                "Admin Panel - Serial Code Management",
+                "Admin Panel - Statistics",
+            ],
+        },
+    ]
+    return result
+
+
 # DRF Spectacular (OpenAPI Schema) Settings
 SPECTACULAR_SETTINGS = {
     "TITLE": "Qader Platform API",
@@ -445,8 +506,18 @@ SPECTACULAR_SETTINGS = {
         "docExpansion": "list",
         "defaultModelsExpandDepth": -1,
     },
+    "REDOC_SETTINGS": {
+        "expandResponses": "200,201",
+        "requiredPropsFirst": True,
+        "hideDownloadButton": False,
+        "hideHostname": False,
+        "expandSingleSchemaField": True,
+        "jsonSampleExpandLevel": 4,
+    },
     "PREPROCESSING_HOOKS": [],
-    "POSTPROCESSING_HOOKS": [],
+    "POSTPROCESSING_HOOKS": [
+        "qader_project.settings.base.add_tag_groups",
+    ],
 }
 
 # --- Simple JWT Settings ---
