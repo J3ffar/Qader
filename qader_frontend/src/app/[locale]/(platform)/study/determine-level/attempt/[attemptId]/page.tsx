@@ -17,6 +17,7 @@ import {
   Send,
   HelpCircle,
   Check,
+  CheckCircle2,
 } from "lucide-react";
 import {
   Dialog,
@@ -74,6 +75,10 @@ import { RichContentViewer } from "@/components/shared/RichContentViewer";
 type OptionKey = "A" | "B" | "C" | "D";
 interface UserSelections {
   [questionId: number]: OptionKey | undefined;
+}
+
+interface ConfirmedAnswers {
+  [questionId: number]: boolean;
 }
 
 const TEST_DURATION_SECONDS = 30 * 60;
@@ -191,6 +196,7 @@ const LevelAssessmentAttemptPage = () => {
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userSelections, setUserSelections] = useState<UserSelections>({});
+  const [confirmedAnswers, setConfirmedAnswers] = useState<ConfirmedAnswers>({}); // Track confirmed answers
   const [timeElapsed, setTimeElapsed] = useState(0); // Timer counts up from 00:00
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
@@ -231,12 +237,14 @@ const LevelAssessmentAttemptPage = () => {
 
       const initialSelections: UserSelections = {};
       const initialAnswered = new Set<number>();
+      const initialConfirmed: ConfirmedAnswers = {};
       let firstUnansweredIndex = -1;
 
       attemptData.questions.forEach((q, index) => {
         if (q.user_answer_details?.selected_choice) {
           initialSelections[q.id] = q.user_answer_details.selected_choice;
           initialAnswered.add(q.id);
+          initialConfirmed[q.id] = true; // Mark as confirmed if already submitted
         } else if (firstUnansweredIndex === -1) {
           firstUnansweredIndex = index;
         }
@@ -244,6 +252,7 @@ const LevelAssessmentAttemptPage = () => {
 
       setUserSelections(initialSelections);
       setAnsweredQuestions(initialAnswered);
+      setConfirmedAnswers(initialConfirmed);
       setCurrentQuestionIndex(
         firstUnansweredIndex !== -1 ? firstUnansweredIndex : 0
       );
@@ -315,6 +324,10 @@ const LevelAssessmentAttemptPage = () => {
 
       // Update answered questions set
       setAnsweredQuestions(prev => new Set([...prev, variables.question_id]));
+      // Mark as confirmed
+      setConfirmedAnswers(prev => ({ ...prev, [variables.question_id]: true }));
+      
+      toast.success(t("answerConfirmed"));
     },
     onError: (error: any, variables) => {
       const errorMsg = getApiErrorMessage(error, tCommon("errors.generic"));
@@ -367,7 +380,7 @@ const LevelAssessmentAttemptPage = () => {
   });
 
   const handleSelectAnswer = (selectedOption: OptionKey) => {
-    if (currentQuestion) {
+    if (currentQuestion && !confirmedAnswers[currentQuestion.id]) {
       setUserSelections((prev) => ({
         ...prev,
         [currentQuestion.id]: selectedOption,
@@ -375,34 +388,21 @@ const LevelAssessmentAttemptPage = () => {
     }
   };
 
-  const submitCurrentAnswer = async (
-    questionId: number,
-    selectedAnswer: OptionKey | undefined
-  ) => {
-    if (selectedAnswer && !answeredQuestions.has(questionId)) {
-      const timeTakenSeconds = Math.round(
-        (Date.now() - questionStartTime) / 1000
-      );
+  const handleConfirmAnswer = async () => {
+    if (currentQuestion && userSelections[currentQuestion.id] && !confirmedAnswers[currentQuestion.id]) {
+      const timeTakenSeconds = Math.round((Date.now() - questionStartTime) / 1000);
       await submitAnswerMutation.mutateAsync({
         attemptId,
-        question_id: questionId,
-        selected_answer: selectedAnswer,
+        question_id: currentQuestion.id,
+        selected_answer: userSelections[currentQuestion.id]!,
         time_taken_seconds: timeTakenSeconds,
       });
     }
   };
 
-  const handleNext = async () => {
-    if (currentQuestion && userSelections[currentQuestion.id]) {
-      await submitCurrentAnswer(
-        currentQuestion.id,
-        userSelections[currentQuestion.id]
-      );
-    }
+  const handleNext = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
-    } else {
-      handleCompleteTest();
     }
   };
 
@@ -416,18 +416,6 @@ const LevelAssessmentAttemptPage = () => {
     autoSubmittedDueToTimeUp = false,
     forceComplete = false
   ) => {
-    if (
-      currentQuestion &&
-      userSelections[currentQuestion.id] &&
-      !autoSubmittedDueToTimeUp &&
-      !forceComplete &&
-      !answeredQuestions.has(currentQuestion.id)
-    ) {
-      await submitCurrentAnswer(
-        currentQuestion.id,
-        userSelections[currentQuestion.id]
-      );
-    }
     completeTestMutation.mutate(attemptId);
   };
 
@@ -435,9 +423,13 @@ const LevelAssessmentAttemptPage = () => {
     cancelTestMutation.mutate(attemptId);
   };
 
-  // Calculate progress based on answered questions
-  const answeredCount = answeredQuestions.size;
-  const progressValue = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
+  // Calculate progress based on confirmed answers
+  const confirmedCount = Object.values(confirmedAnswers).filter(Boolean).length;
+  const progressValue = questions.length > 0 ? (confirmedCount / questions.length) * 100 : 0;
+
+  // Check if current question is confirmed
+  const isCurrentQuestionConfirmed = currentQuestion ? confirmedAnswers[currentQuestion.id] : false;
+  const isCurrentQuestionAnswered = currentQuestion ? answeredQuestions.has(currentQuestion.id) : false;
 
   // RENDER LOGIC
   if (isLoadingAttempt || !isReady) return <QuizPageSkeleton />;
@@ -467,6 +459,8 @@ const LevelAssessmentAttemptPage = () => {
     );
   }
 
+  // غير مؤكد
+
   if (!currentQuestion) {
     return (
       <div className="container mx-auto flex min-h-[calc(100vh-200px)] flex-col items-center justify-center p-6">
@@ -491,15 +485,13 @@ const LevelAssessmentAttemptPage = () => {
     );
   }
 
-  const isCurrentQuestionAnswered = answeredQuestions.has(currentQuestion.id);
-
   return (
     <div className="container mx-auto flex flex-col items-center p-4 md:p-6 lg:p-8">
       <Card className="w-full max-w-4xl shadow-xl dark:bg-[#0B1739]">
         <CardHeader dir={locale === "en" ? "ltr" : "rtl"} className="pb-4">
           <div className="mb-3 flex items-center justify-between">
             <CardTitle className="text-2xl md:text-3xl font-bold">
-              {answeredCount}/{questions.length}
+              {confirmedCount}/{questions.length}
             </CardTitle>
             <div className="flex items-center gap-4">
               <div className="flex items-center text-lg">
@@ -552,12 +544,20 @@ const LevelAssessmentAttemptPage = () => {
               <h3 className="text-lg font-medium text-muted-foreground">
                 {t("question")} {currentQuestionIndex + 1}
               </h3>
-              {isCurrentQuestionAnswered && (
-                <div className="flex items-center gap-1 text-green-600">
-                  <Check className="h-4 w-4" />
-                  <span className="text-sm font-medium">{t("answered")}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {isCurrentQuestionConfirmed && (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">مؤكد</span>
+                  </div>
+                )}
+                {userSelections[currentQuestion.id] && !isCurrentQuestionConfirmed && (
+                  <div className="flex items-center gap-1 text-yellow-600">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm font-medium">غير مؤكد</span>
+                  </div>
+                )}
+              </div>
             </div>
             <QuestionRenderer
               questionText={currentQuestion.question_text}
@@ -566,53 +566,79 @@ const LevelAssessmentAttemptPage = () => {
           </div>
 
           {currentQuestion.options ? (
-            <RadioGroup
-              value={userSelections[currentQuestion.id] || ""}
-              onValueChange={(value: string) =>
-                handleSelectAnswer(value as OptionKey)
-              }
-              className="grid grid-cols-1 md:grid-cols-2 gap-4"
-              dir={direction}
-            >
-              {Object.entries(currentQuestion.options).map(([key, text]) => {
-                const optionKey = key as OptionKey;
-                const isSelected = userSelections[currentQuestion.id] === optionKey;
-                
-                return (
-                  <Label
-                    key={optionKey}
-                    htmlFor={`${currentQuestion.id}-${optionKey}`}
-                    className={`
-                      relative flex cursor-pointer items-center p-4 rounded-lg border-2 
-                      transition-all duration-200 min-h-[80px]
-                      ${isSelected 
-                        ? 'border-primary bg-primary/10 shadow-md' 
-                        : 'border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:bg-accent'
-                      }
-                      ${isCurrentQuestionAnswered ? 'opacity-80 cursor-not-allowed' : ''}
-                    `}
-                  >
-                    <RadioGroupItem
-                      value={optionKey}
-                      id={`${currentQuestion.id}-${optionKey}`}
-                      className="border-2 border-primary text-primary me-3 rtl:me-0 rtl:ms-3"
-                      disabled={isCurrentQuestionAnswered}
-                    />
-                    <div className="flex-1">
-                      <RichContentViewer
-                        htmlContent={text}
-                        className="prose dark:prose-invert max-w-none text-base"
+            <>
+              <RadioGroup
+                value={userSelections[currentQuestion.id] || ""}
+                onValueChange={(value: string) =>
+                  handleSelectAnswer(value as OptionKey)
+                }
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                dir={direction}
+              >
+                {Object.entries(currentQuestion.options).map(([key, text]) => {
+                  const optionKey = key as OptionKey;
+                  const isSelected = userSelections[currentQuestion.id] === optionKey;
+                  
+                  return (
+                    <Label
+                      key={optionKey}
+                      htmlFor={`${currentQuestion.id}-${optionKey}`}
+                      className={`
+                        relative flex cursor-pointer items-center p-4 rounded-lg border-2 
+                        transition-all duration-200 min-h-[80px]
+                        ${isSelected 
+                          ? 'border-primary bg-primary/10 shadow-md' 
+                          : 'border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:bg-accent'
+                        }
+                        ${isCurrentQuestionConfirmed ? 'opacity-80 cursor-not-allowed' : ''}
+                      `}
+                    >
+                      <RadioGroupItem
+                        value={optionKey}
+                        id={`${currentQuestion.id}-${optionKey}`}
+                        className="border-2 border-primary text-primary me-3 rtl:me-0 rtl:ms-3"
+                        disabled={isCurrentQuestionConfirmed}
                       />
-                    </div>
-                    {isSelected && (
-                      <div className="absolute top-2 end-2 rtl:end-auto rtl:start-2">
-                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                      <div className="flex-1">
+                        <RichContentViewer
+                          htmlContent={text}
+                          className="prose dark:prose-invert max-w-none text-base"
+                        />
                       </div>
+                      {isSelected && (
+                        <div className="absolute top-2 end-2 rtl:end-auto rtl:start-2">
+                          <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                        </div>
+                      )}
+                    </Label>
+                  );
+                })}
+              </RadioGroup>
+              
+              {/* Confirm Answer Button */}
+              {userSelections[currentQuestion.id] && !isCurrentQuestionConfirmed && (
+                <div className="mt-6 flex justify-center">
+                  <Button
+                    onClick={handleConfirmAnswer}
+                    disabled={submitAnswerMutation.isPending}
+                    className="min-w-[200px]"
+                    variant="default"
+                  >
+                    {submitAnswerMutation.isPending ? (
+                      <>
+                        <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
+                        {t("confirming")}
+                      </>
+                    ) : (
+                      <>
+                        <Check className="me-2 h-4 w-4 rtl:me-0 rtl:ms-2" />
+                        {t("confirmAnswer")}
+                      </>
                     )}
-                  </Label>
-                );
-              })}
-            </RadioGroup>
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <Alert variant="destructive">
               <HelpCircle className="h-5 w-5" />
@@ -648,23 +674,37 @@ const LevelAssessmentAttemptPage = () => {
             {t("previous")}
           </Button>
           
+          {/* Question Navigation Indicator */}
+          <div className="flex items-center gap-2">
+            {questions.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentQuestionIndex(index)}
+                className={`
+                  w-2 h-2 rounded-full transition-all
+                  ${index === currentQuestionIndex 
+                    ? 'w-8 bg-primary' 
+                    : confirmedAnswers[questions[index]?.id]
+                      ? 'bg-green-500'
+                      : userSelections[questions[index]?.id]
+                        ? 'bg-yellow-500'
+                        : 'bg-gray-300 dark:bg-gray-600'
+                  }
+                `}
+                title={`Question ${index + 1}`}
+              />
+            ))}
+          </div>
+          
           {currentQuestionIndex < questions.length - 1 ? (
             <Button
               onClick={handleNext}
               disabled={
-                !userSelections[currentQuestion.id] ||
-                !currentQuestion.options ||
                 completeTestMutation.isPending ||
-                cancelTestMutation.isPending ||
-                (submitAnswerMutation.isPending &&
-                  submitAnswerMutation.variables?.question_id === currentQuestion?.id)
+                cancelTestMutation.isPending
               }
               className="w-full sm:w-auto"
             >
-              {submitAnswerMutation.isPending &&
-                submitAnswerMutation.variables?.question_id === currentQuestion?.id && (
-                  <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
-                )}
               {t("next")}
               {locale === "ar" ? (
                 <ChevronLeft className="ms-2 h-5 w-5 rtl:me-2 rtl:ms-0" />
@@ -678,19 +718,15 @@ const LevelAssessmentAttemptPage = () => {
                 <Button
                   className="w-full sm:w-auto"
                   disabled={
-                    !userSelections[currentQuestion.id] ||
-                    !currentQuestion.options ||
                     completeTestMutation.isPending ||
-                    cancelTestMutation.isPending ||
-                    (submitAnswerMutation.isPending &&
-                      submitAnswerMutation.variables?.question_id === currentQuestion?.id)
+                    cancelTestMutation.isPending
                   }
                 >
                   {completeTestMutation.isPending && (
                     <Loader2 className="me-2 h-4 w-4 animate-spin rtl:me-0 rtl:ms-2" />
                   )}
                   <Check className="me-2 h-5 w-5 rtl:me-0 rtl:ms-2" />
-                  {t("submitAnswers")}
+                  {t("submitTest")}
                 </Button>
               }
               title={t("completeDialog.title")}
@@ -712,7 +748,7 @@ const LevelAssessmentAttemptPage = () => {
         onOpenChange={setIsErrorModalOpen}
       />
     </div>
-  );
+  ); 
 };
 
 const QuizPageSkeleton = ({ message }: { message?: string }) => {
