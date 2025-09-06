@@ -15,8 +15,8 @@ from apps.learning.models import (
     LearningSection,
     LearningSubSection,
     Skill,
-    MediaFile,  # NEW
-    Article,  # NEW
+    MediaFile,
+    Article,
     Question,
 )
 from ..serializers.learning_management import (
@@ -24,14 +24,30 @@ from ..serializers.learning_management import (
     AdminLearningSectionSerializer,
     AdminLearningSubSectionSerializer,
     AdminSkillSerializer,
-    AdminMediaFileSerializer,  # NEW
-    AdminArticleSerializer,  # NEW
+    AdminMediaFileSerializer,
+    AdminArticleSerializer,
     AdminQuestionSerializer,
 )
 from ..permissions import (
     IsAdminUserOrSubAdminWithPermission,
 )  # Import the custom permission
 from django.db.models import Count
+
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser
+
+import openpyxl
+from io import BytesIO
+from django.http import HttpResponse
+
+from apps.admin_panel.models import ExportJob
+from apps.admin_panel import services as admin_services
+
+from ..serializers.statistics import ExportTaskResponseSerializer
+from rest_framework.reverse import reverse
+from rest_framework.exceptions import ValidationError
+from ...tasks import process_export_job
 
 ADMIN_TAG = "Admin Panel - Learning Management"  # Tag for OpenAPI docs
 
@@ -340,3 +356,170 @@ class AdminQuestionViewSet(viewsets.ModelViewSet):
         else:
             self.required_permissions = []
         return [permission() for permission in self.permission_classes]
+
+    @extend_schema(
+        summary="Trigger a Question Data Export",
+        tags=[ADMIN_TAG],
+        description="""
+        Triggers an asynchronous export of questions.
+        This endpoint uses the **query parameters** from the main list view for filtering.
+        For example: `/api/v1/admin/learning/questions/export/?is_active=true&difficulty=3`
+        The request body should be empty.
+        """,
+        # request=None,  # Explicitly state there is no request body
+        responses={202: ExportTaskResponseSerializer},
+    )
+    @action(detail=False, methods=["post"], url_path="export")
+    def export_questions(self, request):
+        """
+        Triggers an asynchronous export of questions based on current filters.
+        """
+        job = ExportJob.objects.create(
+            requesting_user=request.user,
+            job_type=ExportJob.JobType.QUESTIONS,
+            file_format=ExportJob.Format.XLSX,
+            filters=request.query_params.dict(),
+        )
+        process_export_job.delay(job_id=job.id)
+        status_check_url = reverse(
+            "api:v1:admin_panel:export-job-detail",
+            kwargs={"pk": job.id},
+            request=request,
+        )
+        response_data = {
+            "job_id": job.id,
+            "message": "Your question export request has been received and is being processed.",
+            "status_check_url": status_check_url,
+        }
+        serializer = ExportTaskResponseSerializer(data=response_data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+    @extend_schema(
+        summary="Import Questions from XLSX",
+        tags=[ADMIN_TAG],
+        description="""
+        Uploads an XLSX file to create new questions or update existing ones.
+        The file format must match the template provided by the `/import-template/` endpoint.
+        """,
+        # THIS IS THE KEY CHANGE: Define the request body for file upload
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "file": {"type": "string", "format": "binary"},
+                    "update_strategy": {
+                        "type": "string",
+                        "enum": ["REPLACE", "SKIP"],
+                        "default": "REPLACE",
+                    },
+                },
+            }
+        },
+        responses={
+            200: {
+                "description": "Import successful.",
+                "examples": {"application/json": {"created": 15, "updated": 5}},
+            },
+            400: {"description": "Validation error with details."},
+        },
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="import",
+        parser_classes=[MultiPartParser],
+    )
+    def import_questions(self, request):
+        """
+        Imports questions from an uploaded XLSX file.
+        - `file`: The XLSX file to upload.
+        - `update_strategy`: 'SKIP' or 'REPLACE'. Defaults to 'REPLACE'.
+        """
+        # The Python logic here is already correct and does not need to change.
+        file_obj = request.data.get("file")
+        update_strategy = request.data.get("update_strategy", "REPLACE").upper()
+
+        if not file_obj:
+            return Response(
+                {"error": "File not provided."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if update_strategy not in ["SKIP", "REPLACE"]:
+            return Response(
+                {"error": "Invalid update_strategy. Choose 'SKIP' or 'REPLACE'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = admin_services.process_question_import_file(
+                file_obj, update_strategy
+            )
+            return Response(result, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @extend_schema(
+        summary="Download Question Import Template",
+        tags=[ADMIN_TAG],
+        description="Downloads a blank Excel template with the correct headers for importing questions.",
+        request=None,  # No request body for a GET
+        responses={
+            200: {
+                "description": "An Excel file template.",
+                "content": {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                        "schema": {"type": "string", "format": "binary"}
+                    }
+                },
+            }
+        },
+    )
+    @action(detail=False, methods=["get"], url_path="import-template")
+    def get_import_template(self, request):
+        """
+        Downloads a blank Excel template with the correct headers for importing questions.
+        """
+        # The Python logic here is correct and does not need to change.
+        headers = [
+            "Question ID",
+            "Question Text",
+            "Is Active",
+            "Option A",
+            "Option B",
+            "Option C",
+            "Option D",
+            "Correct Answer",
+            "Explanation",
+            "Hint",
+            "Solution Summary",
+            "Difficulty",
+            "Test Type Name",
+            "Section Name",
+            "Sub-Section Name",
+            "Skill Name",
+            "Media Content Title",
+            "Article Title",
+        ]
+
+        output = BytesIO()
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "Questions Import Template"
+        sheet.append(headers)
+
+        workbook.save(output)
+        output.seek(0)
+
+        response = HttpResponse(
+            output,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = (
+            'attachment; filename="question_import_template.xlsx"'
+        )
+        return response

@@ -39,6 +39,13 @@ def process_export_job(self, job_id):
                     queryset, job.file_format
                 )
             )
+        # NEW: Handle Question Export
+        elif job.job_type == ExportJob.JobType.QUESTIONS:
+            queryset = admin_services.get_filtered_questions(job.filters)
+            # Forcing xlsx as it's the most robust format for this data
+            file_content, _, filename = (
+                admin_services.generate_question_export_file_content(queryset, "xlsx")
+            )
         else:
             raise ValueError(f"Unknown job type: {job.job_type}")
 

@@ -65,6 +65,7 @@ class ExportJob(models.Model):
     class JobType(models.TextChoices):
         TEST_ATTEMPTS = "TEST_ATTEMPTS", _("Test Attempts Export")
         USERS = "USERS", _("User Data Export")
+        QUESTIONS = "QUESTIONS", _("Questions Export")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     requesting_user = models.ForeignKey(

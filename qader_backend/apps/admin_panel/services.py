@@ -1,11 +1,23 @@
 import csv
 import openpyxl
 from io import StringIO, BytesIO
-
-from django.db.models import Count
+from django.db.models import Q
+from django.db import transaction
+from django.db.models import Count, QuerySet
 from django.utils import timezone
 from apps.study.models import UserTestAttempt
 from apps.users.models import UserProfile  # NEW IMPORT
+from rest_framework.exceptions import ValidationError
+
+from apps.learning.models import (
+    Question,
+    TestType,
+    LearningSection,
+    LearningSubSection,
+    Skill,
+    MediaFile,
+    Article,
+)
 
 
 def get_filtered_test_attempts(filters: dict):
@@ -345,3 +357,266 @@ def generate_user_export_file_content(queryset, export_format: str):
         )
 
     return file_content, content_type, filename
+
+
+# --- NEW SERVICE FUNCTIONS FOR QUESTION IMPORT/EXPORT ---
+
+
+def get_filtered_questions(filters: dict) -> QuerySet[Question]:
+    """
+    Applies filters to the Question queryset for export, mirroring AdminQuestionViewSet.
+    """
+    queryset = Question.objects.select_related(
+        "subsection__section__test_type", "skill", "media_content", "article"
+    ).all()
+
+    # Apply filters from the 'filters' dictionary passed by the view
+    if filters.get("subsection__section__test_type__id"):
+        queryset = queryset.filter(
+            subsection__section__test_type__id=filters[
+                "subsection__section__test_type__id"
+            ]
+        )
+    if filters.get("subsection__section__id"):
+        queryset = queryset.filter(
+            subsection__section__id=filters["subsection__section__id"]
+        )
+    # ... Add any other filters from AdminQuestionViewSet as needed ...
+    if filters.get("is_active"):
+        is_active_bool = str(filters["is_active"]).lower() in ["true", "1"]
+        queryset = queryset.filter(is_active=is_active_bool)
+
+    return queryset.order_by("id")
+
+
+def generate_question_export_file_content(
+    queryset: QuerySet[Question], export_format: str = "xlsx"
+):
+    """
+    Generates a user-friendly Excel (XLSX) file from a question queryset.
+    """
+    headers = [
+        "Question ID",
+        "Question Text",
+        "Is Active",
+        "Option A",
+        "Option B",
+        "Option C",
+        "Option D",
+        "Correct Answer",
+        "Explanation",
+        "Hint",
+        "Solution Summary",
+        "Difficulty",
+        "Test Type Name",
+        "Section Name",
+        "Sub-Section Name",
+        "Skill Name",
+        "Media Content Title",
+        "Article Title",
+    ]
+    filename = (
+        f"qader_questions_{timezone.now().strftime('%Y%m%d_%H%M%S')}.{export_format}"
+    )
+
+    if export_format != "xlsx":
+        raise NotImplementedError(
+            "Only XLSX format is supported for question export for now."
+        )
+
+    output = BytesIO()
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Questions"
+    sheet.append(headers)
+
+    for q in queryset.iterator():
+        sheet.append(
+            [
+                q.id,
+                q.question_text,
+                "TRUE" if q.is_active else "FALSE",
+                q.option_a,
+                q.option_b,
+                q.option_c,
+                q.option_d,
+                q.correct_answer,
+                q.explanation,
+                q.hint,
+                q.solution_method_summary,
+                q.get_difficulty_display(),
+                getattr(q.subsection.section.test_type, "name", ""),
+                getattr(q.subsection.section, "name", ""),
+                getattr(q.subsection, "name", ""),
+                getattr(q.skill, "name", ""),
+                getattr(q.media_content, "title", ""),
+                getattr(q.article, "title", ""),
+            ]
+        )
+
+    workbook.save(output)
+    file_content = output.getvalue()
+    content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    return file_content, content_type, filename
+
+
+@transaction.atomic
+def process_question_import_file(file_obj, update_strategy: str):
+    """
+    Processes an uploaded Excel file to create or update questions.
+    If classification items (Test Type, Section, etc.) do not exist, they are created automatically.
+    """
+    try:
+        workbook = openpyxl.load_workbook(file_obj)
+        sheet = workbook.active
+    except Exception as e:
+        raise ValidationError(f"Could not read the Excel file. Error: {str(e)}")
+
+    headers = [cell.value for cell in sheet[1]]
+    expected_headers = [
+        "Question ID",
+        "Question Text",
+        "Is Active",
+        "Option A",
+        "Option B",
+        "Option C",
+        "Option D",
+        "Correct Answer",
+        "Explanation",
+        "Hint",
+        "Solution Summary",
+        "Difficulty",
+        "Test Type Name",
+        "Section Name",
+        "Sub-Section Name",
+        "Skill Name",
+        "Media Content Title",
+        "Article Title",
+    ]
+    if headers != expected_headers:
+        raise ValidationError(
+            {
+                "error": "Invalid file headers.",
+                "expected_headers": expected_headers,
+                "found_headers": headers,
+            }
+        )
+
+    errors = []
+    created_count = 0
+    updated_count = 0
+    difficulty_map = {v: k for k, v in Question.DifficultyLevel.choices}
+
+    for row_idx, row in enumerate(sheet.iter_rows(min_row=2), start=2):
+        data = dict(zip(headers, [cell.value for cell in row]))
+        if not any(data.values()):
+            continue  # Skip empty rows
+
+        try:
+            # --- MODIFIED: Use get_or_create for the entire hierarchy ---
+
+            # 1. Get or Create Test Type
+            test_type_name = data.get("Test Type Name")
+            if not test_type_name:
+                raise ValueError("'Test Type Name' is required.")
+            test_type, created = TestType.objects.get_or_create(
+                name=test_type_name,
+                defaults={
+                    "status": TestType.TestTypeStatus.ACTIVE
+                },  # Sensible default if created
+            )
+
+            # 2. Get or Create Learning Section (linked to the Test Type)
+            section_name = data.get("Section Name")
+            if not section_name:
+                raise ValueError("'Section Name' is required.")
+            section, created = LearningSection.objects.get_or_create(
+                name=section_name, test_type=test_type
+            )
+
+            # 3. Get or Create Learning Sub-Section (linked to the Section)
+            subsection_name = data.get("Sub-Section Name")
+            if not subsection_name:
+                raise ValueError("'Sub-Section Name' is required.")
+            subsection, created = LearningSubSection.objects.get_or_create(
+                name=subsection_name, section=section, defaults={"is_active": True}
+            )
+
+            # 4. Get or Create Skill (if provided, linked to the Section and Sub-Section)
+            skill = None
+            skill_name = data.get("Skill Name")
+            if skill_name:
+                skill, created = Skill.objects.get_or_create(
+                    name=skill_name,
+                    section=section,
+                    subsection=subsection,  # Create the skill in the most specific context
+                    defaults={"is_active": True},
+                )
+
+            # --- End of Modified Section ---
+
+            # Media and Article are still lookups only. We don't want to auto-create
+            # empty library items. The admin should create these intentionally.
+            media_content = (
+                MediaFile.objects.get(title=data["Media Content Title"])
+                if data.get("Media Content Title")
+                else None
+            )
+            article = (
+                Article.objects.get(title=data["Article Title"])
+                if data.get("Article Title")
+                else None
+            )
+
+            if media_content and article:
+                raise ValueError("Cannot link both Media Content and an Article.")
+
+            # --- Create or Update Logic (Unchanged) ---
+            question_id = data.get("Question ID")
+            question = (
+                Question.objects.filter(id=question_id).first() if question_id else None
+            )
+
+            if question and update_strategy == "SKIP":
+                continue
+
+            if not question:
+                question = Question()
+                is_update = False
+            else:
+                is_update = True
+
+            # Assigning values...
+            question.question_text = data["Question Text"]
+            question.is_active = str(data["Is Active"]).upper() == "TRUE"
+            question.option_a, question.option_b = data["Option A"], data["Option B"]
+            question.option_c, question.option_d = data["Option C"], data["Option D"]
+            question.correct_answer = str(data["Correct Answer"]).upper()
+            question.difficulty = difficulty_map[data["Difficulty"]]
+            question.explanation, question.hint = data["Explanation"], data["Hint"]
+            question.solution_method_summary = data["Solution Summary"]
+            question.subsection = subsection
+            question.skill, question.media_content, question.article = (
+                skill,
+                media_content,
+                article,
+            )
+
+            question.full_clean()
+            question.save()
+
+            if is_update:
+                updated_count += 1
+            else:
+                created_count += 1
+
+        except Exception as e:
+            errors.append(f"Row {row_idx}: {str(e)}")
+
+    if errors:
+        raise ValidationError(
+            {"detail": "Import failed due to errors.", "errors": errors}
+        )
+
+    return {"created": created_count, "updated": updated_count}
